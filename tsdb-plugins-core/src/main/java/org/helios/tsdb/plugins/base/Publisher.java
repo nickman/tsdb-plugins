@@ -30,6 +30,9 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 
+import org.helios.tsdb.plugins.Constants;
+import org.helios.tsdb.plugins.asynch.PluginType;
+import org.helios.tsdb.plugins.asynch.TSDBEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +40,7 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: Publisher</p>
- * <p>Description: Base abstract {@link RTPublisher} class.</p> 
+ * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventPublisher} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.base.Publisher</code></p>
@@ -46,8 +49,8 @@ import com.stumbleupon.async.Deferred;
 public abstract class Publisher extends RTPublisher {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	/** The callback supplied TSDB instance */
-	protected TSDB tsdb = null;
+	/** The event publisher delegate */
+	protected TSDBEventPublisher publisher;
 	
 	/**
 	 * Creates a new Publisher
@@ -63,23 +66,18 @@ public abstract class Publisher extends RTPublisher {
 	@Override
 	public void initialize(TSDB tsdb) {
 		log.debug("Initializing instance");
-		this.tsdb = tsdb;
-
+		publisher = TSDBEventPublisher.getInstance(tsdb);
+		publisher.configurePublisher();
 	}
 	
 
-	// ==========
-	//   ADD NONBLOCKING HASHMAP STUFF.  GAUGE / COUNTER METRICS
-	// ==========
-	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.tsd.RTPublisher#collectStats(net.opentsdb.stats.StatsCollector)
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		// TODO Auto-generated method stub
-
+		publisher.collectStats(PluginType.PUBLISH, statsCollector);
 	}
 
 
@@ -89,7 +87,8 @@ public abstract class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		return null;
+		publisher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		return Constants.NULL_DEFERED;
 	}
 
 	/**
@@ -98,20 +97,18 @@ public abstract class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-		return null;
+		publisher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		return Constants.NULL_DEFERED;
 	}
-
-
+	
 
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.tsd.RTPublisher#version()
 	 */
 	@Override
-	public String version() {
-		// TODO Auto-generated method stub
-		return null;
+	public String version() {		
+		return Constants.PLUGIN_VERSION;
 	}
 
 }

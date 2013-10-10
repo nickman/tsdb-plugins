@@ -9,21 +9,23 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
 
-import org.helios.tsdb.plugins.Constants;
+import org.helios.tsdb.plugins.event.PluginType;
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.AbstractService;
 import com.lmax.disruptor.RingBuffer;
 import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: TSDBEventPublisher</p>
- * <p>Description: </p> 
+ * <p>Description: The asynch plugin event multiplexer</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.asynch.TSDBEventPublisher</code></p>
  */
-public class TSDBEventPublisher {
+public class TSDBEventPublisher extends AbstractService {
 	/** The singleton instance */
 	private static volatile TSDBEventPublisher instance = null;
 	/** The singleton instance ctor lock */
@@ -34,6 +36,24 @@ public class TSDBEventPublisher {
 	protected final TSDB tsdb;
 	/** The RingBuffer instance events are published to */
 	protected RingBuffer<TSDBEvent> ringBuffer = null;
+	
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.AbstractService#doStart()
+	 */
+	@Override
+	protected void doStart() {
+		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.AbstractService#doStop()
+	 */
+	@Override
+	protected void doStop() {
+		
+	}
 	
 	/**
 	 * Acquires the singleton instance
@@ -115,18 +135,7 @@ public class TSDBEventPublisher {
 		
 	}
 	
-	/**
-	 * Called any time a new data point is published
-	 * @param metric The name of the metric associated with the data point
-	 * @param timestamp Timestamp as a Unix epoch in seconds or milliseconds (depending on the TSD's configuration)
-	 * @param value Value for the data point
-	 * @param tags The metric tags
-	 * @param tsuid Time series UID for the value
-	 * @param flags Indicates the type of the value
-	 */
-	public void publishDataPoint(String metric, long timestamp, byte[] value, Map<String, String> tags, byte[] tsuid, short flags) {
-		
-	}
+
 	
 	/**
 	 * Deletes an annotation
@@ -168,15 +177,23 @@ public class TSDBEventPublisher {
 	public void indexTSMeta(TSMeta tsMeta) {
 
 	}	
+	
+	/**
+	 * Indexes a UID metadata object for a metric, tagk or tagv Note: Unique Document ID = UID and the Type "TYPEUID"
+	 * @param uidMeta The UIDMeta to index
+	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
+	 */
+	public void indexUIDMeta(UIDMeta uidMeta) {
+
+	}	
 
 	/**
 	 * Called when we need to remove a UID meta object from the engine Note: Unique Document ID = UID and the Type "TYPEUID"
 	 * @param uidMeta The UIDMeta to delete
 	 * @see net.opentsdb.search.SearchPlugin#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
-	public Deferred<Object> deleteUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-		return Constants.NULL_DEFERED;
+	public void deleteUIDMeta(UIDMeta uidMeta) {
+
 	}
 
 	/**
@@ -184,33 +201,21 @@ public class TSDBEventPublisher {
 	 * @see net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		// TODO Auto-generated method stub
-		return null;
+		Deferred<SearchQuery> defSearch = new Deferred<SearchQuery>();
+		defSearch.callback(searchQuery);
+		return defSearch;
 	}
-
-
-
-
-	/**
-	 * 
-	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
-	 */
-	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 
 	
 	/**
 	 * Called by TSDB to initialize the plugin Implementations are responsible for setting up any IO they need as well as starting any required background threads. Note: Implementations should throw exceptions if they can't start up properly. The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
 	 * @param tsdb The parent TSDB object
 	 * @see net.opentsdb.tsd.RTPublisher#initialize(net.opentsdb.core.TSDB)
-	 */
-	
+	 */	
 	public void initialize(TSDB tsdb) {
-		
+		 
 	}
+
 
 
 

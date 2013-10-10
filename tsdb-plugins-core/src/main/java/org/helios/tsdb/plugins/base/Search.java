@@ -25,8 +25,8 @@
 package org.helios.tsdb.plugins.base;
 
 import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.asynch.PluginType;
 import org.helios.tsdb.plugins.asynch.TSDBEventPublisher;
+import org.helios.tsdb.plugins.event.PluginType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +80,7 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> deleteAnnotation(Annotation annotation) {
-
+		publisher.deleteAnnotation(annotation);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -90,7 +90,7 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> deleteTSMeta(String tsMeta) {
-		// TODO Auto-generated method stub
+		publisher.deleteTSMeta(tsMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -100,7 +100,7 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> deleteUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
+		publisher.deleteUIDMeta(uidMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -110,8 +110,7 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		// TODO Auto-generated method stub
-		return null;
+		return publisher.executeQuery(searchQuery);
 	}
 
 	/**
@@ -120,8 +119,8 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> indexAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
-		return null;
+		publisher.indexAnnotation(annotation);
+		return Constants.NULL_DEFERED;
 	}
 
 	/**
@@ -130,8 +129,8 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> indexTSMeta(TSMeta tsMeta) {
-		// TODO Auto-generated method stub
-		return null;
+		publisher.indexTSMeta(tsMeta);
+		return Constants.NULL_DEFERED;
 	}
 
 	/**
@@ -140,8 +139,8 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-		return null;
+		publisher.indexUIDMeta(uidMeta);
+		return Constants.NULL_DEFERED;
 	}
 
 	/**

@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch;
+package org.helios.tsdb.plugins.event;
 
 import java.util.Arrays;
 
@@ -47,8 +47,6 @@ public enum TSDBEventType {
 	DPOINT_LONG(PluginType.PUBLISH),
 	/** A double value sdata point */
 	DPOINT_DOUBLE(PluginType.PUBLISH),
-	/** A raw value data point */
-	DPOINT_RAW(PluginType.PUBLISH),	
 	/** An annotation index */
 	ANNOTATION_INDEX(PluginType.SEARCH),
 	/** An annotation deletion */

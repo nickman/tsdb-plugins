@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch;
+package org.helios.tsdb.plugins.event;
 
 /**
  * <p>Title: PluginType</p>

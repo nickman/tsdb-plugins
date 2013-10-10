@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch;
+package org.helios.tsdb.plugins.event;
 
 import java.util.Map;
 
@@ -254,10 +254,10 @@ public class TSDBEvent  {
 			b.append(annotation);
 			break;
 		case DPOINT_DOUBLE:
+			b.append(doubleValue);
 			break;
 		case DPOINT_LONG:
-			break;
-		case DPOINT_RAW:
+			b.append(longValue);
 			break;
 		case SEARCH:
 			b.append(searchQuery);
@@ -279,5 +279,6 @@ public class TSDBEvent  {
 		}
 		return b.append("]").toString();
 	}
+
 
 }

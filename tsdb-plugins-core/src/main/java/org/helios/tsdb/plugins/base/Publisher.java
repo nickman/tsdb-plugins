@@ -31,8 +31,8 @@ import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 
 import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.asynch.PluginType;
 import org.helios.tsdb.plugins.asynch.TSDBEventPublisher;
+import org.helios.tsdb.plugins.event.PluginType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,50 +1,109 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.helios</groupId>
-    <artifactId>tsdb-plugin</artifactId>
+    <groupId>org.helios.tsdb</groupId>
+    <artifactId>tsdb-plugins</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>TSDB-Plugin :: JAR</name>
-    <description>Demo TSDB Plugin</description>
-    <url>https://github.com/nickman/LowGCRegex</url>
-		
-    <properties>
+    <name>TSDB-Plugin :: Project</name>
+    <description>TSDB-Plugins Project</description>
+    <packaging>pom</packaging>
+    <url>https://github.com/nickman/tsdb-plugins</url>
+	
+	<modules>
+		<module>tsdb-plugins-core</module>
+		<!-- <module>tsdb-sql-catalog</module> -->
+	</modules>
+	
+    <properties>    	 
+    	<!-- Misc -->
    		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+   		<compiler-source.version>1.6</compiler-source.version>
+   		<compiler-target.version>1.6</compiler-target.version>
+   		<!-- Dependencies -->
+   		<junit.version>4.11</junit.version>
    		<trove.version>3.0.2</trove.version>
 		<http-client.version>4.2.3</http-client.version>
 		<opentsdb.version>2.0.0</opentsdb.version>
 		<async.version>1.4.0</async.version>
 		<jackson-annotations.version>2.1.4</jackson-annotations.version>
 		<slf4j.version>1.7.2</slf4j.version>
+		<disruptor.version>3.2.0</disruptor.version>
+		<esper.version>4.10.0</esper.version>
+		<logback.version>1.0.9</logback.version>
+		<!-- Plugin Versions -->
+		<jar-plugin.version>2.3</jar-plugin.version>
+		<source-plugin.version>2.2</source-plugin.version>
+		<javadoc-plugin.version>2.9</javadoc-plugin.version>
+		<jar-plugin.version>2.4</jar-plugin.version>
+		<eclipse-plugin.version>2.9</eclipse-plugin.version>
     </properties>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3</version>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
+  <dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esper</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+        
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-stax</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-springjms</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-socket</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-http</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-db</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-csv</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+		
+		<dependency>
+		  <groupId>com.espertech</groupId>
+		  <artifactId>esperio-amqp</artifactId>
+		  <version>${esper.version}</version>
+		</dependency>
+
+
 
         <dependency>
 	  <groupId>net.sf.trove4j</groupId>
 	  <artifactId>trove4j</artifactId>
 	  <version>${trove.version}</version>
 	</dependency>            
+	
+        <dependency>
+	  <groupId>com.lmax</groupId>
+	  <artifactId>disruptor</artifactId>
+	  <version>${disruptor.version}</version>
+	</dependency>            
+	
 	
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -82,20 +141,88 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-      <version>1.0.9</version>
+      <version>${logback.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.0.9</version>
+      <version>${logback.version}</version>
+      <scope>provided</scope>
     </dependency>
-    
-    
-    
-        
-	
-	
     </dependencies>
+  </dependencyManagement>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${jar-plugin.version}</version>
+                <configuration>
+                    <source>${compiler-source.version}</source>
+                    <target>${compiler-target.version}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${javadoc-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <show>public</show>
+                    <nohelp>true</nohelp>
+                    <quiet>true</quiet>
+                </configuration>
+            </plugin>
+	    <plugin>
+		    <groupId>org.apache.maven.plugins</groupId>
+		    <artifactId>maven-source-plugin</artifactId>
+		    <version>${source-plugin.version}</version>
+		    <executions>
+			    <execution>
+				    <id>attach-sources</id>
+				    <phase>verify</phase>
+				    <goals>
+					    <goal>jar</goal>
+				    </goals>
+			    </execution>
+		    </executions>
+	    </plugin>
+	    <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-jar-plugin</artifactId>
+		<version>${jar-plugin.version}</version>
+		<configuration>
+		  <forceCreation>true</forceCreation>
+		</configuration>
+	    </plugin>
+	    <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-eclipse-plugin</artifactId>
+		<version>${eclipse-plugin.version}</version>
+		<configuration>
+		    <downloadJavadocs>true</downloadJavadocs>
+		    <downloadSources>true</downloadSources>
+		    <classpathContainers>
+			<classpathContainer>
+		org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7
+			</classpathContainer>
+		    </classpathContainers>
+		</configuration>
+	    </plugin>
+	    
+        </plugins>
+    </build>
+    
     
 </project>

@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.base;
+package org.helios.tsdb.plugins.shell;
 
 import java.util.Map;
 
@@ -43,7 +43,7 @@ import com.stumbleupon.async.Deferred;
  * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventPublisher} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.base.Publisher</code></p>
+ * <p><code>org.helios.tsdb.plugins.shell.Publisher</code></p>
  */
 
 public abstract class Publisher extends RTPublisher {

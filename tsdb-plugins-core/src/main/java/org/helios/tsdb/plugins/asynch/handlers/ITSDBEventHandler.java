@@ -29,4 +29,15 @@ public interface ITSDBEventHandler {
 	 * @param tsdb The passed TSDB instance containing the config
 	 */
 	public void configure(TSDB tsdb);
+	
+	/**
+	 * Internal lifecycle event. Called when the internal asynch engine passing events to this component starts.
+	 */
+	public void onAsynchStart();
+
+	/**
+	 * Internal lifecycle event. Called when the internal asynch engine passing events to this component stops.
+	 */
+	public void onAsynchShutdown();
+	
 }

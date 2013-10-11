@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.base;
+package org.helios.tsdb.plugins.shell;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.asynch.TSDBEventPublisher;
@@ -45,7 +45,7 @@ import net.opentsdb.stats.StatsCollector;
  * <p>Description: A passthrough {@link SearchPlugin} that delegates to the @link TSDBEventPublisher} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.base.Search</code></p>
+ * <p><code>org.helios.tsdb.plugins.shell.Search</code></p>
  */
 
 public class Search extends SearchPlugin {

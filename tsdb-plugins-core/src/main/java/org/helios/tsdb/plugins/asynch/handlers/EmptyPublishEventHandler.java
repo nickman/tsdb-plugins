@@ -16,12 +16,12 @@ import com.lmax.disruptor.LifecycleAware;
 import com.stumbleupon.async.Deferred;
 
 /**
- * <p>Title: PublishEventHandler</p>
- * <p>Description: </p> 
+ * <p>Title: EmptyPublishEventHandler</p>
+ * <p>Description: Base class for implementing OpenTSDB {@link net.opentsdb.tsd.RTPublisher} event handlers.</p> 
  * @author Nicholas Whitehead
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.PublishEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.asynch.handlers.EmptyPublishEventHandler</code></p>
  */
-public class PublishEventHandler implements ITSDBEventHandler, EventHandler<TSDBEvent>, LifecycleAware  {
+public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
 
 	/**
 	 * {@inheritDoc}
@@ -100,24 +100,5 @@ public class PublishEventHandler implements ITSDBEventHandler, EventHandler<TSDB
 	}	
 	
 
-	/**
-	 * {@inheritDoc}
-	 * @see com.lmax.disruptor.LifecycleAware#onStart()
-	 */
-	@Override
-	public void onStart() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see com.lmax.disruptor.LifecycleAware#onShutdown()
-	 */
-	@Override
-	public void onShutdown() {
-		// TODO Auto-generated method stub
-		
-	}
 
 }

@@ -25,12 +25,20 @@
 package org.helios.tsdb.plugins.handlers;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import com.lmax.disruptor.EventHandler;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: EmptySearchEventHandler</p>
@@ -40,8 +48,10 @@ import com.lmax.disruptor.EventHandler;
  * <p><code>org.helios.tsdb.plugins.handlers.EmptySearchEventHandler</code></p>
  */
 
-public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
-
+public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent> {
+	/** The shared TSDB instance */
+	protected TSDB tsdb = null;
+	
 	/**
 	 * Creates a new EmptySearchEventHandler
 	 */
@@ -67,36 +77,111 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	 */
 	@Override
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
-		// TODO Auto-generated method stub
-		
+		if(event.eventType==null || !event.eventType.isForSearch()) return;
+		switch(event.eventType) {
+		case ANNOTATION_DELETE:
+			deleteAnnotation(event.annotation);
+			break;
+		case ANNOTATION_INDEX:
+			indexAnnotation(event.annotation);
+			break;
+		case SEARCH:
+			executeQuery(event.searchQuery, event.deferred);
+			break;
+		case TSMETA_DELETE:
+			deleteTSMeta(event.tsuid);
+			break;
+		case TSMETA_INDEX:
+			indexTSMeta(event.tsMeta);
+			break;
+		case UIDMETA_DELETE:
+			deleteUIDMeta(event.uidMeta);
+			break;
+		case UIDMETA_INDEX:
+			indexUIDMeta(event.uidMeta);
+			break;
+		default:
+			//  ??  Programmer Error ?
+			break;			
+		}				
 	}
 	
 	/**
-	 * @param event
-	 * @throws Exception
+	 * Handles a search event from the TSDB through the event bus
+	 * @param event The published event to dispatch
+	 * @throws Exception thrown on failures in execution
 	 */
 	@Subscribe
 	@AllowConcurrentEvents	
-	public void onEvent(TSDBEvent event) throws Exception {
-		
+	public void onEvent(TSDBSearchEvent event) throws Exception {
+		onEvent(event, -1, false);
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#start()
+	 */
 	@Override
 	public void start() {
-		// TODO Auto-generated method stub
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#stop()
+	 */
 	@Override
 	public void stop() {
-		// TODO Auto-generated method stub
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#configure(net.opentsdb.core.TSDB)
+	 */
 	@Override
 	public void configure(TSDB tsdb) {
-		// TODO Auto-generated method stub
+		this.tsdb = tsdb;
+	}
+
+	public void initialize(TSDB tsdb) {
+		
+	}
+
+	public void shutdown() {
+		
+	}
+
+	public void collectStats(StatsCollector collector) {
+		
+	}
+
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> deferredResult) {
+		
+	}
+
+	public void indexAnnotation(Annotation annotation) {
+		
+	}
+
+	public void deleteAnnotation(Annotation annotation) {
+		
+	}
+
+	public void indexTSMeta(TSMeta tsMeta) {
+		
+	}
+
+	public void deleteTSMeta(String tsMeta) {
+		
+	}
+
+	public void indexUIDMeta(UIDMeta uidMeta) {
+		
+	}
+
+	public void deleteUIDMeta(UIDMeta uidMeta) {
 		
 	}
 

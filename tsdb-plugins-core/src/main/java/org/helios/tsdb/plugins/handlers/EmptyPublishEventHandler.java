@@ -9,6 +9,7 @@ import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
@@ -73,12 +74,13 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	}
 	
 	/**
-	 * @param event
-	 * @throws Exception
+	 * Handles a publish event from the TSDB through the event bus
+	 * @param event The published event to dispatch
+	 * @throws Exception thrown on failures in execution
 	 */
 	@Subscribe
 	@AllowConcurrentEvents	
-	public void onEvent(TSDBEvent event) throws Exception {
+	public void onEvent(TSDBPublishEvent event) throws Exception {
 		onEvent(event, -1L, false);
 	}
 	
@@ -91,6 +93,7 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @param tags The metric tags
 	 * @param tsuid Time series UID for the value
 	 * @see net.opentsdb.tsd.RTPublisher#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
+	 * <b>Note:</b>Extend me ! I don't do anything.
 	 */
 	protected void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
 		
@@ -104,6 +107,7 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @param tags The metric tags
 	 * @param tsuid Time series UID for the value
 	 * @see net.opentsdb.tsd.RTPublisher#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
+	 * <b>Note:</b>Extend me ! I don't do anything.
 	 */
 	protected void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
 		

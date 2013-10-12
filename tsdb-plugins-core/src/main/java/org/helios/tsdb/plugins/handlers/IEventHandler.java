@@ -49,7 +49,7 @@ public interface IEventHandler {
 	/**
 	 * Called to gracefully shutdown the plugin. Implementations should close any IO they have open
 	 */
-	public void shtdown();
+	public void shutdown();
 	
 	/**
 	 * Called by the TSD when a request for statistics collection has come in. The implementation may provide one or more statistics.

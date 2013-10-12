@@ -60,13 +60,7 @@ public enum TSDBEventType {
 	/** A UIDMeta deletion */
 	UIDMETA_DELETE(PluginType.SEARCH),
 	/** A search query event */
-	SEARCH(PluginType.SEARCH),
-	/** Search plugin configuration signal */
-	CONFIGURE_SEARCH(PluginType.SEARCH),
-	/** RPC plugin configuration signal */
-	CONFIGURE_RPC(PluginType.RPC),
-	/** Publisher plugin configuration signal */
-	CONFIGURE_PUBLISHER(PluginType.PUBLISH);
+	SEARCH(PluginType.SEARCH);
 	
 	private TSDBEventType(PluginType...pluginTypes) {
 		this.pluginTypes = pluginTypes;

@@ -56,10 +56,6 @@ public class TSDBEvent  {
 	public long longValue = -1;
 	/** The value for double based data point publications */
 	public double doubleValue = -1;
-	/** The value for raw data point publications */
-	public byte[] rawValue = null;
-	/** The value type indicator for raw data point publications */
-	public short rawValueType = -1;
 	/** The annotation to index for annotation indexing or deletion events */
 	public Annotation annotation = null;
 	
@@ -81,7 +77,7 @@ public class TSDBEvent  {
 	/**
 	 * Creates a new TSDBEvent
 	 */
-	private TSDBEvent() {
+	protected TSDBEvent() {
 
 	}
 	
@@ -95,8 +91,6 @@ public class TSDBEvent  {
 		timestamp = -1;
 		longValue = -1;
 		doubleValue = -1;
-		rawValue = null;
-		rawValueType = -1;
 		annotation = null;
 		tags = null;
 		tsuidBytes = null;
@@ -108,7 +102,8 @@ public class TSDBEvent  {
 	
 	 /** The event factory for TSDBEvents */
 	public final static EventFactory<TSDBEvent> EVENT_FACTORY = new EventFactory<TSDBEvent>() {
-		 public TSDBEvent newInstance() {
+		 @Override
+		public TSDBEvent newInstance() {
 			 return new TSDBEvent();
 		 }
 	 };
@@ -137,55 +132,67 @@ public class TSDBEvent  {
 	/**
 	 * Loads this event for an annotation deletion
 	 * @param annotation The annotation to delete
+	 * @return the loaded event
 	 */
-	public void deleteAnnotation(Annotation annotation) {
+	public TSDBEvent deleteAnnotation(Annotation annotation) {
 		this.eventType = TSDBEventType.ANNOTATION_DELETE;
 		this.annotation = annotation;
+		return this;
 	}
 
 	/**
 	 * Loads this event for an annotation indexing
 	 * @param annotation The annotation to index
+	 * @return the loaded event
 	 */
-	public void indexAnnotation(Annotation annotation) {
+	public TSDBEvent indexAnnotation(Annotation annotation) {
 		this.eventType = TSDBEventType.ANNOTATION_INDEX;
 		this.annotation = annotation;
+		return this;
 	}
 
 	/**
 	 * Loads this event for a TSMeta deletion
 	 * @param tsuid The tsuid name to delete
+	 * @return the loaded event
 	 */
-	public void deleteTSMeta(String tsuid) {
+	public TSDBEvent deleteTSMeta(String tsuid) {
 		this.eventType = TSDBEventType.TSMETA_DELETE;
-		this.tsuid = tsuid;		
+		this.tsuid = tsuid;	
+		return this;
 	}
 	
 	/**
 	 * Loads this event for a TSMeta indexing
 	 * @param tsMeta The tsuid to index
+	 * @return the loaded event
 	 */
-	public void indexTSMeta(TSMeta tsMeta) {
+	public TSDBEvent indexTSMeta(TSMeta tsMeta) {
 		this.eventType = TSDBEventType.TSMETA_INDEX;
-		this.tsMeta = tsMeta;		
+		this.tsMeta = tsMeta;
+		return this;
 	}
 	
 	/**
 	 * Loads this event for a UIDMeta deletion
 	 * @param uidMeta The UIDMeta to delete
+	 * @return the loaded event
 	 */
-	public void deleteUIDMeta(UIDMeta uidMeta) {
+	public TSDBEvent deleteUIDMeta(UIDMeta uidMeta) {
 		this.eventType = TSDBEventType.UIDMETA_DELETE;
-		this.uidMeta = uidMeta;		
+		this.uidMeta = uidMeta;	
+		return this;
 	}
 	
 	/**
 	 * Loads this event for a UIDMeta indexing
 	 * @param uidMeta The UIDMeta to index
+	 * @return the loaded event
 	 */
-	public void indexUIDMeta(UIDMeta uidMeta) {
+	public TSDBEvent indexUIDMeta(UIDMeta uidMeta) {
 		this.eventType = TSDBEventType.UIDMETA_INDEX;
-		this.uidMeta = uidMeta;		
+		this.uidMeta = uidMeta;	
+		return this;
 	}
 	
 	/**
@@ -195,14 +202,16 @@ public class TSDBEvent  {
 	 * @param value Value for the data point
 	 * @param tags The metric tags
 	 * @param tsuid Time series UID for the value
+	 * @return the loaded event
 	 */
-	public void publishDataPoint(String metric, long timestamp, double value, Map<String,String> tags, byte[] tsuid) {
+	public TSDBEvent publishDataPoint(String metric, long timestamp, double value, Map<String,String> tags, byte[] tsuid) {
 		this.eventType = TSDBEventType.DPOINT_DOUBLE;
 		this.metric = metric;
 		this.timestamp = timestamp;
 		this.doubleValue = value;
 		this.tags = tags;
 		this.tsuidBytes = tsuid;
+		return this;
 	}
 	
 	/**
@@ -212,39 +221,23 @@ public class TSDBEvent  {
 	 * @param value Value for the data point
 	 * @param tags The metric tags
 	 * @param tsuid Time series UID for the value
+	 * @return the loaded event
 	 */
-	public void publishDataPoint(String metric, long timestamp, long value, Map<String,String> tags, byte[] tsuid) {
+	public TSDBEvent publishDataPoint(String metric, long timestamp, long value, Map<String,String> tags, byte[] tsuid) {
 		this.eventType = TSDBEventType.DPOINT_LONG;
 		this.metric = metric;
 		this.timestamp = timestamp;
 		this.longValue = value;
 		this.tags = tags;
 		this.tsuidBytes = tsuid;
+		return this;
 	}
-	
-	/**
-	 * Loads this event for a raw value data point publication
-	 * @param metric The name of the metric associated with the data point
-	 * @param timestamp Timestamp as a Unix epoch in seconds or milliseconds (depending on the TSD's configuration)
-	 * @param value Value for the data point
-	 * @param tags The metric tags
-	 * @param tsuid Time series UID for the value
-	 * @param flags Indicates if the byte array is an integer or floating point value 
-	 */
-	public void publishDataPoint(String metric, long timestamp, byte[] value, Map<String,String> tags, byte[] tsuid, short flags) {
-		this.eventType = TSDBEventType.DPOINT_LONG;
-		this.metric = metric;
-		this.timestamp = timestamp;
-		this.rawValue = value;
-		this.tags = tags;
-		this.tsuidBytes = tsuid;
-		this.rawValueType = flags;
-	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 * @see java.lang.Object#toString()
 	 */
+	@Override
 	public String toString() {
 		if(eventType==null) return "Empty TSDBEvent";
 		StringBuilder b = new StringBuilder("TSDBEvent ").append(eventType.name()).append("[");

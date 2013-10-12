@@ -54,12 +54,28 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher {
 
 	/** The RingBuffer instance events are published to */
 	protected RingBuffer<TSDBEvent> ringBuffer = null;
+	/** The executor driving the async bus */
+	protected Executor executor = null;
+	/** The shared TSDB instance */
+	protected TSDB tsdb = null;
+	
 	
 	@Override
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
-		// TODO Auto-generated method stub
+		
+		this.executor = executor;
 		
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
+	 */
+	@Override
+	public void initialize(TSDB tsdb) {
+		this.tsdb = tsdb;
+	}
+	
 
 	/**
 	 * Creates a new DisruptorEventDispatcher
@@ -90,22 +106,13 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher {
 
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
-	 */
-	@Override
-	public void initialize(TSDB tsdb) {
-		// TODO Auto-generated method stub
-
-	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shtdown()
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shutdown()
 	 */
 	@Override
-	public void shtdown() {
+	public void shutdown() {
 		// TODO Auto-generated method stub
 
 	}

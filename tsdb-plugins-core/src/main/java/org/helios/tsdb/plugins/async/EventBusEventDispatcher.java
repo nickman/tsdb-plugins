@@ -29,14 +29,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import org.helios.tsdb.plugins.handlers.IEventHandler;
-
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
+
+import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.handlers.IEventHandler;
 
 import com.google.common.eventbus.AsyncEventBus;
 import com.stumbleupon.async.Deferred;
@@ -52,67 +54,25 @@ import com.stumbleupon.async.Deferred;
 public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	/** The dispatching event bus */
 	protected AsyncEventBus eventBus = null;
+	/** The executor driving the async bus */
+	protected Executor executor = null;
+	/** The shared TSDB instance */
+	protected TSDB tsdb = null;
 	
 	
 	/**
 	 * Creates a new EventBusEventDispatcher
 	 */
 	public EventBusEventDispatcher() {
-		// TODO Auto-generated constructor stub
+
 	}
 	
-	@Override
-	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
-		eventBus = new AsyncEventBus("AsyncEventDispatcher", executor);
-		if(handlers!=null && !handlers.isEmpty()) {
-			for(IEventHandler handler: handlers) {
-				if(handler==null) continue;
-				eventBus.register(handler);
-			}
-		}
-		
-	}
-
-
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shutdown()
 	 */
 	@Override
-	public void publishDataPoint(String metric, long timestamp, double value,
-			Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
-	 */
-	@Override
-	public void publishDataPoint(String metric, long timestamp, long value,
-			Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
-	 */
-	@Override
-	public void initialize(TSDB tsdb) {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shtdown()
-	 */
-	@Override
-	public void shtdown() {
-		// TODO Auto-generated method stub
+	public void shutdown() {
 
 	}
 
@@ -125,6 +85,54 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 		// TODO Auto-generated method stub
 
 	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#initialize(java.util.Properties, java.util.concurrent.Executor, java.util.Collection)
+	 */
+	@Override
+	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
+		eventBus = new AsyncEventBus("AsyncEventDispatcher", executor);
+		this.executor = executor;		
+		if(handlers!=null && !handlers.isEmpty()) {
+			for(IEventHandler handler: handlers) {
+				if(handler==null) continue;
+				eventBus.register(handler);
+			}
+		}
+		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
+	 */
+	@Override
+	public void initialize(TSDB tsdb) {
+		this.tsdb = tsdb;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
+	 */
+	@Override
+	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
+		eventBus.post(new TSDBSearchEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
+	 */
+	@Override
+	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
+		eventBus.post(new TSDBSearchEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
+	}
+
+
+
 
 	/**
 	 * {@inheritDoc}
@@ -132,8 +140,9 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		// TODO Auto-generated method stub
-		return null;
+		TSDBSearchEvent searchEvent = new TSDBSearchEvent().executeQueryEvent(searchQuery); 
+		eventBus.post(searchEvent);
+		return searchEvent.deferred;
 	}
 
 	/**
@@ -142,8 +151,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void indexAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
-
+		eventBus.post(new TSDBSearchEvent().indexAnnotation(annotation));
 	}
 
 	/**
@@ -152,7 +160,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void deleteAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
+		eventBus.post(new TSDBSearchEvent().deleteAnnotation(annotation));
 
 	}
 
@@ -162,7 +170,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void indexTSMeta(TSMeta tsMeta) {
-		// TODO Auto-generated method stub
+		eventBus.post(new TSDBSearchEvent().indexTSMeta(tsMeta));
 
 	}
 
@@ -172,7 +180,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void deleteTSMeta(String tsMeta) {
-		// TODO Auto-generated method stub
+		eventBus.post(new TSDBSearchEvent().deleteTSMeta(tsMeta));
 
 	}
 
@@ -182,7 +190,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void indexUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
+		eventBus.post(new TSDBSearchEvent().indexUIDMeta(uidMeta));
 
 	}
 
@@ -192,7 +200,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void deleteUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
+		eventBus.post(new TSDBSearchEvent().deleteUIDMeta(uidMeta));
 
 	}
 

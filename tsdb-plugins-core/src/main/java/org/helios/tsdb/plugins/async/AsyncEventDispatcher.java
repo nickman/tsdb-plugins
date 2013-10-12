@@ -22,38 +22,31 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.async;
 
-import net.opentsdb.core.TSDB;
-import net.opentsdb.stats.StatsCollector;
+import java.util.Collection;
+import java.util.Properties;
+import java.util.concurrent.Executor;
+
+import org.helios.tsdb.plugins.handlers.IEventHandler;
+import org.helios.tsdb.plugins.handlers.IPublishEventHandler;
+import org.helios.tsdb.plugins.handlers.ISearchEventHandler;
 
 /**
- * <p>Title: IEventHandler</p>
- * <p>Description: Defines the common methods of all event handlers</p> 
+ * <p>Title: AsyncEventDispatcher</p>
+ * <p>Description: Dispatcher that accepts TSDB plugin callbacks and dispatches them asynchronously.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.IEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.async.AsyncEventDispatcher</code></p>
  */
 
-public interface IEventHandler {
-	
+public interface AsyncEventDispatcher extends IPublishEventHandler, ISearchEventHandler {
 	/**
-	 * Called by TSDB to initialize the plugin Implementations are responsible for setting up 
-	 * any IO they need as well as starting any required background threads. 
-	 * Note: Implementations should throw exceptions if they can't start up properly. 
-	 * The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
-	 * @param tsdb The parent TSDB object
+	 * Configures the async event dispatcher
+	 * @param config The TSDB provided config properties
+	 * @param executor The executor to use
+	 * @param handlers The handles to register
 	 */
-	public void initialize(TSDB tsdb);
+	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers);
 	
-	/**
-	 * Called to gracefully shutdown the plugin. Implementations should close any IO they have open
-	 */
-	public void shtdown();
-	
-	/**
-	 * Called by the TSD when a request for statistics collection has come in. The implementation may provide one or more statistics.
-	 * @param collector The collector used for emitting statistics
-	 */
-	public void collectStats(StatsCollector collector);
 }

@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import java.util.Map;
 
@@ -31,7 +31,7 @@ import java.util.Map;
  * <p>Description: Defines an event handler for handling OpenTSDB {@link net.opentsdb.tsd.RTPublisher} events</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.IPublishEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.IPublishEventHandler</code></p>
  */
 
 public interface IPublishEventHandler extends IEventHandler {

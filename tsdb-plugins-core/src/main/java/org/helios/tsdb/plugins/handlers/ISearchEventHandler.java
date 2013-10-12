@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -36,7 +36,7 @@ import com.stumbleupon.async.Deferred;
  * <p>Description: Defines an event handler for handling OpenTSDB {@link net.opentsdb.search.SearchPlugin} events</p> 
  * <p>Company: Helios Development Group LLC</p>  
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.ISearchEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.ISearchEventHandler</code></p>
  */
 
 public interface ISearchEventHandler extends IEventHandler {

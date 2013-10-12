@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import net.opentsdb.core.TSDB;
 
@@ -31,7 +31,7 @@ import net.opentsdb.core.TSDB;
  * <p>Description: Abstract base class for implementing TSDB event handlers </p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.AbstractTSDBEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler</code></p>
  */
 
 public class AbstractTSDBEventHandler implements ITSDBEventHandler {
@@ -45,7 +45,7 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#start()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#start()
 	 */
 	@Override
 	public void start() {
@@ -55,7 +55,7 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#stop()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#stop()
 	 */
 	@Override
 	public void stop() {
@@ -65,7 +65,7 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
 	 */
 	@Override
 	public void configure(TSDB tsdb) {
@@ -75,7 +75,7 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#onAsynchStart()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#onAsynchStart()
 	 */
 	@Override
 	public void onAsynchStart() {
@@ -85,7 +85,7 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#onAsynchShutdown()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#onAsynchShutdown()
 	 */
 	@Override
 	public void onAsynchShutdown() {

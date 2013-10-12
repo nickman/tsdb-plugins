@@ -1,7 +1,7 @@
 /**
  * tsdb-plugins-core
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
 

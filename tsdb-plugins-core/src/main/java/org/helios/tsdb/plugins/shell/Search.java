@@ -25,8 +25,8 @@
 package org.helios.tsdb.plugins.shell;
 
 import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.asynch.TSDBEventPublisher;
 import org.helios.tsdb.plugins.event.PluginType;
+import org.helios.tsdb.plugins.event.TSDBEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

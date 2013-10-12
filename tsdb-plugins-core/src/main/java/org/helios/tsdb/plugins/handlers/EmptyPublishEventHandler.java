@@ -1,31 +1,30 @@
 /**
  * tsdb-plugins-core
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import java.util.Map;
 
 import net.opentsdb.core.TSDB;
 
-import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.Subscribe;
 import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.LifecycleAware;
-import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: EmptyPublishEventHandler</p>
  * <p>Description: Base class for implementing OpenTSDB {@link net.opentsdb.tsd.RTPublisher} event handlers.</p> 
  * @author Nicholas Whitehead
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.EmptyPublishEventHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler</code></p>
  */
 public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#start()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#start()
 	 */
 	@Override
 	public void start() {
@@ -35,7 +34,7 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#stop()
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#stop()
 	 */
 	@Override
 	public void stop() {
@@ -45,7 +44,7 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.asynch.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
+	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
 	 */
 	@Override
 	public void configure(TSDB tsdb) {
@@ -58,9 +57,10 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @see com.lmax.disruptor.EventHandler#onEvent(java.lang.Object, long, boolean)
 	 */
 	@Override
+	@Subscribe
+	@AllowConcurrentEvents
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
-		if(event.eventType==null || !event.eventType.isForPulisher()) return;
-		
+		if(event.eventType==null || !event.eventType.isForPulisher()) return;		
 		if (event.eventType == TSDBEventType.DPOINT_DOUBLE) {
 			publishDataPoint(event.metric, event.timestamp, event.doubleValue, event.tags, event.tsuidBytes);
 		} else if (event.eventType == TSDBEventType.DPOINT_LONG) {
@@ -69,9 +69,19 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 		
 		} else {
 			// Programmer Error ?
-		}
-		
+		}		
 	}
+	
+	/**
+	 * @param event
+	 * @throws Exception
+	 */
+	@Subscribe
+	@AllowConcurrentEvents	
+	public void onEvent(TSDBEvent event) throws Exception {
+		onEvent(event, -1L, false);
+	}
+	
 	
 	/**
 	 * Called any time a new data point is published

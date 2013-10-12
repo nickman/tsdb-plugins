@@ -22,28 +22,30 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.asynch.handlers;
+package org.helios.tsdb.plugins.handlers;
 
 import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.Subscribe;
 import com.lmax.disruptor.EventHandler;
 
 /**
- * <p>Title: SearchHandler</p>
+ * <p>Title: EmptySearchEventHandler</p>
  * <p>Description: Base class for implementing OpenTSDB {@link net.opentsdb.search.SearchPlugin} event handlers.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.handlers.SearchHandler</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.EmptySearchEventHandler</code></p>
  */
 
-public class SearchHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
+public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
 
 	/**
-	 * Creates a new SearchHandler
+	 * Creates a new EmptySearchEventHandler
 	 */
-	public SearchHandler() {
+	public EmptySearchEventHandler() {
 		// TODO Auto-generated constructor stub
 	}
 
@@ -59,12 +61,26 @@ public class SearchHandler  extends AbstractTSDBEventHandler implements EventHan
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see com.lmax.disruptor.EventHandler#onEvent(java.lang.Object, long, boolean)
+	 */
 	@Override
-	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch)
-			throws Exception {
+	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	/**
+	 * @param event
+	 * @throws Exception
+	 */
+	@Subscribe
+	@AllowConcurrentEvents	
+	public void onEvent(TSDBEvent event) throws Exception {
+		
+	}
+	
 
 	@Override
 	public void start() {

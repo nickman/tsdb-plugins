@@ -34,6 +34,8 @@
 		<jmx-optional.version>1.0_01-ea</jmx-optional.version>
 		<chronicle.version>1.7.2</chronicle.version>
 		<guava.version>13.0.1</guava.version>		
+		<mockito.version>1.9.5</mockito.version>
+		<javassist.version>3.18.0-GA</javassist.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -55,6 +57,13 @@
 		    <version>${junit.version}</version>
 		    <scope>test</scope>
 		</dependency>
+		<dependency>
+		  <groupId>org.mockito</groupId>
+		  <artifactId>mockito-all</artifactId>
+		  <version>${mockito.version}</version>
+		  <scope>test</scope>
+		</dependency>
+
 
 	      <!-- ==========================================================
 		JMX Support
@@ -64,6 +73,16 @@
 		  <artifactId>jmxremote_optional</artifactId>
 		  <version>${jmx-optional.version}</version>
 		</dependency>
+
+	      <!-- ==========================================================
+		Byte Code Injection
+		  ========================================================== -->		
+		<dependency>
+		  <groupId>org.javassist</groupId>
+		  <artifactId>javassist</artifactId>
+		  <version>${javassist.version}</version>
+		</dependency>
+
 
 		<!-- ==========================================================
 		    Collection Utilities & Dependencies

@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * <p>Description: Configuration helper utilities</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.apmrouter.jmx.ConfigurationHelper</code></p>
+ * <p><code>org.helios.tsdb.plugins.util.ConfigurationHelper</code></p>
  */
 public class ConfigurationHelper {
 	/** Empty String aray const */
@@ -25,6 +25,9 @@ public class ConfigurationHelper {
 	
 	/** Comma splitter regex const */
 	public static final Pattern COMMA_SPLITTER = Pattern.compile(",");
+	
+	/** If property names start with this, system properties and environment variables should be ignored. */
+	public static final String NOSYSENV = "tsd.";
 
 	/**
 	 * Merges the passed properties
@@ -78,6 +81,11 @@ public class ConfigurationHelper {
 	 * @return The located value or the default if it was not found.
 	 */
 	public static String getSystemThenEnvProperty(String name, String defaultValue, Properties...properties) {
+		if(name==null || name.trim().isEmpty()) throw new IllegalArgumentException("The passed property name was null or empty");
+		if(name.trim().toLowerCase().startsWith(NOSYSENV)) {
+			if(properties==null || properties.length==0 || properties[0]==null) return defaultValue;
+			return properties[0].getProperty(name.trim(), defaultValue);
+		}
 		String value = mergeProperties(properties).getProperty(name);
 		if(value==null) {
 			value = System.getenv(name.replace('.', '_'));

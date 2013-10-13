@@ -32,7 +32,7 @@ import net.opentsdb.tsd.RTPublisher;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventPublisher;
+import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: Publisher</p>
- * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventPublisher} asynch multiplexer.</p> 
+ * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventDispatcher} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.shell.Publisher</code></p>
@@ -50,7 +50,7 @@ public abstract class Publisher extends RTPublisher {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The event publisher delegate */
-	protected TSDBEventPublisher publisher;
+	protected TSDBEventDispatcher publisher;
 	
 	/**
 	 * Creates a new Publisher
@@ -66,8 +66,7 @@ public abstract class Publisher extends RTPublisher {
 	@Override
 	public void initialize(TSDB tsdb) {
 		log.debug("Initializing instance");
-		publisher = TSDBEventPublisher.getInstance(tsdb);
-		publisher.configurePublisher();
+		publisher = TSDBEventDispatcher.getInstance(tsdb);
 	}
 	
 

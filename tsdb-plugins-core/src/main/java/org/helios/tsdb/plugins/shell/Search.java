@@ -26,7 +26,7 @@ package org.helios.tsdb.plugins.shell;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventPublisher;
+import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,7 @@ import net.opentsdb.stats.StatsCollector;
 
 /**
  * <p>Title: Search</p>
- * <p>Description: A passthrough {@link SearchPlugin} that delegates to the @link TSDBEventPublisher} asynch multiplexer.</p> 
+ * <p>Description: A passthrough {@link SearchPlugin} that delegates to the @link TSDBEventDispatcher} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.shell.Search</code></p>
@@ -54,7 +54,7 @@ public class Search extends SearchPlugin {
 	/** The callback supplied TSDB instance */
 	protected TSDB tsdb = null;
 	/** The event publisher delegate */
-	protected TSDBEventPublisher publisher;
+	protected TSDBEventDispatcher publisher;
 	
 
 	/**
@@ -150,8 +150,7 @@ public class Search extends SearchPlugin {
 	@Override
 	public void initialize(TSDB tsdb) {
 		log.debug("Initializing instance");
-		publisher = TSDBEventPublisher.getInstance(tsdb);
-		publisher.configurePublisher();
+		publisher = TSDBEventDispatcher.getInstance(tsdb);
 	}
 
 	/**

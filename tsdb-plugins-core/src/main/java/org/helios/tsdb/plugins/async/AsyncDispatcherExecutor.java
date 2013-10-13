@@ -26,7 +26,6 @@ package org.helios.tsdb.plugins.async;
 
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -51,23 +50,6 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor  {
 	
 	/** Static class logger */
 	protected static final Logger LOG = LoggerFactory.getLogger(AsyncDispatcherExecutor.class);
-	
-	/** The config property name for the async dispatcher core pool size */
-	public static final String ASYNC_CORE_SIZE = "net.opentsdb.events.async.core";
-	/** The default async dispatcher core pool size */
-	public static final int DEFAULT_ASYNC_CORE_SIZE = Constants.CORES;
-	/** The config property name for the async dispatcher max pool size */
-	public static final String ASYNC_MAX_SIZE = "net.opentsdb.events.async.max";
-	/** The default async dispatcher max pool size */
-	public static final int DEFAULT_ASYNC_MAX_SIZE = Constants.CORES * 2;
-	/** The config property name for the async dispatcher keep alive time in ms. */
-	public static final String ASYNC_KEEPALIVE_TIME = "net.opentsdb.events.async.keepalive";
-	/** The default async dispatcher keep alive time in ms. */
-	public static final long DEFAULT_ASYNC_KEEPALIVE_TIME = 60000;
-	/** The config property name for the async dispatcher work queue size */
-	public static final String ASYNC_QUEUE_SIZE = "net.opentsdb.events.async.queuesize";
-	/** The default async dispatcher work queue size */
-	public static final int DEFAULT_ASYNC_QUEUE_SIZE = 1024;
 	
 	/** The async uncaught exception handler */
 	protected static final Thread.UncaughtExceptionHandler ASYNC_EXCEPTION_HANDLER = new Thread.UncaughtExceptionHandler() {
@@ -110,13 +92,13 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor  {
 	 */
 	public AsyncDispatcherExecutor(Properties config) {
 		super(
-				ConfigurationHelper.getIntSystemThenEnvProperty(ASYNC_CORE_SIZE, DEFAULT_ASYNC_CORE_SIZE, config),
-				ConfigurationHelper.getIntSystemThenEnvProperty(ASYNC_MAX_SIZE, DEFAULT_ASYNC_MAX_SIZE, config),
-				ConfigurationHelper.getLongSystemThenEnvProperty(ASYNC_KEEPALIVE_TIME, DEFAULT_ASYNC_KEEPALIVE_TIME, config),
+				ConfigurationHelper.getIntSystemThenEnvProperty(Constants.ASYNC_CORE_SIZE, Constants.DEFAULT_ASYNC_CORE_SIZE, config),
+				ConfigurationHelper.getIntSystemThenEnvProperty(Constants.ASYNC_MAX_SIZE, Constants.DEFAULT_ASYNC_MAX_SIZE, config),
+				ConfigurationHelper.getLongSystemThenEnvProperty(Constants.ASYNC_KEEPALIVE_TIME, Constants.DEFAULT_ASYNC_KEEPALIVE_TIME, config),
 				TimeUnit.MILLISECONDS,
 				new ArrayBlockingQueue<Runnable>(
 						ConfigurationHelper.getIntSystemThenEnvProperty(
-								ASYNC_QUEUE_SIZE, DEFAULT_ASYNC_QUEUE_SIZE, config), false),
+								Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false),
 				ASYNC_THREAD_FACTORY, ASYNC_REJECTED_HANDLER
 				
 		);

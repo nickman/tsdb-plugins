@@ -46,7 +46,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>org.helios.tsdb.plugins.shell.Publisher</code></p>
  */
 
-public abstract class Publisher extends RTPublisher {
+public class Publisher extends RTPublisher {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The event publisher delegate */
@@ -108,6 +108,16 @@ public abstract class Publisher extends RTPublisher {
 	@Override
 	public String version() {		
 		return Constants.PLUGIN_VERSION;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.tsd.RTPublisher#shutdown()
+	 */
+	@Override
+	public Deferred<Object> shutdown() {
+		if(publisher!=null) publisher.shutdown();
+		return Constants.NULL_DEFERED;
 	}
 
 }

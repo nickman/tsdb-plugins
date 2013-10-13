@@ -47,7 +47,8 @@ public class TSDBPublishEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBPublishEvent publishDataPoint(String metric, long timestamp, double value, Map<String,String> tags, byte[] tsuid) {
-		return publishDataPoint(metric, timestamp, value, tags, tsuid) ;
+		super.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		return this;
 	}
 	
 	/**
@@ -61,7 +62,8 @@ public class TSDBPublishEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBPublishEvent publishDataPoint(String metric, long timestamp, long value, Map<String,String> tags, byte[] tsuid) {
-		return publishDataPoint(metric, timestamp, value, tags, tsuid) ;
+		super.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		return this;
 	}
 	
 }

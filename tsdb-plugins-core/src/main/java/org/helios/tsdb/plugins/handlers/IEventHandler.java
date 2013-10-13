@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.handlers;
 
+import java.util.Properties;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
@@ -43,8 +45,9 @@ public interface IEventHandler {
 	 * Note: Implementations should throw exceptions if they can't start up properly. 
 	 * The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
 	 * @param tsdb The parent TSDB object
+	 * @param extracted Properties that have been extracted from the TSDB config
 	 */
-	public void initialize(TSDB tsdb);
+	public void initialize(TSDB tsdb, Properties extracted);
 	
 	/**
 	 * Called to gracefully shutdown the plugin. Implementations should close any IO they have open

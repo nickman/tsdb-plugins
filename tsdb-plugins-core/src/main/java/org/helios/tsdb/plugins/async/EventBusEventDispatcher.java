@@ -67,7 +67,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	}
 	
-	/**
+	/**	public static final String ASYNC_DISPATCHER = "helios.events
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shutdown()
 	 */
@@ -106,10 +106,10 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
 	 */
 	@Override
-	public void initialize(TSDB tsdb) {
+	public void initialize(TSDB tsdb, Properties extracted) {
 		this.tsdb = tsdb;
 	}
 

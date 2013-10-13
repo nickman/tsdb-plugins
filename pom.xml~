@@ -163,14 +163,6 @@
 		  <scope>provided</scope>
 		</dependency>
 		
-		<dependency>
-		  <groupId>com.fasterxml.jackson.core</groupId>
-		  <artifactId>jackson-databind</artifactId>
-		  <version>${jackson-annotations.version}</version>
-		  <scope>provided</scope>
-		</dependency>
-		
-		
 		
 		<dependency>
 		  <groupId>org.hbase</groupId>

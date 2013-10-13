@@ -159,8 +159,8 @@ public class Search extends SearchPlugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		// TODO Auto-generated method stub
-		return null;
+		if(publisher!=null) publisher.shutdown();
+		return Constants.NULL_DEFERED;
 	}
 
 	/**

@@ -50,7 +50,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent deleteAnnotation(Annotation annotation) {
-		return new TSDBSearchEvent().deleteAnnotation(annotation);
+		super.deleteAnnotation(annotation);
+		return this;
 	}
 
 	/**
@@ -59,7 +60,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent indexAnnotation(Annotation annotation) {
-		return new TSDBSearchEvent().indexAnnotation(annotation);
+		super.indexAnnotation(annotation);
+		return this;
 	}
 
 	/**
@@ -68,7 +70,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent deleteTSMeta(String tsuid) {
-		return new TSDBSearchEvent().deleteTSMeta(tsuid);
+		super.deleteTSMeta(tsuid);
+		return this;
 	}
 	
 	/**
@@ -77,7 +80,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent indexTSMeta(TSMeta tsMeta) {
-		return new TSDBSearchEvent().indexTSMeta(tsMeta);
+		super.indexTSMeta(tsMeta);
+		return this;
 	}
 	
 	/**
@@ -86,7 +90,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent deleteUIDMeta(UIDMeta uidMeta) {
-		return new TSDBSearchEvent().deleteUIDMeta(uidMeta);
+		super.deleteUIDMeta(uidMeta);
+		return this;
 	}
 	
 	/**
@@ -95,7 +100,8 @@ public class TSDBSearchEvent extends TSDBEvent {
 	 */
 	@Override
 	public TSDBSearchEvent indexUIDMeta(UIDMeta uidMeta) {
-		return new TSDBSearchEvent().indexUIDMeta(uidMeta);
+		super.indexUIDMeta(uidMeta);
+		return this;
 	}
 	
 	/**

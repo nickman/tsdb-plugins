@@ -69,10 +69,10 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB)
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
 	 */
 	@Override
-	public void initialize(TSDB tsdb) {
+	public void initialize(TSDB tsdb, Properties extracted) {
 		this.tsdb = tsdb;
 	}
 	

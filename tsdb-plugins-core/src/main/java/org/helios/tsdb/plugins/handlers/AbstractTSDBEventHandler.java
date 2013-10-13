@@ -24,7 +24,13 @@
  */
 package org.helios.tsdb.plugins.handlers;
 
+import java.util.Properties;
+
 import net.opentsdb.core.TSDB;
+import net.opentsdb.stats.StatsCollector;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>Title: AbstractTSDBEventHandler</p>
@@ -34,8 +40,14 @@ import net.opentsdb.core.TSDB;
  * <p><code>org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler</code></p>
  */
 
-public class AbstractTSDBEventHandler implements ITSDBEventHandler {
-
+public class AbstractTSDBEventHandler implements IEventHandler {
+	/** The handler logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** The TSDB instance */
+	protected TSDB tsdb;
+	/** The extracted config */
+	protected Properties config;
+	
 	/**
 	 * Creates a new AbstractTSDBEventHandler
 	 */
@@ -45,52 +57,33 @@ public class AbstractTSDBEventHandler implements ITSDBEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#start()
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
 	 */
 	@Override
-	public void start() {
-		// TODO Auto-generated method stub
-
+	public void initialize(TSDB tsdb, Properties extracted) {
+		this.tsdb = tsdb;
+		this.config = extracted;
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#stop()
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shutdown()
 	 */
 	@Override
-	public void stop() {
+	public void shutdown() {
 		// TODO Auto-generated method stub
-
+		
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#collectStats(net.opentsdb.stats.StatsCollector)
 	 */
 	@Override
-	public void configure(TSDB tsdb) {
+	public void collectStats(StatsCollector collector) {
 		// TODO Auto-generated method stub
-
+		
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#onAsynchStart()
-	 */
-	@Override
-	public void onAsynchStart() {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#onAsynchShutdown()
-	 */
-	@Override
-	public void onAsynchShutdown() {
-		// TODO Auto-generated method stub
-
-	}
 
 }

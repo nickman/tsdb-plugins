@@ -5,8 +5,6 @@ package org.helios.tsdb.plugins.handlers;
 
 import java.util.Map;
 
-import net.opentsdb.core.TSDB;
-
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
@@ -21,37 +19,8 @@ import com.lmax.disruptor.EventHandler;
  * @author Nicholas Whitehead
  * <p><code>org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler</code></p>
  */
-public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>  {
+public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>, IPublishEventHandler  {
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#start()
-	 */
-	@Override
-	public void start() {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#stop()
-	 */
-	@Override
-	public void stop() {
-		// TODO Auto-generated method stub
-
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ITSDBEventHandler#configure(net.opentsdb.core.TSDB)
-	 */
-	@Override
-	public void configure(TSDB tsdb) {
-		// TODO Auto-generated method stub
-
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -84,6 +53,8 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 		onEvent(event, -1L, false);
 	}
 	
+
+	
 	
 	/**
 	 * Called any time a new data point is published
@@ -95,7 +66,8 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @see net.opentsdb.tsd.RTPublisher#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
 	 * <b>Note:</b>Extend me ! I don't do anything.
 	 */
-	protected void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
+	@Override
+	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
 		
 	}
 
@@ -109,7 +81,8 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @see net.opentsdb.tsd.RTPublisher#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
 	 * <b>Note:</b>Extend me ! I don't do anything.
 	 */
-	protected void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
+	@Override
+	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
 		
 	}	
 	

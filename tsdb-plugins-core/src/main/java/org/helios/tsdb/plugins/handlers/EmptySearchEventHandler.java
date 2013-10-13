@@ -32,7 +32,6 @@ import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
-import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
@@ -48,28 +47,8 @@ import com.stumbleupon.async.Deferred;
  * <p><code>org.helios.tsdb.plugins.handlers.EmptySearchEventHandler</code></p>
  */
 
-public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent> {
-	/** The shared TSDB instance */
-	protected TSDB tsdb = null;
+public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>, ISearchEventHandler {
 	
-	/**
-	 * Creates a new EmptySearchEventHandler
-	 */
-	public EmptySearchEventHandler() {
-		// TODO Auto-generated constructor stub
-	}
-
-	@Override
-	public void onAsynchStart() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onAsynchShutdown() {
-		// TODO Auto-generated method stub
-		
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -116,73 +95,94 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	public void onEvent(TSDBSearchEvent event) throws Exception {
 		onEvent(event, -1, false);
 	}
-	
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#start()
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#shutdown()
 	 */
 	@Override
-	public void start() {
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#stop()
-	 */
-	@Override
-	public void stop() {
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#configure(net.opentsdb.core.TSDB)
-	 */
-	@Override
-	public void configure(TSDB tsdb) {
-		this.tsdb = tsdb;
-	}
-
-	public void initialize(TSDB tsdb) {
-		
-	}
-
 	public void shutdown() {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#collectStats(net.opentsdb.stats.StatsCollector)
+	 */
+	@Override
 	public void collectStats(StatsCollector collector) {
 		
 	}
 
+	/**
+	 * @param searchQuery
+	 * @param deferredResult
+	 */
 	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> deferredResult) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexAnnotation(net.opentsdb.meta.Annotation)
+	 */
+	@Override
 	public void indexAnnotation(Annotation annotation) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteAnnotation(net.opentsdb.meta.Annotation)
+	 */
+	@Override
 	public void deleteAnnotation(Annotation annotation) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexTSMeta(net.opentsdb.meta.TSMeta)
+	 */
+	@Override
 	public void indexTSMeta(TSMeta tsMeta) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteTSMeta(java.lang.String)
+	 */
+	@Override
 	public void deleteTSMeta(String tsMeta) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexUIDMeta(net.opentsdb.meta.UIDMeta)
+	 */
+	@Override
 	public void indexUIDMeta(UIDMeta uidMeta) {
 		
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
+	 */
+	@Override
 	public void deleteUIDMeta(UIDMeta uidMeta) {
 		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#executeQuery(net.opentsdb.search.SearchQuery)
+	 */
+	@Override
+	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
+		return Deferred.fromResult(searchQuery);
 	}
 
 }

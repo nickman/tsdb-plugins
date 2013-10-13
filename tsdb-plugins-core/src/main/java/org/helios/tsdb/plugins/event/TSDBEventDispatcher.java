@@ -1,5 +1,8 @@
 package org.helios.tsdb.plugins.event;
 
+import java.io.File;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -8,7 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.opentsdb.core.TSDB;
@@ -28,10 +31,10 @@ import org.helios.tsdb.plugins.handlers.ISearchEventHandler;
 import org.helios.tsdb.plugins.shell.Publisher;
 import org.helios.tsdb.plugins.shell.Search;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.URLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.AbstractService;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -46,17 +49,20 @@ public class TSDBEventDispatcher {
 	private static volatile TSDBEventDispatcher instance = null;
 	/** The singleton instance ctor lock */
 	private static final Object lock = new Object();
-	/** Instance logger */
-	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** Static class logger */
+	protected static final Logger log = LoggerFactory.getLogger(TSDBEventDispatcher.class);
 	/** The callback supplied TSDB instance */
 	protected final TSDB tsdb;
 	/** The asynch dispatcher */
 	protected AsyncEventDispatcher asyncDispatcher;
 	/** The asynch dispatcher's executor */
-	protected Executor asyncExecutor;
+	protected ThreadPoolExecutor asyncExecutor;
 	
 	/** Indicates if event dispatcher configuration has started */
 	protected final AtomicBoolean configured = new AtomicBoolean(false);
+	/** Indicates if event dispatcher is shutdown */
+	protected final AtomicBoolean shutdown = new AtomicBoolean(false);
+	
 	
 	/** Indicates if search is enabled AND the configured search plugin is shell.Search */
 	protected boolean searchEnabled = false;
@@ -72,6 +78,36 @@ public class TSDBEventDispatcher {
 	
 	/** The TSDB Configuration as properties */
 	protected final Properties config;
+	
+	/**
+	 * Stops the event dispatcher and all subsidiary services
+	 */
+	public void shutdown() {
+		if(!shutdown.compareAndSet(false, true)) return;
+		log.info("\n\t====================================\n\tStopping TSDBEventDispatcher\n\t====================================");
+		if(asyncExecutor!=null) {
+			int remainingTasks = asyncExecutor.shutdownNow().size();
+			log.info("Shutdown AsyncExecutor. Remaining Tasks:{}", remainingTasks);
+		}
+		for(IEventHandler ie: allHandlers) {
+			ie.shutdown();
+		}
+		asyncDispatcher.shutdown();
+		allHandlers.clear();
+		searchHandlers.clear();
+		publishHandlers.clear();
+		log.info("\n\t====================================\n\tStopped TSDBEventDispatcher\n\t====================================");
+	}
+	
+	/**
+	 * Test hook to reset event dispatcher
+	 */
+	@SuppressWarnings("unused")
+	private void reset() {
+		instance = null;
+	}
+	
+	
 	/**
 	 * Called by TSDB to initialize the plugin Implementations are responsible for setting up any IO they need as well as starting any required background threads. Note: Implementations should throw exceptions if they can't start up properly. The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
 	 * @param tsdb The parent TSDB object
@@ -106,10 +142,10 @@ public class TSDBEventDispatcher {
 		asyncExecutor = new AsyncDispatcherExecutor(config);
 		loadAsyncDispatcher(asyncDispatcherClassName.trim());
 		for(IEventHandler handler: allHandlers) {
-			handler.initialize(tsdb);
+			handler.initialize(tsdb, config);
 		}
 		asyncDispatcher.initialize(config, asyncExecutor, allHandlers);
-		log.info("\n\t====================================\n\tTSDBEventPublisher Configuration Complete\n\t====================================");
+		log.info("\n\t====================================\n\tTSDBEventDispatcher Configuration Complete\n\t====================================");
 	}
 	
 	/**
@@ -158,7 +194,7 @@ public class TSDBEventDispatcher {
 					log.warn("The configured handler [{}] is not required", clazz.getName());
 					continue;
 				}
-				IEventHandler eventHandler = clazz.newInstance();
+				IEventHandler eventHandler = instantiate(clazz);
 				boolean installed = false;
 				if(eventHandler instanceof IPublishEventHandler) {
 					installed = true;
@@ -224,12 +260,29 @@ public class TSDBEventDispatcher {
 	 * @return a classloader
 	 */
 	protected static ClassLoader getSupportClassLoader(TSDB tsdb) {
+		log.debug("Loading Support Class Paths");
 		ClassLoader DEFAULT = Thread.currentThread().getContextClassLoader();
 		Properties p = new Properties();
 		p.putAll(tsdb.getConfig().getMap());
 		String[] supportClassPaths = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.CONFIG_PLUGIN_SUPPORT_PATH, "", p);
+		
 		if(supportClassPaths==null ||supportClassPaths.length==0) return DEFAULT;
-		Set<URL> urls = new HashSet<URL>(supportClassPaths.length);		
+		Set<URL> urls = new HashSet<URL>(supportClassPaths.length);
+		for(String path: supportClassPaths) {
+			if(path==null || path.trim().isEmpty()) continue;
+			path = path.trim();
+			if(URLHelper.isValidURL(path)) {
+				urls.add(URLHelper.toURL(path));
+				continue;
+			}
+			File f = new File(path);
+			if(f.exists()) {
+				urls.add(URLHelper.toURL(f));
+				continue;
+			} 
+			log.warn("The support classpath entry [{}] could not be resolved to a URL");
+		}
+		if(urls.isEmpty()) return DEFAULT;
 		return new URLClassLoader(urls.toArray(new URL[urls.size()]), DEFAULT);
 	}
 
@@ -244,6 +297,33 @@ public class TSDBEventDispatcher {
 		initialize(tsdb);
 	}
 	
+	/**
+	 * Attempts to instantiate an instance of the passed class. Requirements are as follows:<ul>
+	 * <li>The class must have one of the following:<ol>
+	 * 		<li>A parameterless public constructor</li>
+	 * 		<li>A parameterless static factory method called <b><code>getInstance</code></b></li>
+	 * 		<li>A parameterless static factory method called <b><code>newInstance</code></b></li>
+	 * </ol></li>
+	 * <li>The parameterless constructor or static factory method must be accessible to the caller (i.e. public)</li>
+	 * <li>The parameterless constructor or static factory method must return an object that implements {@link IEventHandler}.</li>  
+	 * </ul>
+	 * @param clazz The class to instantiate an object from
+	 * @return the instantiated event handler
+	 */
+	protected IEventHandler instantiate(Class<IEventHandler> clazz) {		
+		try { return clazz.newInstance(); } catch (Exception ex) {}
+		Method method = null;
+		try { method = clazz.getDeclaredMethod("getInstance"); } catch (Exception ex) {}
+		if(method==null) {
+			try { method = clazz.getDeclaredMethod("newInstance"); } catch (Exception ex) {}
+		}
+		if(method!=null) {
+			if(IEventHandler.class.isAssignableFrom(method.getReturnType()) && Modifier.isStatic(method.getModifiers())) {
+				try { return (IEventHandler)method.invoke(null); } catch (Exception ex) {}
+			}
+		}
+		throw new IllegalArgumentException("Failed to instantiate [" + clazz.getName() + "]");
+	}
 
 
 	/**
@@ -253,7 +333,7 @@ public class TSDBEventDispatcher {
 	 * @see net.opentsdb.search.SearchPlugin#collectStats(net.opentsdb.stats.StatsCollector)
 	 */	
 	public void collectStats(PluginType pluginType, StatsCollector statsCollector) {
-
+		
 	}
 	
 	/**
@@ -265,7 +345,7 @@ public class TSDBEventDispatcher {
 	 * @param tsuid Time series UID for the value
 	 */
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		
+		asyncDispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
 	}
 
 	/**
@@ -277,7 +357,7 @@ public class TSDBEventDispatcher {
 	 * @param tsuid Time series UID for the value
 	 */
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		
+		asyncDispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
 	}
 	
 
@@ -289,7 +369,7 @@ public class TSDBEventDispatcher {
 	 */
 	public void deleteAnnotation(Annotation annotation) {
 		if(annotation!=null) {
-			
+			asyncDispatcher.deleteAnnotation(annotation);
 		}
 	}
 	
@@ -301,7 +381,7 @@ public class TSDBEventDispatcher {
 	 */
 	public void indexAnnotation(Annotation annotation) {
 		if(annotation!=null) {
-			
+			asyncDispatcher.indexAnnotation(annotation);
 		}
 	}	
 
@@ -311,7 +391,9 @@ public class TSDBEventDispatcher {
 	 * @see net.opentsdb.search.SearchPlugin#deleteTSMeta(java.lang.String)
 	 */
 	public void deleteTSMeta(String tsMeta) {
-
+		if(tsMeta!=null) {
+			asyncDispatcher.deleteTSMeta(tsMeta);
+		}
 	}
 	
 	/**
@@ -320,7 +402,9 @@ public class TSDBEventDispatcher {
 	 * @see net.opentsdb.search.SearchPlugin#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	public void indexTSMeta(TSMeta tsMeta) {
-
+		if(tsMeta!=null) {
+			asyncDispatcher.indexTSMeta(tsMeta);
+		}
 	}	
 	
 	/**
@@ -329,7 +413,9 @@ public class TSDBEventDispatcher {
 	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	public void indexUIDMeta(UIDMeta uidMeta) {
-
+		if(uidMeta!=null) {
+			asyncDispatcher.indexUIDMeta(uidMeta);
+		}
 	}	
 
 	/**
@@ -338,7 +424,9 @@ public class TSDBEventDispatcher {
 	 * @see net.opentsdb.search.SearchPlugin#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	public void deleteUIDMeta(UIDMeta uidMeta) {
-
+		if(uidMeta!=null) {
+			asyncDispatcher.deleteUIDMeta(uidMeta);
+		}
 	}
 
 	/**
@@ -349,6 +437,41 @@ public class TSDBEventDispatcher {
 		Deferred<SearchQuery> defSearch = new Deferred<SearchQuery>();
 		defSearch.callback(searchQuery);
 		return defSearch;
+	}
+
+	/**
+	 * Returns true if the async executor has been shut down.
+	 * @return true if the async has been shut down, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isShutdown()
+	 */
+	public boolean isAsyncShutdown() {
+		return asyncExecutor.isShutdown();
+	}
+
+	/**
+	 * Returns true if the asynch executor is in the process of terminating after shutdown() or shutdownNow() but has not completely terminated.
+	 * @return true if terminating, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isTerminating()
+	 */
+	public boolean isAsyncTerminating() {
+		return asyncExecutor.isTerminating();
+	}
+
+	/**
+	 * Returns true if all the async executor's tasks have completed following shut down.
+	 * @return true if terminated, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isTerminated()
+	 */
+	public boolean isAsyncTerminated() {
+		return asyncExecutor.isTerminated();
+	}
+
+	/**
+	 * Tries to remove from all Future tasks that have been cancelled from the async executor's work queue
+	 * @see java.util.concurrent.ThreadPoolExecutor#purge()
+	 */
+	public void purgeAsync() {
+		asyncExecutor.purge();
 	}
 
 	

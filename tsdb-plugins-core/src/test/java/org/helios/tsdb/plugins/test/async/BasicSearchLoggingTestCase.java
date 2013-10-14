@@ -24,19 +24,20 @@
  */
 package org.helios.tsdb.plugins.test.async;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
-
-import org.junit.Assert;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 
 import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.test.BaseTest;
+import org.helios.tsdb.plugins.test.containers.DataPoint;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -49,16 +50,19 @@ import org.junit.Test;
 
 public class BasicSearchLoggingTestCase extends BaseTest {
 
+	/**
+	 * Validates that annotations submitted for indexing are delivered
+	 * @throws Exception thrown on any error
+	 */
 	@Test(timeout=5000)
 	//@Test
-	public void testLoggingSetup() throws Exception {
+	public void testIndexAnnotationDelivery() throws Exception {
 		createSearchShellJar();
 		TSDB tsdb = newTSDB("BasicSearchConfig");
 		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
 		int eventCount = 10000;
-
-		Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);
-		
+		int receivedEventCount = 0;
+		Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);		
 		for(int i = 0; i < eventCount; i++) {
 			TSDBSearchEvent event = (TSDBSearchEvent)events.take();			
 			Annotation annot = annotations.get(event.annotation.getTSUID() + "/" + event.annotation.getStartTime());
@@ -69,16 +73,33 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 			Assert.assertEquals("[" + i + "] Annotation mismatch: Description", annot.getDescription(), event.annotation.getDescription());
 			Assert.assertEquals("[" + i + "] Annotation mismatch: Notes", annot.getNotes(), event.annotation.getNotes());
 			Assert.assertEquals("[" + i + "] Annotation mismatch: TSUID", annot.getTSUID(), event.annotation.getTSUID());
-			
+			receivedEventCount++;
 		}
-//		
-//		
-//		
-//		for(Annotation an: annotations.values()) {
-//			tsdb.deleteAnnotation(an);
-//		}
-		//Thread.currentThread().join(30000);
+		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
 	}
-
+	
+	/**
+	 * Validates that data points submitted for publication are delivered
+	 * @throws Exception thrown on any error
+	 */
+	@Test(timeout=5000)	
+	public void testDataPointDelivery() throws Exception {
+		createPublishShellJar();
+		TSDB tsdb = newTSDB("BasicPublishConfig");
+		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
+		Assert.assertNotNull("Published Event Queue Was Null", events);
+		int eventCount = 10000;
+		int receivedEventCount = 0;
+		Map<String, DataPoint> datapoints = startDataPointStream(tsdb, eventCount, 2, 0);		
+		for(int i = 0; i < eventCount; i++) {
+			TSDBPublishEvent event = (TSDBPublishEvent)events.take();
+			Assert.assertNotNull("Taken Publish Event Was Null", event);
+			DataPoint sp1 = DataPoint.newDataPoint(event);			
+			DataPoint sp2 = datapoints.get(sp1.getKey());
+			Assert.assertNotNull("Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
+			receivedEventCount++;
+		}
+		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+	}	
 }
 

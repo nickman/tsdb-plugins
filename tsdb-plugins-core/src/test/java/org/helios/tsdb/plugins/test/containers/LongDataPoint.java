@@ -82,4 +82,49 @@ public class LongDataPoint extends DataPoint {
 		tsdb.addPoint(metricName, timestamp, value, tags);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.core.DataPoint#doubleValue()
+	 */
+	@Override
+	public double doubleValue() {
+		return value;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.core.DataPoint#isInteger()
+	 */
+	@Override
+	public boolean isInteger() {
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.core.DataPoint#longValue()
+	 */
+	@Override
+	public long longValue() {
+		return value;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.core.DataPoint#timestamp()
+	 */
+	@Override
+	public long timestamp() {
+		return timestamp;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.core.DataPoint#toDouble()
+	 */
+	@Override
+	public double toDouble() {
+		return value;
+	}
+	
 }

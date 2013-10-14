@@ -51,9 +51,9 @@ public class Constants {
 	// ===========================================================================================	
 	//		tsdb-plugins General Plugin Config
 	// ===========================================================================================
-	/** The config property name for the class name of the event publisher asynch dispatcher */
+	/** The config property name for the class name of the event dispatcher asynch dispatcher */
 	public static final String ASYNC_DISPATCHER = "helios.events.async.dispatcher";
-	/** The default name for the class name of the event publisher asynch dispatcher */
+	/** The default name for the class name of the event dispatcher asynch dispatcher */
 	public static final String DEFAULT_ASYNC_DISPATCHER = EventBusEventDispatcher.class.getName();
 	/** The tsdb-plugins config for the plugin support jar config path */
 	public static final String CONFIG_PLUGIN_SUPPORT_PATH = "helios.plugin_support_path";

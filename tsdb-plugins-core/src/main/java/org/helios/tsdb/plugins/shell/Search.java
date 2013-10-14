@@ -53,7 +53,7 @@ public class Search extends SearchPlugin {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The callback supplied TSDB instance */
 	protected TSDB tsdb = null;
-	/** The event publisher delegate */
+	/** The event dispatcher delegate */
 	protected TSDBEventDispatcher publisher;
 	
 

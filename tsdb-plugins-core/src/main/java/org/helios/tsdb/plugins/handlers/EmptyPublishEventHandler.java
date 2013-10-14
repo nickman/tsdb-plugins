@@ -27,8 +27,6 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	 * @see com.lmax.disruptor.EventHandler#onEvent(java.lang.Object, long, boolean)
 	 */
 	@Override
-	@Subscribe
-	@AllowConcurrentEvents
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		if(event.eventType==null || !event.eventType.isForPulisher()) return;		
 		if (event.eventType == TSDBEventType.DPOINT_DOUBLE) {

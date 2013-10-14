@@ -36,7 +36,7 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
 
-import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 
@@ -119,7 +119,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		eventBus.post(new TSDBSearchEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
+		eventBus.post(new TSDBPublishEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
 	}
 
 	/**
@@ -128,7 +128,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		eventBus.post(new TSDBSearchEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
+		eventBus.post(new TSDBPublishEvent().publishDataPoint(metric, timestamp, value, tags, tsuid));
 	}
 
 

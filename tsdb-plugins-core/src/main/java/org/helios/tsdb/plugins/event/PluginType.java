@@ -37,6 +37,6 @@ public enum PluginType {
 	SEARCH,
 	/** An RPC plugin */
 	RPC,
-	/** A publisher plugin */
+	/** A dispatcher plugin */
 	PUBLISH;
 }

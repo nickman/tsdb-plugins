@@ -29,6 +29,9 @@ import java.util.Map;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.event.TSDBPublishEvent;
+
 /**
  * <p>Title: DataPoint</p>
  * <p>Description: Encapsulates a syntehtic data point for submission to the TSDB.</p> 
@@ -37,7 +40,7 @@ import net.opentsdb.core.TSDB;
  * <p><code>org.helios.tsdb.plugins.test.containers.DataPoint</code></p>
  */
 
-public abstract class DataPoint {
+public abstract class DataPoint implements net.opentsdb.core.DataPoint {
 	/** The metric name, a non-empty string. */	
 	public final String metricName;
 	/** The metric tags. Must be non empty */
@@ -146,6 +149,9 @@ public abstract class DataPoint {
 			return new DoubleDataPoint(v, metricName, tags);
 		}
 	}
+	
+
+	
 
 	/**
 	 * Creates a new DataPoint
@@ -163,6 +169,17 @@ public abstract class DataPoint {
 		} else {
 			return new DoubleDataPoint(v, metricName, tags);
 		}
+	}
+	
+	/**
+	 * Creates a new data point from the passed published event
+	 * @param event The published data point event
+	 * @return the created DataPoint
+	 */
+	public static DataPoint newDataPoint(TSDBPublishEvent event) {
+		return newDataPoint(
+				event.eventType==TSDBEventType.DPOINT_DOUBLE ? event.doubleValue : event.longValue,
+				event.metric, event.tags, event.timestamp);
 	}
 	
 	

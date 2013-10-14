@@ -28,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -53,10 +54,12 @@ import net.opentsdb.utils.Config;
 
 import org.hbase.async.HBaseClient;
 import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
+import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.shell.Publisher;
 import org.helios.tsdb.plugins.shell.Search;
 import org.helios.tsdb.plugins.test.containers.DataPoint;
+import org.helios.tsdb.plugins.test.containers.LongDataPoint;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -90,6 +93,35 @@ public class BaseTest {
 			return t;
 		}
 	});
+	
+	/** Reflective access to the TSDB's RTPublisher */
+	protected static Field sinkDataPointField;
+	
+	static {
+		try {
+			sinkDataPointField = TSDB.class.getDeclaredField("rt_publisher");
+			sinkDataPointField.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	
+	/**
+	 * Publishes a data point to the current test TSDB
+	 * @param dp The data point to publish
+	 */
+	public void publishDataPoint(DataPoint dp) {
+		try {
+			RTPublisher pub = (RTPublisher)sinkDataPointField.get(tsdb);
+			if(dp instanceof LongDataPoint) {
+				pub.publishDataPoint(dp.metricName, dp.timestamp, dp.longValue(), dp.tags, dp.getKey().getBytes());
+			} else {
+				pub.publishDataPoint(dp.metricName, dp.timestamp, dp.doubleValue(), dp.tags, dp.getKey().getBytes());
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
 	
 	/**
 	 * Returns a random positive long
@@ -144,7 +176,7 @@ public class BaseTest {
 	 */
 	public TSDB newTSDB(String configName)  {		
 		try {
-			tsdb = new TSDB(getConfig("BasicSearchConfig"));
+			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);
 			tsdb.initializePlugins(false);
 			return tsdb;
@@ -225,12 +257,20 @@ public class BaseTest {
 		}
 		TO_BE_DELETED.clear();
 		log("Deleted [%s] Tmp Files", files);
+		Method shutdownMethod = TSDBEventDispatcher.class.getDeclaredMethod("shutdown");
+		shutdownMethod.setAccessible(true);
+		TSDBEventDispatcher.getInstance(tsdb).shutdown();
+		shutdownMethod.invoke(TSDBEventDispatcher.getInstance(tsdb));		
 		try {
 			stopTSDB();
 		} catch (Exception ex) {
 			log("Failed to stop TSDB");
 		}
 		QueuedResultSearchEventHandler.getInstance().clearQueue();
+		QueuedResultPublishEventHandler.getInstance().clearQueue();
+		
+		
+		
 	}
 
 	/**
@@ -385,8 +425,9 @@ public class BaseTest {
 			@Override
 			public void run() {
 				try {
-					for(DataPoint dp: dataPoints.values()) {
-						dp.publish(tsdb);
+					for(DataPoint dp: dataPoints.values()) {	
+						publishDataPoint(dp);
+						//dp.publish(tsdb);
 						if(period>0) {
 							Thread.currentThread().join(period);
 						}

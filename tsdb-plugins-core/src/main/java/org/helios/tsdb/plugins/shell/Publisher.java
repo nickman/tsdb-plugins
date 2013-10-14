@@ -49,13 +49,13 @@ import com.stumbleupon.async.Deferred;
 public class Publisher extends RTPublisher {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	/** The event publisher delegate */
-	protected TSDBEventDispatcher publisher;
+	/** The event dispatcher delegate */
+	protected TSDBEventDispatcher dispatcher;
 	
 	/**
 	 * Creates a new Publisher
 	 */
-	protected Publisher() {
+	public Publisher() {
 		log.debug("Created {} instance", getClass().getName());
 	}
 	
@@ -66,7 +66,7 @@ public class Publisher extends RTPublisher {
 	@Override
 	public void initialize(TSDB tsdb) {
 		log.debug("Initializing instance");
-		publisher = TSDBEventDispatcher.getInstance(tsdb);
+		dispatcher = TSDBEventDispatcher.getInstance(tsdb);
 	}
 	
 
@@ -76,7 +76,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		publisher.collectStats(PluginType.PUBLISH, statsCollector);
+		dispatcher.collectStats(PluginType.PUBLISH, statsCollector);
 	}
 
 
@@ -86,7 +86,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		publisher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		dispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -96,7 +96,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		publisher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		dispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 	
@@ -116,7 +116,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		if(publisher!=null) publisher.shutdown();
+		if(dispatcher!=null) dispatcher.shutdown();
 		return Constants.NULL_DEFERED;
 	}
 

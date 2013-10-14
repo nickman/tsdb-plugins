@@ -79,8 +79,8 @@ public enum TSDBEventType {
 	}
 	
 	/**
-	 * Indicates if this event type is targetted at publisher plugins
-	 * @return true if this event type is targetted at publisher plugins, false otherwise
+	 * Indicates if this event type is targetted at dispatcher plugins
+	 * @return true if this event type is targetted at dispatcher plugins, false otherwise
 	 */
 	public boolean isForPulisher() {
 		if(pluginTypes.length==1) return pluginTypes[0]==PluginType.PUBLISH;

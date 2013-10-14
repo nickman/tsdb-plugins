@@ -56,8 +56,6 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	protected AsyncEventBus eventBus = null;
 	/** The executor driving the async bus */
 	protected Executor executor = null;
-	/** The shared TSDB instance */
-	protected TSDB tsdb = null;
 	
 	
 	/**
@@ -67,9 +65,9 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	}
 	
-	/**	public static final String ASYNC_DISPATCHER = "helios.events
+	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#shutdown()
+	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#shutdown()
 	 */
 	@Override
 	public void shutdown() {
@@ -78,7 +76,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#collectStats(net.opentsdb.stats.StatsCollector)
+	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#collectStats(net.opentsdb.stats.StatsCollector)
 	 */
 	@Override
 	public void collectStats(StatsCollector collector) {
@@ -104,18 +102,10 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 		
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
-	 */
-	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
-		this.tsdb = tsdb;
-	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
+	 * @see org.helios.tsdb.plugins.async.IPublishEventDispatcher#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
@@ -124,7 +114,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IPublishEventHandler#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
+	 * @see org.helios.tsdb.plugins.async.IPublishEventDispatcher#publishDataPoint(java.lang.String, long, long, java.util.Map, byte[])
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
@@ -136,7 +126,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#executeQuery(net.opentsdb.search.SearchQuery)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
 	@Override
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
@@ -147,7 +137,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexAnnotation(net.opentsdb.meta.Annotation)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#indexAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	@Override
 	public void indexAnnotation(Annotation annotation) {
@@ -156,7 +146,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteAnnotation(net.opentsdb.meta.Annotation)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#deleteAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	@Override
 	public void deleteAnnotation(Annotation annotation) {
@@ -166,7 +156,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexTSMeta(net.opentsdb.meta.TSMeta)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	@Override
 	public void indexTSMeta(TSMeta tsMeta) {
@@ -176,7 +166,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteTSMeta(java.lang.String)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#deleteTSMeta(java.lang.String)
 	 */
 	@Override
 	public void deleteTSMeta(String tsMeta) {
@@ -186,7 +176,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#indexUIDMeta(net.opentsdb.meta.UIDMeta)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#indexUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	@Override
 	public void indexUIDMeta(UIDMeta uidMeta) {
@@ -196,7 +186,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	@Override
 	public void deleteUIDMeta(UIDMeta uidMeta) {

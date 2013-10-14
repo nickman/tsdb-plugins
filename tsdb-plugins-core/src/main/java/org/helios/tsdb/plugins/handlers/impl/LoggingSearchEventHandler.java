@@ -59,56 +59,26 @@ public class LoggingSearchEventHandler extends EmptySearchEventHandler {
 		log = LoggerFactory.getLogger(ConfigurationHelper.getSystemThenEnvProperty("org.helios.logginghandler.logger", getClass().getName(), extracted));
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#indexAnnotation(net.opentsdb.meta.Annotation)
-	 */
-	@Override
 	public void indexAnnotation(Annotation annotation) {		
 		log.info("INDEXING ANNOTATION\n\t{}", JSON.serializeToString(annotation));
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#deleteAnnotation(net.opentsdb.meta.Annotation)
-	 */
-	@Override
 	public void deleteAnnotation(Annotation annotation) {		
 		log.info("DELETING ANNOTATION\n\t{}", JSON.serializeToString(annotation));
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#indexTSMeta(net.opentsdb.meta.TSMeta)
-	 */
-	@Override
 	public void indexTSMeta(TSMeta tsMeta) {
 		log.info("INDEXING TSMETA\n\t{}", JSON.serializeToString(tsMeta));
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#deleteTSMeta(java.lang.String)
-	 */
-	@Override
 	public void deleteTSMeta(String tsMeta) {
 		log.info("DELETING TSMETA\n\t{}", tsMeta);
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#indexUIDMeta(net.opentsdb.meta.UIDMeta)
-	 */
-	@Override
 	public void indexUIDMeta(UIDMeta uidMeta) {
 		log.info("INDEXING UIDMETA\n\t{}", JSON.serializeToString(uidMeta));
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
-	 */
-	@Override
 	public void deleteUIDMeta(UIDMeta uidMeta) {
 		log.info("DELETING UIDMETA\n\t{}", JSON.serializeToString(uidMeta));
 	}

@@ -28,9 +28,9 @@ import java.util.Collection;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import net.opentsdb.stats.StatsCollector;
+
 import org.helios.tsdb.plugins.handlers.IEventHandler;
-import org.helios.tsdb.plugins.handlers.IPublishEventHandler;
-import org.helios.tsdb.plugins.handlers.ISearchEventHandler;
 
 /**
  * <p>Title: AsyncEventDispatcher</p>
@@ -40,7 +40,7 @@ import org.helios.tsdb.plugins.handlers.ISearchEventHandler;
  * <p><code>org.helios.tsdb.plugins.async.AsyncEventDispatcher</code></p>
  */
 
-public interface AsyncEventDispatcher extends IPublishEventHandler, ISearchEventHandler {
+public interface AsyncEventDispatcher extends ISearchEventDispatcher, IPublishEventDispatcher {
 	/**
 	 * Configures the async event dispatcher
 	 * @param config The TSDB provided config properties
@@ -48,5 +48,17 @@ public interface AsyncEventDispatcher extends IPublishEventHandler, ISearchEvent
 	 * @param handlers The handles to register
 	 */
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers);
+	
+	/**
+	 * Executes a clean shutdown on this AsyncEventDispatcher
+	 */
+	public void shutdown();
+	
+	/**
+	 * Collects statistics for this AsyncEventDispatcher
+	 * @param collector The collector to inject stats into 
+	 */
+	public void collectStats(StatsCollector collector);
+
 	
 }

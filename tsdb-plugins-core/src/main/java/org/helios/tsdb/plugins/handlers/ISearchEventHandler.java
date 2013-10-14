@@ -41,50 +41,6 @@ import com.stumbleupon.async.Deferred;
 
 public interface ISearchEventHandler extends IEventHandler {
 
-	/**
-	 * Executes a very basic search query, returning the results in the SearchQuery object passed in.
-	 * Note that only one search event handler instance can handle search query results.
-	 * @param searchQuery The query to execute against the search engine
-	 * @return The search results
-	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery);
-
-	/**
-	 * Indexes an annotation object Note: Unique Document ID = TSUID and Start Time
-	 * @param annotation The annotation to index
-	 */
-	public void indexAnnotation(Annotation annotation);
-	
-	/**
-	 * Called to remove an annotation object from the index Note: Unique Document ID = TSUID and Start Time
-	 * @param annotation The annotation to remove
-	 */
-	public void deleteAnnotation(Annotation annotation);
-	
-	/**
-	 * Indexes a timeseries metadata object in the search engine Note: Unique Document ID = TSUID
-	 * @param tsMeta The TSMeta to index
-	 */
-	public void indexTSMeta(TSMeta tsMeta);
-
-	/**
-	 * Called when we need to remove a timeseries meta object from the engine Note: Unique Document ID = TSUID
-	 * @param tsMeta The hex encoded TSUID to remove
-	 */
-	public void deleteTSMeta(String tsMeta);
-	
-	/**
-	 * Indexes a UID metadata object for a metric, tagk or tagv Note: Unique Document ID = UID and the Type "TYPEUID"
-	 * @param uidMeta The UIDMeta to index
-	 */
-	public void indexUIDMeta(UIDMeta uidMeta);
-	
-
-	/**
-	 * Called when we need to remove a UID meta object from the engine Note: Unique Document ID = UID and the Type "TYPEUID"
-	 * @param uidMeta The UIDMeta to remove
-	 */
-	public void deleteUIDMeta(UIDMeta uidMeta);
 
 
 }

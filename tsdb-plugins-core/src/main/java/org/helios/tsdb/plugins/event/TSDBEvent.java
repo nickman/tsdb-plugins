@@ -40,7 +40,7 @@ import com.stumbleupon.async.Deferred;
  * <p>Description: Encapsulates an OpenTSDB callback to a plugin</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.asynch.TSDBEvent</code></p>
+ * <p><code>org.helios.tsdb.plugins.event.TSDBEvent</code></p>
  */
 
 public class TSDBEvent  {

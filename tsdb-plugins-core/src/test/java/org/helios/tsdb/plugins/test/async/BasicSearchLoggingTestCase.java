@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.test.async;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
@@ -31,6 +32,9 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 
 import org.helios.tsdb.plugins.datapoints.DataPoint;
+import org.helios.tsdb.plugins.datapoints.DoubleDataPoint;
+import org.helios.tsdb.plugins.datapoints.FloatDataPoint;
+import org.helios.tsdb.plugins.datapoints.LongDataPoint;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
@@ -76,6 +80,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 			receivedEventCount++;
 		}
 		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+		log("Processed [%s] Events", receivedEventCount);
 	}
 	
 	/**
@@ -90,6 +95,8 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		Assert.assertNotNull("Published Event Queue Was Null", events);
 		int eventCount = 100;
 		int receivedEventCount = 0;
+		Map<Class<? extends DataPoint>, int[]> typeCounts = new HashMap<Class<? extends DataPoint>, int[]>(3);
+		typeCounts.put(LongDataPoint.class, new int[]{0}); typeCounts.put(FloatDataPoint.class, new int[]{0}); typeCounts.put(DoubleDataPoint.class, new int[]{0});
 		Map<String, DataPoint> datapoints = startDataPointStream(tsdb, eventCount, 2, 0);		
 		for(int i = 0; i < eventCount; i++) {
 			TSDBPublishEvent event = (TSDBPublishEvent)events.take();
@@ -99,8 +106,16 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 			Assert.assertNotNull("[" + i + "] Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
 			Assert.assertEquals("[" + i + "] DataPoints are not equal", sp1, sp2);
 			receivedEventCount++;
+			typeCounts.get(sp2.getClass())[0]++;
 		}
 		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+		log("Processed [%s] Events", receivedEventCount);
+		StringBuilder b = new StringBuilder("\nData Point Type Counts:");
+		for(Map.Entry<Class<? extends DataPoint>, int[]> entry: typeCounts.entrySet()) {
+			b.append("\n\t").append(entry.getKey().getSimpleName()).append(" :").append(entry.getValue()[0]);
+		}
+		b.append("\n");
+		log(b.toString());
 	}	
 }
 

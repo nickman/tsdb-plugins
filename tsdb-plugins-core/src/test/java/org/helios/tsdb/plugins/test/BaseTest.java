@@ -53,13 +53,13 @@ import net.opentsdb.tsd.RTPublisher;
 import net.opentsdb.utils.Config;
 
 import org.hbase.async.HBaseClient;
+import org.helios.tsdb.plugins.datapoints.DataPoint;
+import org.helios.tsdb.plugins.datapoints.LongDataPoint;
 import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.shell.Publisher;
 import org.helios.tsdb.plugins.shell.Search;
-import org.helios.tsdb.plugins.test.containers.DataPoint;
-import org.helios.tsdb.plugins.test.containers.LongDataPoint;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -96,6 +96,10 @@ public class BaseTest {
 	
 	/** Reflective access to the TSDB's RTPublisher */
 	protected static Field sinkDataPointField;
+	/** Reflective access to the TSDBEventDispatcher's reset method */
+	protected static Method dispatcherResetMethod;
+	/** Reflective access to the TSDBEventDispatcher's instance field */
+	protected static Field dispatcherInstanceField;
 	
 	static {
 		try {
@@ -103,6 +107,33 @@ public class BaseTest {
 			sinkDataPointField.setAccessible(true);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
+		}
+		try {
+			dispatcherInstanceField = TSDBEventDispatcher.class.getDeclaredField("instance");
+			dispatcherInstanceField.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+		
+		try {
+			dispatcherResetMethod = TSDBEventDispatcher.class.getDeclaredMethod("reset");
+			dispatcherResetMethod.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}		
+	}
+	
+	/**
+	 * Resets the TSDBEventDispatcher instance
+	 */
+	public static void resetEventDispatcher() {
+		try {
+			TSDBEventDispatcher instance = (TSDBEventDispatcher)dispatcherInstanceField.get(null);
+			if(instance!=null) {
+				dispatcherResetMethod.invoke(instance);
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to reset event dispatcher", ex);
 		}
 	}
 	
@@ -217,6 +248,7 @@ public class BaseTest {
 		if(stopped) {
 			Assert.assertEquals("Dispatcher Executor Not Shutdown", true, dispatcher.isAsyncShutdown());
 		}
+		resetEventDispatcher();
 	}
 	
 	/**

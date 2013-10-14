@@ -30,13 +30,13 @@ import java.util.concurrent.BlockingQueue;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 
+import org.helios.tsdb.plugins.datapoints.DataPoint;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.test.BaseTest;
-import org.helios.tsdb.plugins.test.containers.DataPoint;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -60,7 +60,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		createSearchShellJar();
 		TSDB tsdb = newTSDB("BasicSearchConfig");
 		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
-		int eventCount = 10000;
+		int eventCount = 100;
 		int receivedEventCount = 0;
 		Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);		
 		for(int i = 0; i < eventCount; i++) {
@@ -88,7 +88,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		TSDB tsdb = newTSDB("BasicPublishConfig");
 		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
 		Assert.assertNotNull("Published Event Queue Was Null", events);
-		int eventCount = 10000;
+		int eventCount = 100;
 		int receivedEventCount = 0;
 		Map<String, DataPoint> datapoints = startDataPointStream(tsdb, eventCount, 2, 0);		
 		for(int i = 0; i < eventCount; i++) {
@@ -96,7 +96,8 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 			Assert.assertNotNull("Taken Publish Event Was Null", event);
 			DataPoint sp1 = DataPoint.newDataPoint(event);			
 			DataPoint sp2 = datapoints.get(sp1.getKey());
-			Assert.assertNotNull("Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
+			Assert.assertNotNull("[" + i + "] Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
+			Assert.assertEquals("[" + i + "] DataPoints are not equal", sp1, sp2);
 			receivedEventCount++;
 		}
 		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);

@@ -17,62 +17,72 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License adouble with this software; if not, write to the Free
+ * License along with this software; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.test.containers;
+package org.helios.tsdb.plugins.datapoints;
 
 import java.util.Map;
 
 import net.opentsdb.core.TSDB;
 
 /**
- * <p>Title: DoubleDataPoint</p>
- * <p>Description: A double value data point</p> 
+ * <p>Title: LongDataPoint</p>
+ * <p>Description: A long value data point</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.test.containers.DoubleDataPoint</code></p>
+ * <p><code>org.helios.tsdb.plugins.test.containers.LongDataPoint</code></p>
  */
 
-public class DoubleDataPoint extends DataPoint {
-	/** The double value */
-	public final double value;
+public class LongDataPoint extends DataPoint {
+	/** The long value */
+	public final long value;
 	/**
-	 * Creates a new DoubleDataPoint
-	 * @param value The double value for this datapoint
+	 * Creates a new LongDataPoint
+	 * @param value The long value for this datapoint
 	 * @param metricName The metric name, a non-empty string.
 	 * @param tags The metric tags. Must be non empty
 	 * @param timestamp  The timestamp associated with the value.
 	 */
-	public DoubleDataPoint(double value, String metricName, Map<String, String> tags, long timestamp) {
+	public LongDataPoint(long value, String metricName, Map<String, String> tags,
+			long timestamp) {
 		super(metricName, tags, timestamp);
 		this.value = value;
 	}
 
 	/**
-	 * Creates a new DoubleDataPoint
-	 * @param value The double value for this datapoint
+	 * Creates a new LongDataPoint
+	 * @param value The long value for this datapoint
 	 * @param metricName The metric name, a non-empty string.
 	 * @param tags The metric tags. Must be non empty
 	 */
-	public DoubleDataPoint(double value, String metricName, Map<String, String> tags) {
+	public LongDataPoint(long value, String metricName, Map<String, String> tags) {
 		super(metricName, tags);
 		this.value = value;
 	}
 
 	/**
-	 * Creates a new DoubleDataPoint
-	 * @param value The double value for this datapoint
+	 * Creates a new LongDataPoint
+	 * @param value The long value for this datapoint
 	 * @param metricName The metric name, a non-empty string.
 	 * @param tags The metric tags. Must be a non empty, even numbered number of non empty strings
 	 */
-	public DoubleDataPoint(double value, String metricName, String... tags) {
+	public LongDataPoint(long value, String metricName, String... tags) {
 		super(metricName, tags);
 		this.value = value;
 	}
-
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.datapoints.DataPoint#getValue()
+	 */
+	public Long getValue() {
+		return value;
+	}
+	
+	
 	/**
 	 * Publishes this datapoint the passed TSDB
 	 * @param tsdb the TSDB to publish to
@@ -96,7 +106,7 @@ public class DoubleDataPoint extends DataPoint {
 	 */
 	@Override
 	public boolean isInteger() {
-		return false;
+		return true;
 	}
 
 	/**
@@ -105,7 +115,7 @@ public class DoubleDataPoint extends DataPoint {
 	 */
 	@Override
 	public long longValue() {
-		return (long)value;
+		return value;
 	}
 
 	/**
@@ -126,4 +136,34 @@ public class DoubleDataPoint extends DataPoint {
 		return value;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + (int) (value ^ (value >>> 32));
+		return result;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		LongDataPoint other = (LongDataPoint) obj;
+		if (value != other.value)
+			return false;
+		return true;
+	}
+	
 }

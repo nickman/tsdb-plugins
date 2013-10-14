@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.test.containers;
+package org.helios.tsdb.plugins.datapoints;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -117,6 +117,12 @@ public abstract class DataPoint implements net.opentsdb.core.DataPoint {
 	 * @param tsdb the TSDB to publish to
 	 */
 	public abstract void publish(TSDB tsdb);
+	
+	/**
+	 * Retrieves the datapoint's value
+	 * @return the datapoint's value
+	 */
+	public abstract Number getValue();
 
 	
 	/**
@@ -180,6 +186,63 @@ public abstract class DataPoint implements net.opentsdb.core.DataPoint {
 		return newDataPoint(
 				event.eventType==TSDBEventType.DPOINT_DOUBLE ? event.doubleValue : event.longValue,
 				event.metric, event.tags, event.timestamp);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((metricName == null) ? 0 : metricName.hashCode());
+		result = prime * result + ((tags == null) ? 0 : tags.hashCode());
+		result = prime * result + (int) (timestamp ^ (timestamp >>> 32));
+		return result;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DataPoint other = (DataPoint) obj;
+		if (metricName == null) {
+			if (other.metricName != null)
+				return false;
+		} else if (!metricName.equals(other.metricName))
+			return false;
+		if (tags == null) {
+			if (other.tags != null)
+				return false;
+		} else { //if (!tags.equals(other.tags))
+			if(tags.size() != other.tags.size()) return false;
+			for(Map.Entry<String, String> entry: tags.entrySet()) {
+				String otherValue = other.tags.get(entry.getKey());
+				if(!entry.getValue().equals(otherValue)) return false;
+			}
+		}
+		if (timestamp != other.timestamp)
+			return false;
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return getKey() + ":" + getValue();
 	}
 	
 	

@@ -104,7 +104,11 @@ public class TSDBEventDispatcher {
 	 */
 	@SuppressWarnings("unused")
 	private void reset() {
+		shutdown();
 		instance = null;
+		configured.set(false);
+		shutdown.set(false);
+		log.warn("\n\t****************************\n\tTSDBEventDispatcher RESET\n\t****************************\n");
 	}
 	
 	

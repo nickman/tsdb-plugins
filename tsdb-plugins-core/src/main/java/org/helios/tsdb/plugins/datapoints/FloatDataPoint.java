@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.test.containers;
+package org.helios.tsdb.plugins.datapoints;
 
 import java.util.Map;
 
@@ -72,6 +72,15 @@ public class FloatDataPoint extends DataPoint {
 		super(metricName, tags);
 		this.value = value;
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.datapoints.DataPoint#getValue()
+	 */
+	public Float getValue() {
+		return value;
+	}
+	
 	
 	/**
 	 * Publishes this datapoint the passed TSDB
@@ -124,6 +133,36 @@ public class FloatDataPoint extends DataPoint {
 	@Override
 	public double toDouble() {
 		return value;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + Float.floatToIntBits(value);
+		return result;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		FloatDataPoint other = (FloatDataPoint) obj;
+		if (Float.floatToIntBits(value) != Float.floatToIntBits(other.value))
+			return false;
+		return true;
 	}
 	
 

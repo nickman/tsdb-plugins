@@ -34,6 +34,16 @@
 		<jmx-optional.version>1.0_01-ea</jmx-optional.version>
 		<chronicle.version>1.7.2</chronicle.version>
 		<guava.version>13.0.1</guava.version>		
+		<mockito.version>1.9.5</mockito.version>
+		<javassist.version>3.18.0-GA</javassist.version>
+		<asynchbase.version>1.4.1</asynchbase.version>
+		<spring.version>3.2.4.RELEASE</spring.version>
+    <h2.version>1.3.173</h2.version>
+    <activemq.version>5.8.0</activemq.version>
+		<camel.version>2.12.1</camel.version>
+		<groovy.version>2.1.6</groovy.version>
+		<camel-esper.version>2.10.6</camel-esper.version>
+		
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -55,6 +65,61 @@
 		    <version>${junit.version}</version>
 		    <scope>test</scope>
 		</dependency>
+		<dependency>
+		  <groupId>org.mockito</groupId>
+		  <artifactId>mockito-all</artifactId>
+		  <version>${mockito.version}</version>
+		  <scope>test</scope>
+		</dependency>
+
+      <!--
+	========================================
+	JDBC DB Artifacts
+	========================================
+	-->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+    </dependency>
+
+      <!--
+	========================================
+	Groovy Artifacts
+	========================================
+	-->
+      <dependency>
+				<groupId>org.codehaus.groovy</groupId>
+				<artifactId>groovy-all</artifactId>
+				<version>${groovy.version}</version>
+      </dependency>
+
+
+      <!--
+	========================================
+	ActiveMQ Artifacts
+	========================================
+	-->
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-all</artifactId>
+      <version>${activemq.version}</version>
+    </dependency>
+    
+
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-spring</artifactId>
+      <version>${activemq.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-camel</artifactId>
+       <version>5.8.0.redhat-60024</version>
+    </dependency>
+    
+
 
 	      <!-- ==========================================================
 		JMX Support
@@ -64,6 +129,16 @@
 		  <artifactId>jmxremote_optional</artifactId>
 		  <version>${jmx-optional.version}</version>
 		</dependency>
+
+	      <!-- ==========================================================
+		Byte Code Injection
+		  ========================================================== -->		
+		<dependency>
+		  <groupId>org.javassist</groupId>
+		  <artifactId>javassist</artifactId>
+		  <version>${javassist.version}</version>
+		</dependency>
+
 
 		<!-- ==========================================================
 		    Collection Utilities & Dependencies
@@ -86,6 +161,7 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
+      <scope>provided</scope>
     </dependency>
 		
 
@@ -93,16 +169,68 @@
 		    Asynch & IPC Libs
 		    ========================================================== -->	
 	      <dependency>
-		<groupId>com.lmax</groupId>
-		<artifactId>disruptor</artifactId>
-		<version>${disruptor.version}</version>
+					<groupId>com.lmax</groupId>
+					<artifactId>disruptor</artifactId>
+					<version>${disruptor.version}</version>
 	      </dependency>            
 
 	      <dependency>
-		<groupId>com.higherfrequencytrading</groupId>
-		<artifactId>chronicle</artifactId>
-		<version>${chronicle.version}</version>
+					<groupId>com.higherfrequencytrading</groupId>
+					<artifactId>chronicle</artifactId>
+					<version>${chronicle.version}</version>
 	      </dependency>
+	      
+      <!--
+	========================================
+	Camel Artifacts
+	========================================
+	-->
+    
+  <dependency>
+	  <groupId>org.apache.camel</groupId>
+	  <artifactId>camel-core</artifactId>
+	  <version>${camel.version}</version>
+	</dependency>
+
+	<dependency>
+	  <groupId>org.apache.camel</groupId>
+	  <artifactId>camel-spring</artifactId>
+	  <version>${camel.version}</version>
+	</dependency>
+
+	<dependency>
+	  <groupId>org.apache.camel</groupId>
+	  <artifactId>camel-jms</artifactId>
+	  <version>${camel.version}</version>
+	</dependency>
+
+
+	
+	<dependency>
+	  <groupId>org.apache.camel</groupId>
+	  <artifactId>camel-netty</artifactId>
+	  <version>2.12.1</version>
+	</dependency>
+	
+	
+	<dependency>
+	  <groupId>org.apache-extras.camel-extra</groupId>
+	  <artifactId>camel-esper-demo</artifactId>
+	  <version>${camel-esper.version}</version>
+	</dependency>
+	
+	<dependency>
+	  <groupId>org.apache-extras.camel-extra</groupId>
+	  <artifactId>camel-esper</artifactId>
+	  <version>${camel-esper.version}</version>
+	</dependency>
+
+	<dependency>
+	    <groupId>org.apache.camel</groupId>
+	    <artifactId>camel-disruptor</artifactId>
+	    <version>${camel.version}</version>
+	</dependency>
+
 	      
 		<!-- ==========================================================
 		    OpenTSDB Plugin Dependencies
@@ -134,6 +262,84 @@
 		  <version>${jackson-annotations.version}</version>
 		  <scope>provided</scope>
 		</dependency>
+		
+		<dependency>
+		  <groupId>com.fasterxml.jackson.core</groupId>
+		  <artifactId>jackson-core</artifactId>
+		  <version>${jackson-annotations.version}</version>
+		  <scope>provided</scope>
+		</dependency>
+		
+		<dependency>
+		  <groupId>com.fasterxml.jackson.core</groupId>
+		  <artifactId>jackson-databind</artifactId>
+		  <version>${jackson-annotations.version}</version>
+		  <scope>provided</scope>
+		</dependency>
+		
+		
+		
+		<dependency>
+		  <groupId>org.hbase</groupId>
+		  <artifactId>asynchbase</artifactId>
+		  <version>${asynchbase.version}</version>
+		</dependency>
+		
+		<!-- ==========================================================
+		    Spring Dependencies
+		    ========================================================== -->		
+		
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-beans</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-jdbc</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+      
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-context</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-context-support</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+<!--
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-jms</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-tx</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-aop</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+
+      <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-orm</artifactId>
+				<version>${spring.version}</version>
+      </dependency>
+      
+-->		
 
 		<!-- ==========================================================
 		    Logging Libs
@@ -161,7 +367,7 @@
     
 		<!-- ==========================================================
 		    Esper & Esper IO
-		    ========================================================== -->
+		    ========================================================== 
 		<dependency>
 		  <groupId>com.espertech</groupId>
 		  <artifactId>esper</artifactId>
@@ -204,7 +410,7 @@
 		  <artifactId>esperio-amqp</artifactId>
 		  <version>${esper.version}</version>
 		</dependency>
-
+			-->
     
     </dependencies>
   </dependencyManagement>

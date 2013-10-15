@@ -4,6 +4,7 @@ import java.lang.management.ManagementFactory;
 
 import org.helios.tsdb.plugins.async.EventBusEventDispatcher;
 
+import com.lmax.disruptor.SleepingWaitStrategy;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -116,6 +117,23 @@ public class Constants {
 	public static final String ASYNC_QUEUE_SIZE = "helios.events.async.queuesize";
 	/** The default async dispatcher work queue size */
 	public static final int DEFAULT_ASYNC_QUEUE_SIZE = 1024;
+	
+	// ===========================================================================================	
+	//		Disruptor AsyncHandler Config
+	// ===========================================================================================
+	/** The config property name for the number of slots in the ring buffer. Must be a power of 2 */
+	public static final String RING_BUFFER_SIZE = "helios.events.async.disruptor.ringsize";
+	/** The default number of slots in the ring buffer */
+	public static final int DEFAULT_RING_BUFFER_SIZE = 1024;
+	
+	/** The config property name for the ring buffer wait strategy */
+	public static final String RING_BUFFER_WAIT_STRAT = "helios.events.async.disruptor.ringsize";
+	/** The default number of slots in the ring buffer */
+	public static final String DEFAULT_RING_BUFFER_WAIT_STRAT = SleepingWaitStrategy.class.getSimpleName();
+	/** The optional wait strategy class ctor parameters */
+	public static final String RING_BUFFER_WAIT_STRAT_ARGS = "";
+	
+	
 	
 	
 	

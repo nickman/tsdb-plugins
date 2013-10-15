@@ -24,9 +24,12 @@
  */
 package org.helios.tsdb.plugins.async;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import net.opentsdb.meta.Annotation;
@@ -35,10 +38,19 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
 
+import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.lmax.disruptor.BatchEventProcessor;
+import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.Sequence;
+import com.lmax.disruptor.SequenceBarrier;
+import com.lmax.disruptor.WaitStrategy;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -49,14 +61,26 @@ import com.stumbleupon.async.Deferred;
  * <p><code>org.helios.tsdb.plugins.async.DisruptorEventDispatcher</code></p>
  */
 
-public class DisruptorEventDispatcher implements AsyncEventDispatcher {
-
+public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHandler<TSDBEvent> {
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The RingBuffer instance events are published to */
 	protected RingBuffer<TSDBEvent> ringBuffer = null;
 	/** The executor driving the async bus */
 	protected Executor executor = null;
-	
-	
+	/** The wait strategy */
+	protected WaitStrategy waitStrategy = null;
+	/** The ring buffer size */
+	protected int ringBufferSize;
+	/** The event handler sequence barrier */
+	protected SequenceBarrier eventHandlerSequenceBarrier = null;
+	/** The event handler batch processors */
+	protected final Set<BatchEventProcessor<TSDBEvent>> eventHandlerBatchProcessors = new HashSet<BatchEventProcessor<TSDBEvent>>();
+	/** The closer sequence barrier */
+	protected SequenceBarrier closerSequenceBarrier = null;
+	/** The closer batch processor */
+	protected BatchEventProcessor<TSDBEvent> closerBatchProcessor;
+
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#initialize(java.util.Properties, java.util.concurrent.Executor, java.util.Collection)
@@ -64,6 +88,46 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher {
 	@Override
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
 		this.executor = executor;
+		ringBufferSize = ConfigurationHelper.getIntSystemThenEnvProperty(Constants.RING_BUFFER_SIZE, Constants.DEFAULT_RING_BUFFER_SIZE, config);
+		String[] waitStrategyArgs = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.RING_BUFFER_WAIT_STRAT_ARGS, "", config);
+		String waitStrategyClassName = ConfigurationHelper.getSystemThenEnvProperty(Constants.RING_BUFFER_WAIT_STRAT, Constants.DEFAULT_RING_BUFFER_WAIT_STRAT, config);
+		log.info("Creating Dispruptor WaitStrategy [{}] with args {}....", waitStrategyClassName, Arrays.toString(waitStrategyArgs));
+		waitStrategy = WaitStrategyFactory.newWaitStrategy(waitStrategyClassName, waitStrategyArgs);
+		log.info("Dispruptor WaitStrategy Created");
+		ringBuffer = RingBuffer.createMultiProducer(TSDBEvent.EVENT_FACTORY, ringBufferSize, waitStrategy);
+		
+		
+		eventHandlerSequenceBarrier = ringBuffer.newBarrier();
+		for(IEventHandler handler: handlers) {
+			if(handler instanceof EventHandler) {
+				EventHandler<TSDBEvent> eventHandler = (EventHandler<TSDBEvent>)handler;
+				eventHandlerBatchProcessors.add(
+						new BatchEventProcessor<TSDBEvent>(ringBuffer, eventHandlerSequenceBarrier, eventHandler)
+				);
+				log.info("Registered TSDBEventHandler [{}]", handler.getClass().getName());
+			} else {
+				log.warn("The handler [{}] does not implement [{}]. Not registered to handle events", handler.getClass().getName(), EventHandler.class.getName());
+			}
+		}
+		if(eventHandlerBatchProcessors.isEmpty()) {
+			// FIXME: Do some shutdown/cleanup here.
+			throw new RuntimeException("No event handlers registered. Cannot continue.");
+		}
+		log.info("Registered [{}] AsyncEvent Handlers", eventHandlerBatchProcessors.size());
+		Sequence[] eventHandlerSequences = new Sequence[eventHandlerBatchProcessors.size()];
+		int index = 0;
+		for(BatchEventProcessor<TSDBEvent> bep: eventHandlerBatchProcessors) {
+			eventHandlerSequences[index] = bep.getSequence();
+		}
+		closerSequenceBarrier = ringBuffer.newBarrier(eventHandlerSequences);
+		closerBatchProcessor = new BatchEventProcessor<TSDBEvent>(ringBuffer, closerSequenceBarrier, this);
+		ringBuffer.addGatingSequences(closerBatchProcessor.getSequence());		
+		log.info("Initialized Disruptor Closer.\n\tStarting RingBuffer Event Processing.....");
+		for(BatchEventProcessor<TSDBEvent> bep: eventHandlerBatchProcessors) {
+			executor.execute(bep);
+		}
+		executor.execute(closerBatchProcessor);
+		log.info("Disruptor AsyncEvent Processor Started");
 		
 	}
 	
@@ -184,6 +248,16 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher {
 	public void deleteUIDMeta(UIDMeta uidMeta) {
 		// TODO Auto-generated method stub
 
+	}
+
+
+
+
+	@Override
+	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
 	}
 
 

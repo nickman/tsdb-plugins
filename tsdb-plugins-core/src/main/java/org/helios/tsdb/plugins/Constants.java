@@ -127,11 +127,13 @@ public class Constants {
 	public static final int DEFAULT_RING_BUFFER_SIZE = 1024;
 	
 	/** The config property name for the ring buffer wait strategy */
-	public static final String RING_BUFFER_WAIT_STRAT = "helios.events.async.disruptor.ringsize";
+	public static final String RING_BUFFER_WAIT_STRAT = "helios.events.async.disruptor.waitstrat";
 	/** The default number of slots in the ring buffer */
 	public static final String DEFAULT_RING_BUFFER_WAIT_STRAT = SleepingWaitStrategy.class.getSimpleName();
+	/** The config property name for the ring buffer wait strategy ctor parameters */
+	public static final String RING_BUFFER_WAIT_STRAT_ARGS = "helios.events.async.disruptor.waitstrat.args";
 	/** The optional wait strategy class ctor parameters */
-	public static final String RING_BUFFER_WAIT_STRAT_ARGS = "";
+	public static final String DEFAULT_RING_BUFFER_WAIT_STRAT_ARGS = "";
 	
 	
 	

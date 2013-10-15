@@ -35,6 +35,7 @@ import org.helios.tsdb.plugins.datapoints.DataPoint;
 import org.helios.tsdb.plugins.datapoints.DoubleDataPoint;
 import org.helios.tsdb.plugins.datapoints.FloatDataPoint;
 import org.helios.tsdb.plugins.datapoints.LongDataPoint;
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
@@ -64,7 +65,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		createSearchShellJar();
 		TSDB tsdb = newTSDB("BasicSearchConfig");
 		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
-		int eventCount = 100;
+		int eventCount = 1000;
 		int receivedEventCount = 0;
 		Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);		
 		for(int i = 0; i < eventCount; i++) {
@@ -84,6 +85,37 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	}
 	
 	/**
+	 * Validates that annotations submitted for indexing are delivered by the disruptor
+	 * @throws Exception thrown on any error
+	 */
+	@Test(timeout=5000)
+	//@Test
+	public void testDisruptorIndexAnnotationDelivery() throws Exception {
+		createSearchShellJar();
+		TSDB tsdb = newTSDB("BasicSearchDisruptorConfig");
+		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
+		int eventCount = 1000;
+		int receivedEventCount = 0;
+		Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);	
+		log("Publsihed %s Annotations", annotations.size());
+		for(int i = 0; i < eventCount; i++) {
+			TSDBEvent event = (TSDBEvent)events.take();			
+			Annotation annot = annotations.get(event.annotation.getTSUID() + "/" + event.annotation.getStartTime());
+			Assert.assertEquals("[" + i + "] Unexpected event type", TSDBEventType.ANNOTATION_INDEX, event.eventType);
+			Assert.assertEquals("[" + i + "] Annotation mismatch: EndTime", annot.getEndTime(), event.annotation.getEndTime());
+			Assert.assertEquals("[" + i + "] Annotation mismatch: StartTime", annot.getStartTime(), event.annotation.getStartTime());
+			Assert.assertEquals("[" + i + "] Annotation mismatch: Custom", annot.getCustom().toString(), event.annotation.getCustom().toString());
+			Assert.assertEquals("[" + i + "] Annotation mismatch: Description", annot.getDescription(), event.annotation.getDescription());
+			Assert.assertEquals("[" + i + "] Annotation mismatch: Notes", annot.getNotes(), event.annotation.getNotes());
+			Assert.assertEquals("[" + i + "] Annotation mismatch: TSUID", annot.getTSUID(), event.annotation.getTSUID());
+			receivedEventCount++;
+		}
+		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+		log("Processed [%s] Events", receivedEventCount);
+	}
+	
+	
+	/**
 	 * Validates that data points submitted for publication are delivered
 	 * @throws Exception thrown on any error
 	 */
@@ -93,7 +125,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		TSDB tsdb = newTSDB("BasicPublishConfig");
 		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
 		Assert.assertNotNull("Published Event Queue Was Null", events);
-		int eventCount = 100;
+		int eventCount = 1000;
 		int receivedEventCount = 0;
 		Map<Class<? extends DataPoint>, int[]> typeCounts = new HashMap<Class<? extends DataPoint>, int[]>(3);
 		typeCounts.put(LongDataPoint.class, new int[]{0}); typeCounts.put(FloatDataPoint.class, new int[]{0}); typeCounts.put(DoubleDataPoint.class, new int[]{0});
@@ -116,6 +148,42 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 		}
 		b.append("\n");
 		log(b.toString());
+	}
+	
+	/**
+	 * Validates that data points submitted for publication are delivered via the disruptor
+	 * @throws Exception thrown on any error
+	 */
+	@Test(timeout=5000)	
+	public void testDisruptorDataPointDelivery() throws Exception {
+		createPublishShellJar();
+		TSDB tsdb = newTSDB("BasicSearchDisruptorConfig");
+		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
+		Assert.assertNotNull("Published Event Queue Was Null", events);
+		int eventCount = 1000;
+		int receivedEventCount = 0;
+		Map<Class<? extends DataPoint>, int[]> typeCounts = new HashMap<Class<? extends DataPoint>, int[]>(3);
+		typeCounts.put(LongDataPoint.class, new int[]{0}); typeCounts.put(FloatDataPoint.class, new int[]{0}); typeCounts.put(DoubleDataPoint.class, new int[]{0});
+		Map<String, DataPoint> datapoints = startDataPointStream(tsdb, eventCount, 2, 0);		
+		for(int i = 0; i < eventCount; i++) {
+			TSDBEvent event = (TSDBEvent)events.take();
+			Assert.assertNotNull("Taken Publish Event Was Null", event);
+			DataPoint sp1 = DataPoint.newDataPoint(event);			
+			DataPoint sp2 = datapoints.get(sp1.getKey());
+			Assert.assertNotNull("[" + i + "] Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
+			Assert.assertEquals("[" + i + "] DataPoints are not equal", sp1, sp2);
+			receivedEventCount++;
+			typeCounts.get(sp2.getClass())[0]++;
+		}
+		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+		log("Processed [%s] Events", receivedEventCount);
+		StringBuilder b = new StringBuilder("\nData Point Type Counts:");
+		for(Map.Entry<Class<? extends DataPoint>, int[]> entry: typeCounts.entrySet()) {
+			b.append("\n\t").append(entry.getKey().getSimpleName()).append(" :").append(entry.getValue()[0]);
+		}
+		b.append("\n");
+		log(b.toString());
 	}	
+	
 }
 

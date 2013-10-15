@@ -29,8 +29,8 @@ import java.util.Map;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
-import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 
 /**
  * <p>Title: DataPoint</p>
@@ -182,7 +182,8 @@ public abstract class DataPoint implements net.opentsdb.core.DataPoint {
 	 * @param event The published data point event
 	 * @return the created DataPoint
 	 */
-	public static DataPoint newDataPoint(TSDBPublishEvent event) {
+	public static DataPoint newDataPoint(TSDBEvent event) {
+		if(!event.eventType.isForPulisher()) throw new IllegalArgumentException("Invalid underlying event type [" + event.eventType + "]");
 		return newDataPoint(
 				event.eventType==TSDBEventType.DPOINT_DOUBLE ? event.doubleValue : event.longValue,
 				event.metric, event.tags, event.timestamp);

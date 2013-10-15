@@ -40,6 +40,7 @@ import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
@@ -87,9 +88,10 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
+		log.info("\n\t========================================\n\tStarting DisruptorEventDispatcher\n\t========================================\n");
 		this.executor = executor;
 		ringBufferSize = ConfigurationHelper.getIntSystemThenEnvProperty(Constants.RING_BUFFER_SIZE, Constants.DEFAULT_RING_BUFFER_SIZE, config);
-		String[] waitStrategyArgs = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.RING_BUFFER_WAIT_STRAT_ARGS, "", config);
+		String[] waitStrategyArgs = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.RING_BUFFER_WAIT_STRAT_ARGS, Constants.DEFAULT_RING_BUFFER_WAIT_STRAT_ARGS, config);
 		String waitStrategyClassName = ConfigurationHelper.getSystemThenEnvProperty(Constants.RING_BUFFER_WAIT_STRAT, Constants.DEFAULT_RING_BUFFER_WAIT_STRAT, config);
 		log.info("Creating Dispruptor WaitStrategy [{}] with args {}....", waitStrategyClassName, Arrays.toString(waitStrategyArgs));
 		waitStrategy = WaitStrategyFactory.newWaitStrategy(waitStrategyClassName, waitStrategyArgs);
@@ -127,11 +129,24 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 			executor.execute(bep);
 		}
 		executor.execute(closerBatchProcessor);
-		log.info("Disruptor AsyncEvent Processor Started");
 		
+		log.info("\n\t========================================\n\tDisruptorEventDispatcher Started\n\t========================================\n");
 	}
 	
-
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#shutdown()
+	 */
+	@Override
+	public void shutdown() {
+		log.info("\n\t========================================\n\tStopping DisruptorEventDispatcher\n\t========================================\n");
+		for(BatchEventProcessor<TSDBEvent> bep: eventHandlerBatchProcessors) {
+			bep.halt(); log.info("Stopped [{}] Handler", bep.getClass().getSimpleName());
+		}
+		closerBatchProcessor.halt();
+		log.info("Stopped Closer Handler");
+		log.info("\n\t========================================\n\tDisruptorEventDispatcher Stopped\n\t========================================\n");
+	}
 	
 
 	/**
@@ -140,6 +155,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	public DisruptorEventDispatcher() {
 		// TODO Auto-generated constructor stub
 	}
+	
 
 	/**
 	 * {@inheritDoc}
@@ -147,8 +163,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -157,20 +174,13 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
+        ringBuffer.publish(sequence);
 	}
 
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#shutdown()
-	 */
-	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
 
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -198,8 +208,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void indexAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).indexAnnotation(annotation);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -208,7 +219,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void deleteAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).deleteAnnotation(annotation);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -217,7 +230,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void indexTSMeta(TSMeta tsMeta) {
-		// TODO Auto-generated method stub
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).indexTSMeta(tsMeta);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -226,8 +241,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void deleteTSMeta(String tsMeta) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).deleteTSMeta(tsMeta);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -236,8 +252,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void indexUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).indexUIDMeta(uidMeta);
+        ringBuffer.publish(sequence);
 	}
 
 	/**
@@ -246,18 +263,23 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void deleteUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).deleteUIDMeta(uidMeta);
+        ringBuffer.publish(sequence);
 	}
 
 
 
 
+	/**
+	 * <p>This is the default closer handler for the event</p> 
+	 * {@inheritDoc}
+	 * @see com.lmax.disruptor.EventHandler#onEvent(java.lang.Object, long, boolean)
+	 */
 	@Override
-	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch)
-			throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+		if(log.isTraceEnabled()) log.trace("Completed TSDBEvent type [{}], seq:{}, eob:{}", event.eventType, sequence, endOfBatch);
+		//event.reset();
 	}
 
 

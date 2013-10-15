@@ -31,6 +31,7 @@ import java.util.concurrent.BlockingQueue;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -88,12 +89,20 @@ public class QueuedResultSearchEventHandler extends EmptySearchEventHandler {
 	
 	/**
 	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
+	 */
+	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+		if(log.isTraceEnabled()) log.trace("Processing TSDBEvent type [{}], seq:{}, eob:{}", event.eventType, sequence, endOfBatch);
+		resultQueue.add(event);			
+	}
+	
+	/**
+	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBSearchEvent)
 	 */
 	@Override
 	public void onEvent(TSDBSearchEvent event) throws Exception {
-		resultQueue.add(event);
-		if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);
+		onEvent(event, -1, false);
 	}
 	
 	/**

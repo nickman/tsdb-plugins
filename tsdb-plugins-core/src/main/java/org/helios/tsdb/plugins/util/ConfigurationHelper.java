@@ -96,7 +96,8 @@ public class ConfigurationHelper {
 		return value;
 	}
 	
-	
+	/** The default value passed for an empty array */
+	public static final String EMPTY_ARRAY_TOKEN = "_org_helios_empty_array_";
 	
 	/**
 	 * Looks up a property and converts to a string array, first in the system properties, then the environment. 
@@ -107,8 +108,9 @@ public class ConfigurationHelper {
 	 * @return The located value or the default if it was not found.
 	 */
 	public static String[] getSystemThenEnvPropertyArray(String name, String defaultValue, Properties...properties) {
+		if(defaultValue.isEmpty()) defaultValue = EMPTY_ARRAY_TOKEN;
 		String raw = getSystemThenEnvProperty(name, defaultValue, properties);
-		if(raw==null || raw.trim().isEmpty()) return EMPTY_STR_ARR;
+		if(EMPTY_ARRAY_TOKEN.equals(raw)) return EMPTY_STR_ARR; 
 		List<String> values = new ArrayList<String>();
 		for(String s: COMMA_SPLITTER.split(raw.trim())) {
 			if(s.trim().isEmpty()) continue;

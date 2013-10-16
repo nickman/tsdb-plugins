@@ -118,6 +118,10 @@ public class Constants {
 	/** The default async dispatcher work queue size */
 	public static final int DEFAULT_ASYNC_QUEUE_SIZE = 1024;
 	
+	/** The config property name for the thread pool name */
+	public static final String ASYNC_EXECUTOR_NAME = "helios.events.async.name";
+	/** The default async dispatcher work queue size */
+	public static final String DEFAULT_ASYNC_EXECUTOR_NAME = "TSDBPluginAsyncDispatcher";
 	// ===========================================================================================	
 	//		Disruptor AsyncHandler Config
 	// ===========================================================================================

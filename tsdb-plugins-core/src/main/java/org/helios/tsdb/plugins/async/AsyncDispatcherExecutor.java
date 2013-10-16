@@ -46,10 +46,18 @@ import org.slf4j.LoggerFactory;
  * <p><code>org.helios.tsdb.plugins.async.AsyncDispatcherExecutor</code></p>
  */
 
-public class AsyncDispatcherExecutor extends ThreadPoolExecutor  {
+public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements ThreadFactory, RejectedExecutionHandler, Thread.UncaughtExceptionHandler  {
 	
-	/** Static class logger */
-	protected static final Logger LOG = LoggerFactory.getLogger(AsyncDispatcherExecutor.class);
+	/** An arbitrary pool name */
+	protected final String poolName;
+	/** Instance logger */
+	protected final Logger log;   
+	/** Thread serial number */
+	protected final AtomicInteger threadSerial = new AtomicInteger();
+	/** Rejection count */
+	protected final AtomicLong rejectionCount = new AtomicLong();		
+	/** Uncaught exception count */
+	protected final AtomicLong uncaughtCount = new AtomicLong();		
 	
 	/** The async uncaught exception handler */
 	protected static final Thread.UncaughtExceptionHandler ASYNC_EXCEPTION_HANDLER = new Thread.UncaughtExceptionHandler() {
@@ -59,32 +67,35 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor  {
 		@Override
 		public void uncaughtException(Thread t, Throwable e) {
 			exceptionCount.incrementAndGet();
-			LOG.warn("Async Event Handler Uncaught Exception on thread {}", t.getName(), e);			
+			//log.warn("Async Event Handler Uncaught Exception on thread {}", t.getName(), e);			
 		}
 	};
 	
-	/** The executor's thread factory */
-	protected static final ThreadFactory ASYNC_THREAD_FACTORY = new ThreadFactory() {
-		/** Thread serial number */
-		protected final AtomicInteger serial = new AtomicInteger();
-		@Override
-		public Thread newThread(Runnable r) {
-			Thread t = new Thread(r, "TSDBPluginAsyncDispatcher#" + serial.incrementAndGet());
-			t.setDaemon(true);
-			return t;
-		}		
-	};
 	
-	/** The executor's RejectedExecutionHandler */
-	protected static final RejectedExecutionHandler ASYNC_REJECTED_HANDLER = new RejectedExecutionHandler() {
-		/** Rejection count */
-		protected final AtomicLong rejectionCount = new AtomicLong();		
-		@Override
-		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-			rejectionCount.incrementAndGet();
-			
-		}
-	};
+	
+	/**
+	 * Creates a new AsyncDispatcherExecutor configured from the passed prefixed properties.
+	 * This allows a new executor to be created using the same properties names, 
+	 * except prefixed by some significant name.
+	 * @param prefix The prefix of the properties to extract. (e.g. <b><code>"my.async.plugin"</code></b>).
+	 * @param config The source of the prefixed properties.
+	 */
+	public AsyncDispatcherExecutor(String prefix, Properties config) {
+		super(
+				ConfigurationHelper.getIntSystemThenEnvProperty(prefix + "." + Constants.ASYNC_CORE_SIZE, Constants.DEFAULT_ASYNC_CORE_SIZE, config),
+				ConfigurationHelper.getIntSystemThenEnvProperty(prefix + "." + Constants.ASYNC_MAX_SIZE, Constants.DEFAULT_ASYNC_MAX_SIZE, config),
+				ConfigurationHelper.getLongSystemThenEnvProperty(prefix + "." + Constants.ASYNC_KEEPALIVE_TIME, Constants.DEFAULT_ASYNC_KEEPALIVE_TIME, config),
+				TimeUnit.MILLISECONDS,
+				new ArrayBlockingQueue<Runnable>(
+						ConfigurationHelper.getIntSystemThenEnvProperty(
+								prefix + "." + Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false)
+		);
+		poolName = ConfigurationHelper.getSystemThenEnvProperty(prefix + "." + Constants.ASYNC_EXECUTOR_NAME, prefix + "ThreadPool", config); 
+		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
+		this.setThreadFactory(this);
+		this.setRejectedExecutionHandler(this);
+	}
+	
 
 	/**
 	 * Creates a new AsyncDispatcherExecutor
@@ -98,10 +109,48 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor  {
 				TimeUnit.MILLISECONDS,
 				new ArrayBlockingQueue<Runnable>(
 						ConfigurationHelper.getIntSystemThenEnvProperty(
-								Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false),
-				ASYNC_THREAD_FACTORY, ASYNC_REJECTED_HANDLER
-				
+								Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false)
 		);
+		poolName = ConfigurationHelper.getSystemThenEnvProperty(Constants.ASYNC_EXECUTOR_NAME, Constants.DEFAULT_ASYNC_EXECUTOR_NAME, config); 
+		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
+		this.setThreadFactory(this);
+		this.setRejectedExecutionHandler(this);
+		
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Thread.UncaughtExceptionHandler#uncaughtException(java.lang.Thread, java.lang.Throwable)
+	 */
+	@Override
+	public void uncaughtException(Thread thread, Throwable t) {
+		long cnt = uncaughtCount.incrementAndGet();
+		log.warn("Uncaught exception. Total uncaught: {}", cnt);		
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java.lang.Runnable, java.util.concurrent.ThreadPoolExecutor)
+	 */
+	@Override
+	public void rejectedExecution(Runnable r, ThreadPoolExecutor tpe) {
+		long cnt = rejectionCount.incrementAndGet();
+		log.warn("Execution Rejected. Total rejected: {}", cnt);		
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.ThreadFactory#newThread(java.lang.Runnable)
+	 */
+	@Override
+	public Thread newThread(Runnable r) {
+		Thread t = new Thread(r, poolName + "#" + threadSerial.incrementAndGet());
+		t.setDaemon(true);
+		t.setUncaughtExceptionHandler(this);
+		return t;
 	}
 
 

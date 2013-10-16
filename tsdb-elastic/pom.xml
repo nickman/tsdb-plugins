@@ -1,0 +1,186 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+      <groupId>org.helios.tsdb</groupId>
+      <artifactId>tsdb-plugins</artifactId>      
+      <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <groupId>org.helios.tsdb</groupId>
+    <artifactId>tsdb-elastic</artifactId>      
+    
+    <name>TSDB-Plugins :: ElasticSearch</name>
+    <description>TSDB Search Plugin for Elastic Search. Based on net.opentsdb.otsdb-elasticsearch</description>
+    <url>https://github.com/nickman/tsdb-plugins</url>
+
+
+    <dependencies>
+      
+      <!--
+	  ====
+	  Testing
+	  ====
+      -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        
+		<dependency>
+		  <groupId>org.mockito</groupId>
+		  <artifactId>mockito-all</artifactId>
+		</dependency>
+
+	<dependency>
+	  <groupId>org.helios.tsdb</groupId>
+	  <artifactId>tsdb-plugins-core</artifactId>      
+	  <version>${project.version}</version>
+        </dependency>
+	
+      <!-- ==========================================================
+	  ElasticSearch Dependencies
+	  ========================================================== -->
+		
+	<dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>fluent-hc</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>httpfailover</groupId>
+            <artifactId>httpclient-failover</artifactId>
+        </dependency>
+	
+
+      <!--
+	  ====
+	  Provided by mandatory tsdb-plugins-core
+	  ====
+      -->
+
+        <dependency>
+	  <groupId>net.sf.trove4j</groupId>
+	  <artifactId>trove4j</artifactId>
+	  <scope>provided</scope>
+	</dependency>            
+
+		<dependency>
+		  <groupId>org.javassist</groupId>
+		  <artifactId>javassist</artifactId>
+		  <scope>provided</scope>
+		</dependency>
+	
+		<dependency>
+		  <groupId>com.github.stephenc.high-scale-lib</groupId>
+		  <artifactId>high-scale-lib</artifactId>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+		  <groupId>org.jvnet.opendmk</groupId>
+		  <artifactId>jmxremote_optional</artifactId>
+		  <scope>provided</scope>
+		</dependency>
+	
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+	
+    <dependency>
+      <groupId>org.hbase</groupId>
+      <artifactId>asynchbase</artifactId>      
+      <scope>provided</scope>
+    </dependency>
+	
+	
+        <dependency>
+            <groupId>net.opentsdb</groupId>
+            <artifactId>opentsdb</artifactId>
+	    <scope>provided</scope>
+        </dependency>
+        
+    <dependency>
+      <groupId>com.stumbleupon</groupId>
+      <artifactId>async</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    
+	<dependency>
+	  <groupId>com.fasterxml.jackson.core</groupId>
+	  <artifactId>jackson-core</artifactId>
+	  <scope>provided</scope>
+	</dependency>
+    
+	<dependency>
+	  <groupId>com.fasterxml.jackson.core</groupId>
+	  <artifactId>jackson-databind</artifactId>
+	  <scope>provided</scope>
+	</dependency>
+    
+    
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+	  <groupId>com.lmax</groupId>
+	  <artifactId>disruptor</artifactId>
+	  <scope>provided</scope>
+	</dependency>            
+    
+	
+    </dependencies>
+
+        <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+	    <plugin>
+	      <groupId>org.apache.maven.plugins</groupId>
+	      <artifactId>maven-source-plugin</artifactId>
+	    </plugin>
+	    <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-jar-plugin</artifactId>
+	    </plugin>
+        </plugins>
+    </build>
+
+</project>

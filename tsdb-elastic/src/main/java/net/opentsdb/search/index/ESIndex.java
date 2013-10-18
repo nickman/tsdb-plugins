@@ -37,7 +37,7 @@ import java.util.Map;
 
 public class ESIndex {
 	protected String indexName = null;
-	protected String configName = null;
+	protected String aliasName = null;
 	protected final Map<String, String> indexSettings = new HashMap<String, String>();
 	
 	/**

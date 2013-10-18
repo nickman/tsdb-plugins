@@ -24,27 +24,49 @@
  */
 package net.opentsdb.search;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.client.fluent.Response;
+import java.io.InputStream;
+
+import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.helios.tsdb.plugins.util.XMLHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
 
 /**
  * <p>Title: IndexVerifier</p>
- * <p>Description: HTTP client to validate or install the ES indexes and mapping for OpenTSDB indexed artifacts</p> 
+ * <p>Description: Client to validate or install the ES indexes and mapping for OpenTSDB indexed artifacts</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.search.IndexVerifier</code></p>
  */
 
 public class IndexVerifier {
-	/**  */
-	//public static final Logger LOG = LoggerFactory.getLogger(IndexVerifier.class);
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** The ES index client */
+	protected final IndicesAdminClient indexClient;
+	
 	/**
 	 * Creates a new IndexVerifier
+	 * @param indexClient The ES index client 
 	 */
-	public IndexVerifier() {
-		
+	public IndexVerifier(IndicesAdminClient indexClient) {
+		this.indexClient = indexClient;
+		log(this.indexClient.toString());
+	}
+	
+	/** The XML config root node */
+	public static final String ROOT_NODE = "tsdb-elastic-index-mapping";
+	
+	public void processIndexConfig(InputStream xmlDoc) {
+		Node rootNode = XMLHelper.parseXML(xmlDoc).getDocumentElement();
+		String rootNodeName = rootNode.getNodeName();
+		if(!ROOT_NODE.equalsIgnoreCase(rootNodeName)) {
+			throw new RuntimeException("Could not verify XML doc root node name. Expected [" + ROOT_NODE + "] but got + [" + rootNodeName + "]");
+		}
+		log("Root Node Name:%s", rootNode.getNodeName());
 	}
 	
 	public static void log(String format, Object...args) {
@@ -52,19 +74,16 @@ public class IndexVerifier {
 	}
 
 	public static void main(String[] args) {
+		TransportClient client  = null;
 		try {
 			log("IndexVerifier Test");
-			Request request = Request.Head("http://localhost");
-			Response r = request.execute();
-			
-			HttpResponse response = r.returnResponse();
-			
-			log("Status:[%s]", response.getStatusLine().getStatusCode());
-			for(Header h: response.getAllHeaders()) {
-				log("\tHeader:[%s]--[%s]", h.getName(), h.getValue());
-			}
+			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
+			IndexVerifier iv = new IndexVerifier(client.admin().indices());
+			iv.processIndexConfig(IndexVerifier.class.getClassLoader().getResourceAsStream("scripts/index-definitions.xml"));
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
+		} finally {
+			try { client.close(); } catch (Exception ex) {}
 		}
 	}
 	

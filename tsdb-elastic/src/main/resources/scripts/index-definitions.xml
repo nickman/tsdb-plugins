@@ -1,0 +1,35 @@
+<tsdb-elastic-index-mapping>
+	<indexes>
+		<index name="opentsdb_1" alias="opentsdb">
+			<settings>
+				<setting name="compound_on_flush" value="true"/>
+				<setting name="term_index_interval" value="128"/>
+				<setting name="number_of_replicas" value="1"/>
+				<setting name="term_index_divisor" value="1"/>
+				<setting name="compound_format" value="false"/>
+				<setting name="number_of_shards" value="5"/>
+				<setting name="refresh_interval" value="1"/>
+			</settings>
+		</index>	
+	</indexes>
+
+	<objects>
+		<object name="uidmeta" index-ref="opentsdb_1">
+				<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
+				<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
+		</object>
+		<object name="annotation" index-ref="opentsdb_1">
+				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>				
+		</object>
+		<object name="tsmeta" index-ref="opentsdb_1">
+				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>
+				<object name="metric" index-ref="opentsdb_1">
+					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
+				</object>
+				<object name="tags" index-ref="opentsdb_1">
+					<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
+					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>				
+				</object>				
+		</object>		
+	</objects>	
+</tsdb-elastic-index-mapping>

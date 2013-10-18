@@ -31,12 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
@@ -60,13 +60,17 @@ public class IndexVerifier {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The ES index client */
 	protected final IndicesAdminClient indexClient;
+	/** The timeout in ms. for index factory operations */
+	protected long indexOpsTimeout;
 	
 	/**
 	 * Creates a new IndexVerifier
 	 * @param indexClient The ES index client 
+	 * @param indexOpsTimeout The timeout in ms. for index factory operations
 	 */
-	public IndexVerifier(IndicesAdminClient indexClient) {
+	public IndexVerifier(IndicesAdminClient indexClient, long indexOpsTimeout) {
 		this.indexClient = indexClient;
+		this.indexOpsTimeout = indexOpsTimeout;		
 		log(this.indexClient.toString());
 	}
 	
@@ -203,7 +207,7 @@ public class IndexVerifier {
 		try {
 			log("IndexVerifier Test");
 			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
-			IndexVerifier iv = new IndexVerifier(client.admin().indices());
+			IndexVerifier iv = new IndexVerifier(client.admin().indices(), 2000);
 			iv.processIndexConfig(IndexVerifier.class.getClassLoader().getResourceAsStream("scripts/index-definitions.xml"));
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);

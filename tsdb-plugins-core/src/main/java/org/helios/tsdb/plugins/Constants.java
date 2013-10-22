@@ -40,6 +40,14 @@ public class Constants {
 	/** The TSDB config for enabling new/edited TSMeta through Tree rule sets */
 	public static final String CONFIG_ENABLE_TREE = "tsd.core.tree.enable_processing";
 	
+	// ===========================================================================================	
+	//		ITSDBPluginService
+	// ===========================================================================================
+	
+	/** The config property name for the class name of the ITSDBPluginService to load */
+	public static final String PLUGIN_SERVICE_CLASS_NAME = "helios.tsd.pluginservice";
+	/** The default class name of the ITSDBPluginService to load */
+	public static final String DEFAULT_PLUGIN_SERVICE_CLASS_NAME = "";
 
 
 	// ===========================================================================================	
@@ -49,6 +57,7 @@ public class Constants {
 	/** The TSDB config for the plugin jar config path */
 	public static final String CONFIG_PLUGIN_PATH = "tsd.core.plugin_path";
 
+	
 	// ===========================================================================================	
 	//		tsdb-plugins General Plugin Config
 	// ===========================================================================================
@@ -88,8 +97,10 @@ public class Constants {
 	//		RPC Plugin Config
 	// ===========================================================================================
 
-	/** The TSDB config for specifying RPC plugins */
+	/** The TSDB config for specifying RPC plugin class names */
 	public static final String CONFIG_RPC_PLUGINS = "tsd.rpc.plugins";
+	/** The TSDBPluginService config for specifying RPC service class names */
+	public static final String CONFIG_RPC_SERVICES = "helios.tsd.rpc.services";
 	
 	
 	

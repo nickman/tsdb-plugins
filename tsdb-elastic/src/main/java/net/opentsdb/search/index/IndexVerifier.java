@@ -24,14 +24,12 @@
  */
 package net.opentsdb.search.index;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -41,7 +39,6 @@ import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.helios.tsdb.plugins.util.XMLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +74,10 @@ public class IndexVerifier {
 	/** The XML config root node */
 	public static final String ROOT_NODE = "tsdb-elastic-index-mapping";
 	
+	/**
+	 * Loads and processes the index directives in the XML docuemnt passed in the input stream
+	 * @param xmlDoc The xml input stream
+	 */
 	public void processIndexConfig(InputStream xmlDoc) {
 		Node rootNode = XMLHelper.parseXML(xmlDoc).getDocumentElement();
 		final String rootNodeName = rootNode.getNodeName();
@@ -128,25 +129,59 @@ public class IndexVerifier {
 			if(!indexNames.contains(indexName)) {
 				throw new RuntimeException("The index [" + indexName + "] requested for type [" + typeName + "] does not exist");
 			}
-			if(!indexClient.typesExists(new TypesExistsRequest(new String[]{indexName}, typeName)).actionGet().isExists()) {
-				try {
-					log.info("Creating Type [\n{}\n]....", buildType(typeNode).string());
-				} catch (IOException e) {
-					e.printStackTrace(System.err);
-				}
-				//indexClient.putMapping(new PutMappingRequest(indexName).)
-			} else {
-				
+			String typeScript = XMLHelper.getNodeTextValue(typeNode);
+			if(!indexClient.typesExists(new TypesExistsRequest(new String[]{indexName}, typeName)).actionGet(indexOpsTimeout).isExists()) {
+				log.info("Creating Type [{}] for Index [{}]....", typeName, indexName);
 			}
+			
 		}
 	}
 	
-	protected XContentBuilder buildType(Node typeNode) {
-		
-		return null;
-	}
 	
-	
+	/*
+{
+
+		<object name="tsmeta" index-ref="opentsdb_1">
+				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>
+				<object name="metric" index-ref="opentsdb_1">
+					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
+				</object>
+				<object name="tags" index-ref="opentsdb_1">
+					<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
+					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>				
+				</object>				
+		</object>		
+
+    "tsmeta": {
+        "properties": {
+            "tsuid": {
+                "type": "string",
+                "index": "not_analyzed"
+            },
+            "metric": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
+            },
+            "tags": {
+                "properties": {
+                    "uid": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "name": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
+            }
+        }
+    }
+}
+	 */
 	private Long getIndexSerial(String indexName) {
 		if(indexName==null || indexName.trim().isEmpty()) return 1L;
 		if(indexName.indexOf('_')==-1) return 1L;

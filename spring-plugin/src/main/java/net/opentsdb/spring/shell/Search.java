@@ -22,17 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.shell;
-
-import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
-import org.helios.tsdb.plugins.service.ITSDBPluginService;
-import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.stumbleupon.async.Deferred;
+package net.opentsdb.spring.shell;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
@@ -42,46 +32,32 @@ import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
 
+import com.stumbleupon.async.Deferred;
+
 /**
  * <p>Title: Search</p>
- * <p>Description: A passthrough {@link SearchPlugin} that delegates to the @link TSDBEventDispatcher} asynch multiplexer.</p> 
+ * <p>Description: Spring {@link SearchPlugin} adapter plugin</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.shell.Search</code></p>
+ * <p><code>net.opentsdb.spring.shell.Search</code></p>
  */
 
-public class Search extends SearchPlugin implements Plugin {
-	/** Instance logger */
-	protected final Logger log = LoggerFactory.getLogger(getClass());
-	/** The callback supplied TSDB instance */
-	protected TSDB tsdb = null;
-	/** The event pluginService delegate */
-	protected ITSDBPluginService pluginService;
-	
+public class Search extends SearchPlugin {
 
 	/**
 	 * Creates a new Search
 	 */
 	public Search() {
-		log.debug("Created {} instance", getClass().getName());
+		// TODO Auto-generated constructor stub
 	}
-	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.shell.Plugin#getPluginType()
-	 */
-	public PluginType getPluginType() {
-		return PluginType.SEARCH;
-	}
-
 
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.search.SearchPlugin#collectStats(net.opentsdb.stats.StatsCollector)
 	 */
 	@Override
-	public void collectStats(StatsCollector statsCollector) {
-		pluginService.collectStats(PluginType.PUBLISH, statsCollector);
+	public void collectStats(StatsCollector arg0) {
+		// TODO Auto-generated method stub
 
 	}
 
@@ -90,9 +66,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#deleteAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	@Override
-	public Deferred<Object> deleteAnnotation(Annotation annotation) {
-		pluginService.deleteAnnotation(annotation);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> deleteAnnotation(Annotation arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -100,9 +76,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#deleteTSMeta(java.lang.String)
 	 */
 	@Override
-	public Deferred<Object> deleteTSMeta(String tsMeta) {
-		pluginService.deleteTSMeta(tsMeta);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> deleteTSMeta(String arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -110,9 +86,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	@Override
-	public Deferred<Object> deleteUIDMeta(UIDMeta uidMeta) {
-		pluginService.deleteUIDMeta(uidMeta);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> deleteUIDMeta(UIDMeta arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -120,8 +96,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
 	@Override
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		return pluginService.executeQuery(searchQuery);
+	public Deferred<SearchQuery> executeQuery(SearchQuery arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -129,9 +106,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#indexAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	@Override
-	public Deferred<Object> indexAnnotation(Annotation annotation) {
-		pluginService.indexAnnotation(annotation);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> indexAnnotation(Annotation arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -139,9 +116,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	@Override
-	public Deferred<Object> indexTSMeta(TSMeta tsMeta) {
-		pluginService.indexTSMeta(tsMeta);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> indexTSMeta(TSMeta arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -149,9 +126,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	@Override
-	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {
-		pluginService.indexUIDMeta(uidMeta);
-		return Constants.NULL_DEFERED;
+	public Deferred<Object> indexUIDMeta(UIDMeta arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -159,9 +136,9 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#initialize(net.opentsdb.core.TSDB)
 	 */
 	@Override
-	public void initialize(TSDB tsdb) {
-		log.debug("Initializing instance");
-		pluginService = TSDBPluginServiceLoader.getInstance(tsdb, this);
+	public void initialize(TSDB arg0) {
+		// TODO Auto-generated method stub
+
 	}
 
 	/**
@@ -170,8 +147,8 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		pluginService.shutdown();
-		return Constants.NULL_DEFERED;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -180,7 +157,8 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public String version() {
-		return Constants.PLUGIN_VERSION;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

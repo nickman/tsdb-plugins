@@ -32,7 +32,8 @@ import net.opentsdb.tsd.RTPublisher;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
+import org.helios.tsdb.plugins.service.ITSDBPluginService;
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +41,19 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: Publisher</p>
- * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventDispatcher} asynch multiplexer.</p> 
+ * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventpluginService} asynch multiplexer.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.shell.Publisher</code></p>
  */
 
-public class Publisher extends RTPublisher {
+public class Publisher extends RTPublisher implements Plugin {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	/** The event dispatcher delegate */
-	protected TSDBEventDispatcher dispatcher;
+	/** The event pluginService delegate */
+	protected ITSDBPluginService pluginService;
+	
+	
 	
 	/**
 	 * Creates a new Publisher
@@ -61,12 +64,20 @@ public class Publisher extends RTPublisher {
 	
 	/**
 	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#getPluginType()
+	 */
+	public PluginType getPluginType() {
+		return PluginType.PUBLISH;
+	}
+	
+	/**
+	 * {@inheritDoc}
 	 * @see net.opentsdb.tsd.RTPublisher#initialize(net.opentsdb.core.TSDB)
 	 */
 	@Override
 	public void initialize(TSDB tsdb) {
 		log.debug("Initializing instance");
-		dispatcher = TSDBEventDispatcher.getInstance(tsdb);
+		pluginService = TSDBPluginServiceLoader.getInstance(tsdb, this);
 	}
 	
 
@@ -76,7 +87,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		dispatcher.collectStats(PluginType.PUBLISH, statsCollector);
+		pluginService.collectStats(PluginType.PUBLISH, statsCollector);
 	}
 
 
@@ -86,7 +97,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		dispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -96,7 +107,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		dispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 	
@@ -116,7 +127,7 @@ public class Publisher extends RTPublisher {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		if(dispatcher!=null) dispatcher.shutdown();
+		pluginService.shutdown();
 		return Constants.NULL_DEFERED;
 	}
 

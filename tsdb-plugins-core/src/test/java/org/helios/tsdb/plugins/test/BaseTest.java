@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -58,11 +59,11 @@ import org.helios.tsdb.plugins.datapoints.LongDataPoint;
 import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.shell.Publisher;
 import org.helios.tsdb.plugins.shell.Search;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -109,14 +110,14 @@ public class BaseTest {
 			throw new RuntimeException(ex);
 		}
 		try {
-			dispatcherInstanceField = TSDBEventDispatcher.class.getDeclaredField("instance");
+			dispatcherInstanceField = TSDBPluginServiceLoader.class.getDeclaredField("instance");
 			dispatcherInstanceField.setAccessible(true);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
 		
 		try {
-			dispatcherResetMethod = TSDBEventDispatcher.class.getDeclaredMethod("reset");
+			dispatcherResetMethod = TSDBPluginServiceLoader.class.getDeclaredMethod("reset");
 			dispatcherResetMethod.setAccessible(true);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
@@ -124,11 +125,11 @@ public class BaseTest {
 	}
 	
 	/**
-	 * Resets the TSDBEventDispatcher instance
+	 * Resets the ITSDBPluginService instance
 	 */
 	public static void resetEventDispatcher() {
 		try {
-			TSDBEventDispatcher instance = (TSDBEventDispatcher)dispatcherInstanceField.get(null);
+			TSDBPluginServiceLoader instance = (TSDBPluginServiceLoader)dispatcherInstanceField.get(null);
 			if(instance!=null) {
 				dispatcherResetMethod.invoke(instance);
 			}
@@ -221,7 +222,7 @@ public class BaseTest {
 	 */
 	public void stopTSDB() {
 		if(tsdb==null) return;
-		TSDBEventDispatcher dispatcher = TSDBEventDispatcher.getInstance(tsdb);
+		//TSDBEventDispatcher dispatcher = TSDBEventDispatcher.getInstance(tsdb);
 		boolean stopped = false;
 		try {
 			try {
@@ -245,9 +246,9 @@ public class BaseTest {
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to stop TSDB", ex);
 		}
-		if(stopped) {
-			Assert.assertEquals("Dispatcher Executor Not Shutdown", true, dispatcher.isAsyncShutdown());
-		}
+//		if(stopped) {
+//			Assert.assertEquals("Dispatcher Executor Not Shutdown", true, dispatcher.isAsyncShutdown());
+//		}
 		resetEventDispatcher();
 	}
 	
@@ -275,6 +276,8 @@ public class BaseTest {
 	@Before
 	public void setUp() throws Exception {
 	}
+	
+	
 
 	/**
 	 * Cleans up various artifacts after each test
@@ -291,6 +294,7 @@ public class BaseTest {
 		log("Deleted [%s] Tmp Files", files);
 		Method shutdownMethod = TSDBEventDispatcher.class.getDeclaredMethod("shutdown");
 		shutdownMethod.setAccessible(true);
+		TSDBPluginServiceLoader.getInstance(tsdb, plugin)
 		TSDBEventDispatcher.getInstance(tsdb).shutdown();
 		shutdownMethod.invoke(TSDBEventDispatcher.getInstance(tsdb));		
 		try {

@@ -4,6 +4,9 @@
  */
 package org.helios.tsdb.plugins.util;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -260,9 +263,6 @@ public class ConfigurationHelper {
 		}
 	}	
 	
-	
-	
-	
 	/**
 	 * Returns the value defined as a Boolean looked up from the Environment, then System properties.
 	 * @param name The name of the key to lookup.
@@ -277,6 +277,56 @@ public class ConfigurationHelper {
 		if(tmp.equalsIgnoreCase("TRUE") || tmp.equalsIgnoreCase("Y") || tmp.equalsIgnoreCase("YES")) return true;
 		if(tmp.equalsIgnoreCase("FALSE") || tmp.equalsIgnoreCase("N") || tmp.equalsIgnoreCase("NO")) return false;
 		return defaultValue;
-	}		
+	}
+	
+	/**
+	 * Attempts to create an instance of the passed class using one of:<ol>
+	 * 	<li>Attempts to find a Constructor with the passed signature</li>
+	 * 	<li>Attempts to find a static factory method called <b><code>getInstance</code></b> with the passed signature</li>
+	 * 	<li>Attempts to find a static factory method called <b><code>newInstance</code></b> with the passed signature</li>
+	 * </ol>
+	 * @param clazz The class to create an instance of
+	 * @param sig The signature of the constructor or static factory method
+	 * @param args The arguments to the constructor or static factory method
+	 * @return The created instance
+	 * @throws Exception thrown on any error
+	 */
+	public static <T> T inst(Class<T> clazz, Class<?>[] sig, Object...args) throws Exception {
+		Constructor<T> ctor = null;
+		try {
+			ctor = clazz.getDeclaredConstructor(sig);
+			return ctor.newInstance(args);
+		} catch (NoSuchMethodException e) {
+			Method method = null;
+			try { method = clazz.getDeclaredMethod("getInstance"); 
+				if(!Modifier.isStatic(method.getModifiers())) throw new Exception();
+			} catch (Exception ex) {}
+			if(method==null) {
+				try { method = clazz.getDeclaredMethod("newInstance"); } catch (Exception ex) {}
+			}
+			if(method==null) throw new Exception("Failed to find Constructor or Static Factory Method for [" + clazz.getName() + "]");
+			if(!Modifier.isStatic(method.getModifiers())) throw new Exception("Factory Method [" + method.toGenericString() + "] is not static");
+			return (T)method.invoke(null, args);
+		}
+	}
+	
+	/** Empty class signature const */
+	public static final Class<?>[] EMPTY_SIG = {};
+	/** Empty arg const */
+	public static final Object[] EMPTY_ARGS = {};
+	
+	/**
+	 * Attempts to create an instance of the passed class using one of:<ol>
+	 * 	<li>Attempts to find a Constructor</li>
+	 * 	<li>Attempts to find a static factory method called <b><code>getInstance</code></b></li>
+	 * 	<li>Attempts to find a static factory method called <b><code>newInstance</code></b></li>
+	 * </ol>
+	 * @param clazz The class to create an instance of
+	 * @return The created instance
+	 * @throws Exception thrown on any error
+	 */
+	public static <T> T inst(Class<T> clazz) throws Exception {
+		return inst(clazz, EMPTY_SIG, EMPTY_ARGS);
+	}
 
 }

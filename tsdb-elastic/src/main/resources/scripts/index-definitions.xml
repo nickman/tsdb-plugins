@@ -14,22 +14,65 @@
 	</indexes>
 
 	<objects>
-		<object name="uidmeta" index-ref="opentsdb_1">
-				<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
-				<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
-		</object>
-		<object name="annotation" index-ref="opentsdb_1">
-				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>				
-		</object>
-		<object name="tsmeta" index-ref="opentsdb_1">
-				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>
-				<object name="metric" index-ref="opentsdb_1">
-					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
-				</object>
-				<object name="tags" index-ref="opentsdb_1">
-					<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
-					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>				
-				</object>				
-		</object>		
+		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "uidmeta": {
+			        "properties": {
+			            "uid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "name": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            }
+			        }
+			    }
+			}
+		]]></object>
+		<object name="annotation" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "annotation": {
+			        "properties": {
+			            "tsuid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            }
+			        }
+			    }
+			}								
+		]]></object>
+		<object name="tsmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "tsmeta": {
+			        "properties": {
+			            "tsuid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "metric": {
+			                "properties": {
+			                    "name": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    }
+			                }
+			            },
+			            "tags": {
+			                "properties": {
+			                    "uid": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    },
+			                    "name": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    }
+			                }
+			            }
+			        }
+			    }
+			}
+		]]></object>		
 	</objects>	
 </tsdb-elastic-index-mapping>

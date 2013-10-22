@@ -27,6 +27,7 @@ package org.helios.tsdb.plugins.async;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * <p><code>org.helios.tsdb.plugins.async.AsyncDispatcherExecutor</code></p>
  */
 
-public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements ThreadFactory, RejectedExecutionHandler, Thread.UncaughtExceptionHandler  {
+public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements ThreadFactory, RejectedExecutionHandler, Thread.UncaughtExceptionHandler, AsyncDispatcherExecutorMBean  {
 	
 	/** An arbitrary pool name */
 	protected final String poolName;
@@ -59,20 +60,29 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	/** Uncaught exception count */
 	protected final AtomicLong uncaughtCount = new AtomicLong();		
 	
-	/** The async uncaught exception handler */
-	protected static final Thread.UncaughtExceptionHandler ASYNC_EXCEPTION_HANDLER = new Thread.UncaughtExceptionHandler() {
-		/** Exception count */
-		protected final AtomicLong exceptionCount = new AtomicLong();		
+	
+	
+	
+	
+	
+	/**
+	 * Creates a new AsyncDispatcherExecutor
+	 * @param poolName The pool name
+	 * @param corePoolSize The thread pool core size
+	 * @param maximumPoolSize The thread pool maximum size
+	 * @param keepAliveTime The thread pool non-core thread keep alive time in ms.
+	 * @param workQueueSize The size of the work queue
+	 */
+	public AsyncDispatcherExecutor(String poolName, int corePoolSize, int maximumPoolSize,
+			long keepAliveTime, int workQueueSize) {
+		super(corePoolSize, maximumPoolSize, keepAliveTime, TimeUnit.MILLISECONDS, workQueueSize<2 ? new SynchronousQueue<Runnable>() : new ArrayBlockingQueue<Runnable>(workQueueSize));				
+		this.poolName =  poolName;
+		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
+		this.setThreadFactory(this);
+		this.setRejectedExecutionHandler(this);
+	}
 
-		@Override
-		public void uncaughtException(Thread t, Throwable e) {
-			exceptionCount.incrementAndGet();
-			//log.warn("Async Event Handler Uncaught Exception on thread {}", t.getName(), e);			
-		}
-	};
-	
-	
-	
+
 	/**
 	 * Creates a new AsyncDispatcherExecutor configured from the passed prefixed properties.
 	 * This allows a new executor to be created using the same properties names, 
@@ -121,6 +131,51 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 
 	/**
 	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncDispatcherExecutorMBean#getAllowsCoreThreadTimeOut()
+	 */
+	@Override
+	public boolean getAllowsCoreThreadTimeOut() {
+		return allowsCoreThreadTimeOut();
+	}
+
+
+	@Override
+	public long getKeepAliveTime() {
+		return getKeepAliveTime(TimeUnit.MILLISECONDS);
+	}
+
+
+
+	@Override
+	public int getQueueDepth() {
+		return getQueue().size();
+	}
+
+
+	@Override
+	public int getQueueCapacity() {
+		return getQueue().remainingCapacity();
+	}
+
+
+	@Override
+	public long getRejectedExecutionCount() {
+		return rejectionCount.get();
+	}
+
+
+	@Override
+	public String getPoolName() {
+		return poolName;
+	}
+
+	@Override
+	public int shutdownImmediate() {
+		return shutdownNow().size();
+	}
+	
+	/**
+	 * {@inheritDoc}
 	 * @see java.lang.Thread.UncaughtExceptionHandler#uncaughtException(java.lang.Thread, java.lang.Throwable)
 	 */
 	@Override
@@ -153,5 +208,13 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 		return t;
 	}
 
+
+	/**
+	 * Returns the uncaught exception count
+	 * @return the uncaught exception count
+	 */
+	public long getUncaughtCount() {
+		return uncaughtCount.get();
+	}	
 
 }

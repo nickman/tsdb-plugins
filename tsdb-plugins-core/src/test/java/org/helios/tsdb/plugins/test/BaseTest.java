@@ -285,6 +285,9 @@ public class BaseTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		//=========================================================================================
+		//  Delete temp files created during test
+		//=========================================================================================
 		int files = TO_BE_DELETED.size();
 		Iterator<File> iter = TO_BE_DELETED.iterator();
 		while(iter.hasNext()) {
@@ -292,19 +295,23 @@ public class BaseTest {
 		}
 		TO_BE_DELETED.clear();
 		log("Deleted [%s] Tmp Files", files);
-		Method shutdownMethod = TSDBEventDispatcher.class.getDeclaredMethod("shutdown");
-		shutdownMethod.setAccessible(true);
-		TSDBPluginServiceLoader.getInstance(tsdb, plugin)
-		TSDBEventDispatcher.getInstance(tsdb).shutdown();
-		shutdownMethod.invoke(TSDBEventDispatcher.getInstance(tsdb));		
-		try {
-			stopTSDB();
-		} catch (Exception ex) {
-			log("Failed to stop TSDB");
-		}
-		QueuedResultSearchEventHandler.getInstance().clearQueue();
-		QueuedResultPublishEventHandler.getInstance().clearQueue();
+		//=========================================================================================
+		//  Shutdown the test TSDB and clear the test queues.
+		//=========================================================================================
 		
+//		Method shutdownMethod = TSDBEventDispatcher.class.getDeclaredMethod("shutdown");
+//		shutdownMethod.setAccessible(true);
+//		TSDBPluginServiceLoader.getInstance().get
+//		TSDBEventDispatcher.getInstance(tsdb).shutdown();
+//		shutdownMethod.invoke(TSDBEventDispatcher.getInstance(tsdb));		
+//		try {
+//			stopTSDB();
+//		} catch (Exception ex) {
+//			log("Failed to stop TSDB");
+//		}
+//		QueuedResultSearchEventHandler.getInstance().clearQueue();
+//		QueuedResultPublishEventHandler.getInstance().clearQueue();
+//		
 		
 		
 	}

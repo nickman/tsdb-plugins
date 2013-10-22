@@ -185,11 +185,19 @@ public class TSDBPluginServiceLoader {
 	}
 
 	/**
-	 * Returns 
-	 * @return the pluginService
+	 * Returns the created plugin service (which might be null if it has not been initialized yet)
+	 * @return the created plugin service
 	 */
 	public ITSDBPluginService getPluginService() {
 		return pluginService;
+	}
+	
+	/**
+	 * Returns the provided TSDB (which might be null if it has not been initialized yet)
+	 * @return the provided TSDB
+	 */
+	public TSDB getTSDB() {
+		return tsdb;
 	}
 
 

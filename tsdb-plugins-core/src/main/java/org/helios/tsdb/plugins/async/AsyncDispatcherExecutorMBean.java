@@ -19,6 +19,11 @@ public interface AsyncDispatcherExecutorMBean {
 	public static final String OBJECT_NAME_TEMPLATE = "plugins.tsdb.async:service=Executor,name=%s";
 
 
+	/**
+	 * Returns a reference to this executor
+	 * @return a reference to this executor
+	 */
+	public AsyncDispatcherExecutor getInstance();
 
 
 	/**

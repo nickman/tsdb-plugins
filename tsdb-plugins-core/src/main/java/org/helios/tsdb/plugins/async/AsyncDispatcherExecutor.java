@@ -24,7 +24,10 @@
  */
 package org.helios.tsdb.plugins.async;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
@@ -34,8 +37,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +59,10 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	/** An arbitrary pool name */
 	protected final String poolName;
 	/** Instance logger */
-	protected final Logger log;   
+	protected final Logger log;
+	/** The JMX ObjectName */
+	protected final ObjectName objectName;   
+	
 	/** Thread serial number */
 	protected final AtomicInteger threadSerial = new AtomicInteger();
 	/** Rejection count */
@@ -61,8 +71,48 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	protected final AtomicLong uncaughtCount = new AtomicLong();		
 	
 	
+	/** The wildcard ObjectName to query the MBeanServer for all executor instances */
+	public static final ObjectName WILDCARD = JMXHelper.objectName(String.format(OBJECT_NAME_TEMPLATE, "*"));
+	
+	/**
+	 * Returns a set of all the registered AsyncDispatcherExecutors
+	 * @return a set of all the registered AsyncDispatcherExecutors
+	 */
+	public static Set<AsyncDispatcherExecutor> getRegisteredExecutors() {
+		MBeanServer server = JMXHelper.getHeliosMBeanServer();
+		Set<ObjectName> executorNames = server.queryNames(WILDCARD, null);
+		Set<AsyncDispatcherExecutor> executors = new HashSet<AsyncDispatcherExecutor>(executorNames.size());
+		for(ObjectName on: executorNames) {
+			executors.add((AsyncDispatcherExecutor)JMXHelper.getAttribute(server, on, "Instance", null));
+		}
+		return executors;
+	}
 	
 	
+	/**
+	 * Creates the executor's JMX ObjectName, registers the executor MBean and returns the created ObjectName
+	 * @param executor The executor to register
+	 * @return the executor's ObjectName
+	 */
+	protected static ObjectName register(AsyncDispatcherExecutor executor) {
+		ObjectName objectName = JMXHelper.objectName(String.format(OBJECT_NAME_TEMPLATE, executor.poolName));
+		MBeanServer server = JMXHelper.getHeliosMBeanServer();
+		if(server.isRegistered(objectName)) {
+			throw new RuntimeException("The AsyncDispatcherExecutor named [" + executor.poolName + "] already exists");
+		}
+		try { server.registerMBean(executor, objectName); } catch (Exception ex) {
+			throw new RuntimeException("Failed to register Management Interface for AsyncDispatcherExecutor named [" + executor.poolName + "]", ex);
+		}
+		return objectName;
+	}
+	
+	/**
+	 * Unregisters the executor MBean identified by the passed ObjectName
+	 * @param objectName The ObjectName of the executor to unregister
+	 */
+	protected static void unregister(ObjectName objectName) {
+		try { JMXHelper.unregisterMBean(objectName); } catch (Exception ex) {}
+	}
 	
 	
 	/**
@@ -75,11 +125,12 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	 */
 	public AsyncDispatcherExecutor(String poolName, int corePoolSize, int maximumPoolSize,
 			long keepAliveTime, int workQueueSize) {
-		super(corePoolSize, maximumPoolSize, keepAliveTime, TimeUnit.MILLISECONDS, workQueueSize<2 ? new SynchronousQueue<Runnable>() : new ArrayBlockingQueue<Runnable>(workQueueSize));				
+		super(corePoolSize, maximumPoolSize, keepAliveTime, TimeUnit.MILLISECONDS, workQueueSize<2 ? new SynchronousQueue<Runnable>() : new ArrayBlockingQueue<Runnable>(workQueueSize));
 		this.poolName =  poolName;
+		objectName = register(this);		
 		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
 		this.setThreadFactory(this);
-		this.setRejectedExecutionHandler(this);
+		this.setRejectedExecutionHandler(this);		
 	}
 
 
@@ -100,7 +151,8 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 						ConfigurationHelper.getIntSystemThenEnvProperty(
 								prefix + "." + Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false)
 		);
-		poolName = ConfigurationHelper.getSystemThenEnvProperty(prefix + "." + Constants.ASYNC_EXECUTOR_NAME, prefix + "ThreadPool", config); 
+		poolName = ConfigurationHelper.getSystemThenEnvProperty(prefix + "." + Constants.ASYNC_EXECUTOR_NAME, prefix + "ThreadPool", config);
+		objectName = register(this);
 		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
 		this.setThreadFactory(this);
 		this.setRejectedExecutionHandler(this);
@@ -121,11 +173,11 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 						ConfigurationHelper.getIntSystemThenEnvProperty(
 								Constants.ASYNC_QUEUE_SIZE, Constants.DEFAULT_ASYNC_QUEUE_SIZE, config), false)
 		);
-		poolName = ConfigurationHelper.getSystemThenEnvProperty(Constants.ASYNC_EXECUTOR_NAME, Constants.DEFAULT_ASYNC_EXECUTOR_NAME, config); 
+		poolName = ConfigurationHelper.getSystemThenEnvProperty(Constants.ASYNC_EXECUTOR_NAME, Constants.DEFAULT_ASYNC_EXECUTOR_NAME, config);
+		objectName = register(this);
 		log = LoggerFactory.getLogger(getClass().getName() + "." + poolName);
 		this.setThreadFactory(this);
-		this.setRejectedExecutionHandler(this);
-		
+		this.setRejectedExecutionHandler(this);		
 	}
 
 
@@ -169,9 +221,33 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 		return poolName;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncDispatcherExecutorMBean#shutdownImmediate()
+	 */
 	@Override
 	public int shutdownImmediate() {
 		return shutdownNow().size();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.ThreadPoolExecutor#shutdown()
+	 */
+	@Override
+	public void shutdown() {
+		super.shutdown();
+		unregister(objectName);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.ThreadPoolExecutor#shutdownNow()
+	 */
+	@Override
+	public List<Runnable> shutdownNow() {
+		unregister(objectName);
+		return super.shutdownNow();
 	}
 	
 	/**
@@ -210,11 +286,20 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 
 
 	/**
-	 * Returns the uncaught exception count
-	 * @return the uncaught exception count
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncDispatcherExecutorMBean#getUncaughtCount()
 	 */
 	public long getUncaughtCount() {
 		return uncaughtCount.get();
-	}	
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.AsyncDispatcherExecutorMBean#getInstance()
+	 */
+	public AsyncDispatcherExecutor getInstance() {
+		return this;
+	}
 
+	
 }

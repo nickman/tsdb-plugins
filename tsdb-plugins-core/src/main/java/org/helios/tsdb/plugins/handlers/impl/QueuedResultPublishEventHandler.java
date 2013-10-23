@@ -30,6 +30,7 @@ import java.util.concurrent.BlockingQueue;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -85,14 +86,25 @@ public class QueuedResultPublishEventHandler extends EmptyPublishEventHandler {
 		log.info("Created Queueing Handler with max size:{}  and fairness:{}", maxSize, fair);
 	}
 	
+//	/**
+//	 * {@inheritDoc}
+//	 * @see org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBPublishEvent)
+//	 */
+//	@Override
+//	public void onEvent(TSDBPublishEvent event) throws Exception {
+//		log.info("Queueing Event [{}]", event);
+//		resultQueue.add(event);
+//		if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);
+//	}
+	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBPublishEvent)
+	 * @see org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
 	 */
 	@Override
-	public void onEvent(TSDBPublishEvent event) throws Exception {
+	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		resultQueue.add(event);
-		if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);
+		if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);		
 	}
 	
 	/**

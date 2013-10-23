@@ -81,7 +81,7 @@ public class RpcService extends RpcPlugin implements Plugin {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		pluginService.collectStats(PluginType.RPC, statsCollector);
+		if(pluginService!=null) pluginService.collectStats(PluginType.RPC, statsCollector);
 	}
 
 	/**
@@ -100,10 +100,13 @@ public class RpcService extends RpcPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		pluginService.shutdown();
-		System.setProperty(getClass().getName() + ".loaded", "false");
-		return Constants.NULL_DEFERED;
+		try {
+			return pluginService.shutdown(new Deferred<Object>());
+		} finally {
+			pluginService = null;
+		}		
 	}
+
 
 	/**
 	 * {@inheritDoc}

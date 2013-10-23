@@ -25,11 +25,13 @@
 package org.helios.tsdb.plugins.async;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -56,6 +58,8 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	protected AsyncEventBus eventBus = null;
 	/** The executor driving the async bus */
 	protected Executor executor = null;
+	/** The registered event handlers (since EventBus won't tell us what they are) */
+	protected final Set<Object> registered = new CopyOnWriteArraySet<Object>();
 	
 	
 	/**
@@ -71,7 +75,10 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 */
 	@Override
 	public void shutdown() {
-
+		for(Iterator<Object> iter = registered.iterator(); iter.hasNext();) {			
+			eventBus.unregister(iter.next());			
+		}
+		registered.clear();
 	}
 
 	/**
@@ -97,6 +104,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 			for(IEventHandler handler: handlers) {
 				if(handler==null) continue;
 				eventBus.register(handler);
+				registered.add(handler);
 			}
 		}
 		

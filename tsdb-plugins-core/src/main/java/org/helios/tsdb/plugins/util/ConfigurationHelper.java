@@ -295,8 +295,9 @@ public class ConfigurationHelper {
 		Constructor<T> ctor = null;
 		try {
 			ctor = clazz.getDeclaredConstructor(sig);
+			if(!ctor.isAccessible()) throw new Exception("Not accessible");
 			return ctor.newInstance(args);
-		} catch (NoSuchMethodException e) {
+		} catch (Exception e) {
 			Method method = null;
 			try { method = clazz.getDeclaredMethod("getInstance"); 
 				if(!Modifier.isStatic(method.getModifiers())) throw new Exception();

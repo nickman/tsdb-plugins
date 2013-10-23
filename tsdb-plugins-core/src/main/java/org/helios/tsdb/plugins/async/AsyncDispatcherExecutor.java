@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.async;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -236,8 +237,10 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	 */
 	@Override
 	public void shutdown() {
-		super.shutdown();
-		unregister(objectName);
+		if(!isShutdown() && !isTerminated() && !isTerminating()) {
+			super.shutdown();
+			unregister(objectName);
+		}
 	}
 	
 	/**
@@ -246,8 +249,11 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	 */
 	@Override
 	public List<Runnable> shutdownNow() {
-		unregister(objectName);
-		return super.shutdownNow();
+		if(!isShutdown() && !isTerminated() && !isTerminating()) {
+			unregister(objectName);
+			return super.shutdownNow();
+		}
+		return Collections.emptyList();
 	}
 	
 	/**

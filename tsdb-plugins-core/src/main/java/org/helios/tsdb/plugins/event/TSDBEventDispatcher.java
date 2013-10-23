@@ -52,10 +52,14 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 	 * Initialize this plugin service: create and init async thread pool, create and init async dispatcher
 	 */	
 	protected void doInitialize() {
+		
 		String asyncDispatcherClassName = ConfigurationHelper.getSystemThenEnvProperty(Constants.ASYNC_DISPATCHER, Constants.DEFAULT_ASYNC_DISPATCHER, config);		
+		log.info("Initializing Async Dispatcher [{}]", asyncDispatcherClassName);
 		asyncExecutor = new AsyncDispatcherExecutor(config);
+		
 		loadAsyncDispatcher(asyncDispatcherClassName.trim());
 		asyncDispatcher.initialize(config, asyncExecutor, allHandlers);
+		log.info("Async Dispatcher [{}] Initialized.", asyncDispatcher.getClass().getSimpleName());
 	}
 	
 	/**

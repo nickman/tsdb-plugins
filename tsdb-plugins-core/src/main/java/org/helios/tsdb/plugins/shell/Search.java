@@ -24,16 +24,6 @@
  */
 package org.helios.tsdb.plugins.shell;
 
-import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
-import org.helios.tsdb.plugins.service.ITSDBPluginService;
-import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.stumbleupon.async.Deferred;
-
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -41,6 +31,15 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
+
+import org.helios.tsdb.plugins.Constants;
+import org.helios.tsdb.plugins.event.PluginType;
+import org.helios.tsdb.plugins.service.ITSDBPluginService;
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: Search</p>
@@ -81,7 +80,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		pluginService.collectStats(PluginType.PUBLISH, statsCollector);
+		if(pluginService!=null) pluginService.collectStats(PluginType.PUBLISH, statsCollector);
 
 	}
 
@@ -91,7 +90,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> deleteAnnotation(Annotation annotation) {
-		pluginService.deleteAnnotation(annotation);
+		if(pluginService!=null) pluginService.deleteAnnotation(annotation);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -101,7 +100,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> deleteTSMeta(String tsMeta) {
-		pluginService.deleteTSMeta(tsMeta);
+		if(pluginService!=null) pluginService.deleteTSMeta(tsMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -111,7 +110,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> deleteUIDMeta(UIDMeta uidMeta) {
-		pluginService.deleteUIDMeta(uidMeta);
+		if(pluginService!=null) pluginService.deleteUIDMeta(uidMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -121,7 +120,8 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		return pluginService.executeQuery(searchQuery);
+		if(pluginService!=null) return pluginService.executeQuery(searchQuery);
+		return Deferred.fromResult(searchQuery);
 	}
 
 	/**
@@ -130,7 +130,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> indexAnnotation(Annotation annotation) {
-		pluginService.indexAnnotation(annotation);
+		if(pluginService!=null) pluginService.indexAnnotation(annotation);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -140,7 +140,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> indexTSMeta(TSMeta tsMeta) {
-		pluginService.indexTSMeta(tsMeta);
+		if(pluginService!=null) pluginService.indexTSMeta(tsMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -150,7 +150,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {
-		pluginService.indexUIDMeta(uidMeta);
+		if(pluginService!=null) pluginService.indexUIDMeta(uidMeta);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -170,9 +170,13 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		pluginService.shutdown();
-		return Constants.NULL_DEFERED;
+		try {
+			return pluginService.shutdown(new Deferred<Object>());
+		} finally {
+			pluginService = null;
+		}		
 	}
+
 
 	/**
 	 * {@inheritDoc}

@@ -226,11 +226,14 @@ public class BaseTest {
 		boolean stopped = false;
 		try {
 			try {
-				tsdb.shutdown();
+				long start = System.currentTimeMillis();
+				tsdb.shutdown().join(5000);
+				long elapsed = System.currentTimeMillis()-start;
 				tsdb = null;
 				stopped = true;
-				log("Stopped Test TSDB Normally");
+				log("Stopped Test TSDB Normally in [%s] ms.", elapsed);
 			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
 				try {
 					Field clientField = TSDB.class.getDeclaredField("client");
 					clientField.setAccessible(true);
@@ -299,21 +302,15 @@ public class BaseTest {
 		//  Shutdown the test TSDB and clear the test queues.
 		//=========================================================================================
 		
-//		Method shutdownMethod = TSDBEventDispatcher.class.getDeclaredMethod("shutdown");
-//		shutdownMethod.setAccessible(true);
-//		TSDBPluginServiceLoader.getInstance().get
-//		TSDBEventDispatcher.getInstance(tsdb).shutdown();
-//		shutdownMethod.invoke(TSDBEventDispatcher.getInstance(tsdb));		
-//		try {
-//			stopTSDB();
-//		} catch (Exception ex) {
-//			log("Failed to stop TSDB");
-//		}
-//		QueuedResultSearchEventHandler.getInstance().clearQueue();
-//		QueuedResultPublishEventHandler.getInstance().clearQueue();
-//		
-		
-		
+		Method shutdownMethod = TSDBPluginServiceLoader.class.getDeclaredMethod("reset");
+		shutdownMethod.setAccessible(true);
+		try {
+			stopTSDB();
+		} catch (Exception ex) {
+			log("Failed to stop TSDB");
+		}
+		QueuedResultSearchEventHandler.getInstance().clearQueue();
+		QueuedResultPublishEventHandler.getInstance().clearQueue();
 	}
 
 	/**

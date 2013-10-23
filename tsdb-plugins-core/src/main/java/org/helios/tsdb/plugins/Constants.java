@@ -3,6 +3,7 @@ package org.helios.tsdb.plugins;
 import java.lang.management.ManagementFactory;
 
 import org.helios.tsdb.plugins.async.EventBusEventDispatcher;
+import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.stumbleupon.async.Deferred;
@@ -47,7 +48,7 @@ public class Constants {
 	/** The config property name for the class name of the ITSDBPluginService to load */
 	public static final String PLUGIN_SERVICE_CLASS_NAME = "helios.tsd.pluginservice";
 	/** The default class name of the ITSDBPluginService to load */
-	public static final String DEFAULT_PLUGIN_SERVICE_CLASS_NAME = "";
+	public static final String DEFAULT_PLUGIN_SERVICE_CLASS_NAME = TSDBEventDispatcher.class.getName();
 
 
 	// ===========================================================================================	
@@ -101,6 +102,8 @@ public class Constants {
 	public static final String CONFIG_RPC_PLUGINS = "tsd.rpc.plugins";
 	/** The TSDBPluginService config for specifying RPC service class names */
 	public static final String CONFIG_RPC_SERVICES = "helios.tsd.rpc.services";
+	
+	// org.helios.tsdb.plugins.event.TSDBEventDispatcher
 	
 	
 	

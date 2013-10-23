@@ -111,7 +111,10 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	protected AbstractTSDBPluginService(TSDB tsdb, Properties config) {
 		this.tsdb = tsdb;
 		this.config = config;
-		log.info("Created TSDBPluginService");
+		log.info("Created TSDBPluginService [{}]", getClass().getName());
+		initialize();
+		log.info("Configured TSDBPluginService [{}]", getClass().getName());
+		
 	}
 	
 	/**
@@ -126,14 +129,17 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 			log.error("Forced shutdown called.");
 		}
 		startupShutdownCount.set(0);
-		shutdown();
+		shutdown(null);
 		log.error("Forced shutdown complete");
 	}
 	
 	/**
 	 * Stops the event dispatcher and all subsidiary services
 	 */
-	public Deferred<Object>  shutdown() {
+	public Deferred<Object>  shutdown(Deferred<Object> deferredToAdd) {
+		if(deferredToAdd!=null) {
+			shutdownDeferred.chain(deferredToAdd);
+		}
 		final int shutdownCount = startupShutdownCount.decrementAndGet();
 		if(shutdownCount>0) {
 			log.info("Deferred Shutdown Request. Count:{}", shutdownCount);
@@ -162,6 +168,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 		log.info("All RPCServices stopped");
 		doPostShutdown();
 		log.info("\n\t====================================\n\tStopped PluginService [{}]\n\t====================================", getClass().getSimpleName());
+		shutdownDeferred.callback(true);
 		return shutdownDeferred;
 	}
 	

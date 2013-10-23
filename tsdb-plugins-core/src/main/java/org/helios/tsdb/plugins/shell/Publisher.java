@@ -87,7 +87,7 @@ public class Publisher extends RTPublisher implements Plugin {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		pluginService.collectStats(PluginType.PUBLISH, statsCollector);
+		if(pluginService!=null) pluginService.collectStats(PluginType.PUBLISH, statsCollector);
 	}
 
 
@@ -97,7 +97,7 @@ public class Publisher extends RTPublisher implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		if(pluginService!=null) pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 
@@ -107,7 +107,7 @@ public class Publisher extends RTPublisher implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		if(pluginService!=null) pluginService.publishDataPoint(metric, timestamp, value, tags, tsuid);
 		return Constants.NULL_DEFERED;
 	}
 	
@@ -127,8 +127,11 @@ public class Publisher extends RTPublisher implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
-		pluginService.shutdown();
-		return Constants.NULL_DEFERED;
+		try {
+			return pluginService.shutdown(new Deferred<Object>());
+		} finally {
+			pluginService = null;
+		}		
 	}
 
 }

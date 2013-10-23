@@ -133,9 +133,10 @@ public interface ITSDBPluginService {
 	
 	/**
 	 * Signals the plugin service to shutdown
-	 * @return a deferred shutdown indicator
+	 * @param deferredToAdd Add this deferred to the plugin service shutdown
+	 * @return the core plugin service deferred shutdown indicator
 	 */
-	public Deferred<Object> shutdown(); 
+	public Deferred<Object> shutdown(Deferred<Object> deferredToAdd); 
 	
 }
 	

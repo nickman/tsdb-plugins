@@ -154,10 +154,11 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	 * Validates that data points submitted for publication are delivered via the disruptor
 	 * @throws Exception thrown on any error
 	 */
-	@Test(timeout=5000)	
+	//@Test(timeout=5000)
+	@Test
 	public void testDisruptorDataPointDelivery() throws Exception {
 		createPublishShellJar();
-		TSDB tsdb = newTSDB("BasicSearchDisruptorConfig");
+		TSDB tsdb = newTSDB("BasicPublishDispruptorConfig");
 		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
 		Assert.assertNotNull("Published Event Queue Was Null", events);
 		int eventCount = 1000;

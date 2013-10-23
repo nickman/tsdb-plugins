@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -40,7 +41,6 @@ import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
-import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
@@ -127,7 +127,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 		log.info("Initialized Disruptor Closer.\n\tStarting RingBuffer Event Processing.....");
 		for(BatchEventProcessor<TSDBEvent> bep: eventHandlerBatchProcessors) {
 			executor.execute(bep);
-		}
+		}		
 		executor.execute(closerBatchProcessor);
 		
 		log.info("\n\t========================================\n\tDisruptorEventDispatcher Started\n\t========================================\n");
@@ -153,7 +153,6 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 * Creates a new DisruptorEventDispatcher
 	 */
 	public DisruptorEventDispatcher() {
-		// TODO Auto-generated constructor stub
 	}
 	
 
@@ -163,9 +162,11 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
+		//log.info("Publishing {}.....", metric);
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
         ringBuffer.publish(sequence);
+        //log.info("Published Sequence {} for {}.....", sequence, metric);
 	}
 
 	/**
@@ -174,9 +175,11 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
+		//log.info("Publishing {}.....", metric);
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
         ringBuffer.publish(sequence);
+        //log.info("Published Sequence {} for {}.....", sequence, metric);
 	}
 
 

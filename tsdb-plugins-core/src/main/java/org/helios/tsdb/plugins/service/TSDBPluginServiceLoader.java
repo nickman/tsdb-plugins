@@ -69,6 +69,7 @@ public class TSDBPluginServiceLoader {
 	protected final ClassLoader supportClassLoader;
 	
 	private static void reset() {
+		System.err.println("\n\t***************************\n\tRESET PluginService\n\t***************************");
 		instance = null;		
 	}
 	

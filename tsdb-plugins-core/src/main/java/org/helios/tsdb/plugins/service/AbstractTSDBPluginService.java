@@ -185,48 +185,29 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	public void initialize() {
 		try {
 			if(!configured.compareAndSet(false, true)) return;  // We only initialize once even if there are multiple shells.
-			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());
-			String errMsg = null;
+			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());			
 			searchEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_SEARCH, false, config) &&  Search.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_SEARCH_PLUGIN, null, config));
 			publishEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_PUBLISH, false, config) &&  Publisher.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_PUBLISH_PLUGIN, null, config));
 			log.info("\n\tCallback Plugins Enabled for EventDispatcher:\n\t\tSearch:{}\n\t\tPublish:{}\n", searchEnabled, publishEnabled);
-			if(!searchEnabled && !publishEnabled) {
-				errMsg = "Somehow, the TSDBEventDispatcher was initialized by neither the Search or Publish plugins are enabled.";
-				log.error(errMsg);
-				throw new IllegalArgumentException(errMsg);						
-			}
-			String eventHandlerNames = ConfigurationHelper.getSystemThenEnvProperty(Constants.EVENT_HANDLERS, null, config);
-			
-			if(eventHandlerNames==null || eventHandlerNames.trim().isEmpty()) {
-				errMsg = "No event handler names configured in property [" + Constants.EVENT_HANDLERS + "]";
-				log.error(errMsg);
-				throw new IllegalArgumentException(errMsg);
-			}
-			loadHandlers(eventHandlerNames.trim());
-			if(allHandlers.isEmpty()) {
-				errMsg = "No event handlers were loaded.";
-				log.warn(errMsg);
-//				throw new IllegalArgumentException(errMsg);			
-			}
 			doInitialize();
-			for(IEventHandler handler: allHandlers) {
-				handler.initialize(tsdb, config);
-			}
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);
 			if(ex instanceof IllegalArgumentException) {
 				throw (IllegalArgumentException)ex;
-			} else {
-				throw new IllegalArgumentException("Initialization failed", ex);
 			}
+			throw new IllegalArgumentException("Initialization failed", ex);			
 		}
 	}
 	
 	/**
-	 * The plugin service impl specific initialize (thread pools, dispatchers etc.), called after handlers have been created. 
+	 * Performs the plugin service impl specific initialization 
 	 */
-	protected abstract void doInitialize();
+	protected void doInitialize() {
+		/* No Op */
+	}
+	
+	
 	
 	/**
 	 * Loads the configured event handlers

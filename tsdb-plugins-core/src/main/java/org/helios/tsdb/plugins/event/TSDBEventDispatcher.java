@@ -14,6 +14,7 @@ import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.async.AsyncEventDispatcher;
 import org.helios.tsdb.plugins.async.EventBusEventDispatcher;
+import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.service.AbstractTSDBPluginService;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
@@ -47,12 +48,31 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 	}
 	
 	
-	
 	/**
-	 * Initialize this plugin service: create and init async thread pool, create and init async dispatcher
-	 */	
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#doInitialize()
+	 */
+	@Override	
 	protected void doInitialize() {
-		
+		String errMsg = null;
+		if(!searchEnabled && !publishEnabled) {
+			errMsg = "Somehow, the TSDBEventDispatcher was initialized by neither the Search or Publish plugins are enabled.";
+			log.error(errMsg);
+			throw new IllegalArgumentException(errMsg);						
+		}
+		String eventHandlerNames = ConfigurationHelper.getSystemThenEnvProperty(Constants.EVENT_HANDLERS, null, config);
+	
+		if(eventHandlerNames==null || eventHandlerNames.trim().isEmpty()) {
+			errMsg = "No event handler names configured in property [" + Constants.EVENT_HANDLERS + "]";
+			log.error(errMsg);
+			throw new IllegalArgumentException(errMsg);
+		}
+		loadHandlers(eventHandlerNames.trim());
+		if(allHandlers.isEmpty()) {
+			errMsg = "No event handlers were loaded.";
+			log.warn(errMsg);
+			throw new IllegalArgumentException(errMsg);			
+		}
 		String asyncDispatcherClassName = ConfigurationHelper.getSystemThenEnvProperty(Constants.ASYNC_DISPATCHER, Constants.DEFAULT_ASYNC_DISPATCHER, config);		
 		log.info("Initializing Async Dispatcher [{}]", asyncDispatcherClassName);
 		asyncExecutor = new AsyncDispatcherExecutor(config);
@@ -60,6 +80,9 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 		loadAsyncDispatcher(asyncDispatcherClassName.trim());
 		asyncDispatcher.initialize(config, asyncExecutor, allHandlers);
 		log.info("Async Dispatcher [{}] Initialized.", asyncDispatcher.getClass().getSimpleName());
+		for(IEventHandler handler: allHandlers) {
+			handler.initialize(tsdb, config);
+		}
 	}
 	
 	/**

@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package test.net.opentsdb.spring;
+package test.net.opentsdb.spring.helpers;
 
 import java.util.Properties;
 
@@ -44,20 +44,42 @@ import org.springframework.context.ApplicationListener;
 
 public class SpringEnabledQueuedResultSearchEventHandler extends QueuedResultSearchEventHandler implements InitializingBean, ApplicationListener<ApplicationTSDBEvent>{
 	/** The injected TSDB */
-	@Autowired(required=true)
 	protected TSDB tsdb = null;
-	/** The injected config */
-	@Autowired(required=true)
+	/** The injected config */	
 	protected Properties config = null;
 
+	/**
+	 * Creates a new SpringEnabledQueuedResultSearchEventHandler
+	 */
+	public SpringEnabledQueuedResultSearchEventHandler() {
+		
+	}
+	
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		this.initialize(tsdb, config);
 		log.info("Configuration Complete");
 	}
+	
 	@Override
 	public void onApplicationEvent(ApplicationTSDBEvent event) {
 		resultQueue.add(event);
+	}
+	/**
+	 * Sets the parent TSDB instance
+	 * @param tsdb the tsdb to set
+	 */
+	@Autowired(required=true)
+	public void setTsdb(TSDB tsdb) {
+		this.tsdb = tsdb;
+	}
+	/**
+	 * Sets the extracted config
+	 * @param config the config to set
+	 */
+	@Autowired(required=true)
+	public void setConfig(Properties config) {
+		this.config = config;
 	}
 
 	

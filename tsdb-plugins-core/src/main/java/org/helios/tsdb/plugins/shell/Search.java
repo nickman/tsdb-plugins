@@ -174,6 +174,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<Object> shutdown() {
+		if(pluginService==null) return Deferred.fromResult(null);
 		try {
 			return pluginService.shutdown(new Deferred<Object>());
 		} finally {

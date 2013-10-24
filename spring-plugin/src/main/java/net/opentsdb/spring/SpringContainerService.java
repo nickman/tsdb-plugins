@@ -85,8 +85,13 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	public static final String SPRING_ROOT_XML = "spr.tsd.config";
 	/** The default resource path of the spring bootstrap xml */
 	public static final String DEFAULT_SPRING_ROOT_XML = "classpath:spring/appCtx.xml";
+	/** The bean name of the TSDB extracted config properties bean */
+	public static final String TSDB_CONFIG_BEAN_NAME = "tsdbConfig";
+	/** The bean name of the TSDB instance bean */
+	public static final String TSDB_BEAN_NAME = "tsdb";
+	/** The bean name of the plugin service async executor */
+	public static final String TSDB_ASYNC_EXEC_BEAN_NAME = "tsdbAsyncExecutor";
 	
-	// CONFIG_PLUGIN_SUPPORT_PATH
 	
 	/**
 	 * Acquires the SpringContainerService singleton instance
@@ -130,9 +135,9 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 		propPlaceholder.setProperties(config);
 
 		appContext.registerBeanDefinition("tsdbConfigPlaceHolder", beanDefinition(propPlaceholder, true));
-		appContext.registerBeanDefinition("tsdbConfig", beanDefinition(config, true));
-		appContext.registerBeanDefinition("tsdb", beanDefinition(tsdb, true));
-		appContext.registerBeanDefinition("asyncExecutor", beanDefinition(asyncExecutor, true));
+		appContext.registerBeanDefinition(TSDB_CONFIG_BEAN_NAME, beanDefinition(config, true));
+		appContext.registerBeanDefinition(TSDB_BEAN_NAME, beanDefinition(tsdb, true));
+		appContext.registerBeanDefinition(TSDB_ASYNC_EXEC_BEAN_NAME, beanDefinition(asyncExecutor, true));
 		appContext.registerBeanDefinition(GenericXmlApplicationContext.APPLICATION_EVENT_MULTICASTER_BEAN_NAME, beanDefinition(eventMulticaster, true));
 		appContext.refresh();
 		StringBuilder b = new StringBuilder("\nPublished Beans:\n================");
@@ -142,6 +147,15 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 		log.info(b.toString());
 	}
 	
+	
+	/**
+	 * Creates an on the fly bean definition for the passed object instance. This is so we can inject some of the TSDB plumbing
+	 * which already exists, into the spring context as live objects before it is refreshed so that beans defined in the loaded
+	 * resources can declare dependencies on this plumbing.
+	 * @param beanInstance The object to define a definition for
+	 * @param singleton true if the object will be a singleton. Uh.... there is no false.
+	 * @return the bean definition
+	 */
 	public <T> BeanDefinition beanDefinition(final T beanInstance, final boolean singleton) {
 		GenericBeanDefinition beanDef = new GenericBeanDefinition();
 		beanDef.setBeanClass(InstanceFactoryBean.class);

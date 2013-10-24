@@ -30,7 +30,6 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
-import net.opentsdb.stats.StatsCollector;
 
 import com.lmax.disruptor.EventFactory;
 import com.stumbleupon.async.Deferred;
@@ -46,8 +45,6 @@ import com.stumbleupon.async.Deferred;
 public class TSDBEvent  {
 	/** The event type */
 	public TSDBEventType eventType;
-	/** The stats collector for stats collection events */
-	public StatsCollector collector;
 	/** The metric name for data point publications */
 	public String metric = null;
 	/** The timestamp for data point publications */
@@ -86,7 +83,6 @@ public class TSDBEvent  {
 	 */
 	public void reset() {
 		eventType = null;
-		collector = null;
 		metric = null;
 		timestamp = -1;
 		longValue = -1;
@@ -119,14 +115,6 @@ public class TSDBEvent  {
 		 this.deferred = toComplete;
 	 }
 	 
-	/**
-	 * Loads this event for a stats collection
-	 * @param collector The collector stats should be written into
-	 */
-	public void collectStats(StatsCollector collector) {
-		 this.eventType = TSDBEventType.STATS_COLLECT;
-		 this.collector = collector;
-	}
 	
 	/**
 	 * Loads this event for an annotation deletion

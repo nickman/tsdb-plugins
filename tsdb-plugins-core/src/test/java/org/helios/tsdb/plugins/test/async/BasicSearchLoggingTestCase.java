@@ -59,8 +59,8 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	 * Validates that annotations submitted for indexing are delivered
 	 * @throws Exception thrown on any error
 	 */
-	@Test(timeout=5000)
-	//@Test
+	//@Test(timeout=5000)
+	@Test
 	public void testIndexAnnotationDelivery() throws Exception {
 		createSearchShellJar();
 		TSDB tsdb = newTSDB("BasicSearchConfig");

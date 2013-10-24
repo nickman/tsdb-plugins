@@ -46,9 +46,9 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
 public class QueuedResultSearchEventHandler extends EmptySearchEventHandler {
 	/** The singleton instance */
-	private static volatile QueuedResultSearchEventHandler instance = null;
+	protected static volatile QueuedResultSearchEventHandler instance = null;
 	/** The singleton instance ctor lock */
-	private static final Object lock = new Object();
+	protected static final Object lock = new Object();
 	
 	/** The queue events will be enqueued to */
 	protected BlockingQueue<Object> resultQueue = null; 

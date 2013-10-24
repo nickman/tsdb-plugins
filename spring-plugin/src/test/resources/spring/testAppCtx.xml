@@ -8,9 +8,9 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
 	">
 
-	<context:property-placeholder/>
+	<context:property-placeholder properties-ref="tsdbConfig" system-properties-mode="ENVIRONMENT" />
 
-	<bean id="SearchEventHandler" class="test.net.opentsdb.spring.SpringEnabledQueuedResultSearchEventHandler" factory-method="getInstance"/>
+	<bean id="SearchEventHandler" class="test.net.opentsdb.spring.helpers.SpringEnabledQueuedResultSearchEventHandler" />
 	
 	<bean id="MBeanServer" class="java.lang.management.ManagementFactory"
 		lazy-init="false" factory-method="getPlatformMBeanServer">

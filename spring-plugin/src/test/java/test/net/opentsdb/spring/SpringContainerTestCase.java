@@ -29,6 +29,7 @@ import java.util.concurrent.BlockingQueue;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
+import net.opentsdb.spring.ApplicationTSDBEvent;
 import net.opentsdb.spring.SpringContainerService;
 
 import org.helios.tsdb.plugins.event.TSDBEventType;
@@ -37,6 +38,7 @@ import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.test.BaseTest;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.support.GenericApplicationContext;
 
 /**
@@ -68,7 +70,7 @@ public class SpringContainerTestCase extends BaseTest {
 			int receivedEventCount = 0;
 			Map<String, Annotation> annotations = startAnnotationStream(tsdb, eventCount, 2, 0);		
 			for(int i = 0; i < eventCount; i++) {
-				TSDBSearchEvent event = (TSDBSearchEvent)events.take();			
+				TSDBSearchEvent event = (TSDBSearchEvent)((ApplicationEvent)events.take()).getSource();			
 				Annotation annot = annotations.get(event.annotation.getTSUID() + "/" + event.annotation.getStartTime());
 				Assert.assertEquals("[" + i + "] Unexpected event type", TSDBEventType.ANNOTATION_INDEX, event.eventType);
 				Assert.assertEquals("[" + i + "] Annotation mismatch: EndTime", annot.getEndTime(), event.annotation.getEndTime());

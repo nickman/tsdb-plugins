@@ -22,69 +22,43 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.spring.shell;
+package test.net.opentsdb.spring;
+
+import java.util.Properties;
 
 import net.opentsdb.core.TSDB;
-import net.opentsdb.stats.StatsCollector;
-import net.opentsdb.tsd.RpcPlugin;
+import net.opentsdb.spring.ApplicationTSDBEvent;
 
-import com.stumbleupon.async.Deferred;
+import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
 
 /**
- * <p>Title: RPC</p>
- * <p>Description: Spring {@link RpcPlugin} adapter plugin</p> 
+ * <p>Title: SpringEnabledQueuedResultSearchEventHandler</p>
+ * <p>Description: </p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.spring.shell.RPC</code></p>
+ * <p><code>test.net.opentsdb.spring.SpringEnabledQueuedResultSearchEventHandler</code></p>
  */
 
-public class RPC extends RpcPlugin {
+public class SpringEnabledQueuedResultSearchEventHandler extends QueuedResultSearchEventHandler implements InitializingBean, ApplicationListener<ApplicationTSDBEvent>{
+	/** The injected TSDB */
+	@Autowired(required=true)
+	protected TSDB tsdb = null;
+	/** The injected config */
+	@Autowired(required=true)
+	protected Properties config = null;
 
-	/**
-	 * Creates a new RPC
-	 */
-	public RPC() {
-		// TODO Auto-generated constructor stub
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.tsd.RpcPlugin#collectStats(net.opentsdb.stats.StatsCollector)
-	 */
 	@Override
-	public void collectStats(StatsCollector arg0) {
-		// TODO Auto-generated method stub
-
+	public void afterPropertiesSet() throws Exception {
+		this.initialize(tsdb, config);
+		log.info("Configuration Complete");
 	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.tsd.RpcPlugin#initialize(net.opentsdb.core.TSDB)
-	 */
 	@Override
-	public void initialize(TSDB arg0) {
-		// TODO Auto-generated method stub
-
+	public void onApplicationEvent(ApplicationTSDBEvent event) {
+		resultQueue.add(event);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.tsd.RpcPlugin#shutdown()
-	 */
-	@Override
-	public Deferred<Object> shutdown() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.tsd.RpcPlugin#version()
-	 */
-	@Override
-	public String version() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+	
 }

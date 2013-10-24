@@ -51,7 +51,7 @@ public class QueuedResultSearchEventHandler extends EmptySearchEventHandler {
 	private static final Object lock = new Object();
 	
 	/** The queue events will be enqueued to */
-	private BlockingQueue<Object> resultQueue = null; 
+	protected BlockingQueue<Object> resultQueue = null; 
 
 
 	/** The maximum capacity of the queue */
@@ -124,7 +124,7 @@ public class QueuedResultSearchEventHandler extends EmptySearchEventHandler {
 	/**
 	 * Creates a new QueuedResultSearchEventHandler
 	 */
-	private QueuedResultSearchEventHandler() {
+	protected QueuedResultSearchEventHandler() {
 	}
 
 }

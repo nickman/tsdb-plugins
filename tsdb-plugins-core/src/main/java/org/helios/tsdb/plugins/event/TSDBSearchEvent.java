@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.event;
 
+import com.stumbleupon.async.Deferred;
+
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -107,10 +109,11 @@ public class TSDBSearchEvent extends TSDBEvent {
 	/**
 	 * Prepares and returns a search event
 	 * @param searchQuery The query to create an event for
+	 * @param toComplete The deferred to complete when the query execution completes (or errors out)
 	 * @return the loaded event
 	 */
-	public TSDBSearchEvent executeQueryEvent(SearchQuery searchQuery) {
-		 this.deferred = super.executeQuery(searchQuery);
+	public TSDBSearchEvent executeQueryEvent(SearchQuery searchQuery, Deferred<SearchQuery> toComplete) {
+		 super.executeQuery(searchQuery, toComplete);
 		 return this;
     }
 

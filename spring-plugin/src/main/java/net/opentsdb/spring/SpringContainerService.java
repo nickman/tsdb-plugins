@@ -35,12 +35,18 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
-import org.helios.tsdb.plugins.async.AsyncEventDispatcher;
 import org.helios.tsdb.plugins.service.AbstractTSDBPluginService;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -66,13 +72,13 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
 	/** The service root context */
-	protected final GenericXmlApplicationContext appContext = new GenericXmlApplicationContext();
+	protected GenericXmlApplicationContext appContext = new GenericXmlApplicationContext();
 	/** The bootstrap XML config resource */
-	protected final Resource resource;
+	protected Resource resource;
 	/** The asynch application event multicaster */
-	protected final SimpleApplicationEventMulticaster eventMulticaster;
+	protected SimpleApplicationEventMulticaster eventMulticaster;
 	/** The asynch dispatcher's executor */
-	protected final ThreadPoolExecutor asyncExecutor;
+	protected ThreadPoolExecutor asyncExecutor;
 	
 	
 	/** The config property name for the resource path of the spring bootstrap xml */
@@ -104,14 +110,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @param tsdb the core TSDB instance
 	 * @param config The extracted config properties
 	 */
-	private SpringContainerService(TSDB tsdb, Properties config) {
+	private SpringContainerService(TSDB tsdb, Properties config) {		
 		super(tsdb, config);
-		String springConfig = ConfigurationHelper.getSystemThenEnvProperty(SPRING_ROOT_XML, DEFAULT_SPRING_ROOT_XML, config);
-		resource = new DefaultResourceLoader().getResource(springConfig);
-		asyncExecutor = new AsyncDispatcherExecutor(config);
-		eventMulticaster = new SimpleApplicationEventMulticaster(appContext);
-		eventMulticaster.setTaskExecutor(asyncExecutor);
-
 	}
 
 	/**
@@ -120,23 +120,88 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 */
 	@Override
 	protected void doInitialize() {
+		String springConfig = ConfigurationHelper.getSystemThenEnvProperty(SPRING_ROOT_XML, DEFAULT_SPRING_ROOT_XML, config);
+		resource = new DefaultResourceLoader().getResource(springConfig);
+		asyncExecutor = new AsyncDispatcherExecutor(config);
+		eventMulticaster = new SimpleApplicationEventMulticaster(appContext);
+		eventMulticaster.setTaskExecutor(asyncExecutor);		
 		appContext.load(resource);
-		PropertyPlaceholderConfigurer propPlaceholder = new PropertyPlaceholderConfigurer();
+		final PropertyPlaceholderConfigurer propPlaceholder = new PropertyPlaceholderConfigurer();
 		propPlaceholder.setProperties(config);
-		appContext.getBeanFactory().registerSingleton("tsdbConfig", propPlaceholder);
-		appContext.getBeanFactory().registerSingleton("tsdb", tsdb);
-		appContext.getBeanFactory().registerSingleton("asyncExecutor", asyncExecutor);
-		appContext.getBeanFactory().registerSingleton("eventMulticaster", eventMulticaster);
+
+		appContext.registerBeanDefinition("tsdbConfigPlaceHolder", beanDefinition(propPlaceholder, true));
+		appContext.registerBeanDefinition("tsdbConfig", beanDefinition(config, true));
+		appContext.registerBeanDefinition("tsdb", beanDefinition(tsdb, true));
+		appContext.registerBeanDefinition("asyncExecutor", beanDefinition(asyncExecutor, true));
+		appContext.registerBeanDefinition(GenericXmlApplicationContext.APPLICATION_EVENT_MULTICASTER_BEAN_NAME, beanDefinition(eventMulticaster, true));
 		appContext.refresh();
+		StringBuilder b = new StringBuilder("\nPublished Beans:\n================");
+		for(String name: appContext.getBeanDefinitionNames()) {
+			b.append("\n\t").append(name).append("   [").append(appContext.getBean(name).getClass().getName()).append("]");
+		}
+		log.info(b.toString());
 	}
+	
+	public <T> BeanDefinition beanDefinition(final T beanInstance, final boolean singleton) {
+		GenericBeanDefinition beanDef = new GenericBeanDefinition();
+		beanDef.setBeanClass(InstanceFactoryBean.class);
+		ConstructorArgumentValues ctorValues = new ConstructorArgumentValues();
+		ctorValues.addGenericArgumentValue(beanInstance);
+		ctorValues.addGenericArgumentValue(singleton);
+		beanDef.setConstructorArgumentValues(ctorValues);		
+		return beanDef;
+	}
+	
+	/**
+	 * <p>Title: InstanceFactoryBean</p>
+	 * <p>Description: A factory bean for a predefined object</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.spring.SpringContainerService.InstanceFactoryBean</code></p>
+	 * @param <T> The type of the bean instance
+	 */
+	public static class InstanceFactoryBean<T> implements FactoryBean<T> {
+		/** The bean instance to be returned from the factory */
+		final T beanInstance;
+		/** Indicates if the bean will be a singleton */
+		final boolean singleton;
+
+		/**
+		 * Creates a new InstanceFactoryBean
+		 * @param beanInstance The bean instance to be returned from the factory
+		 * @param singleton Indicates if the bean will be a singleton
+		 */
+		public InstanceFactoryBean(T beanInstance, boolean singleton) {			
+			this.beanInstance = beanInstance;
+			this.singleton = singleton;
+		}
+
+		@Override
+		public T getObject() throws Exception {
+			return beanInstance;
+		}
+
+		@Override
+		public Class<T> getObjectType() {
+			return (Class<T>)beanInstance.getClass();
+		}
+		@Override
+		public boolean isSingleton() {
+			return singleton;
+		}
+		
+	}
+	
 	
 	/**
 	 * Stops the event dispatcher and all subsidiary services
 	 */
 	public void doPreShutdown() {
-		if(asyncDispatcher!=null) {
-			asyncDispatcher.shutdown();
-			log.info("Shutdown AsyncDispatcher.");
+
+		if(appContext!=null) {
+			appContext.stop();
+			appContext.close();
+			appContext = null;
 		}
 		if(asyncExecutor!=null) {
 			int remainingTasks = asyncExecutor.shutdownNow().size();
@@ -153,8 +218,7 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @param tsuid Time series UID for the value
 	 */
 	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		
-		asyncDispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		if(appContext != null) appContext.publishEvent(ApplicationTSDBPublishEvent.publishDataPoint(metric, timestamp, value, tags, tsuid));
 	}
 
 	/**
@@ -166,7 +230,7 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @param tsuid Time series UID for the value
 	 */
 	public void publishDataPoint(String metric, long timestamp, long value, Map<String, String> tags, byte[] tsuid) {
-		asyncDispatcher.publishDataPoint(metric, timestamp, value, tags, tsuid);
+		if(appContext != null) appContext.publishEvent(ApplicationTSDBPublishEvent.publishDataPoint(metric, timestamp, value, tags, tsuid));
 	}
 	
 
@@ -177,8 +241,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#deleteAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	public void deleteAnnotation(Annotation annotation) {
-		if(annotation!=null) {
-			asyncDispatcher.deleteAnnotation(annotation);
+		if(annotation!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.deleteAnnotation(annotation));
 		}
 	}
 	
@@ -189,8 +253,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#indexAnnotation(net.opentsdb.meta.Annotation)
 	 */
 	public void indexAnnotation(Annotation annotation) {
-		if(annotation!=null) {
-			asyncDispatcher.indexAnnotation(annotation);
+		if(annotation!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.indexAnnotation(annotation));
 		}
 	}	
 
@@ -200,8 +264,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#deleteTSMeta(java.lang.String)
 	 */
 	public void deleteTSMeta(String tsMeta) {
-		if(tsMeta!=null) {
-			asyncDispatcher.deleteTSMeta(tsMeta);
+		if(tsMeta!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.deleteTSMeta(tsMeta));
 		}
 	}
 	
@@ -211,8 +275,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	public void indexTSMeta(TSMeta tsMeta) {
-		if(tsMeta!=null) {
-			asyncDispatcher.indexTSMeta(tsMeta);
+		if(tsMeta!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.indexTSMeta(tsMeta));
 		}
 	}	
 	
@@ -222,8 +286,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	public void indexUIDMeta(UIDMeta uidMeta) {
-		if(uidMeta!=null) {
-			asyncDispatcher.indexUIDMeta(uidMeta);
+		if(uidMeta!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.indexUIDMeta(uidMeta));
 		}
 	}	
 
@@ -233,8 +297,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * @see net.opentsdb.search.SearchPlugin#deleteUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	public void deleteUIDMeta(UIDMeta uidMeta) {
-		if(uidMeta!=null) {
-			asyncDispatcher.deleteUIDMeta(uidMeta);
+		if(uidMeta!=null && appContext != null) {
+			appContext.publishEvent(ApplicationTSDBSearchEvent.deleteUIDMeta(uidMeta));
 		}
 	}
 
@@ -242,10 +306,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 * 
 	 * @see net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		Deferred<SearchQuery> defSearch = new Deferred<SearchQuery>();
-		defSearch.callback(searchQuery);
-		return defSearch;
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toComplete) {
+		if(appContext != null) appContext.publishEvent(ApplicationTSDBSearchEvent.executeQueryEvent(searchQuery, toComplete));
 	}
 	
 	
@@ -255,6 +317,14 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 */
 	public static void main(String[] args) {
 
+	}
+
+	/**
+	 * Returns 
+	 * @return the appContext
+	 */
+	public GenericXmlApplicationContext getAppContext() {
+		return appContext;
 	}
 
 

@@ -53,6 +53,11 @@ public interface ITSDBPluginService {
 	public void addPluginInstance(Plugin plugin);
 	
 	/**
+	 * Initializes the service after creation
+	 */
+	public void initialize();
+	
+	/**
 	 * Called by the TSD when a request for statistics collection has come in.
 	 * @param statsCollector The collector used for emitting statistics
 	 * @param pluginType The plugin type this collector was issued for
@@ -126,10 +131,10 @@ public interface ITSDBPluginService {
 	/**
 	 * Executes a very basic search query, returning the results in the SearchQuery object passed in.
 	 * @param searchQuery The query to execute against the search engine
-	 * @return The query results
+	 * @param toReturn The deferred to complete on query execution completion (or error).
 	 * @see net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery);
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toReturn);
 	
 	/**
 	 * Signals the plugin service to shutdown

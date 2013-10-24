@@ -192,10 +192,8 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 	 * 
 	 * @see net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)
 	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		Deferred<SearchQuery> defSearch = new Deferred<SearchQuery>();
-		defSearch.callback(searchQuery);
-		return defSearch;
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toComplete) {
+		asyncDispatcher.executeQuery(searchQuery, toComplete);
 	}
 
 	/**

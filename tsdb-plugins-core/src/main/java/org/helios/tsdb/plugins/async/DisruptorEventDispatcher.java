@@ -41,6 +41,7 @@ import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
@@ -197,12 +198,10 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#executeQuery(net.opentsdb.search.SearchQuery)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#executeQuery(net.opentsdb.search.SearchQuery, com.stumbleupon.async.Deferred)
 	 */
 	@Override
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		// TODO Auto-generated method stub
-		return null;
+	public void executeQuery(SearchQuery searchQuery , Deferred<SearchQuery> toComplete) {
 	}
 
 	/**

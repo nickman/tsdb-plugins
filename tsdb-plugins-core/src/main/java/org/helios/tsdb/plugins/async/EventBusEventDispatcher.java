@@ -134,13 +134,12 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#executeQuery(net.opentsdb.search.SearchQuery)
+	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#executeQuery(net.opentsdb.search.SearchQuery, com.stumbleupon.async.Deferred)
 	 */
 	@Override
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		TSDBSearchEvent searchEvent = new TSDBSearchEvent().executeQueryEvent(searchQuery); 
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toComplete) {
+		TSDBSearchEvent searchEvent = new TSDBSearchEvent().executeQueryEvent(searchQuery, toComplete); 
 		eventBus.post(searchEvent);
-		return searchEvent.deferred;
 	}
 
 	/**

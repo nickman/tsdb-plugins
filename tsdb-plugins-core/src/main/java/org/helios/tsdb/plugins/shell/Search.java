@@ -120,7 +120,11 @@ public class Search extends SearchPlugin implements Plugin {
 	 */
 	@Override
 	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		if(pluginService!=null) return pluginService.executeQuery(searchQuery);
+		Deferred<SearchQuery> toComplete = new Deferred<SearchQuery>(); 
+		if(pluginService!=null) {
+			pluginService.executeQuery(searchQuery, toComplete);
+			return toComplete;
+		}
 		return Deferred.fromResult(searchQuery);
 	}
 

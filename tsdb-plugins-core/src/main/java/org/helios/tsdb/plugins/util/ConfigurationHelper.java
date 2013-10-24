@@ -299,11 +299,11 @@ public class ConfigurationHelper {
 			return ctor.newInstance(args);
 		} catch (Exception e) {
 			Method method = null;
-			try { method = clazz.getDeclaredMethod("getInstance"); 
+			try { method = clazz.getDeclaredMethod("getInstance", sig); 
 				if(!Modifier.isStatic(method.getModifiers())) throw new Exception();
 			} catch (Exception ex) {}
 			if(method==null) {
-				try { method = clazz.getDeclaredMethod("newInstance"); } catch (Exception ex) {}
+				try { method = clazz.getDeclaredMethod("newInstance", sig); } catch (Exception ex) {}
 			}
 			if(method==null) throw new Exception("Failed to find Constructor or Static Factory Method for [" + clazz.getName() + "]");
 			if(!Modifier.isStatic(method.getModifiers())) throw new Exception("Factory Method [" + method.toGenericString() + "] is not static");

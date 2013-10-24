@@ -111,13 +111,12 @@ public class TSDBEvent  {
 	/**
 	 * Loads this event for a search event
 	 * @param searchQuery The search query to translate
-	 * @return a deferred search query
+	 * @param toComplete The deferred to complete when the query execution completes (or errors out)
 	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toComplete) {
 		 this.eventType = TSDBEventType.SEARCH;
 		 this.searchQuery = searchQuery;
-		 this.deferred = new Deferred<SearchQuery>();
-		 return this.deferred;
+		 this.deferred = toComplete;
 	 }
 	 
 	/**

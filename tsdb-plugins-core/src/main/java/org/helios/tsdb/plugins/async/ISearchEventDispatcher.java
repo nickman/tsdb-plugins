@@ -46,9 +46,9 @@ public interface ISearchEventDispatcher {
 	 * Executes a very basic search query, returning the results in the SearchQuery object passed in.
 	 * Note that only one search event handler instance can handle search query results.
 	 * @param searchQuery The query to execute against the search engine
-	 * @return The search results
+	 * @param toComplete the deferred to complete when the query execution is complete (or errors out).
 	 */
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery);
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toComplete);
 
 	/**
 	 * Indexes an annotation object Note: Unique Document ID = TSUID and Start Time

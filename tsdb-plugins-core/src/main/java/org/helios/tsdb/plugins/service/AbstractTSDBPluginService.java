@@ -112,9 +112,6 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 		this.tsdb = tsdb;
 		this.config = config;
 		log.info("Created TSDBPluginService [{}]", getClass().getName());
-		initialize();
-		log.info("Configured TSDBPluginService [{}]", getClass().getName());
-		
 	}
 	
 	/**
@@ -185,7 +182,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	/**
 	 * Initialize the plugin handlers that are responsible for setting up any IO they need as well as starting any required background threads. Note: Implementations should throw exceptions if they can't start up properly. The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
 	 */	
-	protected void initialize() {
+	public void initialize() {
 		try {
 			if(!configured.compareAndSet(false, true)) return;  // We only initialize once even if there are multiple shells.
 			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());
@@ -208,8 +205,8 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 			loadHandlers(eventHandlerNames.trim());
 			if(allHandlers.isEmpty()) {
 				errMsg = "No event handlers were loaded.";
-				log.error(errMsg);
-				throw new IllegalArgumentException(errMsg);			
+				log.warn(errMsg);
+//				throw new IllegalArgumentException(errMsg);			
 			}
 			doInitialize();
 			for(IEventHandler handler: allHandlers) {
@@ -470,9 +467,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	}
 
 	@Override
-	public Deferred<SearchQuery> executeQuery(SearchQuery searchQuery) {
-		// TODO Auto-generated method stub
-		return null;
+	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toReturn) {
 	}
 
 }

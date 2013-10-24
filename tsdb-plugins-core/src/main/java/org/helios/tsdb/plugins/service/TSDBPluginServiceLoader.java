@@ -125,6 +125,7 @@ public class TSDBPluginServiceLoader {
 			@SuppressWarnings("unchecked")
 			Class<ITSDBPluginService> clazz = (Class<ITSDBPluginService>)_clazz;
 			pluginService = loadService(clazz);
+			pluginService.initialize();
 		} catch (IllegalArgumentException iae) {
 			throw iae;
 		} catch (Exception ex) {
@@ -141,17 +142,7 @@ public class TSDBPluginServiceLoader {
 	 * @throws Exception thrown on any error
 	 */
 	protected ITSDBPluginService loadService(Class<ITSDBPluginService> clazz) throws Exception {
-		try {
-			Constructor<ITSDBPluginService> ctor = clazz.getDeclaredConstructor(TSDB.class, Properties.class);
-			return ctor.newInstance(tsdb, config);
-		} catch (NoSuchMethodException nse) {
-			Method method = clazz.getDeclaredMethod("newInstance", TSDB.class, Properties.class);
-			if(!Modifier.isStatic(method.getModifiers())) {
-				throw new Exception(String.format("Could not find constructor [%s(TSDB, Properties)] or static factory method [%s.newInstance(TSDB, Properties)] for plugin service [%s]", clazz.getSimpleName(), clazz.getSimpleName(), clazz.getName()));
-			}
-			return (ITSDBPluginService)method.invoke(null, tsdb, config);
-		}
-		
+		return ConfigurationHelper.inst(clazz, new Class[] {TSDB.class, Properties.class}, tsdb, config);
 	}
 	/**
 	 * Returns a classloader enabled to load jars, classes and resources 

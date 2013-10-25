@@ -1,6 +1,6 @@
 <tsdb-elastic-index-mapping>
 	<indexes>
-		<index name="opentsdb_2" alias="opentsdb">
+		<index name="opentsdb_1" alias="opentsdb">
 			<settings>
 				<setting name="compound_on_flush" value="true"/>
 				<setting name="term_index_interval" value="128"/>

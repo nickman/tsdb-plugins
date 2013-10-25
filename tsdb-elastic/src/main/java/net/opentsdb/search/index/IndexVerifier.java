@@ -24,9 +24,13 @@
  */
 package net.opentsdb.search.index;
 
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_ANNOT_TYPE;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TYPE;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
+
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +39,7 @@ import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
@@ -57,19 +62,39 @@ public class IndexVerifier {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The ES index client */
 	protected final IndicesAdminClient indexClient;
-	/** The timeout in ms. for index factory operations */
+	/** The initial timeout in ms. for index factory operations */
 	protected long indexOpsTimeout;
+	
+	/** A map of index alias names keyed by the type name using the index underlying the alias */
+	protected final Map<String, String> indexNames = new HashMap<String, String>();
+	
+	/** The configured annotation type name */
+	protected final String annotationTypeName;
+	/** The configured TSMeta name */
+	protected final String tsMetaTypeName;
+	/** The configured UIDMeta name */
+	protected final String uidMetaTypeName;
+	
+	
+
 	
 	/**
 	 * Creates a new IndexVerifier
 	 * @param indexClient The ES index client 
 	 * @param indexOpsTimeout The timeout in ms. for index factory operations
+	 * @param annotationTypeName The configured annotation type name
+	 * @param tsMetaTypeName The configured TSMeta name
+	 * @param uidMetaTypeName The configured UIDMeta name
 	 */
-	public IndexVerifier(IndicesAdminClient indexClient, long indexOpsTimeout) {
+	public IndexVerifier(IndicesAdminClient indexClient, long indexOpsTimeout, String annotationTypeName, String tsMetaTypeName, String uidMetaTypeName) {
 		this.indexClient = indexClient;
-		this.indexOpsTimeout = indexOpsTimeout;		
-		log(this.indexClient.toString());
+		this.indexOpsTimeout = indexOpsTimeout;
+		this.annotationTypeName = annotationTypeName;
+		this.tsMetaTypeName = tsMetaTypeName;
+		this.uidMetaTypeName = uidMetaTypeName;
 	}
+
+
 	
 	/** The XML config root node */
 	public static final String ROOT_NODE = "tsdb-elastic-index-mapping";
@@ -81,7 +106,7 @@ public class IndexVerifier {
 	public void processIndexConfig(InputStream xmlDoc) {
 		Node rootNode = XMLHelper.parseXML(xmlDoc).getDocumentElement();
 		final String rootNodeName = rootNode.getNodeName();
-		final Set<String> indexNames = new HashSet<String>();
+		final Map<String, String> indexAliasNames = new HashMap<String, String>();
 		if(!ROOT_NODE.equalsIgnoreCase(rootNodeName)) {
 			throw new RuntimeException("Could not verify XML doc root node name. Expected [" + ROOT_NODE + "] but got + [" + rootNodeName + "]");
 		}
@@ -121,20 +146,38 @@ public class IndexVerifier {
 			} else {
 				log.info("Alias [{}] for Index [{}] Exists", alias, indexName);
 			}
-			indexNames.add(indexName);
+			indexAliasNames.put(indexName, alias);
 		}
 		for(Node typeNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "objects", false), "object", false)) {
 			String typeName = XMLHelper.getAttributeByName(typeNode, "name", null).trim();
 			String indexName = XMLHelper.getAttributeByName(typeNode, "index-ref", null).trim();
-			if(!indexNames.contains(indexName)) {
-				throw new RuntimeException("The index [" + indexName + "] requested for type [" + typeName + "] does not exist");
-			}
 			String typeScript = XMLHelper.getNodeTextValue(typeNode);
 			if(!indexClient.typesExists(new TypesExistsRequest(new String[]{indexName}, typeName)).actionGet(indexOpsTimeout).isExists()) {
 				log.info("Creating Type [{}] for Index [{}]....", typeName, indexName);
+				PutMappingRequest mapRequest = new PutMappingRequest(indexName);
+				mapRequest.type(typeName);
+				mapRequest.source(typeScript);
+				indexClient.putMapping(mapRequest).actionGet();
+				log.info("Created Type [{}] for Index [{}]", typeName, indexName);
+			} else {
+				log.info("Verified Type [{}] for Index [{}]", typeName, indexName);
 			}
-			
+			indexNames.put(indexAliasNames.get(indexName), typeName);
 		}
+		Set<String> failedTypes = new LinkedHashSet<String>();
+		if(!indexNames.containsKey(annotationTypeName)) {
+			failedTypes.add("Annotation Type:" + annotationTypeName);
+		}
+		if(!indexNames.containsKey(tsMetaTypeName)) {
+			failedTypes.add("TSMeta Type:" + tsMetaTypeName);
+		}
+		if(!indexNames.containsKey(uidMetaTypeName)) {
+			failedTypes.add("UIDMeta Type:" + uidMetaTypeName);
+		}
+		if(!failedTypes.isEmpty()) {
+			throw new RuntimeException("Missing Type Mapping Indexes for " + failedTypes.toString()); 
+		}
+		log.info("\n\t====================================\n\tIndexes and Types Validated\n\t====================================");
 	}
 	
 	
@@ -242,13 +285,23 @@ public class IndexVerifier {
 		try {
 			log("IndexVerifier Test");
 			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
-			IndexVerifier iv = new IndexVerifier(client.admin().indices(), 2000);
-			iv.processIndexConfig(IndexVerifier.class.getClassLoader().getResourceAsStream("scripts/index-definitions.xml"));
+			IndexVerifier iv = new IndexVerifier(client.admin().indices(), 2000, DEFAULT_ES_ANNOT_TYPE, DEFAULT_ES_TSMETA_TYPE, DEFAULT_ES_UIDMETA_TYPE);
+			
+			iv.processIndexConfig(ClassLoader.getSystemClassLoader().getResourceAsStream("scripts/index-definitions.xml"));
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		} finally {
 			try { client.close(); } catch (Exception ex) {}
 		}
+	}
+
+
+	/**
+	 * Returns a map of index alias names keyed by the type name using the index underlying the alias
+	 * @return a map of index alias names keyed by the type name 
+	 */
+	public Map<String, String> getIndexNames() {
+		return indexNames;
 	}
 	
 }

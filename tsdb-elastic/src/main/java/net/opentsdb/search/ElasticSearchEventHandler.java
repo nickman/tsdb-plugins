@@ -108,12 +108,10 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The default name for the elastic-search annotation type */
 	public static final String DEFAULT_ES_ANNOT_TYPE = "annotation";
 	
-	/** The reference name for UIDMeta */
-	public static final String ES_UIDMETA_NAME = "uidmeta";
-	/** The reference name for TSMeta */
-	public static final String ES_TSMETA_NAME = "tsmeta";
-	/** The reference name for Annotation */
-	public static final String ES_ANNOTATION_NAME = "annotation";
+	/** The config property name to indicate if percolating should be enabled */
+	public static final String ES_ENABLE_PERCOLATES = "annotation";
+	/** The default percolating enablement */
+	public static final boolean DEFAULT_ES_ENABLE_PERCOLATES = false;
 	
 	
 	@Override

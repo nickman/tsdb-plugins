@@ -121,6 +121,12 @@
 				  <groupId>org.elasticsearch</groupId>
 				  <artifactId>elasticsearch</artifactId>
 				  <version>${elastic-search.version}</version>
+		 			<exclusions>
+		        <exclusion>
+		            <groupId>*</groupId>
+		            <artifactId>*</artifactId>
+		        </exclusion>
+		    	</exclusions>    				  
 				</dependency>
         
 		

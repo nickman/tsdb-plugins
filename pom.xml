@@ -13,6 +13,7 @@
 		<module>tsdb-plugins-core</module>
 		<module>spring-plugin</module>
 		<module>tsdb-elastic</module>
+		<module>tsdb-jdbc</module>
 		<!-- <module>tsdb-sql-catalog</module> -->
 	</modules>
 	

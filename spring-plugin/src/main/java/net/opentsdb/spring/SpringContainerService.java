@@ -92,6 +92,9 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	/** The bean name of the plugin service async executor */
 	public static final String TSDB_ASYNC_EXEC_BEAN_NAME = "tsdbAsyncExecutor";
 	
+	private static void reset() {
+		instance = null;
+	}
 	
 	/**
 	 * Acquires the SpringContainerService singleton instance

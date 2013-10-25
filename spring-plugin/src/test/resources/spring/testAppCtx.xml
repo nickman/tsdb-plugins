@@ -10,36 +10,11 @@
 
 	<context:property-placeholder properties-ref="tsdbConfig" system-properties-mode="ENVIRONMENT" />
 
-	<bean id="SearchEventHandler" class="test.net.opentsdb.spring.helpers.SpringEnabledQueuedResultSearchEventHandler" />
+	<bean id="EventHandler" class="test.net.opentsdb.spring.helpers.SpringEnabledQueuedResultEventHandler" />
 	
 	<bean id="MBeanServer" class="java.lang.management.ManagementFactory"
 		lazy-init="false" factory-method="getPlatformMBeanServer">
 	</bean>
 	
-	<bean id="MBeanServerJMXUrl" class="javax.management.remote.JMXServiceURL"
-		lazy-init="false" depends-on="systemProperties" >
-		<constructor-arg type="java.lang.String"
-			value="service:jmx:rmi://localhost:${org.helios.apmrouter.jmxrmi.service.port:8002}/jndi/rmi://localhost:${org.helios.apmrouter.jmxrmi.registry.port:8005}/jmxrmi" />
-	</bean>
-	
-	<bean id="RMIRegistry" class="java.rmi.registry.LocateRegistry"
-		lazy-init="false" factory-method="createRegistry" >
-		<constructor-arg value="${org.helios.apmrouter.jmxrmi.registry.port:8005}" />
-	</bean>
-	
-	<bean id="MBeanServerConnector" class="javax.management.remote.JMXConnectorServerFactory"
-		lazy-init="false" init-method="start" factory-method="newJMXConnectorServer"
-		depends-on="RMIRegistry">
-		<constructor-arg ref="MBeanServerJMXUrl" />
-		<constructor-arg>
-			<map />
-		</constructor-arg>
-		<constructor-arg ref="MBeanServer" />
-	</bean>
-	
-	
-
-
-
 
 </beans>   

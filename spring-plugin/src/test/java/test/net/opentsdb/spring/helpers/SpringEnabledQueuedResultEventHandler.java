@@ -35,23 +35,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 
 /**
- * <p>Title: SpringEnabledQueuedResultSearchEventHandler</p>
- * <p>Description: </p> 
+ * <p>Title: SpringEnabledQueuedResultEventHandler</p>
+ * <p>Description: Test handler to pick up dispatched events to be validated</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.spring.SpringEnabledQueuedResultSearchEventHandler</code></p>
  */
 
-public class SpringEnabledQueuedResultSearchEventHandler extends QueuedResultSearchEventHandler implements InitializingBean, ApplicationListener<ApplicationTSDBEvent>{
-	/** The injected TSDB */
-	protected TSDB tsdb = null;
-	/** The injected config */	
-	protected Properties config = null;
-
+public class SpringEnabledQueuedResultEventHandler extends QueuedResultSearchEventHandler implements InitializingBean, ApplicationListener<ApplicationTSDBEvent>{
 	/**
-	 * Creates a new SpringEnabledQueuedResultSearchEventHandler
+	 * Creates a new SpringEnabledQueuedResultEventHandler
 	 */
-	public SpringEnabledQueuedResultSearchEventHandler() {
+	public SpringEnabledQueuedResultEventHandler() {
 		
 	}
 	

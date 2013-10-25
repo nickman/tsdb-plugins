@@ -68,8 +68,24 @@ public class TSDBPluginServiceLoader {
 	/** The plugin service support classpath */
 	protected final ClassLoader supportClassLoader;
 	
+	/**
+	 * This is a testing hook.
+	 */
 	private static void reset() {
 		System.err.println("\n\t***************************\n\tRESET PluginService\n\t***************************");
+		if(instance!=null && instance.pluginService!=null) {
+			
+			try {
+				Method m = instance.pluginService.getClass().getDeclaredMethod("reset");
+				m.setAccessible(true);
+				if(Modifier.isStatic(m.getModifiers())) {
+					m.invoke(null);
+				} else {
+					m.invoke(instance.pluginService);
+				}
+				System.err.println("\n\tPlugin Service Instance Reset"); 
+			} catch (Exception e) {}
+		}
 		instance = null;		
 	}
 	

@@ -24,6 +24,7 @@
  */
 package test.net.opentsdb.spring;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
@@ -32,8 +33,14 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.spring.ApplicationTSDBEvent;
 import net.opentsdb.spring.SpringContainerService;
 
+import org.helios.tsdb.plugins.datapoints.DataPoint;
+import org.helios.tsdb.plugins.datapoints.DoubleDataPoint;
+import org.helios.tsdb.plugins.datapoints.FloatDataPoint;
+import org.helios.tsdb.plugins.datapoints.LongDataPoint;
 import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.test.BaseTest;
 import org.junit.Assert;
@@ -55,14 +62,14 @@ public class SpringContainerTestCase extends BaseTest {
 	 * Validates that annotations submitted for indexing are delivered
 	 * @throws Exception thrown on any error
 	 */
-	//@Test(timeout=5000)
-	@Test
+	@Test(timeout=5000)
+	//@Test
 	public void testIndexAnnotationDelivery() throws Exception {
 		createSearchShellJar();
 //		try {
 			TSDB tsdb = newTSDB("SpringSearchConfig");
 			GenericApplicationContext appCtx = SpringContainerService.getInstance(null, null).getAppContext();
-			QueuedResultSearchEventHandler handler = appCtx.getBean("SearchEventHandler", QueuedResultSearchEventHandler.class);
+			QueuedResultSearchEventHandler handler = appCtx.getBean("EventHandler", QueuedResultSearchEventHandler.class);
 			Assert.assertNotNull("The spring configured handler was null", handler);
 			BlockingQueue<Object> events = handler.getResultQueue();
 			Assert.assertNotNull("The spring configured event queue was null", events);
@@ -83,10 +90,52 @@ public class SpringContainerTestCase extends BaseTest {
 			}
 			Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
 			log("Processed [%s] Events", receivedEventCount);
+			//try { Thread.sleep(3000000); } catch (Exception ex) {}
 //		} catch (Exception ex) {
 //			ex.printStackTrace(System.err);
 //			throw ex;
 //		}
 	}
+	
+	/**
+	 * Validates that data points submitted for publication are delivered
+	 * @throws Exception thrown on any error
+	 */
+	//@Test(timeout=5000)
+	@Test
+	public void testDataPointDelivery() throws Exception {
+		createPublishShellJar();
+		TSDB tsdb = newTSDB("SpringPublishConfig");
+		GenericApplicationContext appCtx = SpringContainerService.getInstance(null, null).getAppContext();
+		QueuedResultSearchEventHandler handler = appCtx.getBean("EventHandler", QueuedResultSearchEventHandler.class);
+		Assert.assertNotNull("The spring configured handler was null", handler);
+		BlockingQueue<Object> events = handler.getResultQueue();
+		Assert.assertNotNull("The spring configured event queue was null", events);
+		int eventCount = 1000;
+		int receivedEventCount = 0;
+		Map<Class<? extends DataPoint>, int[]> typeCounts = new HashMap<Class<? extends DataPoint>, int[]>(3);
+		typeCounts.put(LongDataPoint.class, new int[]{0}); typeCounts.put(FloatDataPoint.class, new int[]{0}); typeCounts.put(DoubleDataPoint.class, new int[]{0});
+		Map<String, DataPoint> datapoints = startDataPointStream(tsdb, eventCount, 2, 0);		
+		for(int i = 0; i < eventCount; i++) {
+			TSDBPublishEvent event = (TSDBPublishEvent)((ApplicationEvent)events.take()).getSource();
+			Assert.assertNotNull("Taken Publish Event Was Null", event);
+			DataPoint sp1 = DataPoint.newDataPoint(event);			
+			DataPoint sp2 = datapoints.get(sp1.getKey());
+			Assert.assertNotNull("[" + i + "] Failed to find matching datapoint for [" + sp1.getKey() + "]", sp2);
+			Assert.assertEquals("[" + i + "] DataPoints are not equal", sp1, sp2);
+			receivedEventCount++;
+			typeCounts.get(sp2.getClass())[0]++;
+		}
+		Assert.assertEquals("Unexpected received event count", eventCount, receivedEventCount);
+		log("Processed [%s] Events", receivedEventCount);
+		StringBuilder b = new StringBuilder("\nData Point Type Counts:");
+		for(Map.Entry<Class<? extends DataPoint>, int[]> entry: typeCounts.entrySet()) {
+			b.append("\n\t").append(entry.getKey().getSimpleName()).append(" :").append(entry.getValue()[0]);
+		}
+		b.append("\n");
+		log(b.toString());
+	}
+	
+	
 
 }

@@ -2,7 +2,7 @@
  * Helios, OpenSource Monitoring
  * Brought to you by the Helios Development Group
  *
- * Copyright 2013, Helios Development Group and individual contributors
+ * Copyright 2007, Helios Development Group and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -24,22 +24,21 @@
  */
 package org.helios.tsdb.plugins.event.iface;
 
-import org.helios.tsdb.plugins.event.TSDBEventType;
+import net.opentsdb.meta.UIDMeta;
 
 /**
- * <p>Title: ITSDBEvent</p>
- * <p>Description: Convenience interface to represent {@link org.helios.tsdb.plugins.event.TSDBEvent}s, useful when handlers, or event receivers, or extended event classes
- * cannot extend the event class because it already extends another class.</p> 
+ * <p>Title: ITSDBDeleteUIDMetaSearchEvent</p>
+ * <p>Description: A generalized search event for UIDMeta deletion</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.event.iface.ITSDBEvent</code></p>
+ * <p><code>org.helios.tsdb.plugins.event.ITSDBDeleteUIDMetaSearchEvent</code></p>
  */
 
-public interface ITSDBEvent {
+public interface ITSDBDeleteUIDMetaSearchEvent extends ITSDBSearchEvent {
 	/**
-	 * Returns the event type
-	 * @return the event type
+	 * Returns the UIDMeta to delete
+	 * @return the UIDMeta to delete
 	 */
-	public TSDBEventType getEventType();
-	
+	public UIDMeta getUIDMeta();
+
 }

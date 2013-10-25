@@ -27,16 +27,15 @@ package net.opentsdb.search.index;
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_ANNOT_TYPE;
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TYPE;
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_INDEX_NAME;
 
-import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.Map;
 
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.utils.JSON;
 
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -124,8 +123,11 @@ public class IndexOperations implements ActionListener<IndexResponse> {
 		try {
 			log("IndexVerifier Test");
 			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
-			
-			IndexOperations iOps = new IndexOperations(client, 2000);
+			Map<String, String[]> typeIndexNames = new HashMap<String, String[]>(6);
+			typeIndexNames.put(DEFAULT_ES_ANNOT_TYPE, new String[] {DEFAULT_ES_ANNOT_TYPE, DEFAULT_ES_INDEX_NAME});
+			typeIndexNames.put(DEFAULT_ES_TSMETA_TYPE, new String[] {DEFAULT_ES_TSMETA_TYPE, DEFAULT_ES_INDEX_NAME});
+			typeIndexNames.put(DEFAULT_ES_UIDMETA_TYPE, new String[] {DEFAULT_ES_UIDMETA_TYPE, DEFAULT_ES_INDEX_NAME});
+			IndexOperations iOps = new IndexOperations(client, 2000, typeIndexNames);
 			
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
@@ -142,7 +144,7 @@ public class IndexOperations implements ActionListener<IndexResponse> {
 
 	@Override
 	public void onResponse(IndexResponse response) {
-		// TODO Auto-generated method stub
+		log.debug("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
 		
 	}
 
@@ -150,7 +152,7 @@ public class IndexOperations implements ActionListener<IndexResponse> {
 
 	@Override
 	public void onFailure(Throwable e) {
-		// TODO Auto-generated method stub
+		log.error("IndexOp Failure", e);
 		
 	}	
 

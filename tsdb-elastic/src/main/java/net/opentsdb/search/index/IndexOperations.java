@@ -28,27 +28,55 @@ import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_ANNOT_TYP
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_INDEX_NAME;
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TYPE;
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
+import static net.opentsdb.search.SearchQuery.SearchType.ANNOTATION;
+import static net.opentsdb.search.SearchQuery.SearchType.TSMETA;
+import static net.opentsdb.search.SearchQuery.SearchType.TSMETA_SUMMARY;
+import static net.opentsdb.search.SearchQuery.SearchType.TSUIDS;
+import static net.opentsdb.search.SearchQuery.SearchType.UIDMETA;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.ElasticSearchEventHandler;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.utils.JSON;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.threadpool.ThreadPoolStats.Stats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.stumbleupon.async.Deferred;
 
 
 /**
@@ -87,8 +115,15 @@ public class IndexOperations  {
 	/** Indicates if indexing and deletion operations should be async */
 	protected boolean async = true;
 	
+	/** A map of indexes to search keyed by the search type */
+	protected final Map<SearchType, String> indexesBySearchType = new EnumMap<SearchType, String>(SearchType.class);
+	/** A map of types to search keyed by the search type */
+	protected final Map<SearchType, String> mappingBySearchType = new EnumMap<SearchType, String>(SearchType.class);
+	/** A map of OpenTSDB types to deserialize search results against by the search type */
+	protected final Map<SearchType, Class<?>> classBySearchType = new EnumMap<SearchType, Class<?>>(SearchType.class);
 	
-	
+//	/** The search query template. Populate with: 0: the query, 1: the from index, 2: the size limit */
+//	public static final String SEARCH_TEMPLATE = "{\"query\":{\"query_string\":{\"query\":\"%s\"}},\"from\":0,\"size\":10}";
 	
 	/** The response listener for indexing events */
 	protected final ActionListener<IndexResponse> indexResponseListener = new ActionListener<IndexResponse>() {
@@ -103,7 +138,7 @@ public class IndexOperations  {
 		}
 		@Override
 		public void onFailure(Throwable e) {
-			log.error("TSMeta IndexOp Failure", e);
+			log.error("IndexOp Failure", e);
 		}	
 	};
 	
@@ -139,6 +174,25 @@ public class IndexOperations  {
 		tsMetaIndexName = typeIndexNames.get(DEFAULT_ES_TSMETA_TYPE)[1];
 		uidMetaTypeName = typeIndexNames.get(DEFAULT_ES_UIDMETA_TYPE)[0];
 		uidMetaIndexName = typeIndexNames.get(DEFAULT_ES_UIDMETA_TYPE)[1];
+		
+		indexesBySearchType.put(ANNOTATION, annotationIndexName);
+		indexesBySearchType.put(TSMETA, tsMetaIndexName);
+		indexesBySearchType.put(TSMETA_SUMMARY, tsMetaIndexName);
+		indexesBySearchType.put(TSUIDS, tsMetaIndexName);
+		indexesBySearchType.put(UIDMETA, tsMetaIndexName);
+
+		mappingBySearchType.put(ANNOTATION, annotationTypeName);
+		mappingBySearchType.put(TSMETA, tsMetaTypeName);
+		mappingBySearchType.put(TSMETA_SUMMARY, tsMetaTypeName);
+		mappingBySearchType.put(TSUIDS, tsMetaTypeName);
+		mappingBySearchType.put(UIDMETA, tsMetaTypeName);
+		
+		classBySearchType.put(ANNOTATION, Annotation.class);
+		classBySearchType.put(TSMETA, TSMeta.class);
+		classBySearchType.put(TSMETA_SUMMARY, TSMeta.class);
+		classBySearchType.put(TSUIDS, TSMeta.class);
+		classBySearchType.put(UIDMETA, UIDMeta.class);
+
 		this.enablePercolates = enablePercolates; 		
 		this.async = async;
 		log.info("Created IndexOperations with timeout [{}]", indexOpsTimeout);
@@ -258,6 +312,92 @@ public class IndexOperations  {
     		client.delete(dr, deleteListener);
     	}
     }
+    
+    /**
+     * Executes a search query and returns the deferred for the results
+     * @param query The query to execute
+     * @return the deferred results
+     */
+    public Deferred<SearchQuery> executeQuery(final SearchQuery query) {
+    	final Deferred<SearchQuery> result = new Deferred<SearchQuery>();
+    	final SearchType searchType = query.getType();
+    	SearchRequest searchRequest = new SearchRequest(indexesBySearchType.get(searchType));
+        HashMap<String, Object> body = new HashMap<String, Object>(3);
+        body.put("size", query.getLimit());
+        body.put("from", query.getStartIndex());
+        
+        HashMap<String, Object> qs = new HashMap<String, Object>(1);
+        body.put("query", qs);
+        HashMap<String, String> query_string = new HashMap<String, String>(1);
+        query_string.put("query", query.getQuery());
+        qs.put("query_string", query_string);
+
+        final byte[] source = JSON.serializeToBytes(body);
+        searchRequest.source(source, 0, source.length, true);
+        
+        client.search(searchRequest, new ActionListener<SearchResponse>() {
+			@Override
+			public void onResponse(SearchResponse r) {
+				Class<?> deserTo = classBySearchType.get(searchType);
+				SearchHits searchHits = r.getHits();
+				SearchHit[] hits = searchHits.getHits();
+				final List<Object> objects = new ArrayList<Object>(hits.length);
+				Object o = null;
+				for(SearchHit hit: hits) {
+					o = JSON.parseToObject(hit.source(), deserTo);
+					switch(searchType) {
+		                case TSMETA:
+		                case UIDMETA:
+		                case ANNOTATION:
+		                	objects.add(o);
+		                	break;
+		                case TSMETA_SUMMARY:
+		                	objects.add(summarize((TSMeta)o));
+		                	break;
+		                case TSUIDS:
+		                	objects.add(((TSMeta)o).getTSUID());
+		                	break;
+					}					
+				}
+				query.setResults(objects);
+				query.setTime(r.getTookInMillis());
+				query.setTotalResults((int) searchHits.getTotalHits());
+				result.callback(query);
+			}
+			@Override
+			public void onFailure(Throwable e) {
+				log.error("Search Failure. Query:\n{}", new String(source), e);
+				result.callback(e);
+			}
+        });
+    	return result;
+    }
+    
+    /**
+     * Converts the passed TSMeta into a map summary
+     * @param meta The meta to summarize
+     * @return the summary map
+     */
+    public static Map<String, Object> summarize(TSMeta meta) {
+    	final HashMap<String, Object> map = 
+    			new HashMap<String, Object>(3);
+    	map.put("tsuid", meta.getTSUID());
+    	map.put("metric", meta.getMetric().getName());
+    	final HashMap<String, String> tags = 
+    			new HashMap<String, String>(meta.getTags().size() / 2);
+    	int idx = 0;
+    	String name = "";
+    	for (final UIDMeta uid : meta.getTags()) {
+    		if (idx % 2 == 0) {
+    			name = uid.getName();
+    		} else {
+    			tags.put(name, uid.getName());
+    		}
+    		idx++;
+    	}
+    	map.put("tags", tags);
+    	return map;
+    }
 	
 
 	/**
@@ -265,16 +405,61 @@ public class IndexOperations  {
 	 * @param args None
 	 */
 	public static void main(String[] args) {
-		InternalClient client  = null;
+		TransportClient client  = null;
 		try {
 			log("IndexVerifier Test");
-			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
-			Map<String, String[]> typeIndexNames = new HashMap<String, String[]>(6);
+			Set<TransportAddress> addresses = new HashSet<TransportAddress>();
+			InetSocketTransportAddress boot = new InetSocketTransportAddress("localhost", 9300);
+			addresses.add(boot);
+			Settings settings = ImmutableSettings.settingsBuilder()
+			        .put("client.transport.sniff", false)
+			        .put("cluster.name", "opentsdb")
+			        .build();			
+			client = new TransportClient(settings).addTransportAddress(boot);
+			ClusterAdminClient cadmin = client.admin().cluster();
+			NodesInfoResponse nir = cadmin.nodesInfo(new NodesInfoRequest().all()).actionGet(2000);
+			for(NodeInfo ni: nir.getNodes()) {
+				String host = ni.getHostname();
+				TransportAddress ta = ni.getTransport().getAddress().boundAddress();
+				if(!(ta instanceof InetSocketTransportAddress)) {
+					continue;
+				}
+				InetSocketTransportAddress sta = (InetSocketTransportAddress)ta;
+				int port = sta.address().getPort();
+				log("Discovered Cluster TCP Transport: [%s:%s]", host, port);
+				sta = new InetSocketTransportAddress(host, port);
+				if(addresses.contains(sta)) {
+					log("Boot Address. Discarding.");
+				} else {
+					addresses.add(sta);
+					client.addTransportAddress(sta);
+					log("New Address. Adding to client.");
+				}
+			}
+			log("Connected Clients:%s", client.connectedNodes().size());
+			
+			Map<String, String[]> typeIndexNames = new HashMap<String, String[]>(3);
 			typeIndexNames.put(DEFAULT_ES_ANNOT_TYPE, new String[] {DEFAULT_ES_ANNOT_TYPE, DEFAULT_ES_INDEX_NAME});
 			typeIndexNames.put(DEFAULT_ES_TSMETA_TYPE, new String[] {DEFAULT_ES_TSMETA_TYPE, DEFAULT_ES_INDEX_NAME});
 			typeIndexNames.put(DEFAULT_ES_UIDMETA_TYPE, new String[] {DEFAULT_ES_UIDMETA_TYPE, DEFAULT_ES_INDEX_NAME});
-			IndexOperations iOps = new IndexOperations(client, 2000, true, true, typeIndexNames);
-			
+			IndexOperations iOps = new IndexOperations(client, 2000, true, false, typeIndexNames);
+			for(int i = 0; i < 10; i++) {
+				Annotation ann = new Annotation();
+				ann.setCustom(new HashMap<String, String>(Collections.singletonMap("key" + i, "value" + i)));
+				ann.setDescription("This is Annotation #" + i);
+				ann.setEndTime(System.currentTimeMillis()-60000 + (i * 1000));
+				ann.setStartTime(System.currentTimeMillis()-120000 + (i * 1000));
+				ann.setNotes("Notes for Annotation #" + i);
+				ann.setTSUID(UUID.randomUUID().toString());				
+				iOps.indexAnnotation(ann);
+				log("Indexed Annotation [%s]", ann);
+				Thread.currentThread().join(5000);
+			}
+			//try { Thread.sleep(5000); } catch (Exception ex) {}
+			log("Annotations indexed");
+			for(Stats stats : client.threadPool().stats()) {
+				log(JSON.serializeToString(stats));
+			}
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		} finally {

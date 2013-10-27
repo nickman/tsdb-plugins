@@ -63,6 +63,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.replication.ReplicationType;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.client.transport.TransportClient;
@@ -204,7 +205,7 @@ public class IndexOperations  {
      * Indexes a TSMeta object in ElasticSearch
      * @param meta The meta data to publish
      */
-    public void indexTSUID(TSMeta meta) { 
+    public void indexTSMeta(TSMeta meta) { 
     	log.debug("Indexing TSMeta [{}]", meta);
     	index(tsMetaIndexName, tsMetaTypeName, meta.getTSUID(), JSON.serializeToString(meta), async ? indexResponseListener : null);
     }
@@ -213,7 +214,7 @@ public class IndexOperations  {
      * Deletes a TSMeta object in ElasticSearch
      * @param tsuid The id of the TSMeta doc to delete
      */
-    public void indexUID(String tsuid) { 
+    public void deleteTSMeta(String tsuid) { 
     	log.debug("Deleting TSMeta [{}]", tsuid);
     	delete(tsMetaIndexName, tsMetaTypeName, tsuid, async ? deleteResponseListener : null);
     }
@@ -222,7 +223,7 @@ public class IndexOperations  {
      * Indexes a UIDMeta object in ElasticSearch
      * @param meta The meta data to publish
      */
-    public void indexTSUID(UIDMeta meta) { 
+    public void indexUIDMeta(UIDMeta meta) { 
     	log.debug("Indexing UIDMeta [{}]", meta);
     	index(uidMetaIndexName, uidMetaTypeName, meta.getUID() + uidMetaTypeName, JSON.serializeToString(meta), async ? indexResponseListener : null);
     }
@@ -231,7 +232,7 @@ public class IndexOperations  {
      * Deletes a UIDMeta object in ElasticSearch
      * @param meta The UIDMeta to delete the doc for
      */
-    public void deleteUID(UIDMeta meta) { 
+    public void deleteUIDMeta(UIDMeta meta) { 
     	log.debug("Deleting UIDMeta [{}]", meta.getUID());
     	delete(uidMetaIndexName, uidMetaTypeName, meta.getUID() + uidMetaTypeName, async ? deleteResponseListener : null);
     }
@@ -241,8 +242,17 @@ public class IndexOperations  {
      * @param note The annotation to index
      */
     public void indexAnnotation(Annotation note) {
-    	log.debug("Indexing Annotation [{}]", note);
-    	index(annotationIndexName, annotationTypeName, note.getTSUID() + note.getStartTime(), JSON.serializeToString(note), async ? indexResponseListener : null);
+    	log.info("Indexing Annotation [{}]", note);
+    	index(annotationIndexName, annotationTypeName, getAnnotationId(note), JSON.serializeToString(note), async ? indexResponseListener : null);
+    }
+    
+    /**
+     * Returns the document ID for the passed annotation
+     * @param annotation the annotation to get the ID for
+     * @return the ID of the annotation
+     */
+    public String getAnnotationId(Annotation annotation) {
+    	return String.format("%s%s%s", annotationTypeName, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
     }
     
     /**
@@ -251,7 +261,7 @@ public class IndexOperations  {
      */
     public void deleteAnnotation(Annotation note) {
     	log.debug("Deleting Annotation [{}]", note);
-    	delete(annotationIndexName, annotationTypeName, note.getTSUID() + note.getStartTime(), async ? deleteResponseListener : null); 
+    	delete(annotationIndexName, annotationTypeName, getAnnotationId(note), async ? deleteResponseListener : null); 
     }
     
     
@@ -264,7 +274,7 @@ public class IndexOperations  {
      * @param responseListener The async response handler
      */
     protected void index(String indexName, String typeName, String id, String jsonToIndex, ActionListener<IndexResponse> responseListener) {
-    	IndexRequest ir = new IndexRequest(indexName, typeName).source(jsonToIndex).id(id);
+    	IndexRequest ir = new IndexRequest(indexName, typeName).source(jsonToIndex).id(id).replicationType(ReplicationType.ASYNC);
     	if(enablePercolates) ir.percolate("*");
     	if(responseListener==null) {    		
     		IndexResponse response = null;
@@ -316,10 +326,10 @@ public class IndexOperations  {
     /**
      * Executes a search query and returns the deferred for the results
      * @param query The query to execute
+     * @param result The deferred to write the query results into
      * @return the deferred results
      */
-    public Deferred<SearchQuery> executeQuery(final SearchQuery query) {
-    	final Deferred<SearchQuery> result = new Deferred<SearchQuery>();
+    public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
     	final SearchType searchType = query.getType();
     	SearchRequest searchRequest = new SearchRequest(indexesBySearchType.get(searchType));
         HashMap<String, Object> body = new HashMap<String, Object>(3);

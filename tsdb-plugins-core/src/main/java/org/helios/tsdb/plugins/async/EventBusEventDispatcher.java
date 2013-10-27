@@ -41,8 +41,11 @@ import net.opentsdb.stats.StatsCollector;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.DeadEvent;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -54,6 +57,8 @@ import com.stumbleupon.async.Deferred;
  */
 
 public class EventBusEventDispatcher implements AsyncEventDispatcher {
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The dispatching event bus */
 	protected AsyncEventBus eventBus = null;
 	/** The executor driving the async bus */
@@ -66,7 +71,15 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 * Creates a new EventBusEventDispatcher
 	 */
 	public EventBusEventDispatcher() {
-
+		
+	}
+	
+	/**
+	 * Dead event handler. Prints a warning message on dead events.
+	 * @param deadEvent The dead event
+	 */
+	public void onDeadEvent(DeadEvent deadEvent) {
+		log.warn("\n\t**************************\n\tDEAD EVENT\n\t{}\n\t**************************\n");
 	}
 	
 	/**
@@ -100,6 +113,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
 		eventBus = new AsyncEventBus("AsyncEventDispatcher", executor);
 		this.executor = executor;		
+		eventBus.register(this);
 		if(handlers!=null && !handlers.isEmpty()) {
 			for(IEventHandler handler: handlers) {
 				if(handler==null) continue;

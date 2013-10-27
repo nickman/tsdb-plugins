@@ -44,6 +44,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.helios.tsdb.plugins.util.XMLHelper;
@@ -141,8 +142,9 @@ public class ESInitializer {
 				log.info("Index [{}] Exists", indexName);
 			}
 			//==============================
-			// FIXME: Alias creation is
-			// erroring out.
+			// FIXME: Alias creation 
+			// errors if other index has
+			// alias name. Need to handle
 			//==============================
 			//indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias)).actionGet();
 			// check if alias exists
@@ -152,7 +154,7 @@ public class ESInitializer {
 				if(af.getRootFailure()!=null) {
 					log.error("Failed to create alias", af.getRootFailure());
 				}
-				//indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
+				indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
 				log.info("Created Alias [{}] for Index [{}].", alias, indexName);
 			} else {
 				log.info("Alias [{}] for Index [{}] Exists", alias, indexName);

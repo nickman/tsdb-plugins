@@ -24,34 +24,42 @@
  */
 package net.opentsdb.search;
 
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_ANNOT_TYPE;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_INDEX_NAME;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TYPE;
+import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.search.index.ESInitializer;
+import net.opentsdb.search.index.IndexOperations;
 
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.LocalTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
+
+import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.Subscribe;
 
 /**
  * <p>Title: ElasticSearchEventHandler</p>
@@ -63,6 +71,11 @@ import org.helios.tsdb.plugins.util.URLHelper;
  */
 
 public class ElasticSearchEventHandler extends EmptySearchEventHandler {
+	/** The singleton instance */
+	protected static volatile ElasticSearchEventHandler instance = null;
+	/** The singleton instance ctor lock */
+	protected static final Object lock = new Object();
+	
 	/** The elastic search node URIs */
 	protected final Set<URI> esNodex = new HashSet<URI>();
 	
@@ -87,6 +100,10 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	protected String uidmeta_type = null;
 	/** The Annotation type name */
 	protected String annotation_type = null;		
+	/** The index operations invoker */
+	protected IndexOperations indexOps = null;
+	/** The start latch */
+	protected CountDownLatch latch = new CountDownLatch(1);		
 	
 	
 	/** The config property name for the comma separated list of elasticsearch URIs */
@@ -137,7 +154,46 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The default es ops timeout in ms. */
 	public static final long DEFAULT_ES_OP_TIMEOUT = 500;
 	
+	/**
+	 * Acquires the singleton instance
+	 * @return the singleton instance
+	 */
+	public static ElasticSearchEventHandler getInstance() {
+		if(instance==null) {
+			synchronized(lock) {
+				if(instance==null) {
+					instance = new ElasticSearchEventHandler();
+				}
+			}
+		}
+		return instance;
+	}
 	
+	public static void waitForStart() {
+		try {
+			if(!getInstance().latch.await(5, TimeUnit.SECONDS)) {
+				throw new Exception("Did not start before timeout");
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to wait for start", ex);
+		}
+	}
+	
+	/**
+	 * Returns the transport client
+	 * @return the transport client
+	 * FIXME: Need to block until client is initialized
+	 */
+	public static TransportClient getClient() {
+		return getInstance().client;
+	}
+	
+	/**
+	 * Creates a new ElasticSearchEventHandler.
+	 */
+	private ElasticSearchEventHandler() {
+		
+	}
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
@@ -165,13 +221,38 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			
 			initializer = new ESInitializer(client.admin().indices(), esOpTimeout, annotation_type, tsmeta_type, annotation_type); 
 			initializer.processIndexConfig(getXmlConfigStream());
+			// indexes keyed by type name
 			Map<String, String> cfx = initializer.getIndexNames();
-			
+			Map<String, String[]> typeIndexNames = new HashMap<String, String[]>(3);
+			typeIndexNames.put(DEFAULT_ES_ANNOT_TYPE, new String[] {annotation_type, cfx.get(annotation_type)});
+			typeIndexNames.put(DEFAULT_ES_TSMETA_TYPE, new String[] {tsmeta_type, cfx.get(tsmeta_type)});
+			typeIndexNames.put(DEFAULT_ES_UIDMETA_TYPE, new String[] {uidmeta_type, cfx.get(uidmeta_type)});
+			printIndexes(typeIndexNames);
+
+			indexOps = new IndexOperations(client, esOpTimeout, 
+					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_PERCOLATES, DEFAULT_ES_ENABLE_PERCOLATES, extracted), 
+					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_ASYNC, DEFAULT_ES_ENABLE_ASYNC, extracted), 
+					typeIndexNames);
+			latch.countDown();
 			log.info("\n\t=========================================\n\tStarted ElasticSearchEventHandler\n\t=========================================");
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to initialize ElasticSearchEventHandler", ex);
 		}
 		
+	}
+	
+	/**
+	 * Logs the type names and the alias for the index each will be indexed to
+	 * @param typeIndexNames A map of types and aliases
+	 */
+	protected void printIndexes(Map<String, String[]> typeIndexNames) {
+		StringBuilder b = new StringBuilder("\n\t=======================================\n\tIndex Aliases By Type\n\t=======================================");
+		for(Map.Entry<String, String[]> entry: typeIndexNames.entrySet()) {
+			String[] typeAndAlias = entry.getValue();
+			b.append("\n\t[").append(entry.getKey()).append("]:").append(typeAndAlias[0]).append("  -->  ").append(typeAndAlias[1]);			
+		}
+		b.append("\n");
+		log.info(b.toString());
 	}
 	
 	/**
@@ -229,54 +310,52 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			}
 		}
 		
-//		if(transportURIs.isEmpty()) throw new RuntimeException("No valid transport URIs defined");
-//		ClusterAdminClient cadmin = client.admin().cluster();
-//		NodesInfoResponse nir = cadmin.nodesInfo(new NodesInfoRequest().all()).actionGet(esOpTimeout);
-//		for(NodeInfo ni: nir.getNodes()) {
-//			String host = ni.getHostname();
-//			TransportAddress ta = ni.getTransport().getAddress().boundAddress();
-//			if(!(ta instanceof InetSocketTransportAddress)) {
-//				continue;
-//			}
-//			InetSocketTransportAddress sta = (InetSocketTransportAddress)ta;
-//			int port = sta.address().getPort();
-//			URI uri = URLHelper.toURI(String.format("tcp://%s:%s", host, port));
-//			log.debug("Discovered Cluster TCP Transport: [{}]", uri);			
-//			if(transportURIs.contains(uri)) {
-//				log.debug("[{}] was configured. Discarding.");
-//			} else {
-//				transportURIs.add(uri);
-//				client.addTransportAddress(new InetSocketTransportAddress(uri.getHost(), uri.getPort()));
-//				log.info("Discovered TCP URI [{}] added to client", uri);
-//			}
-//		}
 		return client;		
 	}
 
 	/**
+	 * <p>Handles and EventBus search event </p>
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBSearchEvent)
+	 */
+	@Override
+	@Subscribe
+	@AllowConcurrentEvents	
+	public void onEvent(TSDBSearchEvent event) throws Exception {
+		onEvent(event, -1L, false);
+	}
+
+	
+	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
 	 */
-	@Override
+	@Override	
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		switch(event.eventType) {
 		case ANNOTATION_DELETE:
+			indexOps.deleteAnnotation(event.annotation);
 			break;
 		case ANNOTATION_INDEX:
+			indexOps.indexAnnotation(event.annotation);
 			break;
 		case SEARCH:
+			indexOps.executeQuery(event.searchQuery, event.deferred);
 			break;
 		case TSMETA_DELETE:
+			indexOps.deleteTSMeta(event.tsuid);
 			break;
 		case TSMETA_INDEX:
+			indexOps.indexTSMeta(event.tsMeta);
 			break;
 		case UIDMETA_DELETE:
+			indexOps.deleteUIDMeta(event.uidMeta);
 			break;
 		case UIDMETA_INDEX:
+			indexOps.indexUIDMeta(event.uidMeta);
 			break;
 		default:
-			break;
-			
+			break;			
 		}
 	}
 }

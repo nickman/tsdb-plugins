@@ -26,16 +26,18 @@ package test.net.opentsdb.search;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
+
+import org.junit.Assert;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
+import net.opentsdb.search.ElasticSearchEventHandler;
+import net.opentsdb.utils.JSON;
 
-import org.helios.tsdb.plugins.event.TSDBEventType;
-import org.helios.tsdb.plugins.event.TSDBSearchEvent;
-import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
-import org.junit.Assert;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.search.SearchHit;
 import org.junit.Test;
 
 /**
@@ -54,24 +56,45 @@ public class AnnotationTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAnnotationIndex() throws Exception {
-		createSearchShellJar();
-		TSDB tsdb = newTSDB("ESSearchConfig");
-		Annotation a = new Annotation();
-		int customs = 3;
-		if(customs>0) {
-			HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
-			for(int c = 0; c < customs; c++) {
-				String[] frags = getRandomFragments();
-				custs.put(frags[0], frags[1]);
+		TransportClient tc = null;
+		try {
+			createSearchShellJar();
+			TSDB tsdb = newTSDB("ESSearchConfig");
+			ElasticSearchEventHandler.waitForStart();
+			Annotation a = new Annotation();
+			int customs = 3;
+			if(customs>0) {
+				HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
+				for(int c = 0; c < customs; c++) {
+					String[] frags = getRandomFragments();
+					custs.put(frags[0], frags[1]);
+				}
+				a.setCustom(custs);
 			}
-			a.setCustom(custs);
+			a.setDescription(getRandomFragment());
+			long start = nextPosLong();
+			a.setStartTime(start);
+			a.setEndTime(start + nextPosInt(10000));
+			a.setTSUID(getRandomFragment());
+			tsdb.indexAnnotation(a);
+			tc = ElasticSearchEventHandler.getClient();
+			SearchRequestBuilder sbr = tc.prepareSearch();
+			boolean matched = false;
+			for(int i = 0; i < 10; i++) {
+				SearchResponse response = sbr.execute().actionGet();
+				if(response.getHits().getHits().length>0) {
+					SearchHit hit = response.getHits().getHits()[0];
+					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
+					log("%s", b);
+					matched = true;
+					break;
+				}
+				Thread.sleep(300);
+			}
+			if(!matched) Assert.fail("No annotation match");
+		} finally {
+			if(tc!=null) try { tc.close(); } catch (Exception ex) {}
 		}
-		a.setDescription(getRandomFragment());
-		long start = nextPosLong();
-		a.setStartTime(start);
-		a.setEndTime(start + nextPosInt(10000));
-		a.setTSUID(getRandomFragment());
-		tsdb.indexAnnotation(a);
 		
 		
 		

@@ -35,13 +35,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.helios.tsdb.plugins.util.XMLHelper;
@@ -50,14 +52,14 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 /**
- * <p>Title: IndexVerifier</p>
- * <p>Description: Client to validate or install the ES indexes and mapping for OpenTSDB indexed artifacts</p> 
+ * <p>Title: ESInitializer</p>
+ * <p>Description: Validates and/or installs the ES indexes and mapping for OpenTSDB indexed artifacts</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.search.IndexVerifier</code></p>
  */
 
-public class IndexVerifier {
+public class ESInitializer {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The ES index client */
@@ -79,14 +81,14 @@ public class IndexVerifier {
 
 	
 	/**
-	 * Creates a new IndexVerifier
+	 * Creates a new ESInitializer
 	 * @param indexClient The ES index client 
 	 * @param indexOpsTimeout The timeout in ms. for index factory operations
 	 * @param annotationTypeName The configured annotation type name
 	 * @param tsMetaTypeName The configured TSMeta name
 	 * @param uidMetaTypeName The configured UIDMeta name
 	 */
-	public IndexVerifier(IndicesAdminClient indexClient, long indexOpsTimeout, String annotationTypeName, String tsMetaTypeName, String uidMetaTypeName) {
+	public ESInitializer(IndicesAdminClient indexClient, long indexOpsTimeout, String annotationTypeName, String tsMetaTypeName, String uidMetaTypeName) {
 		this.indexClient = indexClient;
 		this.indexOpsTimeout = indexOpsTimeout;
 		this.annotationTypeName = annotationTypeName;
@@ -138,14 +140,24 @@ public class IndexVerifier {
 			} else {
 				log.info("Index [{}] Exists", indexName);
 			}
+			//==============================
+			// FIXME: Alias creation is
+			// erroring out.
+			//==============================
+			//indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias)).actionGet();
 			// check if alias exists
-			if(!indexClient.aliasesExist(new IndicesGetAliasesRequest(alias)).actionGet().isExists()) {
+			if(!indexClient.aliasesExist(new IndicesGetAliasesRequest(alias).indices(indexName)).actionGet().isExists()) {
 				log.info("Creating Alias [{}] for Index [{}]....", alias, indexName);				
-				indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
+				ActionFuture<IndicesAliasesResponse> af = indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias));
+				if(af.getRootFailure()!=null) {
+					log.error("Failed to create alias", af.getRootFailure());
+				}
+				//indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
 				log.info("Created Alias [{}] for Index [{}].", alias, indexName);
 			} else {
 				log.info("Alias [{}] for Index [{}] Exists", alias, indexName);
 			}
+				
 			indexAliasNames.put(indexName, alias);
 		}
 		for(Node typeNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "objects", false), "object", false)) {
@@ -162,7 +174,7 @@ public class IndexVerifier {
 			} else {
 				log.info("Verified Type [{}] for Index [{}]", typeName, indexName);
 			}
-			indexNames.put(indexAliasNames.get(indexName), typeName);
+			indexNames.put(typeName, indexAliasNames.get(indexName));
 		}
 		Set<String> failedTypes = new LinkedHashSet<String>();
 		if(!indexNames.containsKey(annotationTypeName)) {
@@ -283,9 +295,9 @@ public class IndexVerifier {
 	public static void main(String[] args) {
 		TransportClient client  = null;
 		try {
-			log("IndexVerifier Test");
+			log("ESInitializer Test");
 			client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
-			IndexVerifier iv = new IndexVerifier(client.admin().indices(), 2000, DEFAULT_ES_ANNOT_TYPE, DEFAULT_ES_TSMETA_TYPE, DEFAULT_ES_UIDMETA_TYPE);
+			ESInitializer iv = new ESInitializer(client.admin().indices(), 2000, DEFAULT_ES_ANNOT_TYPE, DEFAULT_ES_TSMETA_TYPE, DEFAULT_ES_UIDMETA_TYPE);
 			
 			iv.processIndexConfig(ClassLoader.getSystemClassLoader().getResourceAsStream("scripts/index-definitions.xml"));
 		} catch (Exception ex) {

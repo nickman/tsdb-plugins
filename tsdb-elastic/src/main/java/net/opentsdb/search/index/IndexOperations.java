@@ -407,7 +407,7 @@ public class IndexOperations  {
 	public static void main(String[] args) {
 		TransportClient client  = null;
 		try {
-			log("IndexVerifier Test");
+			log("ESInitializer Test");
 			Set<TransportAddress> addresses = new HashSet<TransportAddress>();
 			InetSocketTransportAddress boot = new InetSocketTransportAddress("localhost", 9300);
 			addresses.add(boot);

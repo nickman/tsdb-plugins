@@ -27,13 +27,15 @@ package org.helios.tsdb.plugins.test;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -56,7 +58,6 @@ import net.opentsdb.utils.Config;
 import org.hbase.async.HBaseClient;
 import org.helios.tsdb.plugins.datapoints.DataPoint;
 import org.helios.tsdb.plugins.datapoints.LongDataPoint;
-import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
@@ -83,6 +84,22 @@ public class BaseTest {
 	@Rule public final TestName name = new TestName();
 	/** A random value generator */
 	protected static final Random RANDOM = new Random(System.currentTimeMillis());
+	
+	protected static final PrintStream OUT;
+	protected static final PrintStream ERR;
+	
+	static {
+		try {
+			Field f = FilterOutputStream.class.getDeclaredField("out");
+			f.setAccessible(true);
+			OutputStream o = (OutputStream)f.get(System.out);
+			OutputStream e = (OutputStream)f.get(System.err);
+			OUT = new PrintStream(o);
+			ERR = new PrintStream(e);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
 	
 	/** A shared testing scheduler */
 	protected static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory(){
@@ -319,7 +336,7 @@ public class BaseTest {
 	 * @param args the message values
 	 */
 	public static void log(String fmt, Object...args) {
-		System.out.println(String.format(fmt, args));
+		OUT.println(String.format(fmt, args));
 	}
 	
 	/**
@@ -343,12 +360,12 @@ public class BaseTest {
 	 * @param args the message values
 	 */
 	public static void loge(String fmt, Object...args) {
-		System.err.print(String.format(fmt, args));
+		ERR.print(String.format(fmt, args));
 		if(args!=null && args.length>0 && args[0] instanceof Throwable) {
-			System.err.println("  Stack trace follows:");
-			((Throwable)args[0]).printStackTrace(System.err);
+			ERR.println("  Stack trace follows:");
+			((Throwable)args[0]).printStackTrace(ERR);
 		} else {
-			System.err.println("");
+			ERR.println("");
 		}
 	}
 	

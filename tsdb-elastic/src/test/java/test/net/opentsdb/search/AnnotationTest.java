@@ -24,21 +24,28 @@
  */
 package test.net.opentsdb.search;
 
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-
-import org.junit.Assert;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.utils.JSON;
 
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.percolate.PercolateResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -79,14 +86,28 @@ public class AnnotationTest extends ESBaseTest {
 			a.setStartTime(start);
 			a.setEndTime(start + nextPosInt(10000));
 			a.setTSUID(getRandomFragment());
-			tsdb.indexAnnotation(a);
+			
 			tc = ElasticSearchEventHandler.getClient();
 			String aId = getAnnotationId(annotationType, a);
-			log("\n\tType:[%s]\n\tIndex:[%s]\n\tID:[%s]", annotationType, "opentsdb_1", aId);
+			QueryBuilder qb = QueryBuilders.termQuery("description", a.getDescription());
+//			
+			IndexRequestBuilder irb = tc.prepareIndex("_percolator", "opentsdb_1", "PingMe")
+		    .setSource(jsonBuilder().startObject()
+		            //.field("query", qb)
+		    		.field("query", qb)
+		            .endObject())
+//				.setType("annotation")
+		        .setRefresh(true);
+			
+//			log("Prep Index for Perc:[\n%s\n]", JSON.serializeToString(irb));
+			IndexResponse ir = irb.execute().actionGet();
+			//tc.admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
+			log("\n\t#################\n\tGreen Light\n\t#################");
+			
+			tsdb.indexAnnotation(a);
 			SearchRequestBuilder sbr = tc.prepareSearch(annotationIndex)
-					.setTypes(annotationType)
-					//.setQuery(QueryBuilders.fieldQuery("_id", getAnnotationId(annotationType, a)));
-					.setQuery(QueryBuilders.termQuery("ID", aId));
+					.setQuery(qb);
+//			log("Query Built:[\n%s\n]", JSON.serializeToString(qb));
 			boolean matched = false;
 			for(int i = 0; i < 10; i++) {
 				SearchResponse response = sbr.execute().actionGet();
@@ -94,13 +115,20 @@ public class AnnotationTest extends ESBaseTest {
 					SearchHit hit = response.getHits().getHits()[0];
 					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
 					log("Annotation:[%s]", b);
-					Assert.assertEquals("The annotations do not match", a, b);
+					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
+					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
+					Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
+					Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
 					matched = true;
 					break;
 				}
+				
 				Thread.sleep(300);
 			}
 			if(!matched) Assert.fail("No annotation match");
+		} catch (Exception ex) {
+			loge("FAIL", ex);
+			throw new RuntimeException(ex);
 		} finally {
 			if(tc!=null) try { tc.close(); } catch (Exception ex) {}
 		}

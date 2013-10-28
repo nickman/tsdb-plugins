@@ -60,6 +60,7 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -130,10 +131,10 @@ public class IndexOperations  {
 	protected final ActionListener<IndexResponse> indexResponseListener = new ActionListener<IndexResponse>() {
 		@Override
 		public void onResponse(IndexResponse response) {
-			log.debug("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
+			log.info("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
 			List<String> percolateMatches = response.getMatches();
 			if(percolateMatches!=null) {
-				log.debug("IndexOp Matched [{}] Registered Queries: {}", percolateMatches.size(), percolateMatches);
+				log.info("IndexOp Matched [{}] Registered Queries: {}", percolateMatches.size(), percolateMatches);
 				// TODO: Broadcast percolates
 			}
 		}
@@ -274,25 +275,39 @@ public class IndexOperations  {
      * @param responseListener The async response handler
      */
     protected void index(String indexName, String typeName, String id, String jsonToIndex, ActionListener<IndexResponse> responseListener) {
-    	IndexRequest ir = new IndexRequest(indexName, typeName).source(jsonToIndex).id(id).replicationType(ReplicationType.ASYNC);
-    	if(enablePercolates) ir.percolate("*");
-    	if(responseListener==null) {    		
-    		IndexResponse response = null;
-    		ActionFuture<IndexResponse> af = null;
-    		try {
-    			af = client.index(ir);    			
-    			response = af.actionGet(indexOpsTimeout);    			
-    			if(af.getRootFailure()!=null) {
-    				indexResponseListener.onFailure(af.getRootFailure());
-    			} else {
-    				indexResponseListener.onResponse(response);
-    			}
-    		} catch (Exception ex) {
-    			indexResponseListener.onFailure(ex);
-    		}
+    	
+    	
+    	IndexRequestBuilder irb = client.prepareIndex(indexName, typeName, id)
+    			.setSource(jsonToIndex)
+    			.setPercolate("*")
+    			.setReplicationType(ReplicationType.ASYNC);
+    	if(responseListener==null) {
+    		indexResponseListener.onResponse(irb.execute().actionGet(indexOpsTimeout));
     	} else {
-    		client.index(ir, responseListener);
+    		irb.execute(indexResponseListener);
     	}
+//    	
+//    	
+//    	
+//    	IndexRequest ir = new IndexRequest(indexName, typeName).source(jsonToIndex).id(id).replicationType(ReplicationType.ASYNC);
+//    	if(enablePercolates) ir.percolate("*");
+//    	if(responseListener==null) {    		
+//    		IndexResponse response = null;
+//    		ActionFuture<IndexResponse> af = null;
+//    		try {
+//    			af = client.index(ir);    			
+//    			response = af.actionGet(indexOpsTimeout);    			
+//    			if(af.getRootFailure()!=null) {
+//    				indexResponseListener.onFailure(af.getRootFailure());
+//    			} else {
+//    				indexResponseListener.onResponse(response);
+//    			}
+//    		} catch (Exception ex) {
+//    			indexResponseListener.onFailure(ex);
+//    		}
+//    	} else {
+//    		client.index(ir, responseListener);
+//    	}
     }
     
     /**

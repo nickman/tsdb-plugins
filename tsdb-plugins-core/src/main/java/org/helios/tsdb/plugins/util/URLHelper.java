@@ -27,9 +27,15 @@ public class URLHelper {
 	/** Text line separator */
 	public static final String EOL = System.getProperty("line.separator", "\n");
 	
+	/**
+	 * Tests the passed object for nullness. Throws an {@link IllegalArgumentException} if the object is null 
+	 * @param t  The object to test
+	 * @param message The message to associate with the exception, Ignored if null
+	 * @return the object passed in if not null
+	 */
 	public static <T> T nvl(T t, String message) {
-		if(t==null) throw new IllegalArgumentException(message);
-		return (T)t;
+		if(t==null) throw new IllegalArgumentException(message!=null ? message : "Null parameter");
+		return t;
 	}
 	
 	/**
@@ -54,9 +60,9 @@ public class URLHelper {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to read source of [" + url + "]", e);
 		} finally {
-			try { br.close(); } catch (Exception e) {}
-			try { isr.close(); } catch (Exception e) {}
-			try { is.close(); } catch (Exception e) {}
+			if(br!=null) try { br.close(); } catch (Exception e) {/* No Op */}
+			if(isr!=null) try { isr.close(); } catch (Exception e) {/* No Op */}
+			if(is!=null) try { is.close(); } catch (Exception e) {/* No Op */}
 		}
 	}
 	
@@ -120,7 +126,7 @@ public class URLHelper {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to read source of [" + url + "]", e);
 		} finally {
-			try { is.close(); } catch (Exception e) {}
+			if(is!=null) try { is.close(); } catch (Exception e) {/* No Op */}
 		}
 	}
 	
@@ -145,6 +151,7 @@ public class URLHelper {
 	 * @param urlStr The URL string to test
 	 * @return true if is valid, false if invalid or null
 	 */
+	@SuppressWarnings("unused")
 	public static boolean isValidURL(CharSequence urlStr) {
 		if(urlStr==null) return false;
 		try {
@@ -169,7 +176,7 @@ public class URLHelper {
 		} catch (Exception e) {
 			return false;
 		} finally {
-			if(is!=null) try { is.close(); } catch (Exception e) {}
+			if(is!=null) try { is.close(); } catch (Exception e) {/* No Op */}
 		}
 	}
 	
@@ -221,8 +228,10 @@ public class URLHelper {
 			throw new RuntimeException("Failed to write to the url [" + url + "].", ioe);
 		} finally {
 			if(fos!=null) {
-				try { fos.flush(); } catch (Exception ex) {}
-				try { fos.close(); } catch (Exception ex) {}
+				if(fos!=null) { 
+					try { fos.flush(); } catch (Exception ex) {/* No Op */}
+					try { fos.close(); } catch (Exception ex) {/* No Op */}
+				}
 			}
 		}
 	}

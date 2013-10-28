@@ -554,7 +554,7 @@ public class JMXHelper {
 			try {
 				setAttribute(on, server, nvp.getName(), nvp.getValue());
 				returnValues.put(nvp.getName(), nvp.getValue());
-			} catch (Exception e) {}
+			} catch (Exception e) {/* No Op */}
 		}
 		return returnValues;
 	}
@@ -1039,7 +1039,7 @@ while(m.find()) {
 				Object proxy = MBeanServerInvocationHandler.newProxyInstance(source, on, DynamicMBean.class, true);
 				target.registerMBean(proxy, on);
 				remaps++;
-			} catch (Exception e) {}
+			} catch (Exception e) {/* No Op */}
 		}
 		return remaps;
 	}

@@ -36,6 +36,14 @@
 	  <artifactId>tsdb-plugins-core</artifactId>      
 	  <version>${project.version}</version>
     </dependency>
+
+	<dependency>
+	  <groupId>org.helios.tsdb</groupId>
+	  <artifactId>tsdb-plugins-core</artifactId>      
+	  <version>${project.version}</version>
+	  <type>test-jar</type>
+	  <scope>test</scope>
+    </dependency>
 	
       <!-- ==========================================================
 	  ElasticSearch Dependencies

@@ -34,18 +34,16 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.utils.JSON;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.percolate.PercolateResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -55,7 +53,7 @@ import org.junit.Test;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.AnnotationTest</code></p>
  */
-
+@Ignore
 public class AnnotationTest extends ESBaseTest {
 
 	/**

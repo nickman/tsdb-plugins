@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 
+import org.apache.log4j.Logger;
 import org.elasticsearch.bootstrap.ElasticSearch;
 import org.helios.tsdb.plugins.shell.Search;
 import org.helios.tsdb.plugins.test.BaseTest;
@@ -115,16 +116,49 @@ public class ESBaseTest extends BaseTest {
 				throw new Exception("ES Failed to start");
 			}
 			log("ES Started");
-			Thread.currentThread().join(10000);
-			ElasticSearch.close(new String[]{});
+			Thread.currentThread().join(10000);			
 			ES_BOOT_THREAD.join();
 			loge("ES Stopped");
+			
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to boot ES test instance", ex);
+		} finally {
+			stopEs();
+			cleanup();
 		}
 	}
-	public static void main(String[] args) {
+	
+	public static void stopEs() {
+		ElasticSearch.close(new String[]{});		
+	}
+	
+	public static void cleanup() {
+		cleanDir(ES_HOME);
+		ES_HOME.delete();
+		log("Cleaned:  Files:[%s], Directories:[%s]", deletedFiles, deletedDirs);
+	}
+	
+	private static int deletedFiles = 0;
+	private static int deletedDirs = 0;
+	
+	public static void cleanDir(File dir) {
+		log("Cleaning [%s]", dir);
+		for(File f: dir.listFiles()) {
+			if(f.isDirectory()) {
+				cleanDir(f);
+				f.delete();
+				deletedDirs++;
+			} else {
+				f.delete();
+				deletedFiles++;
+			}
+		}
+	}
+	
+	public static void main(String[] args) {		
 		startEs();
+		//ES_HOME = new File("/tmp/tsdb-es4107370279287884684");
+		//cleanup();
 	}
 	
 	public static void copyFile(String source, String dest) {
@@ -147,5 +181,34 @@ public class ESBaseTest extends BaseTest {
 			try { fcIn.close(); } catch (Exception x) {}
 		}
 	}
-
+//	protected static final Logger LOG = Logger.getLogger("STDOUT");
+//	protected static final Logger LOGE = Logger.getLogger("STDERR");
+	
+	/**
+	 * Out printer
+	 * @param fmt the message format
+	 * @param args the message values
+	 */
+	public static void log(String fmt, Object...args) {
+		OUT.println(String.format(fmt, args));
+		//LOG.info(String.format(fmt, args));
+	}
+	
+	/**
+	 * Err printer
+	 * @param fmt the message format
+	 * @param args the message values
+	 */
+	public static void loge(String fmt, Object...args) {
+		ERR.print(String.format(fmt, args));
+		if(args!=null && args.length>0 && args[0] instanceof Throwable) {
+			ERR.println("  Stack trace follows:");
+			((Throwable)args[0]).printStackTrace(ERR);
+//			LOG.error(String.format(fmt, args), (Throwable)args[0]);
+		} else {
+			ERR.println("");
+//			LOG.error(String.format(fmt, args));
+		}
+		
+	}	
 }

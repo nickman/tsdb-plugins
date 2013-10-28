@@ -99,7 +99,14 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The UIDMeta type name */
 	protected String uidmeta_type = null;
 	/** The Annotation type name */
-	protected String annotation_type = null;		
+	protected String annotation_type = null;
+	/** The TSMeta index name */
+	protected String tsmeta_index = null;
+	/** The UIDMeta index name */
+	protected String uidmeta_index = null;
+	/** The Annotation index name */
+	protected String annotation_index = null;		
+	
 	/** The index operations invoker */
 	protected IndexOperations indexOps = null;
 	/** The start latch */
@@ -228,7 +235,9 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			typeIndexNames.put(DEFAULT_ES_TSMETA_TYPE, new String[] {tsmeta_type, cfx.get(tsmeta_type)});
 			typeIndexNames.put(DEFAULT_ES_UIDMETA_TYPE, new String[] {uidmeta_type, cfx.get(uidmeta_type)});
 			printIndexes(typeIndexNames);
-
+			annotation_index = cfx.get(annotation_type);
+			tsmeta_index = cfx.get(tsmeta_type);
+			uidmeta_index = cfx.get(uidmeta_type);
 			indexOps = new IndexOperations(client, esOpTimeout, 
 					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_PERCOLATES, DEFAULT_ES_ENABLE_PERCOLATES, extracted), 
 					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_ASYNC, DEFAULT_ES_ENABLE_ASYNC, extracted), 
@@ -357,5 +366,69 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 		default:
 			break;			
 		}
+	}
+
+	/**
+	 * Returns 
+	 * @return the clusterName
+	 */
+	public String getClusterName() {
+		return clusterName;
+	}
+
+	/**
+	 * Returns 
+	 * @return the esOpTimeout
+	 */
+	public long getEsOpTimeout() {
+		return esOpTimeout;
+	}
+
+	/**
+	 * Returns 
+	 * @return the tsmeta_type
+	 */
+	public String getTsmeta_type() {
+		return tsmeta_type;
+	}
+
+	/**
+	 * Returns 
+	 * @return the uidmeta_type
+	 */
+	public String getUidmeta_type() {
+		return uidmeta_type;
+	}
+
+	/**
+	 * Returns 
+	 * @return the annotation_type
+	 */
+	public String getAnnotation_type() {
+		return annotation_type;
+	}
+
+	/**
+	 * Returns 
+	 * @return the tsmeta_index
+	 */
+	public String getTsmeta_index() {
+		return tsmeta_index;
+	}
+
+	/**
+	 * Returns 
+	 * @return the uidmeta_index
+	 */
+	public String getUidmeta_index() {
+		return uidmeta_index;
+	}
+
+	/**
+	 * Returns 
+	 * @return the annotation_index
+	 */
+	public String getAnnotation_index() {
+		return annotation_index;
 	}
 }

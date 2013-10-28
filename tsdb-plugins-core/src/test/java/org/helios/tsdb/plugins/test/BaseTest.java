@@ -85,21 +85,9 @@ public class BaseTest {
 	/** A random value generator */
 	protected static final Random RANDOM = new Random(System.currentTimeMillis());
 	
-	protected static final PrintStream OUT;
-	protected static final PrintStream ERR;
+	protected static final PrintStream OUT = System.out;
+	protected static final PrintStream ERR = System.err;
 	
-	static {
-		try {
-			Field f = FilterOutputStream.class.getDeclaredField("out");
-			f.setAccessible(true);
-			OutputStream o = (OutputStream)f.get(System.out);
-			OutputStream e = (OutputStream)f.get(System.err);
-			OUT = new PrintStream(o);
-			ERR = new PrintStream(e);
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
-	}
 	
 	/** A shared testing scheduler */
 	protected static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory(){

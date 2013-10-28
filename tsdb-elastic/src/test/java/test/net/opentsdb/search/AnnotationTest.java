@@ -37,6 +37,7 @@ import net.opentsdb.utils.JSON;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.junit.Test;
 
@@ -61,6 +62,8 @@ public class AnnotationTest extends ESBaseTest {
 			createSearchShellJar();
 			TSDB tsdb = newTSDB("ESSearchConfig");
 			ElasticSearchEventHandler.waitForStart();
+			String annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
+			String annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
 			Annotation a = new Annotation();
 			int customs = 3;
 			if(customs>0) {
@@ -78,14 +81,20 @@ public class AnnotationTest extends ESBaseTest {
 			a.setTSUID(getRandomFragment());
 			tsdb.indexAnnotation(a);
 			tc = ElasticSearchEventHandler.getClient();
-			SearchRequestBuilder sbr = tc.prepareSearch();
+			String aId = getAnnotationId(annotationType, a);
+			log("\n\tType:[%s]\n\tIndex:[%s]\n\tID:[%s]", annotationType, "opentsdb_1", aId);
+			SearchRequestBuilder sbr = tc.prepareSearch(annotationIndex)
+					.setTypes(annotationType)
+					//.setQuery(QueryBuilders.fieldQuery("_id", getAnnotationId(annotationType, a)));
+					.setQuery(QueryBuilders.termQuery("ID", aId));
 			boolean matched = false;
 			for(int i = 0; i < 10; i++) {
 				SearchResponse response = sbr.execute().actionGet();
 				if(response.getHits().getHits().length>0) {
 					SearchHit hit = response.getHits().getHits()[0];
 					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
-					log("%s", b);
+					log("Annotation:[%s]", b);
+					Assert.assertEquals("The annotations do not match", a, b);
 					matched = true;
 					break;
 				}
@@ -95,10 +104,16 @@ public class AnnotationTest extends ESBaseTest {
 		} finally {
 			if(tc!=null) try { tc.close(); } catch (Exception ex) {}
 		}
-		
-		
-		
-		
 	}
+	
+    /**
+     * Returns the document ID for the passed annotation
+     * @param annotationTypeName The ES annotation type name
+     * @param annotation the annotation to get the ID for
+     * @return the ID of the annotation
+     */
+    public String getAnnotationId(String annotationTypeName, Annotation annotation) {
+    	return String.format("%s%s%s", annotationTypeName, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
+    }	
 
 }

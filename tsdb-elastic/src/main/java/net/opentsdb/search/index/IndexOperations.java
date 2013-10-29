@@ -43,6 +43,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.management.ListenerNotFoundException;
+import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanRegistration;
+import javax.management.MBeanServer;
+import javax.management.Notification;
+import javax.management.NotificationBroadcasterSupport;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
+import javax.management.ObjectName;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -59,7 +72,6 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -75,6 +87,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.threadpool.ThreadPoolStats.Stats;
+import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +102,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>net.opentsdb.search.index.IndexOperations</code></p>
  */
 
-public class IndexOperations  {
+public class IndexOperations extends NotificationBroadcasterSupport implements IndexOperationsMBean, MBeanRegistration {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The ES client */
@@ -117,6 +130,9 @@ public class IndexOperations  {
 	/** Indicates if indexing and deletion operations should be async */
 	protected boolean async = true;
 	
+	/** A counter of listeners so we know if we can skip sending notifications */
+	protected final AtomicInteger listeners = new AtomicInteger(0);
+	
 	/** A map of indexes to search keyed by the search type */
 	protected final Map<SearchType, String> indexesBySearchType = new EnumMap<SearchType, String>(SearchType.class);
 	/** A map of types to search keyed by the search type */
@@ -124,8 +140,19 @@ public class IndexOperations  {
 	/** A map of OpenTSDB types to deserialize search results against by the search type */
 	protected final Map<SearchType, Class<?>> classBySearchType = new EnumMap<SearchType, Class<?>>(SearchType.class);
 	
-//	/** The search query template. Populate with: 0: the query, 1: the from index, 2: the size limit */
-//	public static final String SEARCH_TEMPLATE = "{\"query\":{\"query_string\":{\"query\":\"%s\"}},\"from\":0,\"size\":10}";
+	/** A serial factory for notification sequences */
+	protected final AtomicLong notifSequence = new AtomicLong();
+	/** The JMX notification prefix for percolation popped events */
+	public static final String PERCOLATE_NOTIF_PREFIX = "percolated";
+	
+	/** The JMX notification broadcaster threadpool */
+	private static ThreadPoolExecutor notificationThreadPool = null;
+	
+	/** The notifications emitted from this MBean Service */
+	protected static final MBeanNotificationInfo[] NOTIFICATIONS = new MBeanNotificationInfo[] {
+			new MBeanNotificationInfo(new String[]{PERCOLATE_NOTIF_PREFIX}, Notification.class.getName(), "Notification emitted when an indexed event is percolated")
+			
+	}; 
 	
 	/** The response listener for indexing events */
 	protected final ActionListener<IndexResponse> indexResponseListener = new ActionListener<IndexResponse>() {
@@ -133,9 +160,11 @@ public class IndexOperations  {
 		public void onResponse(IndexResponse response) {
 			log.info("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
 			List<String> percolateMatches = response.getMatches();
-			if(percolateMatches!=null) {
+			if(percolateMatches!=null && !percolateMatches.isEmpty()) {
 				log.info("IndexOp Matched [{}] Registered Queries: {}", percolateMatches.size(), percolateMatches);
-				// TODO: Broadcast percolates
+				PercolateEvent pe = new PercolateEvent(response);
+				Notification notif = pe.getNotification(PERCOLATE_NOTIF_PREFIX, notifSequence.incrementAndGet());
+				sendNotification(notif);
 			}
 		}
 		@Override
@@ -168,6 +197,7 @@ public class IndexOperations  {
 	 * and where the values are string arrays where index 0 is the configured type name and index 1 is the index name.
 	 */
 	public IndexOperations(InternalClient client, long indexOpsTimeout, boolean enablePercolates, boolean async, Map<String, String[]> typeIndexNames) {
+		super(notifThreadPool(), NOTIFICATIONS);
 		this.client = client;
 		this.indexOpsTimeout = indexOpsTimeout;
 		annotationTypeName = typeIndexNames.get(DEFAULT_ES_ANNOT_TYPE)[0];
@@ -200,7 +230,14 @@ public class IndexOperations  {
 		log.info("Created IndexOperations with timeout [{}]", indexOpsTimeout);
 	}
 	
-	
+	/**
+	 * Creates the notification thread pool
+	 * @return the notification thread pool
+	 */
+	private static ThreadPoolExecutor notifThreadPool() {
+		notificationThreadPool = new AsyncDispatcherExecutor(NOTIF_THREAD_POOL_NAME_PREFIX, null);
+		return notificationThreadPool;
+	}
 	
     /**
      * Indexes a TSMeta object in ElasticSearch
@@ -275,40 +312,25 @@ public class IndexOperations  {
      * @param responseListener The async response handler
      */
     protected void index(String indexName, String typeName, String id, String jsonToIndex, ActionListener<IndexResponse> responseListener) {
-    	
-    	
     	IndexRequestBuilder irb = client.prepareIndex(indexName, typeName, id)
-    			.setSource(jsonToIndex)
-    			.setPercolate("*")
+    			.setSource(jsonToIndex)    			
     			.setReplicationType(ReplicationType.ASYNC);
+    	if(enablePercolates) irb.setPercolate("*");
     	if(responseListener==null) {
     		indexResponseListener.onResponse(irb.execute().actionGet(indexOpsTimeout));
     	} else {
     		irb.execute(indexResponseListener);
     	}
-//    	
-//    	
-//    	
-//    	IndexRequest ir = new IndexRequest(indexName, typeName).source(jsonToIndex).id(id).replicationType(ReplicationType.ASYNC);
-//    	if(enablePercolates) ir.percolate("*");
-//    	if(responseListener==null) {    		
-//    		IndexResponse response = null;
-//    		ActionFuture<IndexResponse> af = null;
-//    		try {
-//    			af = client.index(ir);    			
-//    			response = af.actionGet(indexOpsTimeout);    			
-//    			if(af.getRootFailure()!=null) {
-//    				indexResponseListener.onFailure(af.getRootFailure());
-//    			} else {
-//    				indexResponseListener.onResponse(response);
-//    			}
-//    		} catch (Exception ex) {
-//    			indexResponseListener.onFailure(ex);
-//    		}
-//    	} else {
-//    		client.index(ir, responseListener);
-//    	}
     }
+    
+	/**
+	 * Returns the current number of percolation event listeners
+	 * @return the current number of percolation event listeners
+	 */
+	public int getListenerCount() {
+		return listeners.get();
+	}
+
     
     /**
      * Generic json deleter
@@ -424,6 +446,37 @@ public class IndexOperations  {
     	return map;
     }
 	
+	/**
+	 * Indicates if operations are being issued asynchronously
+	 * @return true if operations are being issued asynchronously, false otherwise
+	 */
+	public boolean isAsync() {
+		return async;
+	}
+	
+	/**
+	 * Set operations to run asynchronously or not
+	 * @param enabled true for async, false for sync
+	 */
+	public void setAsync(boolean enabled) {
+		async = enabled;
+	}
+	
+	/**
+	 * Indicates if percolating is enabled
+	 * @return true if percolating is enabled, false otherwise
+	 */
+	public boolean isPercolateEnabled() {
+		return enablePercolates;
+	}
+	
+	/**
+	 * Set the percolating enabled state 
+	 * @param enabled true for enabled, false for disabled
+	 */
+	public void setPercolateEnabled(boolean enabled) {
+		enablePercolates = enabled;
+	}
 
 	/**
 	 * Quickie standalone test
@@ -498,5 +551,86 @@ public class IndexOperations  {
 
 
 
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.MBeanRegistration#postDeregister()
+	 */
+	@Override
+	public void postDeregister() {
+		if(notificationThreadPool!=null) {
+			notificationThreadPool.shutdown();
+			notificationThreadPool = null;
+			log.info("Notification ThreadPool Shutdown");
+		}		
+	}
 
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.MBeanRegistration#postRegister(java.lang.Boolean)
+	 */
+	@Override
+	public void postRegister(Boolean ok) {
+		/* No Op */
+	}
+
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.MBeanRegistration#preDeregister()
+	 */
+	@Override
+	public void preDeregister() throws Exception {
+		/* No Op */
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.MBeanRegistration#preRegister(javax.management.MBeanServer, javax.management.ObjectName)
+	 */
+	@Override
+	public ObjectName preRegister(MBeanServer server, ObjectName objectName) throws Exception {
+		return objectName;
+	}
+
+	
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.NotificationBroadcasterSupport#handleNotification(javax.management.NotificationListener, javax.management.Notification, java.lang.Object)
+	 */
+	protected void handleNotification(NotificationListener listener, Notification notif, Object handback) {
+		if(handback!=null && handback.toString().toLowerCase().contains("json=true")) {
+			// TODO: most efficient way of converting user-data to json once.
+		}
+		super.handleNotification(listener, notif, handback);
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.NotificationBroadcasterSupport#addNotificationListener(javax.management.NotificationListener, javax.management.NotificationFilter, java.lang.Object)
+	 */
+	@Override
+	public void addNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) {		
+		super.addNotificationListener(listener, filter, handback);
+		listeners.incrementAndGet();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see javax.management.NotificationBroadcasterSupport#removeNotificationListener(javax.management.NotificationListener)
+	 */
+	@Override
+	public void removeNotificationListener(NotificationListener listener) throws ListenerNotFoundException {
+		super.removeNotificationListener(listener);
+		listeners.decrementAndGet();
+	}
+	
+	@Override
+	public void removeNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) throws ListenerNotFoundException {
+		super.removeNotificationListener(listener, filter, handback);
+		listeners.decrementAndGet();
+	}
 }

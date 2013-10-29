@@ -24,11 +24,6 @@
  */
 package net.opentsdb.search;
 
-import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_ANNOT_TYPE;
-import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_INDEX_NAME;
-import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TYPE;
-import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,7 +36,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import net.opentsdb.core.TSDB;
@@ -56,6 +50,7 @@ import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
@@ -80,8 +75,6 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	protected final Set<URI> esNodex = new HashSet<URI>();
 	
 	
-	/** Thread pool for handling async http request callbacks/responses */
-	protected ThreadPoolExecutor threadPool;
 	/** The set of configured and discovered URIs to ES instance transport interfaces */
 	protected final Set<URI> transportURIs = new CopyOnWriteArraySet<URI>();
 	/** The ES client */
@@ -225,6 +218,10 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			client = getTransportClient(esURIs);
 			log.info("ES Transport URIs: {}", transportURIs);
 			
+			boolean enablePercs = ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_PERCOLATES, DEFAULT_ES_ENABLE_PERCOLATES, extracted);
+			log.info("ES Percolating Enabled:{}", enablePercs);
+			boolean enableAsync = ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_ASYNC, DEFAULT_ES_ENABLE_ASYNC, extracted);
+			log.info("ES Async Dispatching:{}", enableAsync);
 			
 			initializer = new ESInitializer(client.admin().indices(), esOpTimeout, annotation_type, tsmeta_type, annotation_type); 
 			initializer.processIndexConfig(getXmlConfigStream());
@@ -239,15 +236,29 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			tsmeta_index = cfx.get(tsmeta_type);
 			uidmeta_index = cfx.get(uidmeta_type);
 			indexOps = new IndexOperations(client, esOpTimeout, 
-					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_PERCOLATES, DEFAULT_ES_ENABLE_PERCOLATES, extracted), 
-					ConfigurationHelper.getBooleanSystemThenEnvProperty(ES_ENABLE_ASYNC, DEFAULT_ES_ENABLE_ASYNC, extracted), 
+					enablePercs, 
+					enableAsync, 
 					typeIndexNames);
+			JMXHelper.registerMBean(indexOps, IndexOperations.OBJECT_NAME);
 			latch.countDown();
 			log.info("\n\t=========================================\n\tStarted ElasticSearchEventHandler\n\t=========================================");
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to initialize ElasticSearchEventHandler", ex);
-		}
-		
+		}		
+	}
+	
+	@Override
+	public void shutdown() {
+		log.info("\n\t=========================================\n\tStopping ElasticSearchEventHandler\n\t=========================================");
+		JMXHelper.unregisterMBean(IndexOperations.OBJECT_NAME);
+		try { JMXHelper.unregisterMBean(IndexOperations.OBJECT_NAME); } catch (Exception ex) {/* No Op */}
+		try { client.close(); } catch (Exception ex) {/* No Op */}
+		this.indexOps = null;
+		this.initializer = null;
+		this.esNodex.clear();
+		instance = null;
+		super.shutdown();
+		log.info("\n\t=========================================\n\tStopped ElasticSearchEventHandler\n\t=========================================");
 	}
 	
 	/**

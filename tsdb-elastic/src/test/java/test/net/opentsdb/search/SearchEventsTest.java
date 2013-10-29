@@ -29,13 +29,11 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.utils.JSON;
 
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
@@ -43,19 +41,20 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * <p>Title: AnnotationTest</p>
- * <p>Description: </p> 
+ * <p>Title: SearchEventsTest</p>
+ * <p>Description: Test cases for round-trip search events through ES.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>test.net.opentsdb.search.AnnotationTest</code></p>
+ * <p><code>test.net.opentsdb.search.SearchEventsTest</code></p>
  */
-@Ignore
-public class AnnotationTest extends ESBaseTest {
 
+public class SearchEventsTest extends ESBaseTest {
+
+	
+	
 	/**
 	 * Tests a round trip for an annotation 
 	 * @throws Exception thrown on any error
@@ -65,54 +64,31 @@ public class AnnotationTest extends ESBaseTest {
 		TransportClient tc = null;
 		try {
 			createSearchShellJar();
-			TSDB tsdb = newTSDB("ESSearchConfig");
+			tsdb = newTSDB("ESSearchConfig");
 			ElasticSearchEventHandler.waitForStart();
 			String annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
-			String annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
-			Annotation a = new Annotation();
-			int customs = 3;
-			if(customs>0) {
-				HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
-				for(int c = 0; c < customs; c++) {
-					String[] frags = getRandomFragments();
-					custs.put(frags[0], frags[1]);
-				}
-				a.setCustom(custs);
-			}
-			a.setDescription(getRandomFragment());
-			long start = nextPosLong();
-			a.setStartTime(start);
-			a.setEndTime(start + nextPosInt(10000));
-			a.setTSUID(getRandomFragment());
-			
+			String annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();			
+						
 			tc = ElasticSearchEventHandler.getClient();
-			String aId = getAnnotationId(annotationType, a);
-			QueryBuilder qb = QueryBuilders.termQuery("description", a.getDescription());
-//			
 			IndexRequestBuilder irb = tc.prepareIndex("_percolator", "opentsdb_1", "PingMe")
 		    .setSource(jsonBuilder().startObject()
-		            //.field("query", qb)
-		    		.field("query", qb)
+		    		.field("query", QueryBuilders.fieldQuery("_type", annotationType))
 		            .endObject())
-//				.setType("annotation")
 		        .setRefresh(true);
 			
-//			log("Prep Index for Perc:[\n%s\n]", JSON.serializeToString(irb));
-			IndexResponse ir = irb.execute().actionGet();
-			//tc.admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
-			log("\n\t#################\n\tGreen Light\n\t#################");
-			
+			irb.execute().actionGet();
+			Annotation a = randomAnnotation(3);
+			String aId = getAnnotationId(annotationType, a);			
+			QueryBuilder qb = QueryBuilders.idsQuery(annotationType).ids(aId);				
 			tsdb.indexAnnotation(a);
-			SearchRequestBuilder sbr = tc.prepareSearch(annotationIndex)
-					.setQuery(qb);
-//			log("Query Built:[\n%s\n]", JSON.serializeToString(qb));
+			SearchRequestBuilder sbr = tc.prepareSearch(annotationIndex).setQuery(qb);
 			boolean matched = false;
 			for(int i = 0; i < 10; i++) {
 				SearchResponse response = sbr.execute().actionGet();
 				if(response.getHits().getHits().length>0) {
 					SearchHit hit = response.getHits().getHits()[0];
 					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
-					log("Annotation:[%s]", b);
+					log("Annotation:[%s] Found on iteration [%s]", b, i);
 					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
 					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
 					Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
@@ -124,12 +100,35 @@ public class AnnotationTest extends ESBaseTest {
 				Thread.sleep(300);
 			}
 			if(!matched) Assert.fail("No annotation match");
-		} catch (Exception ex) {
-			loge("FAIL", ex);
-			throw new RuntimeException(ex);
 		} finally {
 			if(tc!=null) try { tc.close(); } catch (Exception ex) {}
 		}
+	}
+	
+	
+
+	/**
+	 * Creates an annotation with random content
+	 * @param customs The number of custom values
+	 * @return an annotation
+	 */
+	protected Annotation randomAnnotation(int customs) {
+		Annotation a = new Annotation();
+		
+		if(customs>0) {
+			HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
+			for(int c = 0; c < customs; c++) {
+				String[] frags = getRandomFragments();
+				custs.put(frags[0], frags[1]);
+			}
+			a.setCustom(custs);
+		}
+		a.setDescription(getRandomFragment());
+		long start = nextPosLong();
+		a.setStartTime(start);
+		a.setEndTime(start + nextPosInt(10000));
+		a.setTSUID(getRandomFragment());
+		return a;
 	}
 	
     /**
@@ -140,6 +139,10 @@ public class AnnotationTest extends ESBaseTest {
      */
     public String getAnnotationId(String annotationTypeName, Annotation annotation) {
     	return String.format("%s%s%s", annotationTypeName, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
-    }	
+    }
+    
+    protected CountDownLatch waitOnSearchEvent() {
+    	
+    }
 
 }

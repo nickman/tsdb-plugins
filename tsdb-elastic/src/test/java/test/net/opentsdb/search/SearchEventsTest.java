@@ -28,6 +28,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.concurrent.CountDownLatch;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
@@ -42,6 +43,8 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.junit.Assert;
 import org.junit.Test;
+
+import test.net.opentsdb.search.util.ErrorOnAwaitAfterZeroCountDown;
 
 /**
  * <p>Title: SearchEventsTest</p>
@@ -142,7 +145,9 @@ public class SearchEventsTest extends ESBaseTest {
     }
     
     protected CountDownLatch waitOnSearchEvent() {
+    	final ErrorOnAwaitAfterZeroCountDown latch = new ErrorOnAwaitAfterZeroCountDown();
     	
+    	return latch;
     }
 
 }

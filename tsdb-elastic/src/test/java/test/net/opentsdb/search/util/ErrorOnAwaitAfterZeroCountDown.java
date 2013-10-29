@@ -25,24 +25,52 @@
 package test.net.opentsdb.search.util;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>Title: ErrorOnAwaitAfterZeroCountDown</p>
- * <p>Description: </p> 
+ * <p>Description: An extension of {@link CountDownLatch} that throws an exception if the count was already zero when {@link CountDownLatch#await()} or {@link CountDownLatch#await(long, TimeUnit)} succeeds.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.util.ErrorOnAwaitAfterZeroCountDown</code></p>
  */
 
 public class ErrorOnAwaitAfterZeroCountDown extends CountDownLatch {
+	
+	/**
+	 * Creates a new ErrorOnAwaitAfterZeroCountDown with a count of one
+	 */
+	public ErrorOnAwaitAfterZeroCountDown() {
+		this(1);
+	}
 
 	/**
 	 * Creates a new ErrorOnAwaitAfterZeroCountDown
-	 * @param count
+	 * @param count the count
 	 */
 	public ErrorOnAwaitAfterZeroCountDown(int count) {
 		super(count);
-		// TODO Auto-generated constructor stub
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.CountDownLatch#await()
+	 */
+	@Override
+	public void await() throws InterruptedException {		
+		if(getCount()==0) throw new RuntimeException("Last awaiter exception");
+		super.await();
+		
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.CountDownLatch#await(long, java.util.concurrent.TimeUnit)
+	 */
+	@Override
+	public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+		if(getCount()==0) throw new RuntimeException("Last awaiter exception");
+		return super.await(timeout, unit);
 	}
 
 }

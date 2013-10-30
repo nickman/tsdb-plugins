@@ -26,13 +26,24 @@ package net.opentsdb.search.index;
 
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.management.Notification;
+import javax.management.ObjectName;
 
+import net.opentsdb.utils.JSON;
+
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetRequestBuilder;
+import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.client.Client;
+import org.helios.tsdb.plugins.util.JMXHelper;
 
 import com.sun.jmx.mbeanserver.DefaultMXBeanMappingFactory;
 import com.sun.jmx.mbeanserver.MXBeanMapping;
@@ -59,6 +70,19 @@ public class PercolateEvent implements Serializable {
 	private final String type;
 	/** The version of the document that was indexed */
 	private final long version;
+	/** The ObjectName used to match agains this event */
+	private final ObjectName objectName;
+	/** The object name template */
+	public static final String ON_TEMPLATE = "event.percolate:id=%s,index=%s,type=%s";
+	/** A '*' wildcard string */
+	public static final String ON_WILDCARD = "*";
+	/** A '?' wildcard string */
+	public static final String ON_CHAR_WILDCARD = "?";
+
+	/** The default event resolution timeout */
+	public static long DEFAULT_RESOLVE_TIMEOUT = 500;
+	/** The default multi event resolution timeout */
+	public static long DEFAULT_MULTI_RESOLVE_TIMEOUT = 2000;
 	
 	/** The MXBean mapper for PercolateEvent */
 	private static final MXBeanMapping mapping;
@@ -72,6 +96,38 @@ public class PercolateEvent implements Serializable {
 	}
 	
 	/**
+	 * Creates a new PercolateEvent matcher ObjectName
+	 * @param id The pattern matching the document id
+	 * @param index The pattern matching the index name
+	 * @param type The pattern matching the type name
+	 * @return the ObjectName matcher
+	 */
+	public static ObjectName matcher(String id, String index, String type) {
+		return JMXHelper.objectName(ON_TEMPLATE, id, index, type);
+	}
+	
+	/**
+	 * Creates a type matcher ObjectName
+	 * @param type The pattern matching the type name
+	 * @return the ObjectName type matcher
+	 */
+	public static ObjectName typeMatcher(String type) {
+		return matcher(ON_WILDCARD, ON_WILDCARD, type);
+	}
+
+	/**
+	 * Creates a new type and index PercolateEvent matcher ObjectName
+	 * @param index The pattern matching the index name
+	 * @param type The pattern matching the type name
+	 * @return the ObjectName matcher
+	 */
+	public static ObjectName matcher(String index, String type) {
+		return JMXHelper.objectName(ON_TEMPLATE, ON_WILDCARD, index, type);
+	}
+	
+	
+	
+	/**
 	 * Creates a new PercolateEvent
 	 * @param response The ES index operation response
 	 */
@@ -81,6 +137,7 @@ public class PercolateEvent implements Serializable {
 		matchedQueryNames = Collections.unmodifiableSet(new HashSet<String>(response.getMatches()));
 		type = response.getType();
 		version = response.getVersion();
+		objectName = JMXHelper.objectName(String.format(ON_TEMPLATE, id, index, type));
 	}
 	
 	/**
@@ -94,6 +151,78 @@ public class PercolateEvent implements Serializable {
 		notif.setUserData(this);		
 		return notif;
 	}
+	
+	/**
+	 * Synchronously resolves the PercolateRequest by fetching the indicated document and decoding it to an Object instance.
+	 * @param decodeTo The class to which an instance of should be decoded to
+	 * @param client A connected ES client
+	 * @param timeout The timeout in ms.
+	 * @return the resolved Object
+	 */
+	public <T> T resolve(Class<T> decodeTo, Client client, long timeout) {
+		if(client==null) throw new IllegalArgumentException("The passed client was null");
+		if(timeout<1) throw new IllegalArgumentException("Invalid timeout [" + timeout + "]");
+		GetResponse gr = client.prepareGet(index, type, id).execute().actionGet(timeout);
+		return JSON.parseToObject(gr.getSourceAsBytes(), decodeTo);		
+	}
+	
+	/**
+	 * Synchronously resolves the PercolateRequest by fetching the indicated document and decoding it to an Object instance,
+	 * using the default resolution timeout {@link #DEFAULT_RESOLVE_TIMEOUT}.
+	 * @param decodeTo The class to which an instance of should be decoded to
+	 * @param client A connected ES client
+	 * @return the resolved Object
+	 */
+	public <T> T resolve(Class<T> decodeTo, Client client) {
+		return resolve(decodeTo, client, DEFAULT_RESOLVE_TIMEOUT);
+	}
+
+	/**
+	 * Synchronously resolves a collection of PercolateRequests by fetching the indicated documents
+	 * and decoding it to an Object instance of the specified class.
+	 * @param decodeTo The class to which an instance of should be decoded to
+	 * @param events A collection of events. If this is null or empty, an empty result will be returned.
+	 * @param client A connected ES client
+	 * @param timeout The timeout in ms.
+	 * @return A list of decoded objects (in the same order as the corresponding percolate events)
+	 */
+	public static <T> List<T> resolve(Class<T> decodeTo, List<PercolateEvent> events, Client client, long timeout) {
+		if(client==null) throw new IllegalArgumentException("The passed client was null");
+		if(timeout<1) throw new IllegalArgumentException("Invalid timeout [" + timeout + "]");
+		if(events==null || events.isEmpty()) return Collections.emptyList();		
+		String index = null;
+		String type = null;
+		List<T> resolved = new ArrayList<T>(events.size());		
+		Set<String> ids = new HashSet<String>(events.size());
+		MultiGetRequestBuilder builder = client.prepareMultiGet();
+		for(PercolateEvent event: events) {
+			if(event==null) continue;
+			if(index==null) {
+				index = event.index;
+				type = event.type;
+			}
+			ids.add(event.id);
+		}
+		builder.add(index, type, ids);
+		MultiGetResponse mgr = builder.execute().actionGet(timeout);
+		for(MultiGetItemResponse mr: mgr) {
+			resolved.add(JSON.parseToObject(mr.getResponse().getSourceAsBytes(), decodeTo));
+		}
+		return resolved;
+	}
+
+	/**
+	 * Synchronously resolves a collection of PercolateRequests by fetching the indicated documents
+	 * and decoding it to an Object instance of the specified class using the default resolution timeout {@link #DEFAULT_MULTI_RESOLVE_TIMEOUT}.
+	 * @param decodeTo The class to which an instance of should be decoded to
+	 * @param events A collection of events. If this is null or empty, an empty result will be returned.
+	 * @param client A connected ES client
+	 * @return A list of decoded objects (in the same order as the corresponding percolate events)
+	 */
+	public static <T> List<T> resolve(Class<T> decodeTo, List<PercolateEvent> events, Client client) {
+		return resolve(decodeTo, events, client, DEFAULT_MULTI_RESOLVE_TIMEOUT);
+	}
+		
 	
 	/**
 	 * Returns the document id 
@@ -226,6 +355,27 @@ public class PercolateEvent implements Serializable {
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
+	}
+
+	/**
+	 * Returns the ObjectName used to match agains this event
+	 * @return the objectName
+	 */
+	public ObjectName getObjectName() {
+		return objectName;
+	}
+	
+	/**
+	 * Determines if the passed object name is match to this one. 
+	 * @param match The ObjectName to match against. It may be a pattern ObjectName.
+	 * @return true if for a match, false otherwise.
+	 */
+	public boolean matches(ObjectName match) {
+		if(match==null) return false;
+		if(match.isPattern()) {
+			return match.apply(objectName);
+		}
+		return match.equals(objectName);
 	}
 
 }

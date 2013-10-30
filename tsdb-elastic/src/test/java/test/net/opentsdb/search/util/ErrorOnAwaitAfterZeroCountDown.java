@@ -38,10 +38,11 @@ import java.util.concurrent.TimeUnit;
 public class ErrorOnAwaitAfterZeroCountDown extends CountDownLatch {
 	
 	/**
-	 * Creates a new ErrorOnAwaitAfterZeroCountDown with a count of one
+	 * Creates a new ErrorOnAwaitAfterZeroCountDown with a count of two, the idea being
+	 * that the primary waiter 
 	 */
 	public ErrorOnAwaitAfterZeroCountDown() {
-		this(1);
+		this(2);
 	}
 
 	/**

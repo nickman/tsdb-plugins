@@ -33,6 +33,7 @@ import static net.opentsdb.search.SearchQuery.SearchType.TSMETA;
 import static net.opentsdb.search.SearchQuery.SearchType.TSMETA_SUMMARY;
 import static net.opentsdb.search.SearchQuery.SearchType.TSUIDS;
 import static net.opentsdb.search.SearchQuery.SearchType.UIDMETA;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,6 +71,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
@@ -80,10 +83,12 @@ import org.elasticsearch.action.support.replication.ReplicationType;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.threadpool.ThreadPoolStats.Stats;
@@ -139,6 +144,8 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	protected final Map<SearchType, String> mappingBySearchType = new EnumMap<SearchType, String>(SearchType.class);
 	/** A map of OpenTSDB types to deserialize search results against by the search type */
 	protected final Map<SearchType, Class<?>> classBySearchType = new EnumMap<SearchType, Class<?>>(SearchType.class);
+	/** A map of index names keyed by the alias */
+	protected final Map<String, String> aliasToIndex = new HashMap<String, String>();
 	
 	/** A serial factory for notification sequences */
 	protected final AtomicLong notifSequence = new AtomicLong();
@@ -227,7 +234,22 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 
 		this.enablePercolates = enablePercolates; 		
 		this.async = async;
+		populateAliases();
 		log.info("Created IndexOperations with timeout [{}]", indexOpsTimeout);
+	}
+	
+	
+	protected void populateAliases() {
+		
+		Map<String,List<AliasMetaData>> aliasData = client.admin().indices().getAliases(new IndicesGetAliasesRequest()).actionGet(indexOpsTimeout).getAliases();
+		for(Map.Entry<String,List<AliasMetaData>> entry: aliasData.entrySet()) {
+			StringBuilder b = new StringBuilder("\n").append(entry.getKey());
+			for(AliasMetaData amd: entry.getValue()) {
+				b.append("\n\t").append(amd.getAlias());
+			}
+			log.info(b.toString());
+		}
+		
 	}
 	
 	/**
@@ -358,6 +380,23 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
     	} else {
     		client.delete(dr, deleteListener);
     	}
+    }
+    
+    /** The percolation index name */
+    public static final String PERC_INDEX = "_percolator";
+    
+    public void registerPecolate(String index, String queryName, QueryBuilder queryBuilder) {
+		IndexRequestBuilder irb;
+		try {
+			irb = client.prepareIndex(PERC_INDEX, "opentsdb_1", queryName)
+				    .setSource(jsonBuilder().startObject()
+				    		.field("query", queryBuilder)
+				            .endObject())
+				        .setRefresh(true);
+			irb.execute().actionGet(indexOpsTimeout);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to register for percolate on query [" + queryName + "]", e); 
+		}
     }
     
     /**

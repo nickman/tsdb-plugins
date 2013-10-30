@@ -38,6 +38,8 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerFactory;
 import javax.management.MBeanServerInvocationHandler;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.QueryExp;
 import javax.management.openmbean.CompositeData;
@@ -348,11 +350,13 @@ public class JMXHelper {
 	 */
 	public static ObjectName objectName(String format, Object...args) {
 		try {
-			return new ObjectName(String.format(format, args));
+			return new ObjectName(String.format(format.trim(), args));
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to create Object Name", e);
-		}
+		}		
 	}
+	
+
 	
 	
 	/**
@@ -1008,8 +1012,85 @@ while(m.find()) {
 	}
 	
 	
+	/**
+	 * Adds a listener to a registered MBean.
+	 * @param connection The MBeanServer to register the listener with
+	 * @param name The name of the MBean on which the listener should be added.
+	 * @param listener The listener object which will handle the notifications emitted by the registered MBean.
+	 * @param filter The filter object. If filter is null, no filtering will be performed before handling notifications.
+	 * @param handback The context to be sent to the listener when a notification is emitted. 
+	 */
+	public static void addNotificationListener(MBeanServerConnection connection, ObjectName name, NotificationListener listener, NotificationFilter filter, Object handback) {
+		try {
+			connection.addNotificationListener(name, listener, filter, handback);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to register JMX Notification Listener", ex);
+		}
+	}
+	
+	/**
+	 * Adds a listener to a registered MBean in the Helios MBeanServer
+	 * @param name The name of the MBean on which the listener should be added.
+	 * @param listener The listener object which will handle the notifications emitted by the registered MBean.
+	 * @param filter The filter object. If filter is null, no filtering will be performed before handling notifications.
+	 * @param handback The context to be sent to the listener when a notification is emitted. 
+	 */
+	public static void addNotificationListener(ObjectName name, NotificationListener listener, NotificationFilter filter, Object handback) {
+		addNotificationListener(getHeliosMBeanServer(), name, listener, filter, handback);
+	}
+	
+	/**
+	 * Adds a listener to a registered MBean.
+	 * @param connection The MBeanServer to register the listener with
+	 * @param name The name of the MBean on which the listener should be added.
+	 * @param listener The object name of the listener which will handle the notifications emitted by the registered MBean.
+	 * @param filter The filter object. If filter is null, no filtering will be performed before handling notifications.
+	 * @param handback The context to be sent to the listener when a notification is emitted. 
+	 */
+	public static void addNotificationListener(MBeanServerConnection connection, ObjectName name, ObjectName listener, NotificationFilter filter, Object handback) {
+		try {
+			connection.addNotificationListener(name, listener, filter, handback);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to register JMX Notification Listener", ex);
+		}
+	}
+
+	/**
+	 * Adds a listener to a registered MBean in the Helios MBeanServer
+	 * @param name The name of the MBean on which the listener should be added.
+	 * @param listener The object name of the listener which will handle the notifications emitted by the registered MBean.
+	 * @param filter The filter object. If filter is null, no filtering will be performed before handling notifications.
+	 * @param handback The context to be sent to the listener when a notification is emitted. 
+	 */
+	public static void addNotificationListener(ObjectName name, ObjectName listener, NotificationFilter filter, Object handback) {
+		addNotificationListener(getHeliosMBeanServer(), name, listener, filter, handback);
+	}
 	
 	
+	/**
+	 * Removes a notification listener
+	 * @param connection The MBeanServer to remove the listener from
+	 * @param name The ObjectName the listener was registered with
+	 * @param listener The listener to remove
+	 */
+	public static void removeNotificationListener(MBeanServerConnection connection, ObjectName name, NotificationListener listener) {
+		try {
+			 connection.removeNotificationListener(name, listener);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to remove JMX notification listener", ex);
+		}
+	}
+	
+	/**
+	 * Removes a notification listener from the Helios MBeanServer
+	 * @param name The ObjectName the listener was registered with
+	 * @param listener The listener to remove
+	 */
+	public static void removeNotificationListener(ObjectName name, NotificationListener listener) {
+		removeNotificationListener(getHeliosMBeanServer(), name, listener);
+	}
+	
+
 	/**
 	 * Wrapped call to <code>java.beans.Introspector</code>.
 	 * Impl. may be swapped out.

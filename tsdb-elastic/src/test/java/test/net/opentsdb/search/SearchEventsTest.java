@@ -28,23 +28,17 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
-import net.opentsdb.utils.JSON;
+import net.opentsdb.search.index.PercolateEvent;
 
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
 import org.junit.Assert;
 import org.junit.Test;
-
-import test.net.opentsdb.search.util.ErrorOnAwaitAfterZeroCountDown;
 
 /**
  * <p>Title: SearchEventsTest</p>
@@ -73,6 +67,7 @@ public class SearchEventsTest extends ESBaseTest {
 			String annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();			
 						
 			tc = ElasticSearchEventHandler.getClient();
+
 			IndexRequestBuilder irb = tc.prepareIndex("_percolator", "opentsdb_1", "PingMe")
 		    .setSource(jsonBuilder().startObject()
 		    		.field("query", QueryBuilders.fieldQuery("_type", annotationType))
@@ -81,28 +76,17 @@ public class SearchEventsTest extends ESBaseTest {
 			
 			irb.execute().actionGet();
 			Annotation a = randomAnnotation(3);
-			String aId = getAnnotationId(annotationType, a);			
-			QueryBuilder qb = QueryBuilders.idsQuery(annotationType).ids(aId);				
+			long start = System.currentTimeMillis();
 			tsdb.indexAnnotation(a);
-			SearchRequestBuilder sbr = tc.prepareSearch(annotationIndex).setQuery(qb);
-			boolean matched = false;
-			for(int i = 0; i < 10; i++) {
-				SearchResponse response = sbr.execute().actionGet();
-				if(response.getHits().getHits().length>0) {
-					SearchHit hit = response.getHits().getHits()[0];
-					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
-					log("Annotation:[%s] Found on iteration [%s]", b, i);
-					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
-					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
-					Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
-					Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
-					matched = true;
-					break;
-				}
-				
-				Thread.sleep(300);
-			}
-			if(!matched) Assert.fail("No annotation match");
+			Annotation b = waitOnDocEvent(PercolateEvent.typeMatcher(annotationType), 1, 2000, TimeUnit.MILLISECONDS)
+					.iterator().next()
+					.resolve(Annotation.class, tc);
+			long elapsed = System.currentTimeMillis()-start;
+			log("Retrieved PercolatedEvent for Annotation in [%s] ms. Value:[%s]", elapsed,  b);
+			Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
+			Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
+			Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
+			Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
 		} finally {
 			if(tc!=null) try { tc.close(); } catch (Exception ex) {}
 		}
@@ -144,10 +128,5 @@ public class SearchEventsTest extends ESBaseTest {
     	return String.format("%s%s%s", annotationTypeName, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
     }
     
-    protected CountDownLatch waitOnSearchEvent() {
-    	final ErrorOnAwaitAfterZeroCountDown latch = new ErrorOnAwaitAfterZeroCountDown();
-    	
-    	return latch;
-    }
 
 }

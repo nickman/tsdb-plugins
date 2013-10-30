@@ -204,14 +204,14 @@ public class BaseTest {
 	}
 	
 	/** The current test's TSDB */
-	protected TSDB tsdb = null;
+	protected static TSDB tsdb = null;
 
 	/**
 	 * Creates a new test TSDB
 	 * @param configName The config name to configure with
 	 * @return the created test TSDB
 	 */
-	public TSDB newTSDB(String configName)  {		
+	public static TSDB newTSDB(String configName)  {		
 		try {
 			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);

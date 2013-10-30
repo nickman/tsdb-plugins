@@ -1,7 +1,13 @@
 package net.opentsdb.search.index;
 
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+
+import java.util.Map;
+
 import javax.management.ObjectName;
 
+import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.helios.tsdb.plugins.util.JMXHelper;
 
 import net.opentsdb.meta.Annotation;
@@ -105,5 +111,61 @@ public interface IndexOperationsMBean {
 	 * @param enabled true for enabled, false for disabled
 	 */
 	public void setPercolateEnabled(boolean enabled);
+	
+    /**
+     * Registers a query to listen for percolated events on
+     * @param indexName The index name
+     * @param queryName The query name
+     * @param queryBuilder The query builder defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryName, QueryBuilder queryBuilder);
+    
+    /**
+     * Registers a query to listen for percolated events on
+     * @param indexName The index name
+     * @param queryName The query name
+     * @param queryJson The json text defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryName, String queryJson);
+    
+    /**
+     * Registers a query to listen for percolated events on, using a generated query name which is returned.
+     * @param indexName The index name
+     * @param queryBuilder The query builder defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, QueryBuilder queryBuilder);
+    
+    
+    /**
+     * Registers a query to listen for percolated events on, using a generated query name which is returned.
+     * @param indexName The index name
+     * @param queryJson The json text defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryJson);
+    
+    /**
+     * Removes the named query from the percolation index, stopping callbacks on that query
+     * @param queryName The name of the query to delete
+     * @return true if the document was found and deleted, false otherwise
+     */
+    public boolean removePercolate(String queryName);
+    
+	/**
+	 * Returns a map of percolated (watched) queries keyed by the percolated document id
+	 * @return a map of the watchedQueries
+	 */
+	public Map<String, String> getWatchedQueries();
+	
+	/**
+	 * Returns the number of watched queries
+	 * @return the number of watched queries
+	 */
+	public int getWatchedQueryCount();
+    
+
 	
 }

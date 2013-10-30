@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -71,24 +72,27 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.replication.ReplicationType;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.threadpool.ThreadPoolStats.Stats;
@@ -146,11 +150,18 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	protected final Map<SearchType, Class<?>> classBySearchType = new EnumMap<SearchType, Class<?>>(SearchType.class);
 	/** A map of index names keyed by the alias */
 	protected final Map<String, String> aliasToIndex = new HashMap<String, String>();
+	/** A map of percolated (watched) queries keyed by the percolated document id */
+	protected final Map<String, String> watchedQueries = new ConcurrentHashMap<String, String>();
 	
 	/** A serial factory for notification sequences */
 	protected final AtomicLong notifSequence = new AtomicLong();
 	/** The JMX notification prefix for percolation popped events */
 	public static final String PERCOLATE_NOTIF_PREFIX = "percolated";
+    /** Serial number for generated query names */
+    protected final AtomicLong percQuerySerial = new AtomicLong();
+    /** The string format template for generated query names (pass index name and percQuerySerial) */
+    public static final String QUERY_NAME_TEMPLATE = "pQuery-%s#%s";
+	
 	
 	/** The JMX notification broadcaster threadpool */
 	private static ThreadPoolExecutor notificationThreadPool = null;
@@ -165,10 +176,10 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	protected final ActionListener<IndexResponse> indexResponseListener = new ActionListener<IndexResponse>() {
 		@Override
 		public void onResponse(IndexResponse response) {
-			log.info("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
+			log.debug("IndexOp for Type [{}] on Index [{}] Complete. ID: [{}]", response.getType(), response.getIndex(), response.getId());
 			List<String> percolateMatches = response.getMatches();
 			if(percolateMatches!=null && !percolateMatches.isEmpty()) {
-				log.info("IndexOp Matched [{}] Registered Queries: {}", percolateMatches.size(), percolateMatches);
+				log.debug("IndexOp Matched [{}] Registered Queries: {}", percolateMatches.size(), percolateMatches);
 				PercolateEvent pe = new PercolateEvent(response);
 				Notification notif = pe.getNotification(PERCOLATE_NOTIF_PREFIX, notifSequence.incrementAndGet());
 				sendNotification(notif);
@@ -235,21 +246,47 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 		this.enablePercolates = enablePercolates; 		
 		this.async = async;
 		populateAliases();
+		populatePercolates();
 		log.info("Created IndexOperations with timeout [{}]", indexOpsTimeout);
 	}
 	
 	
+	/**
+	 * Populates the {@link #aliasToIndex} map which allows a quick decode from the alias to the underlying index.
+	 * This is necessary because percolates do not seem to work when using the alias.
+	 */
 	protected void populateAliases() {
-		
-		Map<String,List<AliasMetaData>> aliasData = client.admin().indices().getAliases(new IndicesGetAliasesRequest()).actionGet(indexOpsTimeout).getAliases();
-		for(Map.Entry<String,List<AliasMetaData>> entry: aliasData.entrySet()) {
-			StringBuilder b = new StringBuilder("\n").append(entry.getKey());
-			for(AliasMetaData amd: entry.getValue()) {
-				b.append("\n\t").append(amd.getAlias());
+		try {
+			ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet(indexOpsTimeout);
+			ClusterState cs = csr.getState();
+			Map<String, Map<String, AliasMetaData>> aliasData = cs.getMetaData().aliases();
+			for(Map.Entry<String,Map<String, AliasMetaData>> entry: aliasData.entrySet()) {
+				for(Map.Entry<String, AliasMetaData> aentry :  entry.getValue().entrySet()) {
+					aliasToIndex.put(entry.getKey(), aentry.getKey());
+				}
 			}
-			log.info(b.toString());
+			log.info("Alias Map, Version[{}] : {}", cs.getVersion(), aliasToIndex.toString());
+		} catch (Exception ex) {
+			log.error("Populate Aliases Failed", ex);
+		}	
+	}
+	
+	/**
+	 * Loads the existing percolations from ES
+	 */
+	protected void populatePercolates() {
+		try {			
+			SearchResponse sr = client.prepareSearch(PERC_INDEX).setQuery(QueryBuilders.matchAllQuery()).execute().actionGet(indexOpsTimeout);
+			int cnt = 0;
+			for(SearchHit hit: sr.getHits().getHits()) {
+				log.debug("Found Percolate: [{}], Content: [{}]", hit.getId(), hit.getSource().get("query").toString());
+				watchedQueries.put(hit.getId(), hit.getSource().get("query").toString());
+				cnt++;
+			}
+			log.info("Loaded [{}] Existing Percolations");
+		} catch (Exception ex) {
+			log.error("Failed to prepopulate percolates", ex);
 		}
-		
 	}
 	
 	/**
@@ -302,7 +339,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
      * @param note The annotation to index
      */
     public void indexAnnotation(Annotation note) {
-    	log.info("Indexing Annotation [{}]", note);
+    	log.debug("Indexing Annotation [{}]", note);
     	index(annotationIndexName, annotationTypeName, getAnnotationId(note), JSON.serializeToString(note), async ? indexResponseListener : null);
     }
     
@@ -385,19 +422,89 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
     /** The percolation index name */
     public static final String PERC_INDEX = "_percolator";
     
-    public void registerPecolate(String index, String queryName, QueryBuilder queryBuilder) {
+    /**
+     * Registers a query to listen for percolated events on
+     * @param indexName The index name
+     * @param queryName The query name
+     * @param queryBuilder The query builder defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryName, QueryBuilder queryBuilder) {    	
+    	if(!enablePercolates) throw new IllegalStateException("Percolating is currently disabled. Please enable and try again");
+    	if(indexName==null || indexName.trim().isEmpty()) throw new IllegalArgumentException("The passed index was null or empty");
+    	if(queryName==null || queryName.trim().isEmpty()) throw new IllegalArgumentException("The passed query name was null or empty");
+    	if(queryBuilder==null) throw new IllegalArgumentException("The passed query builder was null");
+    	final String index;
+    	if(aliasToIndex.containsKey(indexName)) {
+    		index = aliasToIndex.get(indexName.trim());
+    	} else {
+    		index = indexName.trim();
+    	}
 		IndexRequestBuilder irb;
 		try {
-			irb = client.prepareIndex(PERC_INDEX, "opentsdb_1", queryName)
+			irb = client.prepareIndex(PERC_INDEX, index, queryName)
 				    .setSource(jsonBuilder().startObject()
 				    		.field("query", queryBuilder)
 				            .endObject())
 				        .setRefresh(true);
-			irb.execute().actionGet(indexOpsTimeout);
+			String id = irb.execute().actionGet(indexOpsTimeout).getId();
+			watchedQueries.put(id, queryBuilder.toString());
+			log.info("Registered Query [{}] with ID [{}]", queryName, id);
+			return id;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to register for percolate on query [" + queryName + "]", e); 
 		}
     }
+    
+    /**
+     * Registers a query to listen for percolated events on
+     * @param indexName The index name
+     * @param queryName The query name
+     * @param queryJson The json text defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryName, String queryJson) {
+    	if(queryJson==null || queryJson.trim().isEmpty()) throw new IllegalArgumentException("The passed query JSON was null or empty");
+    	return registerPecolate(indexName, queryName, QueryBuilders.queryString(queryJson.trim()));
+    }
+    
+    /**
+     * Registers a query to listen for percolated events on, using a generated query name which is returned.
+     * @param indexName The index name
+     * @param queryBuilder The query builder defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, QueryBuilder queryBuilder) {
+    	return registerPecolate(indexName, String.format(QUERY_NAME_TEMPLATE, indexName, percQuerySerial.incrementAndGet()), queryBuilder);
+    }
+    
+    
+    /**
+     * Registers a query to listen for percolated events on, using a generated query name which is returned.
+     * @param indexName The index name
+     * @param queryJson The json text defining the query
+     * @return the ID of the watched query
+     */
+    public String registerPecolate(String indexName, String queryJson) {
+    	return registerPecolate(indexName, String.format(QUERY_NAME_TEMPLATE, indexName, percQuerySerial.incrementAndGet()), queryJson);
+    }
+    
+    /**
+     * Removes the named query from the percolation index, stopping callbacks on that query
+     * @param queryName The name of the query to delete
+     * @return true if the document was found and deleted, false otherwise
+     */
+    public boolean removePercolate(String queryName) {
+    	if(queryName==null || queryName.trim().isEmpty()) throw new IllegalArgumentException("The passed query name was null or empty");
+    	if(client.prepareDelete().setIndex(PERC_INDEX).setId(queryName.trim()).execute().actionGet(indexOpsTimeout).isNotFound()) {
+    		log.warn("Percolation with id [{}] was not found");
+    		return false;
+    	}
+    	watchedQueries.remove(queryName);
+    	log.debug("Deleted percolation query [{}]", queryName);
+    	return true;
+    }
+    
     
     /**
      * Executes a search query and returns the deferred for the results
@@ -671,5 +778,22 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	public void removeNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) throws ListenerNotFoundException {
 		super.removeNotificationListener(listener, filter, handback);
 		listeners.decrementAndGet();
+	}
+
+
+	/**
+	 * Returns a map of percolated (watched) queries keyed by the percolated document id
+	 * @return a map of the watchedQueries
+	 */
+	public Map<String, String> getWatchedQueries() {
+		return Collections.unmodifiableMap(watchedQueries);
+	}
+	
+	/**
+	 * Returns the number of watched queries
+	 * @return the number of watched queries
+	 */
+	public int getWatchedQueryCount() {
+		return watchedQueries.size();
 	}
 }

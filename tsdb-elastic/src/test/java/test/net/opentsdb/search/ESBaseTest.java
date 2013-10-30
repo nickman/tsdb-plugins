@@ -81,6 +81,31 @@ public class ESBaseTest extends BaseTest {
 	/** The URL for the ES Status */
 	public static final String ES_STATUS_URL = "http://localhost:8200/_status";
 	
+	//==============================================================================================
+	/*
+	This is the JSON returned when HTTP GETing an ES host:port.
+	The idea is that we check the sysprop tsdb.plugins.testing.search.esurl
+	If it is defined, we verify.
+	If it is not defined, or verification fails, we try localhost:9200
+	If that fails too, we boot up a temp instance.
+	*/
+	//==============================================================================================
+	
+//	{
+//		  "ok" : true,
+//		  "status" : 200,
+//		  "name" : "Ancient One",
+//		  "version" : {
+//		    "number" : "0.90.5",
+//		    "build_hash" : "c8714e8e0620b62638f660f6144831792b9dedee",
+//		    "build_timestamp" : "2013-09-17T12:50:20Z",
+//		    "build_snapshot" : false,
+//		    "lucene_version" : "4.4"
+//		  },
+//		  "tagline" : "You Know, for Search"
+//		}	
+	
+	
 	/**
 	 * Creates a search plugin jar for the {@link Search} shell plugin
 	 */

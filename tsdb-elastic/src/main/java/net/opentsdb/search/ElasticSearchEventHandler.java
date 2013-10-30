@@ -42,16 +42,20 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.search.index.ESInitializer;
 import net.opentsdb.search.index.IndexOperations;
 
+import org.cliffc.high_scale_lib.Counter;
+import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
+import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
@@ -104,6 +108,11 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	protected IndexOperations indexOps = null;
 	/** The start latch */
 	protected CountDownLatch latch = new CountDownLatch(1);		
+	
+	/** A map of invocation counts for each operation handled by this handler */
+	protected final NonBlockingHashMap<TSDBEventType, Counter> invocationCounts = new NonBlockingHashMap<TSDBEventType, Counter>(TSDBEventType.values().length);
+	/** A map of elapsed time sliding windows for each operation handled by this handler */
+	protected final NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow> invocationTimes = new NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow>(TSDBEventType.values().length);
 	
 	
 	/** The config property name for the comma separated list of elasticsearch URIs */
@@ -169,9 +178,22 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 		return instance;
 	}
 	
+	/**
+	 * Waits the default time (5 seconds) for the event handler to complete initialization
+	 */
 	public static void waitForStart() {
+		waitForStart(5, TimeUnit.SECONDS);
+	}
+	
+	
+	/**
+	 * Waits for the event handler to complete initialization
+	 * @param timeout The timeout period to wait for
+	 * @param unit  The timeout unit
+	 */
+	public static void waitForStart(long timeout, TimeUnit unit) {
 		try {
-			if(!getInstance().latch.await(5, TimeUnit.SECONDS)) {
+			if(!getInstance().latch.await(timeout, unit)) {
 				throw new Exception("Did not start before timeout");
 			}
 		} catch (Exception ex) {
@@ -441,5 +463,13 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	 */
 	public String getAnnotation_index() {
 		return annotation_index;
+	}
+
+	/**
+	 * Returns the index operations client
+	 * @return the index operations client
+	 */
+	public IndexOperations getIndexOpsClient() {
+		return indexOps;
 	}
 }

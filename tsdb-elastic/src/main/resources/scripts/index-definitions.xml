@@ -17,6 +17,7 @@
 		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
 			{
 			    "uidmeta": {
+			    	 "dynamic": "strict",
 			        "properties": {
 			            "uid": {
 			                "type": "string",
@@ -29,10 +30,11 @@
 			        }
 			    }
 			}
-		]]></object>
+		]]></object> <!-- "dynamic": "strict", -->
 		<object name="annotation" index-ref="opentsdb_1"><![CDATA[
 			{
 			    "annotation": {
+			    	
 			        "properties": {
 			            "tsuid": {
 			                "type": "string",
@@ -41,7 +43,19 @@
 			            "description": {
 			                "type": "string",
 			                "index": "not_analyzed"
-			            }			            
+			            },
+			            "notes": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "startTime": {
+			                "type": "long",
+			                "index": "not_analyzed"			            
+			            },
+			            "endTime": {
+			                "type": "long",
+			                "index": "not_analyzed"			            
+			            }
 			        }
 			    }
 			}								
@@ -49,6 +63,7 @@
 		<object name="tsmeta" index-ref="opentsdb_1"><![CDATA[
 			{
 			    "tsmeta": {
+			    	"dynamic": "strict",
 			        "properties": {
 			            "tsuid": {
 			                "type": "string",

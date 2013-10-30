@@ -29,6 +29,7 @@ import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_TSMETA_TY
 import static net.opentsdb.search.ElasticSearchEventHandler.DEFAULT_ES_UIDMETA_TYPE;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,8 +42,6 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.alias.get.IndicesGetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
@@ -113,6 +112,9 @@ public class ESInitializer {
 		if(!ROOT_NODE.equalsIgnoreCase(rootNodeName)) {
 			throw new RuntimeException("Could not verify XML doc root node name. Expected [" + ROOT_NODE + "] but got + [" + rootNodeName + "]");
 		}
+		
+		Map<String, Map<String, String>> indexMappings = loadMappingTypes(rootNode);
+		
 		for(Node indexNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "indexes", false), "index", false)) {
 			String indexName = XMLHelper.getAttributeByName(indexNode, "name", null).trim();
 			long indexSerial = getIndexSerial(indexName);
@@ -136,8 +138,17 @@ public class ESInitializer {
 			// check if index exists
 			if(!indexClient.exists(new IndicesExistsRequest(indexName)).actionGet().isExists()) {
 				log.info("Creating Index [{}]....", indexName);
-				new CreateIndexRequestBuilder(indexClient, indexName).setSettings(settings).execute().actionGet();
-				log.info("Index [{}] Created", indexName);
+				CreateIndexRequestBuilder irb = new CreateIndexRequestBuilder(indexClient, indexName).setSettings(settings);
+				List<String> typeNames = new ArrayList<String>();
+				Map<String, String> myMappings = indexMappings.get(indexName);
+				if(myMappings!=null && !myMappings.isEmpty()) {
+					for(Map.Entry<String, String> entry: myMappings.entrySet()) {
+						irb.addMapping(entry.getKey(), entry.getValue());
+						typeNames.add(entry.getKey());
+					}
+				}
+				irb.execute().actionGet();
+				log.info("Index [{}] Created with types {}", indexName, typeNames.toString());
 			} else {
 				log.info("Index [{}] Exists", indexName);
 			}
@@ -159,24 +170,17 @@ public class ESInitializer {
 			} else {
 				log.info("Alias [{}] for Index [{}] Exists", alias, indexName);
 			}
-				
+			
 			indexAliasNames.put(indexName, alias);
 		}
-		for(Node typeNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "objects", false), "object", false)) {
-			String typeName = XMLHelper.getAttributeByName(typeNode, "name", null).trim();
-			String indexName = XMLHelper.getAttributeByName(typeNode, "index-ref", null).trim();
-			String typeScript = XMLHelper.getNodeTextValue(typeNode);
-			if(!indexClient.typesExists(new TypesExistsRequest(new String[]{indexName}, typeName)).actionGet(indexOpsTimeout).isExists()) {
-				log.info("Creating Type [{}] for Index [{}]....", typeName, indexName);
-				PutMappingRequest mapRequest = new PutMappingRequest(indexName);
-				mapRequest.type(typeName);
-				mapRequest.source(typeScript);
-				indexClient.putMapping(mapRequest).actionGet();
-				log.info("Created Type [{}] for Index [{}]", typeName, indexName);
-			} else {
-				log.info("Verified Type [{}] for Index [{}]", typeName, indexName);
+		for(Map.Entry<String, Map<String, String>> entry: indexMappings.entrySet()) {
+			String idxName = entry.getKey();
+			String alName = indexAliasNames.get(idxName);
+			if(alName!=null) {
+				for(String typeName: entry.getValue().keySet()) {
+					indexNames.put(typeName, alName);
+				}
 			}
-			indexNames.put(typeName, indexAliasNames.get(indexName));
 		}
 		Set<String> failedTypes = new LinkedHashSet<String>();
 		if(!indexNames.containsKey(annotationTypeName)) {
@@ -192,6 +196,25 @@ public class ESInitializer {
 			throw new RuntimeException("Missing Type Mapping Indexes for " + failedTypes.toString()); 
 		}
 		log.info("\n\t====================================\n\tIndexes and Types Validated\n\t====================================");
+
+		
+		
+		//		for(Node typeNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "objects", false), "object", false)) {
+//			String typeName = XMLHelper.getAttributeByName(typeNode, "name", null).trim();
+//			String indexName = XMLHelper.getAttributeByName(typeNode, "index-ref", null).trim();
+//			String typeScript = XMLHelper.getNodeTextValue(typeNode);
+//			if(!indexClient.typesExists(new TypesExistsRequest(new String[]{indexName}, typeName)).actionGet(indexOpsTimeout).isExists()) {
+//				log.info("Creating Type [{}] for Index [{}]....", typeName, indexName);
+//				PutMappingRequest mapRequest = new PutMappingRequest(indexName);
+//				mapRequest.type(typeName);
+//				mapRequest.source(typeScript);
+//				indexClient.putMapping(mapRequest).actionGet();
+//				log.info("Created Type [{}] for Index [{}]", typeName, indexName);
+//			} else {
+//				log.info("Verified Type [{}] for Index [{}]", typeName, indexName);
+//			}
+//			indexNames.put(typeName, indexAliasNames.get(indexName));
+//		}
 	}
 	
 	
@@ -246,48 +269,74 @@ public class ESInitializer {
 			return Long.parseLong(indexName.split("-")[1]);
 		} catch (Exception ex) {
 			return 1L;
+		}		
+	}
+	
+	/**
+	 * Returns a map of mapping type json definitions keyed by the object type name, and outer keyed by the index they're applied to
+	 * @param rootNode The xml config root node
+	 * @return the mapping map
+	 */
+	protected Map<String, Map<String, String>> loadMappingTypes(Node rootNode) {
+		Map<String, Map<String, String>> maps = new HashMap<String, Map<String, String>>();
+		for(Node mappingNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "objects", false), "object", false)) {
+			String name = XMLHelper.getAttributeByName(mappingNode, "name", null);
+			if(name==null || name.trim().isEmpty()) throw new RuntimeException("XML Confuiguration Error. object name attribute was null or empty");
+			name = name.trim();
+			String index = XMLHelper.getAttributeByName(mappingNode, "index-ref", null);
+			if(index==null || index.trim().isEmpty()) throw new RuntimeException("XML Confuiguration Error. object index-ref attribute was null or empty");
+			index = index.trim();
+			String descriptor = XMLHelper.getNodeTextValue(mappingNode);
+			if(descriptor==null || descriptor.trim().isEmpty()) throw new RuntimeException("XML Confuiguration Error. descriptor content was null or empty");
+			index = index.trim();
+			Map<String, String> indexMappings = maps.get(index);
+			if(indexMappings==null) {
+				indexMappings = new HashMap<String, String>();
+				maps.put(index, indexMappings);
+			}
+			indexMappings.put(name, descriptor);
 		}
-		
+		return maps;
 	}
 	
 	
 	/*
 
 	<objects>
-		<object name="uidmeta" index-ref="opentsdb_1">
-				<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
-				<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
-		</object>
-		<object name="annotation" index-ref="opentsdb_1">
-				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>				
-		</object>
-		<object name="tsmeta" index-ref="opentsdb_1">
-				<property name="tsuid" type="string" index="not_analyzed" store="no" boost="1"/>
-				<object name="metric" index-ref="opentsdb_1">
-					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>
-				</object>
-				<object name="tags" index-ref="opentsdb_1">
-					<property name="uid" type="string" index="not_analyzed" store="no" boost="1"/>
-					<property name="name" type="string" index="not_analyzed" store="no" boost="1"/>				
-				</object>				
-		</object>		
-	</objects>	
-	
-	
-	<indexes>
-		<index name="opentsdb_1" alias="opentsdb">
-			<settings>
-				<setting name="compound_on_flush" value="true"/>
-				<setting name="term_index_interval" value="128"/>
-				<setting name="number_of_replicas" value="1"/>
-				<setting name="term_index_divisor" value="1"/>
-				<setting name="compound_format" value="false"/>
-				<setting name="number_of_shards" value="5"/>
-				<setting name="refresh_interval" value="1"/>
-			</settings>
-		</index>	
-	</indexes>
-
+		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "uidmeta": {
+			    	 "dynamic": "strict",
+			        "properties": {
+			            "uid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "name": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            }
+			        }
+			    }
+			}
+		]]></object>	<objects>
+		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "uidmeta": {
+			    	 "dynamic": "strict",
+			        "properties": {
+			            "uid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "name": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            }
+			        }
+			    }
+			}
+		]]></object>
 	 */
 	
 	public static void log(String format, Object...args) {

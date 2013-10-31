@@ -43,6 +43,7 @@ import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.test.BaseTest;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -55,6 +56,11 @@ import org.junit.Test;
 
 public class BasicSearchLoggingTestCase extends BaseTest {
 
+	@BeforeClass
+	public static void initialize() {
+		tearDownTSDBAfterTest = true;
+	}
+	
 	/**
 	 * Validates that annotations submitted for indexing are delivered
 	 * @throws Exception thrown on any error

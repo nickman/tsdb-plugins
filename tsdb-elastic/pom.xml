@@ -49,30 +49,16 @@
 	  ElasticSearch Dependencies
 	  ========================================================== -->
 		
-	<dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>fluent-hc</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>httpfailover</groupId>
-            <artifactId>httpclient-failover</artifactId>
-        </dependency>
 	
 		<dependency>
 		  <groupId>org.elasticsearch</groupId>
 		  <artifactId>elasticsearch</artifactId>
 		</dependency>
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-core</artifactId>
+		</dependency>				
 	
 
       <!--

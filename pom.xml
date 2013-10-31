@@ -49,6 +49,7 @@
 		<groovy.version>2.1.6</groovy.version>
 		<camel-esper.version>2.10.6</camel-esper.version>
 		<elastic-search.version>0.90.5</elastic-search.version>
+		<lucene.version>4.4.0</lucene.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -129,6 +130,12 @@
 		        </exclusion>
 		    	</exclusions>    				  
 				</dependency>
+				
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-core</artifactId>
+			  <version>${lucene.version}</version>
+			</dependency>				
         
 		
 		

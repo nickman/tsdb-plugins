@@ -104,7 +104,7 @@ public class QueuedResultPublishEventHandler extends EmptyPublishEventHandler {
 	@Override
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		resultQueue.add(event);
-		if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);		
+		//if(log.isDebugEnabled()) log.debug("Queued event [{}]", event);		
 	}
 	
 	/**

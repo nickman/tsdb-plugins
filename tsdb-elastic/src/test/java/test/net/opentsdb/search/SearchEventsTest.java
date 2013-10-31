@@ -193,7 +193,7 @@ public class SearchEventsTest extends ESBaseTest {
 				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(aId, annotationUIndex, annotationType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
 				tsdb.indexAnnotation(a);
 				publicationCount.incrementAndGet();
-				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client);
+				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client, ASYNC_WAIT_TIMEOUT);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
 				waiter.cleanup();
 				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
@@ -225,7 +225,7 @@ public class SearchEventsTest extends ESBaseTest {
 				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(aId, annotationUIndex, annotationType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
 				tsdb.indexAnnotation(a);
 				publicationCount.incrementAndGet();
-				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client);
+				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client, ASYNC_WAIT_TIMEOUT);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
 				waiter.cleanup();
 				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());

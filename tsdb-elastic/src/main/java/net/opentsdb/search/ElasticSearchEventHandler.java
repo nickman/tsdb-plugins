@@ -191,7 +191,7 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	public static void waitForStart(long timeout, TimeUnit unit) {
 		try {
 			if(!getInstance().latch.await(timeout, unit)) {
-				throw new Exception("Did not start before timeout");
+				throw new Exception("Did not start before timeout", new Throwable());
 			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to wait for start", ex);

@@ -27,12 +27,12 @@ package test.net.opentsdb.search;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.search.index.PercolateEvent;
-import net.opentsdb.utils.JSON;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
@@ -49,6 +49,13 @@ import org.junit.Test;
 /**
  * <p>Title: SearchEventsTest</p>
  * <p>Description: Test cases for round-trip search events through ES.</p> 
+ * <p>For each of Annotation, TSMeta and UIDMeta:<ol>
+ * 	<li>Async Publishing, validate via Percolate</li>
+ * 	<li>Sync Publishing, validate via Percolate</li>
+ * 	<li>Sync Publishing, validate response</li>
+ * 	<li>TSDB SearchQuery</li>
+ * 	<li>Vary index config ? i.e. seperate index per type</li>
+ * </ol></p>
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.SearchEventsTest</code></p>
@@ -89,6 +96,7 @@ public class SearchEventsTest extends ESBaseTest {
 	 */
 	@BeforeClass
 	public static void initialize() {
+		tearDownTSDBAfterTest = false;
 		createSearchShellJar();
 		tsdb = newTSDB("ESSearchConfig");
 		ElasticSearchEventHandler.waitForStart();
@@ -103,8 +111,6 @@ public class SearchEventsTest extends ESBaseTest {
 		tsMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
 		tsMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
 		tsMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
-		
-		
 		log("\n\t=======================================\n\tSearchEventsTest Class Initalized\n\t=======================================");
 	}
 	
@@ -125,12 +131,15 @@ public class SearchEventsTest extends ESBaseTest {
 	 */
 	@AfterClass
 	public static void shutdown() {
+		
 		if(client!=null) try { client.close(); } catch (Exception ex) {/* No Op */}
 		log("\n\t=======================================\n\tSearchEventsTest Class Torn Down\n\t=======================================");
 	}
 	
 	/** Elapsed times  */
 	protected final ConcurrentLongSlidingWindow elapsedTimes = new ConcurrentLongSlidingWindow(1000); 
+	/** Published Events */
+	protected final AtomicLong publicationCount = new AtomicLong();
 	
 	/**
 	 * Resets the metrics after each test
@@ -141,6 +150,7 @@ public class SearchEventsTest extends ESBaseTest {
 		printMetrics();
 		FILTER_FAILS.set(0);
 		elapsedTimes.clear();
+		publicationCount.set(0);
 	}
 	
 	/**
@@ -159,27 +169,30 @@ public class SearchEventsTest extends ESBaseTest {
 		b.append("\n\tAverage Elapsed:").append(elapsedTimes.avg()).append(" ms.");
 		b.append("\n\tMax Elapsed:").append(elapsedTimes.max()).append(" ms.");
 		b.append("\n\tMin Elapsed:").append(elapsedTimes.min()).append(" ms.");
+		b.append("\n\tPublished Events:").append(publicationCount.get()).append(" events.");
 		b.append("\n\tFilter Fails:").append(FILTER_FAILS.get()).append(" fails.");
 		b.append("\n");
 		log(b.toString());
 	}
 	
 	/**
-	 * Tests a round trip for an annotation 
+	 * Asynchronous Annotation indexing 
 	 * @throws Exception thrown on any error
 	 */
 	@Test
-	public void testAnnotationIndex() throws Exception {
+	public void testAsynchronousAnnotationIndexing() throws Exception {		
 		String queryName = null;
+		ioClient.setAsync(true);
+		ioClient.setPercolateEnabled(true);
 		try {
 			queryName = ioClient.registerPecolate(annotationIndex, QueryBuilders.fieldQuery("_type", annotationType));
-			for(int i = 0; i < 100; i++) {
+			for(int i = 0; i < 1000; i++) {
 				Annotation a = randomAnnotation(3);
 				long start = System.currentTimeMillis();
-				tsdb.indexAnnotation(a);
 				String aId = getAnnotationId(annotationType, a);
 				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(aId, annotationUIndex, annotationType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
 				tsdb.indexAnnotation(a);
+				publicationCount.incrementAndGet();
 				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
 				waiter.cleanup();
@@ -193,6 +206,39 @@ public class SearchEventsTest extends ESBaseTest {
 			
 		}
 	}
+	
+	/**
+	 * Ssynchronous Annotation indexing 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testSynchronousAnnotationIndexing() throws Exception {		
+		String queryName = null;
+		ioClient.setAsync(false);
+		ioClient.setPercolateEnabled(true);
+		try {
+			queryName = ioClient.registerPecolate(annotationIndex, QueryBuilders.fieldQuery("_type", annotationType));
+			for(int i = 0; i < 1000; i++) {
+				Annotation a = randomAnnotation(3);
+				long start = System.currentTimeMillis();
+				String aId = getAnnotationId(annotationType, a);
+				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(aId, annotationUIndex, annotationType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
+				tsdb.indexAnnotation(a);
+				publicationCount.incrementAndGet();
+				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client);
+				elapsedTimes.insert(System.currentTimeMillis()-start);				
+				waiter.cleanup();
+				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
+				Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
+				Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
+				Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
+			}
+		} finally {
+			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
+			
+		}
+	}
+	
 	
 	
 

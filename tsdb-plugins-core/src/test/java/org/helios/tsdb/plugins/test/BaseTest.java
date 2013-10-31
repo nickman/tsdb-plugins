@@ -88,6 +88,9 @@ public class BaseTest {
 	protected static final PrintStream OUT = System.out;
 	protected static final PrintStream ERR = System.err;
 	
+	/** If true, we tear down the test TSDB after each test. Otherwise, it is torn down after each class */
+	protected static boolean tearDownTSDBAfterTest = true;
+	
 	
 	/** A shared testing scheduler */
 	protected static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory(){
@@ -225,7 +228,7 @@ public class BaseTest {
 	/**
 	 * Forces a stop on the test TSDB
 	 */
-	public void stopTSDB() {
+	public static void stopTSDB() {
 		if(tsdb==null) return;
 		//TSDBEventDispatcher dispatcher = TSDBEventDispatcher.getInstance(tsdb);
 		boolean stopped = false;
@@ -274,7 +277,11 @@ public class BaseTest {
 	 */
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		if(!tearDownTSDBAfterTest) {
+			
+		}
 		log("Deleted Temp Plugin Dir:" + new File(TMP_PLUGIN_DIR).delete());
+		
 	}
 
 	/**
@@ -293,6 +300,10 @@ public class BaseTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		if(tearDownTSDBAfterTest) shutdownTest();
+	}
+	
+	static void shutdownTest() {
 		//=========================================================================================
 		//  Delete temp files created during test
 		//=========================================================================================
@@ -303,19 +314,20 @@ public class BaseTest {
 		}
 		TO_BE_DELETED.clear();
 		log("Deleted [%s] Tmp Files", files);
+
 		//=========================================================================================
 		//  Shutdown the test TSDB and clear the test queues.
 		//=========================================================================================
 		
-		Method shutdownMethod = TSDBPluginServiceLoader.class.getDeclaredMethod("reset");
-		shutdownMethod.setAccessible(true);
+//		Method shutdownMethod = TSDBPluginServiceLoader.class.getDeclaredMethod("reset");
+//		shutdownMethod.setAccessible(true);
 		try {
 			stopTSDB();
 		} catch (Exception ex) {
 			log("Failed to stop TSDB");
 		}
 		QueuedResultSearchEventHandler.getInstance().clearQueue();
-		QueuedResultPublishEventHandler.getInstance().clearQueue();
+		QueuedResultPublishEventHandler.getInstance().clearQueue();		
 	}
 
 	/**

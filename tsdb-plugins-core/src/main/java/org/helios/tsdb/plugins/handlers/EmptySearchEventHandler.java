@@ -24,10 +24,18 @@
  */
 package org.helios.tsdb.plugins.handlers;
 
+import java.util.Properties;
+
+import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
+import org.cliffc.high_scale_lib.Counter;
+import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
@@ -42,7 +50,54 @@ import com.lmax.disruptor.EventHandler;
  */
 
 public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implements EventHandler<TSDBEvent>, ISearchEventHandler {
+	/** A map of invocation counts for each operation handled by this handler */
+	protected final NonBlockingHashMap<TSDBEventType, Counter> invocationCounts = new NonBlockingHashMap<TSDBEventType, Counter>(TSDBEventType.values().length);
+	/** A map of elapsed time sliding windows for each operation handled by this handler */
+	protected final NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow> invocationTimes = new NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow>(TSDBEventType.values().length);
+
+	/** The config property name to specify the sliding window size for operation elapsed times */
+	public static final String ES_SW_SIZE = "es.tsd.search.elasticsearch.sliding.size";
+	/** The default sliding window size for operation elapsed times */
+	public static final int DEFAULT_ES_SW_SIZE = 100;
+
+
+	/**
+	 * Creates a new EmptySearchEventHandler
+	 */
+	protected EmptySearchEventHandler() {
+	}
 	
+	@Override
+	public void initialize(TSDB tsdb, Properties extracted) {
+		super.initialize(tsdb, extracted);
+		int swSize = ConfigurationHelper.getIntSystemThenEnvProperty(ES_SW_SIZE, DEFAULT_ES_SW_SIZE, extracted);
+		StringBuilder b = new StringBuilder("\nMetric Collection Keys:\n========================");
+		for(TSDBEventType et: TSDBEventType.values()) {
+			if(et.isForSearch()) {
+				b.append("\n\t").append(et.name());
+				invocationCounts.put(et, new Counter());
+				invocationTimes.put(et, new ConcurrentLongSlidingWindow(swSize));
+			}
+		}
+		log.info(b.toString());
+	}
+	
+	/**
+	 * Increments the invocation count for the passed event
+	 * @param event the event received
+	 */
+	protected void incrCount(TSDBEvent event) {
+		invocationCounts.get(event.eventType).increment();		
+	}	
+	
+	/**
+	 * Registers the elapsed time of an operation
+	 * @param event The event processed
+	 * @param elapsed The elapsed time of the operation in ms.
+	 */
+	protected void elapsedTime(TSDBEvent event, long elapsed) {
+		invocationTimes.get(event.eventType).insert(elapsed);
+	}
 
 	/**
 	 * {@inheritDoc}

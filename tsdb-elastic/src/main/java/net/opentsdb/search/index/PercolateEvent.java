@@ -162,8 +162,20 @@ public class PercolateEvent implements Serializable {
 	public <T> T resolve(Class<T> decodeTo, Client client, long timeout) {
 		if(client==null) throw new IllegalArgumentException("The passed client was null");
 		if(timeout<1) throw new IllegalArgumentException("Invalid timeout [" + timeout + "]");
-		GetResponse gr = client.prepareGet(index, type, id).execute().actionGet(timeout);
-		return JSON.parseToObject(gr.getSourceAsBytes(), decodeTo);		
+		GetResponse gr = null;
+		int cnt = 0;
+		do {
+			gr = client.prepareGet(index, type, id).execute().actionGet(timeout);
+			cnt++;
+			if(cnt>5) break;
+		} while(!gr.isExists());
+		
+		
+		if(!gr.isExists()) {
+			throw new RuntimeException("Percolated Event Doc Instance Could Not Be Found:" + this);
+		}
+		byte[] source = gr.getSourceAsBytes();
+		return JSON.parseToObject(source, decodeTo);		
 	}
 	
 	/**

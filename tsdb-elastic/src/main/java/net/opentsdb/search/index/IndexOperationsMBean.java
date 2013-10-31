@@ -1,19 +1,16 @@
 package net.opentsdb.search.index;
 
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-
 import java.util.Map;
 
 import javax.management.ObjectName;
-
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.helios.tsdb.plugins.util.JMXHelper;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+
+import org.elasticsearch.index.query.QueryBuilder;
+import org.helios.tsdb.plugins.util.JMXHelper;
 
 import com.stumbleupon.async.Deferred;
 
@@ -166,6 +163,12 @@ public interface IndexOperationsMBean {
 	 */
 	public int getWatchedQueryCount();
     
-
+	/**
+	 * Returns the underlying index for the passed alias.
+	 * If the passed name is the underlying index name, it will be returned.
+	 * @param name The alias name
+	 * @return The underlying index
+	 */
+	public String getIndexForAlias(String name);
 	
 }

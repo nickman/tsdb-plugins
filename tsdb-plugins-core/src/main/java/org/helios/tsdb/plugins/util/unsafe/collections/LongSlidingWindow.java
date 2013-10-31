@@ -277,6 +277,32 @@ public class LongSlidingWindow  implements ILongSlidingWindow {
 		return (long)d;
 	}
 	
+	public long percentile(int p) {
+		if (p < 1 || p > 100) {
+			throw new IllegalArgumentException("invalid percentile: " + p);
+		}
+		
+		if(size()==0) return 0;
+		LongSlidingWindow sorted = new LongSlidingWindow(new LongSortedSet(clone().array).array);
+		int size = size();
+		log("Size:" + size);
+		long sum = sum();
+		log("Sum:" + sum);
+		long ptile = sum * p / 100;
+		log("ptile:" + ptile);
+		long index = Math.abs(sorted.insert(ptile));
+		log("Index:" + index);
+		return size - index;
+		
+	
+	}
+	
+	public static void main(String[] args) {
+		log("Percentile Test");
+		LongSortedSet sw = new LongSortedSet(new long[]{1,2,3,4,5,6,7,8,9,10});
+		log("90th Percentile:" + new LongSlidingWindow(sw.size(), sw.asLongArray()).percentile(90));
+	}
+	
 	/**
 	 * Returns the average of all the longs in the array 
 	 * @return the average of all the longs in the array
@@ -286,14 +312,14 @@ public class LongSlidingWindow  implements ILongSlidingWindow {
 		return avg(array.size);
 	}
 	
-	public static void main(String[] args) {
-		log("Long Sliding Window Test");
-		LongSlidingWindow sw = new LongSlidingWindow(5, new long[]{1,2,3,4,5});
-		for(int i = 0; i < 5; i++) {
-			Long val = sw.insert(i);
-			log("Removed:" + val);
-		}
-	}
+//	public static void main(String[] args) {
+//		log("Long Sliding Window Test");
+//		LongSlidingWindow sw = new LongSlidingWindow(5, new long[]{1,2,3,4,5});
+//		for(int i = 0; i < 5; i++) {
+//			Long val = sw.insert(i);
+//			log("Removed:" + val);
+//		}
+//	}
 	
 	public static void log(Object msg) {
 		System.out.println(msg);

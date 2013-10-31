@@ -183,6 +183,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 				PercolateEvent pe = new PercolateEvent(response);
 				Notification notif = pe.getNotification(PERCOLATE_NOTIF_PREFIX, notifSequence.incrementAndGet());
 				sendNotification(notif);
+				log.debug("Notification Sent:{}", notif.getSequenceNumber());
 			}
 		}
 		@Override
@@ -449,7 +450,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 				        .setRefresh(true);
 			String id = irb.execute().actionGet(indexOpsTimeout).getId();
 			watchedQueries.put(id, queryBuilder.toString());
-			log.info("Registered Query [{}] with ID [{}]", queryName, id);
+			log.debug("Registered Query [{}] with ID [{}]", queryName, id);
 			return id;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to register for percolate on query [" + queryName + "]", e); 
@@ -750,6 +751,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 		if(handback!=null && handback.toString().toLowerCase().contains("json=true")) {
 			// TODO: most efficient way of converting user-data to json once.
 		}
+		log.debug("Sending Notification [{}] to listener [{}]", notif.getSequenceNumber(), listener);
 		super.handleNotification(listener, notif, handback);
 	}
 
@@ -761,6 +763,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	@Override
 	public void addNotificationListener(NotificationListener listener, NotificationFilter filter, Object handback) {		
 		super.addNotificationListener(listener, filter, handback);
+		log.debug("Added Listener [{}]", listener);
 		listeners.incrementAndGet();
 	}
 	
@@ -771,6 +774,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	@Override
 	public void removeNotificationListener(NotificationListener listener) throws ListenerNotFoundException {
 		super.removeNotificationListener(listener);
+		log.debug("Removed Listener [{}]", listener);
 		listeners.decrementAndGet();
 	}
 	
@@ -787,6 +791,24 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 	 */
 	public Map<String, String> getWatchedQueries() {
 		return Collections.unmodifiableMap(watchedQueries);
+	}
+	
+	/**
+	 * Returns the underlying index for the passed alias.
+	 * If the passed name is the underlying index name, it will be returned.
+	 * @param name The alias name
+	 * @return The underlying index
+	 */
+	public String getIndexForAlias(String name) {
+		if(name==null || name.trim().isEmpty()) throw new IllegalArgumentException("The passed name was null or empty");
+		String _u = aliasToIndex.get(name.trim());
+		if(_u==null) {
+			if(aliasToIndex.containsValue(name.trim())) {
+				return name.trim();
+			}
+			throw new IllegalArgumentException("The passed name [" + name + "] was not an index or an alias");
+		}
+		return _u;
 	}
 	
 	/**

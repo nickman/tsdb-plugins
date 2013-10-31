@@ -59,20 +59,30 @@ public class SearchEventsTest extends ESBaseTest {
 	protected static String annotationType = null; 
 	/** The ES index name for OpenTSDB annotations */
 	protected static String annotationIndex = null;
+	/** The ES underlying index name for OpenTSDB annotations */
+	protected static String annotationUIndex = null;
+
 	/** The ES mapping type name for OpenTSDB UIDMetas */
 	protected static String uidMetaType = null; 
 	/** The ES index name for OpenTSDB UIDMetas */
 	protected static String uidMetaIndex = null;
+	/** The ES underlying index name for OpenTSDB UIDMetas */
+	protected static String uidMetaUIndex = null;
+	
 	/** The ES mapping type name for OpenTSDB TSMetas */
 	protected static String tsMetaType = null; 
 	/** The ES index name for OpenTSDB TSMetas */
 	protected static String tsMetaIndex = null;
+	/** The ES underlying index name for OpenTSDB TSMetas */
+	protected static String tsMetaUIndex = null;
 	
 	/** The elastic search client */
 	protected static TransportClient client = null;
 	/** The es handler index operations client */
 	protected static IndexOperations ioClient = null;
-	
+
+	/** The async wait time */
+	public static final long ASYNC_WAIT_TIMEOUT = 1000;
 	
 	/**
 	 * Initializes the environment for tests in this class
@@ -86,10 +96,14 @@ public class SearchEventsTest extends ESBaseTest {
 		ioClient = ElasticSearchEventHandler.getInstance().getIndexOpsClient();
 		annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
 		annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
+		annotationUIndex = ioClient.getIndexForAlias(annotationIndex);
 		uidMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
-		uidMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();			
+		uidMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
+		uidMetaUIndex = ioClient.getIndexForAlias(uidMetaIndex);
 		tsMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
 		tsMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
+		tsMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
+		
 		
 		log("\n\t=======================================\n\tSearchEventsTest Class Initalized\n\t=======================================");
 	}
@@ -123,7 +137,9 @@ public class SearchEventsTest extends ESBaseTest {
 	 */
 	@After
 	public void resetMetrics() {
+		
 		printMetrics();
+		FILTER_FAILS.set(0);
 		elapsedTimes.clear();
 	}
 	
@@ -143,6 +159,7 @@ public class SearchEventsTest extends ESBaseTest {
 		b.append("\n\tAverage Elapsed:").append(elapsedTimes.avg()).append(" ms.");
 		b.append("\n\tMax Elapsed:").append(elapsedTimes.max()).append(" ms.");
 		b.append("\n\tMin Elapsed:").append(elapsedTimes.min()).append(" ms.");
+		b.append("\n\tFilter Fails:").append(FILTER_FAILS.get()).append(" fails.");
 		b.append("\n");
 		log(b.toString());
 	}
@@ -156,26 +173,16 @@ public class SearchEventsTest extends ESBaseTest {
 		String queryName = null;
 		try {
 			queryName = ioClient.registerPecolate(annotationIndex, QueryBuilders.fieldQuery("_type", annotationType));
-			for(int i = 0; i < 1000; i++) {
+			for(int i = 0; i < 100; i++) {
 				Annotation a = randomAnnotation(3);
-//				log("Annotation: [\n%s\n]", JSON.serializeToString(a));
-				
-//				{
-//					"tsuid":"9c9441f8-e12e-4917-807e-33e1a05c7ee4",
-//					"description":"3cf248a2-b89f-4b52-82c3-f94c686fe97a",
-//					"notes":"",
-//					"custom":{"2f8691f6":"625f","c2733ecf":"d8ac","c8e3df52":"f0e2"},
-//					"startTime":6644408910471254705,
-//					"endTime":6644408910471258705
-//					
-//				}				
-				
 				long start = System.currentTimeMillis();
 				tsdb.indexAnnotation(a);
-				Annotation b = waitOnDocEvent(PercolateEvent.typeMatcher(annotationType), 1, 10000, TimeUnit.MILLISECONDS)
-						.iterator().next()
-						.resolve(Annotation.class, client);
+				String aId = getAnnotationId(annotationType, a);
+				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(aId, annotationUIndex, annotationType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
+				tsdb.indexAnnotation(a);
+				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
+				waiter.cleanup();
 				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
 				Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
 				Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());

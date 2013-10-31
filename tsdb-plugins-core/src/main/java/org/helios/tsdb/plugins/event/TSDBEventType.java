@@ -41,33 +41,34 @@ public enum TSDBEventType {
 //	PLUGIN_INIT,
 //	/** Plugin Shutdown */
 //	PLUGIN_STOP,	
-	/** Stats Collection */
-	STATS_COLLECT(PluginType.PUBLISH, PluginType.RPC, PluginType.SEARCH),
 	/** A long value data point */
-	DPOINT_LONG(PluginType.PUBLISH),
+	DPOINT_LONG("publish-long", PluginType.PUBLISH),
 	/** A double value sdata point */
-	DPOINT_DOUBLE(PluginType.PUBLISH),
+	DPOINT_DOUBLE("publish-double", PluginType.PUBLISH),
 	/** An annotation index */
-	ANNOTATION_INDEX(PluginType.SEARCH),
+	ANNOTATION_INDEX("index-annotation", PluginType.SEARCH),
 	/** An annotation deletion */
-	ANNOTATION_DELETE(PluginType.SEARCH),
+	ANNOTATION_DELETE("delete-annotation", PluginType.SEARCH),
 	/** A TSMeta index */
-	TSMETA_INDEX(PluginType.SEARCH),
+	TSMETA_INDEX("index-tsmeta", PluginType.SEARCH),
 	/** A TSMeta deletion */
-	TSMETA_DELETE(PluginType.SEARCH),
+	TSMETA_DELETE("delete-tsmeta", PluginType.SEARCH),
 	/** A UIDMeta index */
-	UIDMETA_INDEX(PluginType.SEARCH),
+	UIDMETA_INDEX("index-uidmeta", PluginType.SEARCH),
 	/** A UIDMeta deletion */
-	UIDMETA_DELETE(PluginType.SEARCH),
+	UIDMETA_DELETE("delete-uidmeta", PluginType.SEARCH),
 	/** A search query event */
-	SEARCH(PluginType.SEARCH);
+	SEARCH("search", PluginType.SEARCH);
 	
-	private TSDBEventType(PluginType...pluginTypes) {
+	private TSDBEventType(String shortName, PluginType...pluginTypes) {
 		this.pluginTypes = pluginTypes;
+		this.shortName = shortName; 
 	}
 	
 	/** The plugin types this event is targetted at */
 	public final PluginType[] pluginTypes;
+	/** The short name of the event */
+	public final String shortName;
 	
 	/**
 	 * Indicates if this event type is targetted at search plugins

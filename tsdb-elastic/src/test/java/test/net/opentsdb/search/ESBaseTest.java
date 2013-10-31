@@ -37,12 +37,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.Notification;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.search.index.PercolateEvent;
 
@@ -275,44 +278,100 @@ public class ESBaseTest extends BaseTest {
 			return passed;
 		}
     }
+    
+    /**
+     * Returns the document ID for the passed annotation
+     * @param annotationType The annotation type name
+     * @param annotation the annotation to get the ID for
+     * @return the ID of the annotation
+     */
+    public String getAnnotationId(String annotationType, Annotation annotation) {
+    	return String.format("%s%s%s", annotationType, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
+    }
 	
 //	protected static final Logger LOG = Logger.getLogger("STDOUT");
 //	protected static final Logger LOGE = Logger.getLogger("STDERR");
 	
     /**
-     * Waits for the specified number of percolate events and then returns them as a collection
-     * @param matcher The ObjectName to match the events
-     * @param count The number of events to wait for
-     * @param timeout The timeout
-     * @param unit The timeout unit
-     * @return the collection of matching events
+     * <p>Title: DocEventWaiter</p>
+     * <p>Description: </p> 
+     * <p>Company: Helios Development Group LLC</p>
+     * @author Whitehead (nwhitehead AT heliosdev DOT org)
+     * <p><code>test.net.opentsdb.search.ESBaseTest.DocEventWaiter</code></p>
      */
-    public Collection<PercolateEvent> waitOnDocEvent(ObjectName matcher, int count, long timeout, TimeUnit unit) {
-    	final Set<PercolateEvent> events = new HashSet<PercolateEvent>(count);
-    	final TimeOutCountDownLatch latch = new TimeOutCountDownLatch(count);
-    	final WaitEventListener listener = new WaitEventListener(matcher, latch, events);
-    	JMXHelper.addNotificationListener(IndexOperations.OBJECT_NAME, listener, listener, null);
-    	final ScheduledFuture<?> handle = scheduler.schedule(new Runnable() {
-    		@Override
-    		public void run() {
-    			latch.kill();
-    			JMXHelper.removeNotificationListener(IndexOperations.OBJECT_NAME, listener);
-    		}
-    	}, timeout, unit);
-    	try {
-	    	if(latch.await(timeout, unit)) {
-	    		return events;
-	    	}
-	    	throw new RuntimeException("Thread Timed Out Waiting On PercolateEvents Matching [" + matcher + "]");
-    	} catch (InterruptedException iex) {
-    		/* Won't happen ... ? */
-    		throw new RuntimeException("Thread Interrupted While Waiting On PercolateEvents Matching [" + matcher + "]", iex);
-    	} finally {
-    		handle.cancel(true);
-    		try { JMXHelper.removeNotificationListener(IndexOperations.OBJECT_NAME, listener); } catch (Exception ex) {}    		
+    public class DocEventWaiter {
+    	/** The waiter latch */
+    	final TimeOutCountDownLatch latch;
+    	/** The collected events */
+    	final Set<PercolateEvent> events;
+    	/** The kill scheduled task handle */
+    	final ScheduledFuture<?> handle;
+    	/** The registered listener */
+    	final WaitEventListener listener;
+    	/** The timeout period to wait for the events */
+    	final long timeout;
+    	/** The timeout unit */
+    	final TimeUnit unit;
+    	/** The matcher ObjectName */
+    	final ObjectName matcher;
+    	
+    	/**
+    	 * Creates a new DocEventWaiter
+	     * @param matcher The ObjectName to match the events
+	     * @param count The number of events to wait for
+	     * @param timeout The timeout
+	     * @param unit The timeout unit
+    	 */
+    	DocEventWaiter(ObjectName matcher, int count, long timeout, TimeUnit unit) {
+    		this.timeout = timeout;
+    		this.unit = unit;
+    		this.matcher = matcher;
+        	events = new HashSet<PercolateEvent>(count);
+        	latch = new TimeOutCountDownLatch(count);
+        	listener = new WaitEventListener(matcher, latch, events);
+        	JMXHelper.addNotificationListener(IndexOperations.OBJECT_NAME, listener, listener, null);
+        	handle = scheduler.schedule(new Runnable() {
+        		@Override
+        		public void run() {
+        			latch.kill();
+        			JMXHelper.removeNotificationListener(IndexOperations.OBJECT_NAME, listener);
+        		}
+        	}, timeout, unit);    		
+    	}
+    	
+    	/**
+    	 * Cleans up the waiter 
+    	 */
+    	public void cleanup() {
+    		try { JMXHelper.removeNotificationListener(IndexOperations.OBJECT_NAME, listener); } catch (Exception ex) {}
+    	}
+    	
+    	/**
+    	 * Waits for the timeout period for the matching events to be delivered
+    	 * @return a collection of received PercolateEvents.
+    	 */
+    	Collection<PercolateEvent> waitForEvent() {
+        	try {
+    	    	if(latch.await(timeout, unit)) {
+    	    		return events;
+    	    	}
+    	    	throw new RuntimeException("Thread Timed Out Waiting On PercolateEvents Matching [" + matcher + "]");
+        	} catch (InterruptedException iex) {
+        		/* Won't happen ... ? */
+        		throw new RuntimeException("Thread Interrupted While Waiting On PercolateEvents Matching [" + matcher + "]", iex);
+        	} finally {
+        		handle.cancel(true);
+        		try { JMXHelper.removeNotificationListener(IndexOperations.OBJECT_NAME, listener); } catch (Exception ex) {}    		
+        	}    		
     	}
     }
     
+    
+    
+    /** Serial number factory for wait listeners */
+    private static final AtomicInteger LISTENER_SERIAL = new AtomicInteger();
+    /** The number of filter mismatches */
+    protected static final AtomicLong FILTER_FAILS = new AtomicLong();
     
     /**
      * <p>Title: WaitEventListener</p>
@@ -330,6 +389,8 @@ public class ESBaseTest extends BaseTest {
     	private final CountDownLatch latch;
     	/** The collection to put events into if they match */
     	private final Collection<PercolateEvent> events;
+    	/** The listener serial number */
+    	public final int serial = LISTENER_SERIAL.incrementAndGet();
 		/**
 		 * Creates a new WaitEventListener
 		 * @param matcher The ObjectName to match against in the filter
@@ -349,8 +410,14 @@ public class ESBaseTest extends BaseTest {
 		@Override
 		public boolean isNotificationEnabled(Notification notification) {
 			Object userData = notification.getUserData();
-			if(userData!=null && userData instanceof PercolateEvent) {				
-				return ((PercolateEvent)userData).matches(matcher);
+			if(userData!=null && userData instanceof PercolateEvent) {
+				PercolateEvent pe = (PercolateEvent)userData;
+				if(!matcher.apply(pe.getObjectName())) {
+					FILTER_FAILS.incrementAndGet();
+					log("Failed to match Percolate Events\n\t[%s]\nvs\n\t[%s]", matcher, pe.getObjectName());
+					return false;
+				}
+				return true;				
 			}
 			return false;
 		}
@@ -366,6 +433,55 @@ public class ESBaseTest extends BaseTest {
 				latch.countDown(); 				
 			} catch (Exception ex) {}			
 		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + serial;
+			return result;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			WaitEventListener other = (WaitEventListener) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (serial != other.serial)
+				return false;
+			return true;
+		}
+
+		private ESBaseTest getOuterType() {
+			return ESBaseTest.this;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return String.format("WaitEventListener [matcher=%s, serial=%s]",
+					matcher, serial);
+		}
+		
+		
     	
     }
 	

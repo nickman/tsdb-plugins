@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.search.index.ESInitializer;
 import net.opentsdb.search.index.IndexOperations;
+import net.opentsdb.stats.StatsCollector;
 
 import org.cliffc.high_scale_lib.Counter;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
@@ -109,10 +110,6 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The start latch */
 	protected CountDownLatch latch = new CountDownLatch(1);		
 	
-	/** A map of invocation counts for each operation handled by this handler */
-	protected final NonBlockingHashMap<TSDBEventType, Counter> invocationCounts = new NonBlockingHashMap<TSDBEventType, Counter>(TSDBEventType.values().length);
-	/** A map of elapsed time sliding windows for each operation handled by this handler */
-	protected final NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow> invocationTimes = new NonBlockingHashMap<TSDBEventType, ConcurrentLongSlidingWindow>(TSDBEventType.values().length);
 	
 	
 	/** The config property name for the comma separated list of elasticsearch URIs */
@@ -367,13 +364,16 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 		onEvent(event, -1L, false);
 	}
 
-	
+
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
 	 */
 	@Override	
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+		if(!event.eventType.isForSearch()) return;
+		incrCount(event);
+		final long start = System.currentTimeMillis();
 		switch(event.eventType) {
 		case ANNOTATION_DELETE:
 			indexOps.deleteAnnotation(event.annotation);
@@ -399,6 +399,20 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 		default:
 			break;			
 		}
+		elapsedTime(event, System.currentTimeMillis()-start);
+	}
+	
+	/**
+	 * <p>Submits performance and volume metrics for this handler</p>
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#collectStats(net.opentsdb.stats.StatsCollector)
+	 */
+	@Override
+	public void collectStats(StatsCollector collector) {		
+		//collector.addExtraTag("", "");
+		super.collectStats(collector);
+		//collector.clearExtraTag("");
+		
 	}
 
 	/**

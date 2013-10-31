@@ -242,8 +242,6 @@ public class TSDBEvent  {
 		case SEARCH:
 			b.append(searchQuery);
 			break;
-		case STATS_COLLECT:
-			break;
 		case TSMETA_DELETE:
 			b.append(tsuid);
 			break;

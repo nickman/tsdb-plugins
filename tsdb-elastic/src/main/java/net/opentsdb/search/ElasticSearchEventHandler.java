@@ -158,7 +158,7 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The config property name to specify the es ops timeout in ms. */
 	public static final String ES_OP_TIMEOUT = "es.tsd.search.elasticsearch.ops.timeout";
 	/** The default es ops timeout in ms. */
-	public static final long DEFAULT_ES_OP_TIMEOUT = 500;
+	public static final long DEFAULT_ES_OP_TIMEOUT = 1000;
 	
 	/**
 	 * Acquires the singleton instance

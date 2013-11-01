@@ -202,6 +202,9 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	 */
 	@Override
 	public void executeQuery(SearchQuery searchQuery , Deferred<SearchQuery> toComplete) {
+        long sequence = ringBuffer.next();
+        ringBuffer.get(sequence).executeQuery(searchQuery, toComplete);
+        ringBuffer.publish(sequence);
 	}
 
 	/**

@@ -27,6 +27,7 @@ package test.net.opentsdb.search;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.search.index.PercolateEvent;
 import net.opentsdb.utils.JSON;
@@ -55,7 +58,7 @@ import org.junit.Test;
 
 /**
  * <p>Title: SearchEventsTest</p>
- * <p>Description: Test cases for round-trip search events through ES.</p> 
+ * <p>Description: Test cases for round-trip search events through ES using the default EventBus async dispatcher</p> 
  * <p>For each of Annotation, TSMeta and UIDMeta:<ol>
  * 	<li>Async Publishing, validate via Percolate</li>
  * 	<li>Sync Publishing, validate via Percolate</li>
@@ -100,6 +103,12 @@ public class SearchEventsTest extends ESBaseTest {
 	/** The number of events to publish */
 	public static final int PUBLISH_COUNT = 1000;
 	
+	
+	/** The search config profile */
+	public static final String SEARCH_CONFIG = "ESSearchConfig";
+	
+
+	
 	/**
 	 * Initializes the environment for tests in this class
 	 */
@@ -107,7 +116,7 @@ public class SearchEventsTest extends ESBaseTest {
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;
 		createSearchShellJar();
-		tsdb = newTSDB("ESSearchConfig");
+		tsdb = newTSDB(SEARCH_CONFIG);
 		ElasticSearchEventHandler.waitForStart();
 		client = ElasticSearchEventHandler.getClient();
 		ioClient = ElasticSearchEventHandler.getInstance().getIndexOpsClient();
@@ -299,6 +308,59 @@ public class SearchEventsTest extends ESBaseTest {
 		}
 		Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified events", publishedEvents.isEmpty());
 	}
+
+	/**
+	 * Asynchronous Annotation indexing followed TSDB SearchQuery
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsynchronousAnnotationIndexingTsdbSearch() throws Exception {		
+		ioClient.setAsync(true);
+		ioClient.setPercolateEnabled(false);
+		Map<String, Annotation> publishedEvents = new HashMap<String, Annotation>(PUBLISH_COUNT);
+		for(int i = 0; i < PUBLISH_COUNT; i++) {
+			Annotation a = randomAnnotation(3);
+			String aId = getAnnotationId(annotationType, a);
+			publishedEvents.put(aId, a);
+			long start = System.currentTimeMillis();
+			tsdb.indexAnnotation(a);
+			elapsedTimes.insert(System.currentTimeMillis()-start);
+			publicationCount.incrementAndGet();
+		}
+		Assert.assertEquals("Unexpected number of events in prep-map", PUBLISH_COUNT, publishedEvents.size());
+		SearchQuery sq = new SearchQuery();
+		sq.setType(SearchType.ANNOTATION);
+		sq.setQuery("_type:" + annotationType);
+		sq.setLimit(PUBLISH_COUNT);
+		int loops = 0;
+		Set<String> verified = new HashSet<String>(PUBLISH_COUNT);
+		while(!publishedEvents.isEmpty()) {
+			try {
+				List<Object> results = tsdb.executeSearch(sq).joinUninterruptibly().getResults();
+				for(Object result: results) {
+					Assert.assertEquals("The result type was [" + result.getClass().getName() + "] not Annotation", Annotation.class, result.getClass());
+					Annotation b = (Annotation)result;
+					String id = getAnnotationId(b);
+					if(verified.contains(id)) continue;
+					Annotation a = publishedEvents.get(id);
+					Assert.assertNotNull("Retrieved Annotation (" + id + ") was null in loop [" + loops + "]", a);					
+					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
+					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
+					Assert.assertEquals("The annotation Description does not match", a.getDescription(), b.getDescription());
+					Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+					publishedEvents.remove(id);
+					verified.add(id);
+				}
+			} catch (Exception ex) {
+				loge("Verify Error:%s", ex);
+				if(loops>10) break;
+				Thread.sleep(300);				
+			}
+			log("Loop #%s: Cleared:%s Remaining:%s", loops, verified.size(), publishedEvents.size());
+			loops++;							
+		}
+		Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified events", publishedEvents.isEmpty());
+	}
 	
 	
 
@@ -328,12 +390,11 @@ public class SearchEventsTest extends ESBaseTest {
 	
     /**
      * Returns the document ID for the passed annotation
-     * @param annotationTypeName The ES annotation type name
      * @param annotation the annotation to get the ID for
      * @return the ID of the annotation
      */
-    public String getAnnotationId(String annotationTypeName, Annotation annotation) {
-    	return String.format("%s%s%s", annotationTypeName, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
+    public String getAnnotationId(Annotation annotation) {
+    	return String.format("%s%s%s", annotationType, annotation.getStartTime(), (annotation.getTSUID()==null ? "" : annotation.getTSUID()));
     }
     
 

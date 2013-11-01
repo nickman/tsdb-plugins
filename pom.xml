@@ -14,7 +14,7 @@
 		<module>spring-plugin</module>
 		<module>tsdb-elastic</module>
 		<module>tsdb-jdbc</module>
-		<!-- <module>tsdb-sql-catalog</module> -->
+		<module>tsdb-sqlcatalog</module>
 	</modules>
 	
     <properties>    	 
@@ -43,8 +43,8 @@
 		<spring.version>3.2.4.RELEASE</spring.version>
 		<httpcomponents.version>4.2.3</httpcomponents.version>
 		<httpfailover.version>1.0</httpfailover.version>
-    <h2.version>1.3.173</h2.version>
-    <activemq.version>5.8.0</activemq.version>
+		<h2.version>1.3.173</h2.version>
+		<activemq.version>5.8.0</activemq.version>
 		<camel.version>2.12.1</camel.version>
 		<groovy.version>2.1.6</groovy.version>
 		<camel-esper.version>2.10.6</camel-esper.version>

@@ -162,6 +162,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 			rpcService.stopAndWait();
 		}
 		rpcServices.clear();
+		plugins.clear();
 		log.info("All RPCServices stopped");
 		doPostShutdown();
 		log.info("\n\t====================================\n\tStopped PluginService [{}]\n\t====================================", getClass().getSimpleName());

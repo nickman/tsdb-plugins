@@ -304,7 +304,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
      * @param meta The meta data to publish
      */
     public void indexTSMeta(TSMeta meta) { 
-    	log.debug("Indexing TSMeta [{}]", meta);
+    	log.debug("Indexing TSMeta [{}] against [{}] using type [{}]", meta, tsMetaIndexName, tsMetaTypeName);
     	index(tsMetaIndexName, tsMetaTypeName, meta.getTSUID(), JSON.serializeToString(meta), async ? indexResponseListener : null);
     }
     

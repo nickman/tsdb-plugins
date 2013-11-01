@@ -38,6 +38,7 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerFactory;
 import javax.management.MBeanServerInvocationHandler;
+import javax.management.MalformedObjectNameException;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
@@ -351,6 +352,14 @@ public class JMXHelper {
 	public static ObjectName objectName(String format, Object...args) {
 		try {
 			return new ObjectName(String.format(format.trim(), args));
+		} catch (MalformedObjectNameException moex) {
+			if(moex.getMessage().startsWith("Invalid character")) {
+				for(int i = 0; i < args.length; i++) {
+					args[i] = ObjectName.quote(args[i].toString());
+				}
+				return objectName(String.format(format.trim(), args));
+			}
+			throw new RuntimeException("Failed to create Object Name", moex);
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to create Object Name", e);
 		}		

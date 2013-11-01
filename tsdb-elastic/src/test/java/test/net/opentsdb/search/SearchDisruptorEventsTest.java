@@ -27,7 +27,7 @@ package test.net.opentsdb.search;
 import net.opentsdb.search.ElasticSearchEventHandler;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
+
 
 
 /**
@@ -44,7 +44,7 @@ import org.junit.Ignore;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.SearchEventsTest</code></p>
  */
-@Ignore
+//@org.junit.Ignore()
 public class SearchDisruptorEventsTest extends SearchEventsTest {
 	/** The search config profile */
 	public static final String SEARCH_CONFIG = "ESSearchDisruptorConfig";
@@ -63,12 +63,12 @@ public class SearchDisruptorEventsTest extends SearchEventsTest {
 		annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
 		annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
 		annotationUIndex = ioClient.getIndexForAlias(annotationIndex);
-		uidMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
-		uidMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
-		uidMetaUIndex = ioClient.getIndexForAlias(uidMetaIndex);
-		tsMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
-		tsMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
+		tsMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
+		tsMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
 		tsMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
+		uidMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
+		uidMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
+		uidMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
 		log("\n\t=======================================\n\tSearchEventsTest Class Initalized\n\t=======================================");
 	}
 	

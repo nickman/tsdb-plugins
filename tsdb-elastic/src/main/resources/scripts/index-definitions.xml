@@ -63,7 +63,6 @@
 		<object name="tsmeta" index-ref="opentsdb_1"><![CDATA[
 			{
 			    "tsmeta": {
-			    	"dynamic": "strict",
 			        "properties": {
 			            "tsuid": {
 			                "type": "string",

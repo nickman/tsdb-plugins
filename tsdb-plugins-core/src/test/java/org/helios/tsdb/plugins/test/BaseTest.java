@@ -278,7 +278,7 @@ public class BaseTest {
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		if(!tearDownTSDBAfterTest) {
-			
+			shutdownTest();
 		}
 		log("Deleted Temp Plugin Dir:" + new File(TMP_PLUGIN_DIR).delete());
 		

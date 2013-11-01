@@ -103,6 +103,7 @@ public class PercolateEvent implements Serializable {
 	 * @return the ObjectName matcher
 	 */
 	public static ObjectName matcher(String id, String index, String type) {
+		
 		return JMXHelper.objectName(ON_TEMPLATE, id, index, type);
 	}
 	

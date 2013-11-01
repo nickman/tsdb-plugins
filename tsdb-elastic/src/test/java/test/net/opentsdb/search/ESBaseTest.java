@@ -355,7 +355,9 @@ public class ESBaseTest extends BaseTest {
     	    	if(latch.await(timeout, unit)) {
     	    		return events;
     	    	}
-    	    	throw new RuntimeException("Thread Timed Out Waiting On PercolateEvents Matching [" + matcher + "]");
+    	    	RuntimeException ex = new RuntimeException("Thread Timed Out Waiting On PercolateEvents Matching [" + matcher + "]");
+    	    	loge("WaitForEvent Failed", ex);
+    	    	throw ex;
         	} catch (InterruptedException iex) {
         		/* Won't happen ... ? */
         		throw new RuntimeException("Thread Interrupted While Waiting On PercolateEvents Matching [" + matcher + "]", iex);

@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.search.SearchQuery.SearchType;
@@ -99,7 +100,7 @@ public class SearchEventsTest extends ESBaseTest {
 	protected static IndexOperations ioClient = null;
 
 	/** The async wait time */
-	public static final long ASYNC_WAIT_TIMEOUT = 1000;
+	public static final long ASYNC_WAIT_TIMEOUT = 2000;
 	/** The number of events to publish */
 	public static final int PUBLISH_COUNT = 1000;
 	
@@ -123,12 +124,12 @@ public class SearchEventsTest extends ESBaseTest {
 		annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
 		annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
 		annotationUIndex = ioClient.getIndexForAlias(annotationIndex);
-		uidMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
-		uidMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
-		uidMetaUIndex = ioClient.getIndexForAlias(uidMetaIndex);
-		tsMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
-		tsMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
+		tsMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
+		tsMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
 		tsMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
+		uidMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
+		uidMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
+		uidMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
 		log("\n\t=======================================\n\tSearchEventsTest Class Initalized\n\t=======================================");
 	}
 	
@@ -214,10 +215,11 @@ public class SearchEventsTest extends ESBaseTest {
 				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client, ASYNC_WAIT_TIMEOUT);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
 				waiter.cleanup();
-				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
-				Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
-				Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
-				Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
+				Assert.assertEquals("The annotation TSUIDs do not match", a.getTSUID(), b.getTSUID());
+				Assert.assertEquals("The annotation Start Times do not match", a.getStartTime(), b.getStartTime());
+				Assert.assertEquals("The annotation Descriptions do not match", a.getDescription(), b.getDescription());
+				Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+				Assert.assertEquals("The annotation Customs do not match", a.getCustom(), b.getCustom());
 			}
 		} finally {
 			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
@@ -246,10 +248,11 @@ public class SearchEventsTest extends ESBaseTest {
 				Annotation b = waiter.waitForEvent().iterator().next().resolve(Annotation.class, client, ASYNC_WAIT_TIMEOUT);
 				elapsedTimes.insert(System.currentTimeMillis()-start);				
 				waiter.cleanup();
-				Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
-				Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
-				Assert.assertEquals("The annotation Start Time does not match", a.getDescription(), b.getDescription());
-				Assert.assertEquals("The annotation Start Time does not match", a.getNotes(), b.getNotes());
+				Assert.assertEquals("The annotation TSUIDs do not match", a.getTSUID(), b.getTSUID());
+				Assert.assertEquals("The annotation Start Times do not match", a.getStartTime(), b.getStartTime());
+				Assert.assertEquals("The annotation Descriptions do not match", a.getDescription(), b.getDescription());
+				Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+				Assert.assertEquals("The annotation Customs do not match", a.getCustom(), b.getCustom());
 			}
 		} finally {
 			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
@@ -291,10 +294,11 @@ public class SearchEventsTest extends ESBaseTest {
 					Annotation a = publishedEvents.get(id);
 					Assert.assertNotNull("Retrieved Annotation (" + id + ") was null in loop [" + loops + "]", a);
 					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
-					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
-					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
-					Assert.assertEquals("The annotation Description does not match", a.getDescription(), b.getDescription());
+					Assert.assertEquals("The annotation TSUIDs do not match", a.getTSUID(), b.getTSUID());
+					Assert.assertEquals("The annotation Start Times do not match", a.getStartTime(), b.getStartTime());
+					Assert.assertEquals("The annotation Descriptions do not match", a.getDescription(), b.getDescription());
 					Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+					Assert.assertEquals("The annotation Customs do not match", a.getCustom(), b.getCustom());
 					publishedEvents.remove(id);
 					verified.add(id);
 				}
@@ -344,10 +348,11 @@ public class SearchEventsTest extends ESBaseTest {
 					if(verified.contains(id)) continue;
 					Annotation a = publishedEvents.get(id);
 					Assert.assertNotNull("Retrieved Annotation (" + id + ") was null in loop [" + loops + "]", a);					
-					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
-					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
-					Assert.assertEquals("The annotation Description does not match", a.getDescription(), b.getDescription());
+					Assert.assertEquals("The annotation TSUIDs do not match", a.getTSUID(), b.getTSUID());
+					Assert.assertEquals("The annotation Start Times do not match", a.getStartTime(), b.getStartTime());
+					Assert.assertEquals("The annotation Descriptions do not match", a.getDescription(), b.getDescription());
 					Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+					Assert.assertEquals("The annotation Customs do not match", a.getCustom(), b.getCustom());
 					publishedEvents.remove(id);
 					verified.add(id);
 				}
@@ -362,6 +367,46 @@ public class SearchEventsTest extends ESBaseTest {
 		Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified events", publishedEvents.isEmpty());
 	}
 	
+	/**
+	 * Asynchronous TSMeta indexing with Percolate enabled 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsynchronousTSMetaIndexing() throws Exception {		
+		String queryName = null;
+		ioClient.setAsync(true);
+		ioClient.setPercolateEnabled(true);
+		try {
+			queryName = ioClient.registerPecolate(tsMetaIndex, QueryBuilders.fieldQuery("_type", tsMetaType));
+			for(int i = 0; i < PUBLISH_COUNT; i++) {
+				TSMeta t = randomTSMeta(3);
+				long start = System.currentTimeMillis();
+				String tId = t.getTSUID();
+				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(tId, tsMetaUIndex, tsMetaType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
+				tsdb.indexTSMeta(t);
+				publicationCount.incrementAndGet();
+				TSMeta t2 = waiter.waitForEvent().iterator().next().resolve(TSMeta.class, client, ASYNC_WAIT_TIMEOUT);
+				elapsedTimes.insert(System.currentTimeMillis()-start);				
+				waiter.cleanup();
+				Assert.assertEquals("The TSMeta TSUIDs do not match", t.getTSUID(), t2.getTSUID());
+				Assert.assertEquals("The TSMeta Create Times do not match", t.getCreated(), t2.getCreated());
+				Assert.assertEquals("The TSMeta descriptions do not match", t.getDescription(), t2.getDescription());
+				Assert.assertEquals("The TSMeta notes do not match", t.getNotes(), t2.getNotes());
+				Assert.assertEquals("The TSMeta customs do not match", t.getCustom(), t2.getCustom());
+				
+//				t.setCustom(custs);
+//			}
+//			t.setNotes(getRandomFragment());
+//			t.setDescription(getRandomFragment());
+//			t.setDisplayName(getRandomFragment());
+//			t.setCreated(nextPosLong());
+				
+			}
+		} finally {
+			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
+			
+		}
+	}
 	
 
 	/**
@@ -376,7 +421,7 @@ public class SearchEventsTest extends ESBaseTest {
 			HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
 			for(int c = 0; c < customs; c++) {
 				String[] frags = getRandomFragments();
-				custs.put("field#" + c, frags[1]);
+				custs.put("afield#" + c, frags[1]);
 			}
 			a.setCustom(custs);
 		}
@@ -386,6 +431,28 @@ public class SearchEventsTest extends ESBaseTest {
 		a.setEndTime(start + nextPosInt(10000));
 		a.setTSUID(getRandomFragment());
 		return a;
+	}
+	
+	/**
+	 * Creates a TSMeta with random content
+	 * @param customs The number of custom values
+	 * @return a TSMeta
+	 */
+	protected TSMeta randomTSMeta(int customs) {
+		TSMeta t = new TSMeta(getRandomFragment());
+		if(customs>0) {
+			HashMap<String, String> custs = new LinkedHashMap<String, String>(customs);
+			for(int c = 0; c < customs; c++) {
+				String[] frags = getRandomFragments();
+				custs.put("tfield#" + c, frags[1]);
+			}
+			t.setCustom(custs);
+		}
+		t.setNotes(getRandomFragment());
+		t.setDescription(getRandomFragment());
+		t.setDisplayName(getRandomFragment());
+		t.setCreated(nextPosLong());
+		return t;
 	}
 	
     /**

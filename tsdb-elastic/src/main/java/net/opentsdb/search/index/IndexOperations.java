@@ -284,7 +284,7 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 				watchedQueries.put(hit.getId(), hit.getSource().get("query").toString());
 				cnt++;
 			}
-			log.info("Loaded [{}] Existing Percolations");
+			log.info("Loaded [{}] Existing Percolations", cnt);
 		} catch (Exception ex) {
 			log.error("Failed to prepopulate percolates", ex);
 		}

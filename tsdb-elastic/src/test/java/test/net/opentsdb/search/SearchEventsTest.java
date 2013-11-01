@@ -25,7 +25,10 @@
 package test.net.opentsdb.search;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -33,11 +36,15 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.ElasticSearchEventHandler;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.search.index.PercolateEvent;
+import net.opentsdb.utils.JSON;
 
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -52,7 +59,7 @@ import org.junit.Test;
  * <p>For each of Annotation, TSMeta and UIDMeta:<ol>
  * 	<li>Async Publishing, validate via Percolate</li>
  * 	<li>Sync Publishing, validate via Percolate</li>
- * 	<li>Sync Publishing, validate response</li>
+ * 	<li>Async Publishing, validate via Requery</li>
  * 	<li>TSDB SearchQuery</li>
  * 	<li>Vary index config ? i.e. seperate index per type</li>
  * </ol></p>
@@ -90,6 +97,8 @@ public class SearchEventsTest extends ESBaseTest {
 
 	/** The async wait time */
 	public static final long ASYNC_WAIT_TIMEOUT = 1000;
+	/** The number of events to publish */
+	public static final int PUBLISH_COUNT = 1000;
 	
 	/**
 	 * Initializes the environment for tests in this class
@@ -176,7 +185,7 @@ public class SearchEventsTest extends ESBaseTest {
 	}
 	
 	/**
-	 * Asynchronous Annotation indexing 
+	 * Asynchronous Annotation indexing with Percolate enabled 
 	 * @throws Exception thrown on any error
 	 */
 	@Test
@@ -186,7 +195,7 @@ public class SearchEventsTest extends ESBaseTest {
 		ioClient.setPercolateEnabled(true);
 		try {
 			queryName = ioClient.registerPecolate(annotationIndex, QueryBuilders.fieldQuery("_type", annotationType));
-			for(int i = 0; i < 1000; i++) {
+			for(int i = 0; i < PUBLISH_COUNT; i++) {
 				Annotation a = randomAnnotation(3);
 				long start = System.currentTimeMillis();
 				String aId = getAnnotationId(annotationType, a);
@@ -208,7 +217,7 @@ public class SearchEventsTest extends ESBaseTest {
 	}
 	
 	/**
-	 * Ssynchronous Annotation indexing 
+	 * Ssynchronous Annotation indexing with percolation enabled 
 	 * @throws Exception thrown on any error
 	 */
 	@Test
@@ -218,7 +227,7 @@ public class SearchEventsTest extends ESBaseTest {
 		ioClient.setPercolateEnabled(true);
 		try {
 			queryName = ioClient.registerPecolate(annotationIndex, QueryBuilders.fieldQuery("_type", annotationType));
-			for(int i = 0; i < 1000; i++) {
+			for(int i = 0; i < PUBLISH_COUNT; i++) {
 				Annotation a = randomAnnotation(3);
 				long start = System.currentTimeMillis();
 				String aId = getAnnotationId(annotationType, a);
@@ -239,6 +248,57 @@ public class SearchEventsTest extends ESBaseTest {
 		}
 	}
 	
+	/**
+	 * Asynchronous Annotation indexing with Percolate disabled
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsynchronousAnnotationIndexingNoPerc() throws Exception {		
+		ioClient.setAsync(true);
+		ioClient.setPercolateEnabled(false);
+		Map<String, Annotation> publishedEvents = new HashMap<String, Annotation>(PUBLISH_COUNT);
+		for(int i = 0; i < PUBLISH_COUNT; i++) {
+			Annotation a = randomAnnotation(3);
+			String aId = getAnnotationId(annotationType, a);
+			publishedEvents.put(aId, a);
+			long start = System.currentTimeMillis();
+			tsdb.indexAnnotation(a);
+			elapsedTimes.insert(System.currentTimeMillis()-start);
+			publicationCount.incrementAndGet();
+		}
+		Assert.assertEquals("Unexpected number of events in prep-map", PUBLISH_COUNT, publishedEvents.size());
+		int loops = 0;
+		Set<String> verified = new HashSet<String>(PUBLISH_COUNT);
+		while(!publishedEvents.isEmpty()) {
+			try {
+				SearchResponse sr = client.prepareSearch(annotationIndex)
+						.setQuery(QueryBuilders.fieldQuery("_type", annotationType))
+						.setSize(PUBLISH_COUNT)
+						.execute().actionGet(ASYNC_WAIT_TIMEOUT);
+				SearchHits hits = sr.getHits();
+				for(SearchHit hit: hits) {
+					String id = hit.getId();
+					if(verified.contains(id)) continue;
+					Annotation a = publishedEvents.get(id);
+					Assert.assertNotNull("Retrieved Annotation (" + id + ") was null in loop [" + loops + "]", a);
+					Annotation b = JSON.parseToObject(hit.source(), Annotation.class);
+					Assert.assertEquals("The annotation TSUID does not match", a.getTSUID(), b.getTSUID());
+					Assert.assertEquals("The annotation Start Time does not match", a.getStartTime(), b.getStartTime());
+					Assert.assertEquals("The annotation Description does not match", a.getDescription(), b.getDescription());
+					Assert.assertEquals("The annotation Notes do not match", a.getNotes(), b.getNotes());
+					publishedEvents.remove(id);
+					verified.add(id);
+				}
+			} catch (Exception ex) {
+				loge("Verify Error:%s", ex);
+				if(loops>10) break;
+				Thread.sleep(300);				
+			}
+			log("Loop #%s: Cleared:%s Remaining:%s", loops, verified.size(), publishedEvents.size());
+			loops++;							
+		}
+		Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified events", publishedEvents.isEmpty());
+	}
 	
 	
 

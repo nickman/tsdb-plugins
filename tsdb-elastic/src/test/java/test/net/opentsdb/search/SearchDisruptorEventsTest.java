@@ -26,8 +26,8 @@ package test.net.opentsdb.search;
 
 import net.opentsdb.search.ElasticSearchEventHandler;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 
 /**
@@ -44,7 +44,7 @@ import org.junit.BeforeClass;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.SearchEventsTest</code></p>
  */
-
+@Ignore
 public class SearchDisruptorEventsTest extends SearchEventsTest {
 	/** The search config profile */
 	public static final String SEARCH_CONFIG = "ESSearchDisruptorConfig";

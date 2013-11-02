@@ -43,20 +43,16 @@ import net.opentsdb.search.index.ESInitializer;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.stats.StatsCollector;
 
-import org.cliffc.high_scale_lib.Counter;
-import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.helios.tsdb.plugins.event.TSDBEvent;
-import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
-import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
@@ -138,12 +134,12 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	/** The config property name for the elastic-search cluster name */
 	public static final String ES_CLUSTER_NAME = "es.tsd.search.elasticsearch.cluster.name";
 	/** The default name for the elastic-search cluster */
-	public static final String DEFAULT_ES_CLUSTER_NAME = "elasticsearch";
+	public static final String DEFAULT_ES_CLUSTER_NAME = "opentsdb";
 	
 	/** The config property name for the file name or URL of the index/type configuration XML */
 	public static final String ES_INDEX_CONFIG = "es.tsd.search.elasticsearch.indexconfig";
 	/** The default name for the elastic-search cluster */
-	public static final String DEFAULT_ES_INDEX_CONFIG = "classpath:scripts/index-definitions.xml";
+	public static final String DEFAULT_ES_INDEX_CONFIG = "classpath:/scripts/index-definitions.xml";
 
 	
 	
@@ -301,10 +297,11 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	 */
 	protected InputStream getXmlConfigStream() throws IOException {
 		if(indexConfig.startsWith("classpath:")) {
-			String resource = indexConfig.substring("classpath:".length());			
+			String resource = indexConfig.substring("classpath:".length());		
+			log.info("Looking Up Configuration Resource [{}]", resource);
 			InputStream is = getClass().getResourceAsStream(resource);
 			if(is==null) {
-				is = new FileInputStream("./src/main/resources/" + resource);
+				is = new FileInputStream("./src/main/resources" + resource);
 			}
 			return is;
 		}

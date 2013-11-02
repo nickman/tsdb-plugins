@@ -25,9 +25,12 @@
 package org.helios.tsdb.plugins.util;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+
 
 /**
  * <p>Title: SystemClock</p>
@@ -38,43 +41,110 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class SystemClock {
-//	public static class ElapsedTime {
-//		public final long startNs;
-//		public final long endNs;
-//		public final long elapsedNs;
-//		public final long elapsedMs;
-//		public volatile long lastLapNs = -1L;
-//		public volatile long elapsedSinceLastLapNs = -1L;
-//		public volatile long elapsedSinceLastLapMs = -1L;
-//		/** Holds the start last lap of an elapsed time measurement */
-//		private static final ThreadLocal<long[]> lapTime = new ThreadLocal<long[]>();
-//	
-//		static ElapsedTime newInstance(long endTime) {
-//			return newInstance(false, endTime);
-//		}
-//		
-//		static ElapsedTime newInstance(boolean lap, long endTime) {
-//			return new ElapsedTime(lap, endTime);
-//		}
-//		
-//		
-//		
-//		/** Some extended time unit entries */
-//		public static final Map<TimeUnit, String> UNITS;
-//		
-//		static {
-//			Map<TimeUnit, String> tmp = new HashMap<TimeUnit, String>();
-//			tmp.put(TimeUnit.DAYS, "days");
-//			tmp.put(TimeUnit.HOURS, "hrs.");
-//			tmp.put(TimeUnit.MICROSECONDS, "us.");
-//			tmp.put(TimeUnit.MILLISECONDS, "ms.");
-//			tmp.put(TimeUnit.MINUTES, "min.");
-//			tmp.put(TimeUnit.NANOSECONDS, "ns.");
-//			tmp.put(TimeUnit.SECONDS, "s.");
-//			UNITS = Collections.unmodifiableMap(tmp);
-//			
-//		}
-//		
+	
+	/**
+	 * Starts a new timer
+	 * @return the elapsed time object on which elapsed times can be drawn
+	 */
+	public static ElapsedTime startClock() {
+		return new ElapsedTime();
+	}
+	
+	/**
+	 * Returns the current time in ms.
+	 * @return the current time in ms.
+	 */
+	public static long time() {
+		return System.currentTimeMillis();
+	}
+	
+	/**
+	 * Returns the current time in Unix Time (s.)
+	 * @return the current time in Unix Time
+	 */
+	public static long unixTime() {
+		return TimeUnit.SECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+	}
+	
+	
+	/**
+	 * Returns the relative time in ns.
+	 * @return the relative time in ms.
+	 */
+	public static long timens() {
+		return System.nanoTime();
+	}
+	
+	
+	
+	
+	/**
+	 * <p>Title: ElapsedTime</p>
+	 * <p>Description: An elapsed time reporter</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.tsdb.plugins.util.SystemClock.ElapsedTime</code></p>
+	 * TODO: Lots....
+	 * Format multiple time units, avg units
+	 * Lap times
+	 */
+	public static class ElapsedTime {
+		/** The start time in ns. */
+		public final long startNs;
+		/** The last lap end time in ns. */
+		public long endNs;
+	
+		/**
+		 * Creates a new ElapsedTime
+		 */
+		private ElapsedTime(){
+			startNs = System.nanoTime();
+		}
+		
+		/**
+		 * Returns the start time in ns.
+		 * @return the start time in ns.
+		 */
+		public long startTime() {
+			return startNs;
+		}
+		
+		/**
+		 * Returns the start time in ms.
+		 * @return the start time in ms.
+		 */
+		public long startTimeMs() {
+			return TimeUnit.MILLISECONDS.convert(startNs, TimeUnit.NANOSECONDS);
+		}
+		
+		/**
+		 * Returns the start time in s.
+		 * @return the start time in s.
+		 */
+		public long startTimeS() {
+			return TimeUnit.SECONDS.convert(startNs, TimeUnit.NANOSECONDS);
+		}
+		
+		
+		
+		
+		/** Some extended time unit entries */
+		public static final Map<TimeUnit, String> UNITS;
+		
+		static {
+			Map<TimeUnit, String> tmp =  new EnumMap<TimeUnit, String>(TimeUnit.class);
+			tmp.put(TimeUnit.DAYS, "days");
+			tmp.put(TimeUnit.HOURS, "hrs.");
+			tmp.put(TimeUnit.MICROSECONDS, "us.");
+			tmp.put(TimeUnit.MILLISECONDS, "ms.");
+			tmp.put(TimeUnit.MINUTES, "min.");
+			tmp.put(TimeUnit.NANOSECONDS, "ns.");
+			tmp.put(TimeUnit.SECONDS, "s.");
+			UNITS = Collections.unmodifiableMap(tmp);			
+		}
+		
+		
+		
 //		private ElapsedTime(boolean lap, long endTime) {
 //			endNs = endTime;
 //			startNs = timerStart.get()[0];
@@ -96,62 +166,88 @@ public class SystemClock {
 //			}
 //			 
 //		}
-//		/**
-//		 * Returns the average elapsed time in ms. for the passed number of events
-//		 * @param cnt The number of events
-//		 * @return The average elapsed time in ms.
-//		 */
-//		public long avgMs(double cnt) {
-//			return _avg(elapsedMs, cnt);
-//		}
-//		
-//		/**
-//		 * Returns the average elapsed time in ns. for the passed number of events
-//		 * @param cnt The number of events
-//		 * @return The average elapsed time in ns.
-//		 */
-//		public long avgNs(double cnt) {
-//			return _avg(elapsedNs, cnt);
-//		}
-//		
-//		
-//		private long _avg(double time, double cnt) {
-//			if(time==0 || cnt==0 ) return 0L;
-//			double d = time/cnt;
-//			return Math.round(d);
-//		}
-//		
-//		
-//		public String toString() {
-//			StringBuilder b = new StringBuilder("[");
-//			b.append(elapsedNs).append("] ns.");
-//			b.append(" / [").append(elapsedMs).append("] ms.");
-//			if(elapsedSinceLastLapNs!=-1L) {
-//				b.append("  Elapsed Lap: [").append(elapsedSinceLastLapNs).append("] ns. / [").append(elapsedSinceLastLapMs).append("] ms.");
-//				
-//			}
-//			return b.toString();
-//		}
-//		
-//		public long elapsed() {
-//			return elapsed(TimeUnit.NANOSECONDS);
-//		}
-//		
-//		public long elapsed(TimeUnit unit) {
-//			if(unit==null) unit = TimeUnit.NANOSECONDS;
-//			return unit.convert(elapsedNs, TimeUnit.NANOSECONDS);
-//		}
-//		
-//		public String elapsedStr(TimeUnit unit) {
-//			if(unit==null) unit = TimeUnit.NANOSECONDS;
-//			return new StringBuilder("[").append(unit.convert(elapsedNs, TimeUnit.NANOSECONDS)).append("] ").append(UNITS.get(unit)).toString();
-//		}
-//
-//		public String elapsedStr() {			
-//			return elapsedStr(TimeUnit.NANOSECONDS);
-//		}
-//		
-//	}
-//	
+		/**
+		 * Returns the average elapsed time in ms. for the passed number of events
+		 * @param cnt The number of events
+		 * @return The average elapsed time in ms.
+		 */
+		public long avgMs(double cnt) {
+			
+			return _avg(elapsed(TimeUnit.MILLISECONDS), cnt);
+		}
+		
+		/**
+		 * Returns the average elapsed time in ns. for the passed number of events
+		 * @param cnt The number of events
+		 * @return The average elapsed time in ns.
+		 */
+		public long avgNs(double cnt) {
+			long elapsedNs = System.nanoTime()-startNs;
+			return _avg(elapsedNs, cnt);
+		}
+		
+		
+		private long _avg(double time, double cnt) {
+			if(time==0 || cnt==0 ) return 0L;
+			double d = time/cnt;
+			return Math.round(d);
+		}
+		
+		/**
+		 * Returns the elapsed time since start in ns.
+		 * @return elapsed ns.
+		 */
+		public long elapsed() {
+			return elapsed(TimeUnit.NANOSECONDS);
+		}
+		
+		/**
+		 * Returns the elapsed time since start in ms.
+		 * @return elapsed ms.
+		 */
+		public long elapsedMs() {
+			return elapsed(TimeUnit.MILLISECONDS);
+		}
+		
+		/**
+		 * Returns the elapsed time since start in s.
+		 * @return elapsed s.
+		 */
+		public long elapsedS() {
+			return elapsed(TimeUnit.SECONDS);
+		}
+		
+		/**
+		 * Returns the elapsed time since start in the passed unit
+		 * @param unit The unit to report elapsed time in
+		 * @return the elapsed time
+		 */
+		public long elapsed(TimeUnit unit) {
+			long elapsedNs = System.nanoTime()-startNs;
+			if(unit==null) unit = TimeUnit.NANOSECONDS;
+			return unit.convert(elapsedNs, TimeUnit.NANOSECONDS);
+		}
+		
+		/**
+		 * Returns the decorated elapsed time since start in the passed unit
+		 * @param unit The unit to report elapsed time in
+		 * @return the decorated elapsed time 
+		 */
+		public String elapsedStr(TimeUnit unit) {
+			long elapsedNs = System.nanoTime()-startNs;
+			if(unit==null) unit = TimeUnit.NANOSECONDS;
+			return new StringBuilder("[").append(unit.convert(elapsedNs, TimeUnit.NANOSECONDS)).append("] ").append(UNITS.get(unit)).toString();
+		}
+
+		/**
+		 * Returns the decorated elapsed time since start in ns.
+		 * @return the decorated elapsed time since start in ns.
+		 */
+		public String elapsedStr() {			
+			return elapsedStr(TimeUnit.NANOSECONDS);
+		}
+		
+	}
+	
 
 }

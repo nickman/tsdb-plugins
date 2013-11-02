@@ -22,41 +22,23 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package stats;
-
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package org.helios.tsdb.plugins.stats;
 
 /**
- * <p>Title: PluginMetric</p>
- * <p>Description: Runtime visible annotation to describe a metric which is provided by a plugin component
- * which is aggregated through the component's {@link ComponentStatsAccumulator} and published on periodic
- * TSDB stat collection callbacks. Modelled directly after <b><code>org.springframework.jmx.export.annotation.ManagedMetric</code></b>.</p> 
+ * <p>Title: ComponentStatsAccumulator</p>
+ * <p>Description: Accepts individual named stats dropped from the owning component and provides aggregated stats flushes to the TSDB on collections.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>stats.PluginMetric</code></p>
+ * <p><code>stats.ComponentStatsAccumulator</code></p>
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-public @interface PluginMetric {
-	
-	String category() default "";
 
-	int currencyTimeLimit() default -1;
+public class ComponentStatsAccumulator {
 
-	String description() default "";
+	/**
+	 * Creates a new ComponentStatsAccumulator
+	 */
+	public ComponentStatsAccumulator() {
+		// TODO Auto-generated constructor stub
+	}
 
-	String displayName() default "";
-
-	MetricType metricType() default MetricType.GAUGE;
-
-	int persistPeriod() default -1;
-
-	String persistPolicy() default "";
-
-	String unit() default "";
 }

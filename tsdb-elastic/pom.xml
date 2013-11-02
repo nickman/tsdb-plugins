@@ -236,6 +236,35 @@
                 </properties>
             </configuration>
         </plugin>	    
+		    <!-- 
+		    	Shade Plugin.
+		    	This thing is a PITA, but it's all there is
+		     -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+			  	<artifactId>maven-shade-plugin</artifactId>
+	        	<executions>
+	          		<execution>
+	            		<phase>package</phase>
+			            <goals>
+			              <goal>shade</goal>
+			            </goals>
+			            <configuration>
+			              <artifactSet>
+			                <excludes>
+			                </excludes>
+			              </artifactSet>
+					    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+					    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						<includePluginDependencies>false</includePluginDependencies>
+						<transformers>
+			            	<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">			                	
+			                </transformer>
+			              </transformers>
+			            </configuration>
+			          </execution>
+			        </executions>
+			      </plugin>
         </plugins>
     </build>
 

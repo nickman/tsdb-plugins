@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package stats;
+package org.helios.tsdb.plugins.stats;
 
 /**
  * <p>Title: PluginMetricImpl</p>

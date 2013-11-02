@@ -58,6 +58,7 @@
 		<eclipse-plugin.version>2.9</eclipse-plugin.version>
 		<surefire.version>2.16</surefire.version>
 		<cobertura.version>2.5.1</cobertura.version>
+		<shade.version>2.1</shade.version>
     </properties>
     
 <repositories>
@@ -137,14 +138,12 @@
 			  <groupId>org.apache.lucene</groupId>
 			  <artifactId>lucene-core</artifactId>
 			  <version>${lucene.version}</version>
-			  <scope>test</scope>
 			</dependency>				
         
 			<dependency>
 			  <groupId>org.apache.lucene</groupId>
 			  <artifactId>lucene-analyzers-common</artifactId>
 			  <version>${lucene.version}</version>
-			  <scope>test</scope>
 			</dependency>				
 		
 			<dependency>
@@ -607,7 +606,11 @@
 	     <artifactId>maven-surefire-plugin</artifactId>
 	     <version>${surefire.version}</version>
 	</plugin>
-	    
+	<plugin>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-shade-plugin</artifactId>
+	  <version>${shade.version}</version>
+	</plugin>
 	    
         </plugins>
     </build>

@@ -27,8 +27,6 @@ package org.helios.tsdb.plugins.test;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilterOutputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -53,6 +51,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.tsd.RTPublisher;
+import net.opentsdb.tsd.RpcPlugin;
 import net.opentsdb.utils.Config;
 
 import org.hbase.async.HBaseClient;
@@ -62,6 +61,7 @@ import org.helios.tsdb.plugins.handlers.impl.QueuedResultPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.impl.QueuedResultSearchEventHandler;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.shell.Publisher;
+import org.helios.tsdb.plugins.shell.RpcService;
 import org.helios.tsdb.plugins.shell.Search;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -401,6 +401,12 @@ public class BaseTest {
 		createPluginJar(Publisher.class);
 	}
 	
+	/**
+	 * Creates an RPC plugin jar for the {@link RpcService} shell plugin
+	 */
+	public static void createRPCShellJar() {
+		createPluginJar(RpcService.class);
+	}
 	
 	/**
 	 * Creates a temp plugin jar in the plugin directory
@@ -410,6 +416,7 @@ public class BaseTest {
 		FileOutputStream fos = null;
 		JarOutputStream jos = null;
 		try {
+			new File(TMP_PLUGIN_DIR).mkdirs();
 			File jarFile = new File(TMP_PLUGIN_DIR + "/" + plugin.getSimpleName() + ".jar");
 			log("Temp JAR File:" + jarFile.getAbsolutePath());
 			TO_BE_DELETED.add(jarFile);
@@ -432,6 +439,13 @@ public class BaseTest {
 				jos.flush();
 				jos.closeEntry();				
 			}
+			if(RpcPlugin.class.isAssignableFrom(plugin)) {
+				jos.putNextEntry(new ZipEntry("META-INF/services/net.opentsdb.tsd.RpcPlugin"));
+				jos.write((plugin.getName() + "\n").getBytes());
+				jos.flush();
+				jos.closeEntry();				
+			}
+			
 			jos.flush();
 			jos.close();
 			fos.flush();

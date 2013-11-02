@@ -134,6 +134,7 @@ public class SearchEventsTest extends ESBaseTest {
 	}
 	
     /**
+     * 
      * @param client
      * @param names
      */
@@ -393,19 +394,95 @@ public class SearchEventsTest extends ESBaseTest {
 				Assert.assertEquals("The TSMeta descriptions do not match", t.getDescription(), t2.getDescription());
 				Assert.assertEquals("The TSMeta notes do not match", t.getNotes(), t2.getNotes());
 				Assert.assertEquals("The TSMeta customs do not match", t.getCustom(), t2.getCustom());
-				
-//				t.setCustom(custs);
-//			}
-//			t.setNotes(getRandomFragment());
-//			t.setDescription(getRandomFragment());
-//			t.setDisplayName(getRandomFragment());
-//			t.setCreated(nextPosLong());
-				
 			}
 		} finally {
 			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
-			
 		}
+	}
+	
+	/**
+	 * Synchronous TSMeta indexing with Percolate enabled 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testSynchronousTSMetaIndexing() throws Exception {		
+		String queryName = null;
+		ioClient.setAsync(false);
+		ioClient.setPercolateEnabled(true);
+		try {		
+			queryName = ioClient.registerPecolate(tsMetaIndex, QueryBuilders.fieldQuery("_type", tsMetaType));
+			for(int i = 0; i < PUBLISH_COUNT; i++) {
+				TSMeta t = randomTSMeta(3);
+				long start = System.currentTimeMillis();
+				String tId = t.getTSUID();
+				DocEventWaiter waiter = new DocEventWaiter(PercolateEvent.matcher(tId, tsMetaUIndex, tsMetaType), 1, ASYNC_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
+				tsdb.indexTSMeta(t);
+				publicationCount.incrementAndGet();
+				TSMeta t2 = waiter.waitForEvent().iterator().next().resolve(TSMeta.class, client, ASYNC_WAIT_TIMEOUT);
+				elapsedTimes.insert(System.currentTimeMillis()-start);				
+				waiter.cleanup();
+				Assert.assertEquals("The TSMeta TSUIDs do not match", t.getTSUID(), t2.getTSUID());
+				Assert.assertEquals("The TSMeta Create Times do not match", t.getCreated(), t2.getCreated());
+				Assert.assertEquals("The TSMeta descriptions do not match", t.getDescription(), t2.getDescription());
+				Assert.assertEquals("The TSMeta notes do not match", t.getNotes(), t2.getNotes());
+				Assert.assertEquals("The TSMeta customs do not match", t.getCustom(), t2.getCustom());
+			}
+		} finally {
+			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Aynchronous TSMeta indexing with Percolate disabled 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsynchronousTSMetaIndexingNoPerc() throws Exception {		
+		ioClient.setAsync(true);
+		ioClient.setPercolateEnabled(false);
+		Map<String, TSMeta> publishedEvents = new HashMap<String, TSMeta>(PUBLISH_COUNT);
+		for(int i = 0; i < PUBLISH_COUNT; i++) {
+			TSMeta t = randomTSMeta(3);
+			String tId = t.getTSUID();
+			publishedEvents.put(tId, t);
+			long start = System.currentTimeMillis();
+			tsdb.indexTSMeta(t);
+			elapsedTimes.insert(System.currentTimeMillis()-start);
+			publicationCount.incrementAndGet();
+		}
+		Assert.assertEquals("Unexpected number of events in prep-map", PUBLISH_COUNT, publishedEvents.size());
+		int loops = 0;
+		Set<String> verified = new HashSet<String>(PUBLISH_COUNT);
+		while(!publishedEvents.isEmpty()) {
+			try {
+				SearchResponse sr = client.prepareSearch(tsMetaIndex)
+						.setQuery(QueryBuilders.fieldQuery("_type", tsMetaType))
+						.setSize(PUBLISH_COUNT)
+						.execute().actionGet(ASYNC_WAIT_TIMEOUT);
+				SearchHits hits = sr.getHits();
+				for(SearchHit hit: hits) {
+					String id = hit.getId();
+					if(verified.contains(id)) continue;
+					TSMeta t = publishedEvents.get(id);
+					Assert.assertNotNull("Retrieved TSMeta (" + id + ") was null in loop [" + loops + "]", t);
+					TSMeta t2 = JSON.parseToObject(hit.source(), TSMeta.class);
+					Assert.assertEquals("The TSMeta TSUIDs do not match", t.getTSUID(), t2.getTSUID());
+					Assert.assertEquals("The TSMeta Create Times do not match", t.getCreated(), t2.getCreated());
+					Assert.assertEquals("The TSMeta descriptions do not match", t.getDescription(), t2.getDescription());
+					Assert.assertEquals("The TSMeta notes do not match", t.getNotes(), t2.getNotes());
+					Assert.assertEquals("The TSMeta customs do not match", t.getCustom(), t2.getCustom());
+					publishedEvents.remove(id);
+					verified.add(id);
+				}
+			} catch (Exception ex) {
+				loge("Verify Error:%s", ex);
+				if(loops>10) break;
+				Thread.sleep(300);				
+			}
+			log("Loop #%s: Cleared:%s Remaining:%s", loops, verified.size(), publishedEvents.size());
+			loops++;							
+		}
+		Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified events", publishedEvents.isEmpty());
 	}
 	
 

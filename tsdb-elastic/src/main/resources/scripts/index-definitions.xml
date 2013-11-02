@@ -17,7 +17,6 @@
 		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
 			{
 			    "uidmeta": {
-			    	 "dynamic": "strict",
 			        "properties": {
 			            "uid": {
 			                "type": "string",

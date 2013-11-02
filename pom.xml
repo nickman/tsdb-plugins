@@ -57,6 +57,7 @@
 		<jar-plugin.version>2.4</jar-plugin.version>
 		<eclipse-plugin.version>2.9</eclipse-plugin.version>
 		<surefire.version>2.16</surefire.version>
+		<cobertura.version>2.5.1</cobertura.version>
     </properties>
     
 <repositories>
@@ -576,6 +577,17 @@
 		  <forceCreation>true</forceCreation>
 		</configuration>
 	    </plugin>
+	    <plugin>
+		<groupId>org.codehaus.mojo</groupId>
+		<artifactId>cobertura-maven-plugin</artifactId>
+		<version>${cobertura.version}</version>
+		<configuration>
+		  <formats>
+		    <format>html</format>
+		    <format>xml</format>
+		  </formats>
+		</configuration>
+	      </plugin>	    
 	    <plugin>
 		<groupId>org.apache.maven.plugins</groupId>
 		<artifactId>maven-eclipse-plugin</artifactId>

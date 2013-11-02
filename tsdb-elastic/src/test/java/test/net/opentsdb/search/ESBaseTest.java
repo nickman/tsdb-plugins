@@ -73,6 +73,8 @@ public class ESBaseTest extends BaseTest {
 	public static File ES_HOME_CONFIG = null;
 	/** The embedded test ES log directory */
 	public static File ES_HOME_LOG = null;
+	/** The embedded test ES data directory */
+	public static File ES_HOME_DATA = null;
 	
 	/** Indicates if the ES instance is started */
 	public static boolean ES_STARTED = false;
@@ -82,7 +84,7 @@ public class ESBaseTest extends BaseTest {
 	/** The sysprop defining the home dir for ES */
 	public static final String ES_PATH_HOME_PROP = "es.path.home";
 	/** The URL for the ES Status */
-	public static final String ES_STATUS_URL = "http://localhost:8200/_status";
+	public static final String ES_STATUS_URL = "http://localhost:9200/_status";
 	
 	//==============================================================================================
 	/*
@@ -126,7 +128,15 @@ public class ESBaseTest extends BaseTest {
 			ES_HOME_CONFIG = new File(ES_HOME.getAbsolutePath() + File.separator + "config");
 			ES_HOME_CONFIG.mkdir();
 			ES_HOME_LOG = new File(ES_HOME.getAbsolutePath() + File.separator + "logs");
-			ES_HOME_LOG.mkdir();			
+			ES_HOME_LOG.mkdir();
+			ES_HOME_DATA = new File(ES_HOME.getAbsolutePath() + File.separator + "data");
+			ES_HOME_DATA.mkdir();			
+			
+			System.setProperty("path.logs", ES_HOME_LOG.getAbsolutePath());
+			System.setProperty("cluster.name", "opentsdb");
+			System.setProperty("es.logger.level", "DEBUG");
+			
+			
 			log("ES HOME:[%s]", ES_HOME);
 			copyFile("./src/test/java/es-config/home/config/elasticsearch.yml", ES_HOME_CONFIG.getAbsolutePath() + File.separator + "elasticsearch.yml");
 			copyFile("./src/test/java/es-config/home/config/logging.yml", ES_HOME_CONFIG.getAbsolutePath() + File.separator + "logging.yml");
@@ -152,27 +162,21 @@ public class ESBaseTest extends BaseTest {
 						break;
 					}
 				} catch (Exception ex) {	
-					Thread.currentThread().join(100);
+					Thread.currentThread().join(1000);
 				}
 			}
 			if(!ES_STARTED) {
 				throw new Exception("ES Failed to start");
 			}
-			log("ES Started");
-			Thread.currentThread().join(10000);			
-			ES_BOOT_THREAD.join();
-			loge("ES Stopped");
-			
+			log("ES Started  ----  Home:" + ES_HOME);
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to boot ES test instance", ex);
-		} finally {
-			stopEs();
-			cleanup();
 		}
 	}
 	
 	public static void stopEs() {
-		ElasticSearch.close(new String[]{});		
+		ElasticSearch.close(new String[]{});
+		cleanup();
 	}
 	
 	public static void cleanup() {

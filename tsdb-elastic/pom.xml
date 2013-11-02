@@ -64,7 +64,31 @@
 		  <groupId>org.apache.lucene</groupId>
 		  <artifactId>lucene-analyzers-common</artifactId>
 		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-join</artifactId>
+		</dependency>				
 	
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-queryparser</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-highlighter</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-suggest</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-codecs</artifactId>
+		</dependency>				
 
       <!--
 	  ====
@@ -184,6 +208,21 @@
 		<groupId>org.apache.maven.plugins</groupId>
 		<artifactId>maven-jar-plugin</artifactId>
 	    </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+                <properties>
+                	<!--
+                    <property>
+                    	 
+                        <name>listener</name>
+                        <value>test.net.opentsdb.search.util.ESTestRunListener</value>
+                    </property>
+                    -->
+                </properties>
+            </configuration>
+        </plugin>	    
         </plugins>
     </build>
 

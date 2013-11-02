@@ -277,8 +277,10 @@ public class BaseTest {
 	 */
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		log("\t\t----->> TearDown After Class:%s", !tearDownTSDBAfterTest);
 		if(!tearDownTSDBAfterTest) {
 			shutdownTest();
+			log("AfterClass Shutdown Complete");
 		}
 		log("Deleted Temp Plugin Dir:" + new File(TMP_PLUGIN_DIR).delete());
 		
@@ -300,7 +302,10 @@ public class BaseTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		if(tearDownTSDBAfterTest) shutdownTest();
+		log("\t\t----->> TearDown After Test:%s", tearDownTSDBAfterTest);
+		if(tearDownTSDBAfterTest) {			
+			shutdownTest();
+		}
 	}
 	
 	static void shutdownTest() {
@@ -323,6 +328,7 @@ public class BaseTest {
 //		shutdownMethod.setAccessible(true);
 		try {
 			stopTSDB();
+			log("Stopped TSDB");
 		} catch (Exception ex) {
 			log("Failed to stop TSDB");
 		}

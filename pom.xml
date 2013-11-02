@@ -56,6 +56,7 @@
 		<javadoc-plugin.version>2.9</javadoc-plugin.version>
 		<jar-plugin.version>2.4</jar-plugin.version>
 		<eclipse-plugin.version>2.9</eclipse-plugin.version>
+		<surefire.version>2.16</surefire.version>
     </properties>
     
 <repositories>
@@ -135,15 +136,51 @@
 			  <groupId>org.apache.lucene</groupId>
 			  <artifactId>lucene-core</artifactId>
 			  <version>${lucene.version}</version>
+			  <scope>test</scope>
 			</dependency>				
         
 			<dependency>
 			  <groupId>org.apache.lucene</groupId>
 			  <artifactId>lucene-analyzers-common</artifactId>
 			  <version>${lucene.version}</version>
+			  <scope>test</scope>
 			</dependency>				
 		
-		
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-join</artifactId>
+			  <version>${lucene.version}</version>
+			  <scope>test</scope>
+			</dependency>				
+			
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-queryparser</artifactId>
+			  <version>${lucene.version}</version>
+			  <scope>test</scope>
+			</dependency>				
+			
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-highlighter</artifactId>
+			  <version>${lucene.version}</version>
+			  <scope>test</scope>
+			</dependency>				
+
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-suggest</artifactId>
+			  <version>${lucene.version}</version>
+			  <scope>test</scope>
+			</dependency>				
+
+			<dependency>
+			  <groupId>org.apache.lucene</groupId>
+			  <artifactId>lucene-codecs</artifactId>
+			  <version>${lucene.version}</version>
+			  <scope>test</scope>
+			</dependency>				
+			
       <!--
 	========================================
 	JDBC DB Artifacts
@@ -553,6 +590,12 @@
 		    </classpathContainers>
 		</configuration>
 	    </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+	     <artifactId>maven-surefire-plugin</artifactId>
+	     <version>${surefire.version}</version>
+	</plugin>
+	    
 	    
         </plugins>
     </build>

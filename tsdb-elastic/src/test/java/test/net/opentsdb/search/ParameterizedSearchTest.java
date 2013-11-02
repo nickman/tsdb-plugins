@@ -24,9 +24,12 @@
  */
 package test.net.opentsdb.search;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,8 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.ElasticSearchEventHandler;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.search.index.PercolateEvent;
 import net.opentsdb.uid.UniqueId;
@@ -96,8 +101,9 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	/** The number of events to publish */
 	public static final int PUBLISH_COUNT = 1000;
 	
-	/** The search config profile */
-	public static final String SEARCH_CONFIG = "ESSearchConfig";
+	/** The maximum number of retrieval loops to allow */
+	public static final int MAX_RLOOPS = PUBLISH_COUNT;
+
 	
 	/** he unique UID types */
 	protected static final UniqueId.UniqueIdType[] UID_TYPES = UniqueId.UniqueIdType.values();
@@ -106,13 +112,20 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	protected static final Map<Class<?>, String[]> INDEX_AND_TYPE = new HashMap<Class<?>, String[]>(3);
 	
 	/**
+	 * Configures the TSDB for all tests in this class.
+	 */
+	protected static void configureTSDB() {
+		tsdb = newTSDB("ESSearchConfig");
+	}
+	
+	/**
 	 * Initializes the environment for tests in this class
 	 */
 	@BeforeClass
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;
 		createSearchShellJar();
-		tsdb = newTSDB(SEARCH_CONFIG);
+		configureTSDB();
 		ElasticSearchEventHandler.waitForStart();
 		client = ElasticSearchEventHandler.getClient();
 		ioClient = ElasticSearchEventHandler.getInstance().getIndexOpsClient();
@@ -146,10 +159,11 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	
 	/**
 	 * Cleans the environment after tests in this class
+	 * @throws Exception thrown on any error
 	 */
 	@AfterClass
-	public static void shutdown() {
-		
+	public static void shutdown() throws Exception {
+		tearDownAfterClass();
 		if(client!=null) try { client.close(); } catch (Exception ex) {/* No Op */}
 		log("\n\t=======================================\n\tSearchEventsTest Class Torn Down\n\t=======================================");
 	}
@@ -203,7 +217,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncAnnotationIndexing() throws Exception {
-		test(Annotation.class, true, true, annotationType, annotationIndex, annotationUIndex);
+		test(Annotation.class, true, true, false, annotationType, annotationIndex, annotationUIndex);
 	}
 	
 	/**
@@ -212,7 +226,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testSyncAnnotationIndexing() throws Exception {
-		test(Annotation.class, false, true, annotationType, annotationIndex, annotationUIndex);
+		test(Annotation.class, false, true, false, annotationType, annotationIndex, annotationUIndex);
 	}
 
 	/**
@@ -221,8 +235,18 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncAnnotationIndexingNoPerc() throws Exception {
-		test(Annotation.class, true, false, annotationType, annotationIndex, annotationUIndex);
+		test(Annotation.class, true, false, false, annotationType, annotationIndex, annotationUIndex);
 	}
+	
+	/**
+	 * Tests asynchronous indexing of Annotations and retrieval through {@link net.opentsdb.core.TSDB#executeSearch(net.opentsdb.search.SearchQuery)} 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsyncAnnotationIndexingWithTSDBSearch() throws Exception {
+		test(Annotation.class, true, false, true, annotationType, annotationIndex, annotationUIndex);
+	}
+	
 	
 	// ==============================================================================================
 	//	UIDMeta Indexing Tests
@@ -234,7 +258,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncUIDMetaIndexing() throws Exception {
-		test(UIDMeta.class, true, true, uidMetaType, uidMetaIndex, uidMetaUIndex);
+		test(UIDMeta.class, true, true, false, uidMetaType, uidMetaIndex, uidMetaUIndex);
 	}
 	
 	/**
@@ -243,7 +267,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testSyncUIDMetaIndexing() throws Exception {
-		test(UIDMeta.class, false, true, uidMetaType, uidMetaIndex, uidMetaUIndex);
+		test(UIDMeta.class, false, true, false, uidMetaType, uidMetaIndex, uidMetaUIndex);
 	}
 
 	/**
@@ -252,7 +276,16 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncUIDMetaIndexingNoPerc() throws Exception {
-		test(UIDMeta.class, true, false, uidMetaType, uidMetaIndex, uidMetaUIndex);
+		test(UIDMeta.class, true, false, false, uidMetaType, uidMetaIndex, uidMetaUIndex);
+	}
+	
+	/**
+	 * Tests asynchronous indexing of UIDMetas and retrieval through {@link net.opentsdb.core.TSDB#executeSearch(net.opentsdb.search.SearchQuery)} 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsyncUIDMetaIndexingWithTSDBSearch() throws Exception {
+		test(UIDMeta.class, true, false, true, uidMetaType, uidMetaIndex, uidMetaUIndex);
 	}
 	
 	
@@ -266,7 +299,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncTSMetaIndexing() throws Exception {
-		test(TSMeta.class, true, true, tsMetaType, tsMetaIndex, tsMetaUIndex);
+		test(TSMeta.class, true, true, false, tsMetaType, tsMetaIndex, tsMetaUIndex);
 	}
 	
 	/**
@@ -275,7 +308,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testSyncTSMetaIndexing() throws Exception {
-		test(TSMeta.class, false, true, tsMetaType, tsMetaIndex, tsMetaUIndex);
+		test(TSMeta.class, false, true, false, tsMetaType, tsMetaIndex, tsMetaUIndex);
 	}
 
 	/**
@@ -284,8 +317,17 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 */
 	@Test
 	public void testAsyncTSMetaIndexingNoPerc() throws Exception {
-		test(TSMeta.class, true, false, tsMetaType, tsMetaIndex, tsMetaUIndex);
+		test(TSMeta.class, true, false, false, tsMetaType, tsMetaIndex, tsMetaUIndex);
 	}
+	
+	/**
+	 * Tests asynchronous indexing of TSMetas and retrieval through {@link net.opentsdb.core.TSDB#executeSearch(net.opentsdb.search.SearchQuery)} 
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testAsyncTSMetaIndexingWithTSDBSearch() throws Exception {
+		test(TSMeta.class, true, false, true, tsMetaType, tsMetaIndex, tsMetaUIndex);
+	}	
 	
 	// ==============================================================================================
 	//	Indexing Test Impls
@@ -296,15 +338,17 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	 * @param indexableType The java type of the indexable object (Annotation, TSMeta or UIDMeta)
 	 * @param async true for async, false for sync
 	 * @param percolate true to enable percolation, false to disable
+	 * @param tsdbSearch true to enable retrieval through {@link net.opentsdb.core.TSDB#executeSearch(net.opentsdb.search.SearchQuery)}, false otherwise
 	 * @param mappingType The es type mapping for the indexable type
 	 * @param aliasName The index alias name that the indexable type is indexed to
 	 * @param indexName The index actual name that the indexable type is indexed to
 	 * @throws Exception thrown on any error
 	 */
-	public <T> void test(Class<T> indexableType, boolean async, boolean percolate, String mappingType, String aliasName, String indexName) throws Exception {	
+	public <T> void test(Class<T> indexableType, boolean async, boolean percolate, boolean tsdbSearch, String mappingType, String aliasName, String indexName) throws Exception {	
 		String queryName = null;
 		Map<String, T> publishedEvents = null;
 		DocEventWaiter waiter = null;
+		int validatedEvents = 0;
 		final String className = indexableType.getSimpleName();
 		ioClient.setAsync(async);
 		ioClient.setPercolateEnabled(percolate);
@@ -331,7 +375,8 @@ public class ParameterizedSearchTest extends ESBaseTest {
 				if(percolate) {
 					T retrievedIndexable = waiter.waitForEvent().iterator().next().resolve(indexableType, client, ASYNC_WAIT_TIMEOUT);								
 					waiter.cleanup();
-					validate(indexable, retrievedIndexable);					
+					validate(indexable, retrievedIndexable);	
+					validatedEvents++;
 				}				
 			}
 			if(percolate) return;
@@ -343,38 +388,87 @@ public class ParameterizedSearchTest extends ESBaseTest {
 			Set<String> verified = new HashSet<String>(PUBLISH_COUNT);
 			while(!publishedEvents.isEmpty()) {
 				try {
-					SearchResponse sr = client.prepareSearch(indexName)
-							.setQuery(QueryBuilders.fieldQuery("_type", mappingType))
-							.setSize(PUBLISH_COUNT)
-							.execute().actionGet(ASYNC_WAIT_TIMEOUT);
-					SearchHits hits = sr.getHits();
-					for(SearchHit hit: hits) {
-						String id = hit.getId();
+					Collection<T> hits = tsdbSearch ? 
+							findEventsByES(indexableType, indexName, mappingType) :
+								findEventsByTSDB(indexableType, indexName, mappingType);
+					for(T hit: hits) {
+						String id = getId(hit);
 						if(verified.contains(id)) continue;
 						T t = publishedEvents.get(id);
 						Assert.assertNotNull("Retrieved [" + className + "] (" + id + ") was null in loop [" + loops + "]", t);
-						T t2 = JSON.parseToObject(hit.source(), indexableType);
-						validate(t, t2);
+						validate(t, hit);
+						validatedEvents++;
 						publishedEvents.remove(id);
 						verified.add(id);
 					}
 				} catch (Exception ex) {
 					loge("Verify Error:%s", ex);
-					if(loops>10) break;
+					if(loops>MAX_RLOOPS) break;
 					Thread.sleep(300);				
 				}
 				log("Loop #%s: Cleared:%s Remaining:%s", loops, verified.size(), publishedEvents.size());
-				loops++;							
-			}
+				loops++;		
+				if(loops>MAX_RLOOPS) break;
+			}			
 			Assert.assertTrue("There were [" + publishedEvents.size() + "] unverified [" + className + "] events", publishedEvents.isEmpty());
 			// ================================================
 			// All Tests Done Here
 			// ================================================
-
+			Assert.assertEquals("Unexpected number of validated events", PUBLISH_COUNT, validatedEvents);
 		} finally {
 			if(queryName!=null) try { ElasticSearchEventHandler.getInstance().getIndexOpsClient().removePercolate(queryName); } catch (Exception ex) {/* No Op */}			
 		}
 	}
+	
+	
+	/**
+	 * Uses the ES API to find all documents of the passed mapping type 
+	 * in the named index and returns them unmarshalled into objects of the passed type
+	 * @param indexableType The type to unmarshal documents into
+	 * @param indexName The index name to search
+	 * @param mappingType The mapping type to retreive documents for
+	 * @return a collection of found objects
+	 */
+	protected <T> Collection<T> findEventsByES(Class<T> indexableType, String indexName, String mappingType) {
+		SearchResponse sr = client.prepareSearch(indexName)
+				.setQuery(QueryBuilders.fieldQuery("_type", mappingType))
+				.setSize(PUBLISH_COUNT)
+				.execute().actionGet(ASYNC_WAIT_TIMEOUT);
+		SearchHits hits = sr.getHits();
+		List<T> foundEvents = new ArrayList<T>((int)hits.getTotalHits());
+		for(SearchHit hit: hits) {
+			foundEvents.add(JSON.parseToObject(hit.source(), indexableType));
+		}
+		return foundEvents;
+	}
+	
+	/**
+	 * Uses {@link net.opentsdb.core.TSDB#executeSearch(net.opentsdb.search.SearchQuery)} to find all documents 
+	 * of the passed mapping type in the named index and returns them unmarshalled into objects of the passed type
+	 * @param indexableType The type to unmarshal documents into
+	 * @param indexName The index name to search
+	 * @param mappingType The mapping type to retreive documents for
+	 * @return a collection of found objects
+	 * @throws Exception thrown on the wait on the deferred results
+	 */
+	protected <T> Collection<T> findEventsByTSDB(Class<T> indexableType, String indexName, String mappingType) throws Exception {
+		SearchType searchType = null;
+		if(Annotation.class.equals(indexableType)) {
+			searchType = SearchType.ANNOTATION;
+		} else if(UIDMeta.class.equals(indexableType)) {
+			searchType = SearchType.UIDMETA;
+		} else if(TSMeta.class.equals(indexableType)) {
+			searchType = SearchType.TSMETA;
+		} else {
+			throw new RuntimeException("Invalid Indexable Type [" + indexableType.getName() + "]");
+		}
+		SearchQuery sq = new SearchQuery();
+		sq.setType(searchType);
+		sq.setQuery("_type:" + mappingType);
+		sq.setLimit(PUBLISH_COUNT);		
+		return (Collection<T>) tsdb.executeSearch(sq).joinUninterruptibly().getResults();
+	}
+	
 	
 	/**
 	 * Asserts the equality of the passed indexable objects

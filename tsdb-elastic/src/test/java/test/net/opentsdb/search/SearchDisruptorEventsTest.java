@@ -24,6 +24,9 @@
  */
 package test.net.opentsdb.search;
 
+import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.ElasticSearchEventHandler;
 
 import org.junit.BeforeClass;
@@ -45,10 +48,14 @@ import org.junit.BeforeClass;
  * <p><code>test.net.opentsdb.search.SearchEventsTest</code></p>
  */
 //@org.junit.Ignore()
-public class SearchDisruptorEventsTest extends SearchEventsTest {
-	/** The search config profile */
-	public static final String SEARCH_CONFIG = "ESSearchDisruptorConfig";
+public class SearchDisruptorEventsTest extends ParameterizedSearchTest {
 
+	/**
+	 * Configures the TSDB for all tests in this class.
+	 */
+	protected static void configureTSDB() {
+		tsdb = newTSDB("ESSearchDisruptorConfig");
+	}
 	/**
 	 * Initializes the environment for tests in this class
 	 */
@@ -56,21 +63,24 @@ public class SearchDisruptorEventsTest extends SearchEventsTest {
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;
 		createSearchShellJar();
-		tsdb = newTSDB(SEARCH_CONFIG);
+		configureTSDB();
 		ElasticSearchEventHandler.waitForStart();
 		client = ElasticSearchEventHandler.getClient();
 		ioClient = ElasticSearchEventHandler.getInstance().getIndexOpsClient();
 		annotationType = ElasticSearchEventHandler.getInstance().getAnnotation_type();
 		annotationIndex = ElasticSearchEventHandler.getInstance().getAnnotation_index();
 		annotationUIndex = ioClient.getIndexForAlias(annotationIndex);
+		INDEX_AND_TYPE.put(Annotation.class, new String[]{annotationType, annotationIndex, annotationUIndex});
 		tsMetaType = ElasticSearchEventHandler.getInstance().getTsmeta_type();
 		tsMetaIndex = ElasticSearchEventHandler.getInstance().getTsmeta_index();
 		tsMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
+		INDEX_AND_TYPE.put(TSMeta.class, new String[]{tsMetaType, tsMetaIndex, tsMetaUIndex});
 		uidMetaType = ElasticSearchEventHandler.getInstance().getUidmeta_type();
 		uidMetaIndex = ElasticSearchEventHandler.getInstance().getUidmeta_index();	
 		uidMetaUIndex = ioClient.getIndexForAlias(tsMetaIndex);
+		INDEX_AND_TYPE.put(UIDMeta.class, new String[]{uidMetaType, uidMetaIndex, uidMetaUIndex});
 		log("\n\t=======================================\n\tSearchEventsTest Class Initalized\n\t=======================================");
 	}
-	
+		
 
 }

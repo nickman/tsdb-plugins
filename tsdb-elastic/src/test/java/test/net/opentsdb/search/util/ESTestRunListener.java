@@ -24,6 +24,9 @@
  */
 package test.net.opentsdb.search.util;
 
+import java.net.URL;
+
+import org.helios.tsdb.plugins.util.URLHelper;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.RunListener;
@@ -39,7 +42,7 @@ import test.net.opentsdb.search.ESBaseTest;
  */
 
 public class ESTestRunListener extends RunListener { 
-
+	private static boolean startedEmbedded = false;
 	/**
 	 * Creates a new ESTestRunListener
 	 */
@@ -51,15 +54,41 @@ public class ESTestRunListener extends RunListener {
 	public void testRunFinished(Result result) throws Exception {
 		super.testRunFinished(result);
 		log("\n\t==========================================\n\tRun Finished.\n\t%s\n\t==========================================\n", result);
-		ESBaseTest.stopEs();
+		if(startedEmbedded) {
+			log("Stopping Embedded....");
+			ESBaseTest.stopEs();
+		}
 	}
 	
 	@Override
 	public void testRunStarted(Description description) throws Exception {
 		super.testRunStarted(description);
 		log("\n\t==========================================\n\tRun Started.\n\t%s\n\t==========================================\n", description);
-		ESBaseTest.startEs();
+		if(!isEsAvailable("http://localhost:9200/_status")) {
+			log("No local ES available. Starting Embedded....");
+			ESBaseTest.startEs();
+			startedEmbedded = true;
+		} else {
+			
+		}		
 	}
+	
+	/**
+	 * Determines if a local ES is available for testing
+	 * @param esUrl The URL to test for an ES instance
+	 * @return true if a local ES is available for testing, false otherwise
+	 */
+	public static boolean isEsAvailable(CharSequence esUrl) {
+		URL url = URLHelper.toURL(esUrl);
+		try {
+			String status = URLHelper.getTextFromURL(url, 5000);
+			return status.contains("{\"ok\":true");
+		} catch (Exception ex) {
+			return false;
+		}		
+	}
+	
+	
 	/**
 	 * Simple formatting logger
 	 * @param format The format

@@ -3,6 +3,7 @@ package org.helios.tsdb.plugins.util.unsafe.collections;
 
 import java.nio.LongBuffer;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * <p>Title: LongSlidingWindow</p>
@@ -277,30 +278,39 @@ public class LongSlidingWindow  implements ILongSlidingWindow {
 		return (long)d;
 	}
 	
+	/** A half as a double */
+	public static final double ONE_HALF = 0.5d;
+	
+	/**
+	 * Returns the pth percentile value from this array using the nearest rank formula.
+	 * @param p The percentile to get
+	 * @return the pth percentile value
+	 */
 	public long percentile(int p) {
 		if (p < 1 || p > 100) {
 			throw new IllegalArgumentException("invalid percentile: " + p);
 		}
-		
-		if(size()==0) return 0;
+		double _p = p;
+		double _pp = _p/100d;
 		LongSlidingWindow sorted = new LongSlidingWindow(new LongSortedSet(clone().array).array);
-		int size = size();
-		log("Size:" + size);
-		long sum = sum();
-		log("Sum:" + sum);
-		long ptile = sum * p / 100;
-		log("ptile:" + ptile);
-		long index = Math.abs(sorted.insert(ptile));
-		log("Index:" + index);
-		return size - index;
-		
-	
+		int ix = (int)((_pp*sorted.size())+ONE_HALF);
+		log("NRP:" + p + "  ix:" + ix);
+		return sorted.get(ix);
 	}
 	
 	public static void main(String[] args) {
 		log("Percentile Test");
-		LongSortedSet sw = new LongSortedSet(new long[]{1,2,3,4,5,6,7,8,9,10});
-		log("90th Percentile:" + new LongSlidingWindow(sw.size(), sw.asLongArray()).percentile(90));
+		LongSlidingWindow lsw = new LongSlidingWindow(1000);
+		Random r = new Random(System.currentTimeMillis());
+		for(int i = 0; i < 1000; i++) {
+			lsw.insert(Math.abs(r.nextInt()));
+		}
+		log("Min:" + lsw.min());
+		log("Max:" + lsw.max());
+		log("30th Percentile:" + lsw.percentile(30));
+		log("90th Percentile:" + lsw.percentile(90));
+		log("99th Percentile:" + lsw.percentile(99));
+		
 	}
 	
 	/**

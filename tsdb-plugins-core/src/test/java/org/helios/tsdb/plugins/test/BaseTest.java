@@ -33,6 +33,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -50,6 +51,7 @@ import java.util.zip.ZipEntry;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.search.SearchPlugin;
+import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 import net.opentsdb.tsd.RpcPlugin;
 import net.opentsdb.utils.Config;
@@ -293,7 +295,6 @@ public class BaseTest {
 	@Before
 	public void setUp() throws Exception {
 	}
-	
 	
 
 	/**

@@ -27,6 +27,29 @@ public class URLHelper {
 	/** Text line separator */
 	public static final String EOL = System.getProperty("line.separator", "\n");
 	
+	/** The system property to retrieve the default client connect timeout in ms.  */
+	public static final String DEFAULT_CONNECT_TO = "sun.net.client.defaultConnectTimeout";
+	/** The system property to retrieve the default client read timeout in ms.  */
+	public static final String DEFAULT_READ_TO = "sun.net.client.defaultReadTimeout";
+	
+	
+	/**
+	 * Returns the default URL connect timeout in ms,
+	 * @return the connect timeout in ms,
+	 */
+	protected static int defaultConnectTimeout() {
+		return Integer.parseInt(System.getProperty(DEFAULT_CONNECT_TO, "0"));
+	}
+	
+	/**
+	 * Returns the default URL read timeout in ms,
+	 * @return the read timeout in ms,
+	 */
+	protected static int defaultReadTimeout() {
+		return Integer.parseInt(System.getProperty(DEFAULT_READ_TO, "0"));
+	}
+	
+	
 	/**
 	 * Tests the passed object for nullness. Throws an {@link IllegalArgumentException} if the object is null 
 	 * @param t  The object to test
@@ -39,17 +62,43 @@ public class URLHelper {
 	}
 	
 	/**
-	 * Reads the content of a URL as text
+	 * Reads the content of a URL as text using the default connect and read timeouts.
 	 * @param url The url to get the text from
 	 * @return a string representing the text read from the passed URL
 	 */
 	public static String getTextFromURL(URL url) {
+		return getTextFromURL(url, defaultConnectTimeout(), defaultReadTimeout());
+	}
+	
+	/**
+	 * Reads the content of a URL as text
+	 * @param url The url to get the text from
+	 * @param timeout The connect and read timeout in ms.
+	 * @return a string representing the text read from the passed URL
+	 */
+	public static String getTextFromURL(URL url, int timeout) {
+		return getTextFromURL(url, timeout, timeout);
+	}
+	
+	/**
+	 * Reads the content of a URL as text
+	 * @param url The url to get the text from
+	 * @param cTimeout The connect timeout in ms.
+	 * @param rTimeout The read timeout in ms.
+	 * @return a string representing the text read from the passed URL
+	 */
+	public static String getTextFromURL(URL url, int cTimeout, int rTimeout) {
 		StringBuilder b = new StringBuilder();
 		InputStreamReader isr = null;
 		BufferedReader br = null;
 		InputStream is = null;
+		URLConnection connection = null;
 		try {
-			is = url.openStream();
+			connection = url.openConnection();
+			connection.setConnectTimeout(cTimeout);
+			connection.setReadTimeout(rTimeout);
+			connection.connect();
+			is = connection.getInputStream();
 			isr = new InputStreamReader(is);
 			br = new BufferedReader(isr);
 			String line = null;

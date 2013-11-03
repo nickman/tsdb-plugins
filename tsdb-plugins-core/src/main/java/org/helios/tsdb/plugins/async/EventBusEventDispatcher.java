@@ -180,7 +180,7 @@ public class EventBusEventDispatcher implements AsyncEventDispatcher {
 	 * @see org.helios.tsdb.plugins.async.ISearchEventDispatcher#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	@Override
-	public void indexTSMeta(TSMeta tsMeta) {
+	public void indexTSMeta(TSMeta tsMeta) {		
 		eventBus.post(new TSDBSearchEvent().indexTSMeta(tsMeta));
 
 	}

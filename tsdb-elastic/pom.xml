@@ -226,13 +226,13 @@
             <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
                 <properties>
-                	<!--
+                	
                     <property>
                     	 
                         <name>listener</name>
                         <value>test.net.opentsdb.search.util.ESTestRunListener</value>
                     </property>
-                    -->
+                    
                 </properties>
             </configuration>
         </plugin>	    

@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import javax.management.Attribute;
@@ -50,9 +51,10 @@ import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
+import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
-import org.helios.tsdb.plugins.shell.RpcService;
+import org.helios.tsdb.plugins.rpc.AbstractRPCService;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
@@ -67,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * <p><code>org.helios.tsdb.plugins.stats.AgentJVMMonitor</code></p>
  */
 
-public class AgentJVMMonitor extends RpcService {
+public class AgentJVMMonitor extends AbstractRPCService   {
 	/** Singleton instance */
 	private static volatile AgentJVMMonitor instance = null;
 	/** Singleton instance ctor lock */
@@ -105,20 +107,20 @@ public class AgentJVMMonitor extends RpcService {
 	/** Java 7 Indicator */
 	public static final boolean java7 = isJava7();
 	
-	/**
-	 * Acquires the AgentJVMMonitor singleton instance
-	 * @return the AgentJVMMonitor singleton instance
-	 */
-	public static AgentJVMMonitor getInstance() {
-		if(instance==null) {
-			synchronized(lock) {
-				if(instance==null) {
-					instance = new AgentJVMMonitor();
-				}
-			}
-		}
-		return instance;
-	}
+//	/**
+//	 * Acquires the AgentJVMMonitor singleton instance
+//	 * @return the AgentJVMMonitor singleton instance
+//	 */
+//	public static AgentJVMMonitor getInstance() {
+//		if(instance==null) {
+//			synchronized(lock) {
+//				if(instance==null) {
+//					instance = new AgentJVMMonitor();
+//				}
+//			}
+//		}
+//		return instance;
+//	}
 	
 	/**
 	 * Determines if this JVM is version 7+
@@ -139,13 +141,18 @@ public class AgentJVMMonitor extends RpcService {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
+		log.info("Collecting JVM Stats.....");
+		ElapsedTime et = SystemClock.startClock();
 		try {
 			statsCollector.addHostTag(true);
 			statsCollector.addExtraTag("app", "tsdb");
 			statsCollector.addExtraTag("component", "JVM");
 			collect(statsCollector);
+			log.info("Collected JVM Stats in {}", et.elapsedStrMs());
+		} catch (Exception ex) {
+			log.error("Failed to collect stats", ex);			
 		} finally {
-			statsCollector.clearExtraTag("host");
+//			statsCollector.clearExtraTag("host");
 			statsCollector.clearExtraTag("app");
 			statsCollector.clearExtraTag("component");
 		}
@@ -154,8 +161,11 @@ public class AgentJVMMonitor extends RpcService {
 	
 	/**
 	 * Creates a new AgentJVMMonitor, initializes the tracing resources and schedules a callback for JMV metrics collection.
+	 * @param tsdb The parent tsdb
+	 * @param config the extracted configuration
 	 */
-	public AgentJVMMonitor() {
+	public AgentJVMMonitor(TSDB tsdb, Properties config) {
+		super(tsdb, config);
 		Set<MemoryPoolMXBean> tmpHeapSet = new HashSet<MemoryPoolMXBean>();
 		Set<MemoryPoolMXBean> tmpNonHeapSet = new HashSet<MemoryPoolMXBean>();
 		for(MemoryPoolMXBean pool: ManagementFactory.getMemoryPoolMXBeans()) {
@@ -185,7 +195,7 @@ public class AgentJVMMonitor extends RpcService {
 	
 	/**
 	 * Executes the JVM metric collection and tracing. 
-	 * @param statsCollector 
+	 * @param statsCollector the TSDB provided stats collector
 	 */
 	public void collect(StatsCollector statsCollector) {
 		final ElapsedTime et = SystemClock.startClock();
@@ -311,12 +321,12 @@ public class AgentJVMMonitor extends RpcService {
 	 */
 	protected void collectMemoryPools(final StatsCollector sc) {
 		try {
-			sc.addExtraTag("group", "memorypool");
-			sc.addExtraTag("type", "heap");
+			sc.addExtraTag("group", "memorypool");			
 			for(MemoryPoolMXBean pool: heapMemPoolMXBeans) {
 				try {
 					MemoryUsage usage = pool.getUsage();					
 					sc.addExtraTag("pool", pool.getName());
+					sc.addExtraTag("type", "heap");
 					sc.record("Committed", usage.getCommitted());
 					sc.record("Max", usage.getMax());
 					sc.record("Init", usage.getInit());
@@ -326,13 +336,14 @@ public class AgentJVMMonitor extends RpcService {
 				} finally {
 					sc.clearExtraTag("pool");
 					sc.clearExtraTag("type");
+					
 				}
-			}
-			sc.addExtraTag("type", "nonheap");
+			}			
 			for(MemoryPoolMXBean pool: nonHeapMemPoolMXBeans) {
 				try {
 					MemoryUsage usage = pool.getUsage();					
 					sc.addExtraTag("pool", pool.getName());
+					sc.addExtraTag("type", "nonheap");
 					sc.record("Committed", usage.getCommitted());
 					sc.record("Max", usage.getMax());
 					sc.record("Init", usage.getInit());
@@ -346,8 +357,8 @@ public class AgentJVMMonitor extends RpcService {
 			}			
 		} finally {
 			sc.clearExtraTag("group");
-			sc.clearExtraTag("pool");
-			sc.clearExtraTag("type");
+//			sc.clearExtraTag("pool");
+//			sc.clearExtraTag("type");
 		}
 	}
 	
@@ -459,7 +470,7 @@ public class AgentJVMMonitor extends RpcService {
 			}
 		} finally {
 			sc.clearExtraTag("group");
-			sc.clearExtraTag("name");
+//			sc.clearExtraTag("name");
 		}
 	}
 	
@@ -571,6 +582,21 @@ public class AgentJVMMonitor extends RpcService {
 		float perc = part/whole*100;
 		return (int)perc;
 	}
+
+	@Override
+	protected void startImpl() {
+		//log.info("\n\t=================================\n\tStarting AgentJVMMonitor\n\t=================================");
+		notifyStarted();
+	}
+
+	@Override
+	protected void stopImpl() {
+		//log.info("\n\t=================================\n\tStopping AgentJVMMonitor\n\t=================================");
+		notifyStopped();
+	}
+
+
+
 	
 	
 }

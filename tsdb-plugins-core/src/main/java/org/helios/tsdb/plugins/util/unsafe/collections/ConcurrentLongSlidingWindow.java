@@ -396,6 +396,20 @@ public class ConcurrentLongSlidingWindow extends LongSlidingWindow implements IL
 	}
 	
 	/**
+	 * Returns the pth percentile value from this array using the nearest rank formula.
+	 * @param p The percentile to get
+	 * @return the pth percentile value
+	 */
+	public long percentile(int p) {
+		readLock.lock();
+		try {
+			return super.percentile(p);
+		} finally {
+			readLock.unlock();
+		}
+	}
+	
+	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.util.collections.ILongSlidingWindow#sum(int)
 	 */

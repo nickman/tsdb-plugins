@@ -26,11 +26,18 @@ package org.helios.tsdb.plugins.service;
 
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,6 +62,7 @@ import org.helios.tsdb.plugins.shell.Publisher;
 import org.helios.tsdb.plugins.shell.RpcService;
 import org.helios.tsdb.plugins.shell.Search;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.SystemClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +76,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>org.helios.tsdb.plugins.service.AbstractTSDBPluginService</code></p>
  */
 
-public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
+public abstract class AbstractTSDBPluginService implements ITSDBPluginService, Runnable {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** A map of plugins keyed by the base plugin type */
@@ -102,6 +110,19 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	/** The shutdown deferred returned on each shutdown request, completed when the startupShutdownCount is decremented to zero */
 	protected final Deferred<Object> shutdownDeferred = new Deferred<Object>();
 	
+	/** Stats collector scheduler */
+	protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory(){
+		protected final AtomicInteger  _serial = new AtomicInteger();
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(r, "TSDBPluginStatsCollector#" + _serial.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		}		
+	});
+	
+	/** The schedule handle for the stats collector */
+	protected ScheduledFuture<?> scheduleHandle = null;
 
 	/**
 	 * Creates a new AbstractTSDBPluginService
@@ -134,6 +155,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	 * Stops the event dispatcher and all subsidiary services
 	 */
 	public Deferred<Object>  shutdown(Deferred<Object> deferredToAdd) {
+		if(scheduleHandle!=null) {
+			scheduleHandle.cancel(false);
+		}
 		if(deferredToAdd!=null) {
 			shutdownDeferred.chain(deferredToAdd);
 		}
@@ -191,6 +215,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 			publishEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_PUBLISH, false, config) &&  Publisher.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_PUBLISH_PLUGIN, null, config));
 			log.info("\n\tCallback Plugins Enabled for EventDispatcher:\n\t\tSearch:{}\n\t\tPublish:{}\n", searchEnabled, publishEnabled);
 			doInitialize();
+			
+			scheduleHandle = scheduler.scheduleWithFixedDelay(this, 15, 15, TimeUnit.SECONDS);
+			log.info("Started Stats Collector Scheduling");
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);
@@ -199,6 +226,113 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 			}
 			throw new IllegalArgumentException("Initialization failed", ex);			
 		}
+	}
+	
+	/**
+	 * Executes stats collection 
+	 */
+	public void run() {
+		log.info("Collecting...");
+		StatsCollectorImpl collector = new StatsCollectorImpl(tsdb, true);
+		try {			
+			tsdb.collectStats(collector);
+			collector.clear();
+			for(ISearchEventHandler handler: searchHandlers) {
+				handler.collectStats(collector);
+			}
+			collector.restore();
+			collector.clear();
+			for(IPublishEventHandler handler: publishHandlers) {
+				handler.collectStats(collector);
+			}
+			collector.restore();
+			collector.clear();			
+			for(IRPCService handler: rpcServices) {
+				handler.collectStats(collector);
+			}
+			collector.restore();
+			log.info("Collect done.");
+		} catch (Exception ex) {
+			log.error("Stats Collection Exception", ex);
+		}
+	}
+	
+	private static class StatsCollectorImpl extends StatsCollector {
+		/** Static class logger */
+		private static final Logger LOG = LoggerFactory.getLogger("StatsCollection");
+		/** Indicates if collected metrics should be recorded to the TSDB */
+		private final boolean relay;
+		/** The parent TSDB instance */
+		private final TSDB tsdb;
+		
+		/** The tag backup/restore stack */
+		private final Stack<Map<String, String>> tagStack = new Stack<Map<String, String>>(); 
+		
+		
+		
+		public StatsCollectorImpl(TSDB tsdb, boolean relay) {
+			super("tsd");
+			this.tsdb = tsdb;
+			this.relay = relay;
+		}
+		
+		/**
+		 * Pushes the extra tags onto the tag stack and clears the current map
+		 */
+		public void clear() {
+			if(extratags==null) extratags = new HashMap<String, String>();
+			tagStack.push(new HashMap<String, String>(extratags));
+			extratags.clear();
+		}
+		
+		/**
+		 * Restores the current extratags from the tagstack
+		 */
+		public void restore() {
+			extratags.clear();
+			extratags.putAll(tagStack.pop());
+		}
+		
+		/**
+		 * Splits an xtraTag into a name/value pair array
+		 * @param xtraTag The xtraTag to split
+		 * @return a name/value pair array
+		 */
+		public String[] splitXtraTag(String xtraTag) {
+			int index = xtraTag.indexOf('=');
+			if(index==-1) throw new IllegalArgumentException("The xtraTag [" + xtraTag + "] is not a tag pair");
+			String[] pair = new String[2];
+			pair[0] = xtraTag.substring(0, index).trim();
+			pair[1] = xtraTag.substring(index+1).trim();
+			return pair;
+		}
+		
+		@Override
+		public void emit(String datapoint) {
+			if(LOG.isDebugEnabled()) 
+				LOG.debug(datapoint.replace("\n", ""));			
+		}
+		@Override
+		public void record(String name, long value, String xtratag) {	
+			try {
+				super.record(name, value, xtratag);
+				if(relay) {
+					String[] tg = null;
+					if(xtratag!=null) {
+						tg = splitXtraTag(xtratag);
+						this.addExtraTag(tg[0], tg[1]);
+					}
+					tsdb.addPoint(name, SystemClock.unixTime(), value, this.extratags);
+					if(tg!=null) {
+						this.clearExtraTag(tg[1]);					
+					}				
+				}
+			} catch (Exception ex) {
+				
+			}
+		}		
+		
+		
 	}
 	
 	/**
@@ -289,6 +423,13 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 		}
 		
 		log.info("Loaded [{}] RPC Services", rpcServices.size());
+		if(!rpcServices.isEmpty()) {
+			for(IRPCService rpc: rpcServices) {
+				rpc.startAndWait();
+				log.info("Started [{}]", rpc.getClass().getSimpleName());
+			}
+		}
+		log.info("Started [{}] RPC Services", rpcServices.size());
 	}
 	
 	/**
@@ -396,57 +537,6 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService {
 	}
 	
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#publishDataPoint(java.lang.String, long, double, java.util.Map, byte[])
-	 */
-	@Override
-	public void publishDataPoint(String metric, long timestamp, double value, Map<String, String> tags, byte[] tsuid) {
-		
-	}
-
-	@Override
-	public void publishDataPoint(String metric, long timestamp, long value,
-			Map<String, String> tags, byte[] tsuid) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void deleteAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void indexAnnotation(Annotation annotation) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void deleteTSMeta(String tsMeta) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void indexTSMeta(TSMeta tsMeta) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void indexUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void deleteUIDMeta(UIDMeta uidMeta) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public void executeQuery(SearchQuery searchQuery, Deferred<SearchQuery> toReturn) {

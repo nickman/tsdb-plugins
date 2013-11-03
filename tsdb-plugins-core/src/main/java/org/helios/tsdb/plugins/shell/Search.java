@@ -143,7 +143,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#indexTSMeta(net.opentsdb.meta.TSMeta)
 	 */
 	@Override
-	public Deferred<Object> indexTSMeta(TSMeta tsMeta) {
+	public Deferred<Object> indexTSMeta(TSMeta tsMeta) {		
 		if(pluginService!=null) pluginService.indexTSMeta(tsMeta);
 		return Constants.NULL_DEFERED;
 	}
@@ -153,7 +153,7 @@ public class Search extends SearchPlugin implements Plugin {
 	 * @see net.opentsdb.search.SearchPlugin#indexUIDMeta(net.opentsdb.meta.UIDMeta)
 	 */
 	@Override
-	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {
+	public Deferred<Object> indexUIDMeta(UIDMeta uidMeta) {		
 		if(pluginService!=null) pluginService.indexUIDMeta(uidMeta);
 		return Constants.NULL_DEFERED;
 	}

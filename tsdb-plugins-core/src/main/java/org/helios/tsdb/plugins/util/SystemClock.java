@@ -247,6 +247,15 @@ public class SystemClock {
 			return elapsedStr(TimeUnit.NANOSECONDS);
 		}
 		
+		/**
+		 * Returns the decorated elapsed time since start in ms.
+		 * @return the decorated elapsed time since start in ms.
+		 */
+		public String elapsedStrMs() {			
+			return elapsedStr(TimeUnit.MILLISECONDS);
+		}
+		
+		
 	}
 	
 

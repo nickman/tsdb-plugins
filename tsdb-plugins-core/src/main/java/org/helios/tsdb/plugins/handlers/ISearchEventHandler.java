@@ -24,12 +24,6 @@
  */
 package org.helios.tsdb.plugins.handlers;
 
-import net.opentsdb.meta.Annotation;
-import net.opentsdb.meta.TSMeta;
-import net.opentsdb.meta.UIDMeta;
-import net.opentsdb.search.SearchQuery;
-
-import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: ISearchEventHandler</p>
@@ -41,6 +35,13 @@ import com.stumbleupon.async.Deferred;
 
 public interface ISearchEventHandler extends IEventHandler {
 
+	/**
+	 * Sets the indicator on a search event handler to indicate if it is the handler intended to
+	 * handle {@link net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)} 
+	 * sourced events.
+	 * @param enabled true to enable, false otherwise
+	 */
+	public void setExecuteSearchEnabled(boolean enabled);
 
 
 }

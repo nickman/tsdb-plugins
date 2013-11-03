@@ -379,7 +379,11 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 			indexOps.indexAnnotation(event.annotation);
 			break;
 		case SEARCH:
-			indexOps.executeQuery(event.searchQuery, event.deferred);
+			if(this.searchEnabled) {
+				indexOps.executeQuery(event.searchQuery, event.deferred);
+			} else {
+				return;
+			}
 			break;
 		case TSMETA_DELETE:
 			indexOps.deleteTSMeta(event.tsuid);

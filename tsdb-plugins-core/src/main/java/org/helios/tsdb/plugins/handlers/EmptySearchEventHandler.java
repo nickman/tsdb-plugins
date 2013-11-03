@@ -59,6 +59,12 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	public static final String ES_SW_SIZE = "es.tsd.search.elasticsearch.sliding.size";
 	/** The default sliding window size for operation elapsed times */
 	public static final int DEFAULT_ES_SW_SIZE = 100;
+	
+	/** Indicates if this handler is intended to handle 
+	 * {@link net.opentsdb.search.SearchPlugin#executeQuery(net.opentsdb.search.SearchQuery)} 
+	 * sourced events. 
+	 */
+	protected boolean searchEnabled = false;
 
 
 	/**
@@ -161,6 +167,15 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	@Override
 	public void collectStats(StatsCollector collector) {
 		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.ISearchEventHandler#setExecuteSearchEnabled(boolean)
+	 */
+	@Override
+	public void setExecuteSearchEnabled(boolean enabled) {
+		searchEnabled = enabled;		
 	}
 
 

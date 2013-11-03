@@ -110,6 +110,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	/** The shutdown deferred returned on each shutdown request, completed when the startupShutdownCount is decremented to zero */
 	protected final Deferred<Object> shutdownDeferred = new Deferred<Object>();
 	
+	/** Indicates if the query handling search handler has been assigned */
+	protected boolean primarySearchSet = false;
+	
 	/** Stats collector scheduler */
 	protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory(){
 		protected final AtomicInteger  _serial = new AtomicInteger();
@@ -381,6 +384,12 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				}
 				if(eventHandler instanceof ISearchEventHandler) {
 					installed = true;
+					if(!primarySearchSet) {
+						((ISearchEventHandler)eventHandler).setExecuteSearchEnabled(true);
+						primarySearchSet = true;
+					} else {
+						((ISearchEventHandler)eventHandler).setExecuteSearchEnabled(false);
+					}
 					searchHandlers.add((ISearchEventHandler)eventHandler);
 					allHandlers.add(eventHandler);
 					log.info("Loaded SearchEvent Handler [" + className + "]");

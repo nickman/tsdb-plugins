@@ -2,3 +2,7 @@
 /dependency-reduced-pom.xml
 *.bak
 *.*~
+file:
+log.*
+snapshot.*
+

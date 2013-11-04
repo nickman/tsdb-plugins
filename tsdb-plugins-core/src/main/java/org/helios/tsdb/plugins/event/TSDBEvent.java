@@ -79,6 +79,17 @@ public class TSDBEvent  {
 	}
 	
 	/**
+	 * Returns this event instance as a search event
+	 * @return this event instance as a search event
+	 */
+	public TSDBSearchEvent asSearchEvent() {
+		if(!eventType.isForSearch()) {
+			throw new RuntimeException("Cannot cast this event to Search. Event Type is [" + eventType + "]");
+		}
+		return (TSDBSearchEvent)this;
+	}
+	
+	/**
 	 * Nulls out all the fields.
 	 */
 	public void reset() {

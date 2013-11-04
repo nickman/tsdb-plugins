@@ -134,7 +134,7 @@ public class InitializeH2Database implements IDBInitializer {
 		Properties p = new Properties();
 		InitializeH2Database idb = new InitializeH2Database();
 		idb.initialize(null, p);
-		try { Thread.currentThread().join(5000); } catch (Exception ex) {};
+		try { Thread.currentThread().join(); } catch (Exception ex) {};
 		idb.shutdown();
 	}
 	

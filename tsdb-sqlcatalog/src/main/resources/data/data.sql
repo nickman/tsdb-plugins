@@ -1,0 +1,3 @@
+MERGE INTO TSD_TAGK  KEY(UID) VALUES('000132', 'CPU', SYSTIME(), null, null, null, null);
+MERGE INTO TSD_TAGV  KEY(UID) VALUES('000133', 'CPU#0', SYSTIME(), null, null, null, null);
+SELECT TAGPAIRU('CPU', 'CPU#0');

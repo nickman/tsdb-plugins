@@ -138,6 +138,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler {
 	
 	public void run() {
 		log.info("Starting Catalog Processing Thread");
+		
 	}
 	
 	

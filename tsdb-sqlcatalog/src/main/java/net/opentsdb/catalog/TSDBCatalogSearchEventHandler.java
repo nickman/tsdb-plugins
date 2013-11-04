@@ -29,7 +29,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.search.SearchQuery;
@@ -51,12 +51,14 @@ import com.stumbleupon.async.Deferred;
  * <p><code>net.opentsdb.catalog.TSDBCatalogSearchEventHandler</code></p>
  */
 
-public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler {
+public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler implements  Runnable {
 	/** Map of the relative priority ordering of events keyed by the event type enum */
 	public static final Map<TSDBEventType, Integer> EVENT_ORDERING;
 	
 	/** The processing queue for catalog processed events */
-	protected final ConcurrentSkipListSet<TSDBSearchEvent> processingQueue = new ConcurrentSkipListSet<TSDBSearchEvent>(new TSDBSearchEventComparator()); 
+	protected final PriorityBlockingQueue<TSDBSearchEvent> processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(1024, new TSDBSearchEventComparator());
+	
+	protected int maxBatchSize = 1024;
 	
 	static {		
 		Map<TSDBEventType, Integer> tmp = new EnumMap<TSDBEventType, Integer>(TSDBEventType.class);

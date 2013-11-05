@@ -38,6 +38,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -333,6 +334,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 		
 		int ops = 0;
 		ElapsedTime et = SystemClock.startClock();
+		Set<String> batchedUids = new HashSet<String>(events.size());
+		Set<String> batchedUidPairs = new HashSet<String>(events.size());
 		try {			
 			for(TSDBSearchEvent event: events) {
 				switch(event.eventType) {
@@ -345,17 +348,17 @@ public class H2DBCatalog implements CatalogDBInterface {
 				case TSMETA_INDEX:
 					TSMeta tsMeta = event.tsMeta;
 					if(stored(conn, tsMeta)) continue;
-					processTSMeta(conn, tsMeta);
+					processTSMeta(batchedUidPairs, conn, tsMeta);
 					break;
 				case UIDMETA_DELETE:
 					break;
 				case UIDMETA_INDEX:					
 					UIDMeta uidMeta = event.uidMeta;
-					if(stored(conn, uidMeta)) continue;
+					if(batchedUids.contains(uidMeta.toString()) || stored(conn, uidMeta)) continue;
 					switch(uidMeta.getType()) {
-						case METRIC:
-							if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());
-							bindUIDMeta(uidMeta, uidMetaMetricIndexPs);							
+						case METRIC:							
+							if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());							
+							bindUIDMeta(uidMeta, uidMetaMetricIndexPs);														
 							break;
 						case TAGK:
 							if(uidMetaTagKIndexPs==null) uidMetaTagKIndexPs = conn.prepareStatement(getUIDMetaTagKIndexSQL());
@@ -369,8 +372,9 @@ public class H2DBCatalog implements CatalogDBInterface {
 							log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
 							break;
 					}
+					batchedUids.add(uidMeta.toString());
 					ops++;
-					log.info("Bound {} Index [{}]", uidMeta.getType().name(), uidMeta.getName());
+					log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
 					break;
 				default:
 					log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
@@ -378,10 +382,11 @@ public class H2DBCatalog implements CatalogDBInterface {
 					
 				}
 			} // end for event processor for loop
-			if(uidMetaMetricIndexPs!=null) executeBatch(uidMetaMetricIndexPs);
-			if(uidMetaTagVIndexPs!=null) executeBatch(uidMetaTagVIndexPs);
-			if(uidMetaTagKIndexPs!=null) executeBatch(uidMetaTagKIndexPs);
-			if(uidMetaTagPairPs!=null) executeBatch(uidMetaTagPairPs);
+			executeUIDBatches(conn);
+			if(uidMetaTagPairPs!=null) {
+				executeBatch(uidMetaTagPairPs);
+				uidMetaTagPairPs.clearBatch();
+			}
 			
 			conn.commit();
 			log.info("Executed {} ops in {} ms.", ops, et.elapsedMs());
@@ -395,7 +400,36 @@ public class H2DBCatalog implements CatalogDBInterface {
 		}
 	}
 	
-	protected void processTSMeta(Connection conn, TSMeta tsMeta) {
+	/**
+	 * 
+	 */
+	private void executeUIDBatches(Connection conn) {
+		try {
+			if(uidMetaMetricIndexPs!=null) {
+				executeBatch(uidMetaMetricIndexPs);
+				uidMetaMetricIndexPs.clearBatch();
+			}
+			if(uidMetaTagVIndexPs!=null) {
+				executeBatch(uidMetaTagVIndexPs);
+				uidMetaTagVIndexPs.clearBatch();
+			}
+			if(uidMetaTagKIndexPs!=null) {
+				executeBatch(uidMetaTagKIndexPs);
+				uidMetaTagKIndexPs.clearBatch();
+			}
+			conn.commit();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to execute UID Batches", ex);
+		}		
+	}
+
+	/**
+	 * Stores the passed TSMeta
+	 * @param batchUidPairs A set of UIDMeta tag pair keys that have already been saved in this batch.
+	 * @param conn The connection to write to
+	 * @param tsMeta The TSMeta to save
+	 */
+	protected void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta) {
 		UIDMeta[] tagPair = new UIDMeta[2];
 		String tagPairUid = null;
 		for(UIDMeta meta: tsMeta.getTags()) {
@@ -404,16 +438,26 @@ public class H2DBCatalog implements CatalogDBInterface {
 				continue;
 			} else if(tagPair[1]==null) {
 				tagPair[1] = meta;
-				tagPairUid = processUIDMetaPair(conn, tagPair);
+				tagPairUid = processUIDMetaPair(batchUidPairs, conn, tagPair);
 				tagPair[0] = null; tagPair[1] = null; 
 			}
 		}
 	}
 
-	protected String processUIDMetaPair(Connection conn, UIDMeta[] tagPair) {
+	/**
+	 * Saves a tag UIDMeta pair
+	 * @param batchUidPairs A set of UIDMeta tag pair keys that have already been saved in this batch.
+	 * @param conn The connection to write to
+	 * @param tagPair A pair of UIDMetas where [0] is the key and [1] is the value
+	 * @return the pair key
+	 */
+	protected String processUIDMetaPair(final Set<String> batchUidPairs, Connection conn, UIDMeta[] tagPair) {
 		if(tagPair[0].getType()!=UniqueIdType.TAGK) throw new IllegalArgumentException("Provided uidMetaKey was expected to be of type TAGK but was actually [" + tagPair[0].getType() + "]");
 		if(tagPair[1].getType()!=UniqueIdType.TAGV) throw new IllegalArgumentException("Provided uidMetaValue was expected to be of type TAGV but was actually [" + tagPair[1].getType() + "]");
 		String tagPairUid = tagPair[0].getUID() + tagPair[1].getUID();
+		
+		if(batchUidPairs.contains(tagPairUid)) return tagPairUid; 
+		
 		if(tagPairStored(conn, tagPairUid)) return tagPairUid;
 		String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (UID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
 		try {
@@ -425,6 +469,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			uidMetaTagPairPs.setString(3, tagPair[1].getUID());
 			uidMetaTagPairPs.setString(4, tagPair[0].getName() + "=" + tagPair[1].getName());
 			uidMetaTagPairPs.addBatch();
+			batchUidPairs.add(tagPairUid);
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to write tagpair [" + tagPairUid + "]", ex);
 		} 

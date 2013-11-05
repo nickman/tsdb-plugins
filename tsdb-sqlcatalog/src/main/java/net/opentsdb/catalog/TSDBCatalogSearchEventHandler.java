@@ -226,6 +226,14 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		 
 	}
 	
+	/**
+	 * Returns the number of events pending in the processing queue
+	 * @return the number of events pending in the processing queue
+	 */
+	public int getProcessingQueueDepth() {
+		return processingQueue.size();
+	}
+	
 	
 	/**
 	 * {@inheritDoc}

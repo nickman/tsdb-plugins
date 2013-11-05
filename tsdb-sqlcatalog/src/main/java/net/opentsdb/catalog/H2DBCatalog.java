@@ -416,8 +416,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			if(uidMetaTagKIndexPs!=null) {
 				executeBatch(uidMetaTagKIndexPs);
 				uidMetaTagKIndexPs.clearBatch();
-			}
-			conn.commit();
+			}			
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to execute UID Batches", ex);
 		}		

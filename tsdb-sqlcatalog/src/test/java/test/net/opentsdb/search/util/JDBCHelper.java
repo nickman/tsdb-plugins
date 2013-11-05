@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.catalog.util;
+package test.net.opentsdb.search.util;
 
 import java.io.File;
 import java.io.FileOutputStream;

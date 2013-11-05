@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
-import net.opentsdb.catalog.util.JDBCHelper;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -46,6 +45,8 @@ import org.helios.tsdb.plugins.util.SystemClock;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import test.net.opentsdb.search.util.JDBCHelper;
 
 /**
  * <p>Title: LoadMetricsTest</p>

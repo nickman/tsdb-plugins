@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Nov 5, 2013 11:47:56 AM by Hibernate Tools 4.0.0 -->
+<hibernate-mapping>
+    <class name="net.opentsdb.catalog.hibernate.TsdMetric" table="TSD_METRIC" catalog="TSDB">
+        <id name="uid" type="string">
+            <column name="UID" length="6" />
+            <generator class="assigned" />
+        </id>
+        <property name="name" type="string">
+            <column name="NAME" length="60" not-null="true" unique="true" />
+        </property>
+        <property name="created" type="timestamp">
+            <column name="CREATED" length="23" not-null="true" />
+        </property>
+        <property name="description" type="string">
+            <column name="DESCRIPTION" length="120" />
+        </property>
+        <property name="displayName" type="string">
+            <column name="DISPLAY_NAME" length="60" />
+        </property>
+        <property name="notes" type="string">
+            <column name="NOTES" length="120" />
+        </property>
+        <property name="custom" type="string">
+            <column name="CUSTOM" length="120" />
+        </property>
+        <set name="tsdFqns" table="TSD_FQN" inverse="true" lazy="true" fetch="select">
+            <key>
+                <column name="METRIC_UID" length="6" not-null="true" />
+            </key>
+            <one-to-many class="net.opentsdb.catalog.hibernate.TsdFqn" />
+        </set>
+    </class>
+</hibernate-mapping>

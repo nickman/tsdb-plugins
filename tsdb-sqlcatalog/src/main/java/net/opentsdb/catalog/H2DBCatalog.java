@@ -135,6 +135,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
+	
+	/** The SQL to insert a TSMeta TSD_FQN */
+	public static String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN (METRIC_UID, FQN, TSUID) VALUES (?,?,?)";
+	
 
 	/**
 	 * Creates a new H2DBCatalog
@@ -324,6 +328,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected PreparedStatement uidMetaMetricIndexPs = null;
 	/** batched ps for tag pair inserts */
 	protected PreparedStatement uidMetaTagPairPs = null;
+	/** batched ps for fqn inserts */
+	protected PreparedStatement tsMetaFqnPs = null;
 	
 	/**
 	 * Processes a batch of events
@@ -349,6 +355,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 					TSMeta tsMeta = event.tsMeta;
 					if(stored(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
+					ops++;
+					log.info("Processed TSMeta [{}]", tsMeta);
 					break;
 				case UIDMETA_DELETE:
 					break;
@@ -387,7 +395,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 				executeBatch(uidMetaTagPairPs);
 				uidMetaTagPairPs.clearBatch();
 			}
-			
+			if(tsMetaFqnPs!=null) {
+				executeBatch(tsMetaFqnPs);
+				tsMetaFqnPs.clearBatch();				
+			}			
 			conn.commit();
 			log.info("Executed {} ops in {} ms.", ops, et.elapsedMs());
 		} catch (Exception ex) {
@@ -397,6 +408,9 @@ public class H2DBCatalog implements CatalogDBInterface {
 			if(uidMetaTagVIndexPs!=null) try { uidMetaTagVIndexPs.close(); uidMetaTagVIndexPs = null; } catch (Exception x) {/* No Op */}
 			if(uidMetaMetricIndexPs!=null) try { uidMetaMetricIndexPs.close(); uidMetaMetricIndexPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairPs!=null) try { uidMetaTagPairPs.close(); uidMetaTagPairPs = null;} catch (Exception x) {/* No Op */}
+			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
+			
+			
 		}
 	}
 	
@@ -429,18 +443,36 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * @param tsMeta The TSMeta to save
 	 */
 	protected void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta) {
+		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
+		
 		UIDMeta[] tagPair = new UIDMeta[2];
+		
 		String tagPairUid = null;
 		for(UIDMeta meta: tsMeta.getTags()) {
 			if(tagPair[0]==null) {
 				tagPair[0] = meta;
+				fqn.append(meta.getName()).append("=");
 				continue;
 			} else if(tagPair[1]==null) {
 				tagPair[1] = meta;
+				fqn.append(meta.getName()).append(",");
 				tagPairUid = processUIDMetaPair(batchUidPairs, conn, tagPair);
 				tagPair[0] = null; tagPair[1] = null; 
 			}
 		}
+		fqn.deleteCharAt(fqn.length()-1);
+		try {
+			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
+			tsMetaFqnPs.setString(1, tsMeta.getMetric().getUID());
+			tsMetaFqnPs.setString(2, fqn.toString());
+			tsMetaFqnPs.setString(3, tsMeta.getTSUID());
+			tsMetaFqnPs.addBatch();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+		
+		
+		
 	}
 
 	/**

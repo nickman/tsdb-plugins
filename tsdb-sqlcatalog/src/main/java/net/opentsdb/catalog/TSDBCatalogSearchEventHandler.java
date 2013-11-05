@@ -263,7 +263,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	
 	
 	public void run() {
-		log.info("Starting Catalog Processing Thread");
+		log.info("Starting Catalog Processing Thread. Batch Size: [{}]", batchSize);
 		Connection conn = null;
 		while(!shuttingDown.get()) {
 			try {
@@ -272,7 +272,14 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 				while(true) {
 					Set<TSDBSearchEvent> events = new LinkedHashSet<TSDBSearchEvent>(batchSize);
 					events.add(processingQueue.take());
-					processingQueue.drainTo(events, batchSize-1);
+					final long ts = System.currentTimeMillis() + 2000;
+					do {
+						TSDBSearchEvent ev = processingQueue.poll(200, TimeUnit.MILLISECONDS);
+						if(ev!=null) {
+							events.add(ev);
+						}						
+					} while(events.size()<batchSize && ts>System.currentTimeMillis());
+					log.info("Processing Batch of [{}] Events", events.size());
 					dbInterface.processEvents(conn, events);
 				}
 			} catch (InterruptedException iex) {

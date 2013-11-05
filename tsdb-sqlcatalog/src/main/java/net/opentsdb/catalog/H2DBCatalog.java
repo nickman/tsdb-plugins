@@ -38,6 +38,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected JdbcConnectionPool dataSource = null;
 	/** The H2 DDL resource */
 	protected String[] ddlResources = null;	
+	/** The configured increment on the FQN ID sequence */
+	protected int fqnSeqIncrement = 100;
+	
+	
 	
 	/** The H2 TCP Port */
 	protected int tcpPort = -1;
@@ -99,6 +104,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected Server tcpServer = null;
 	/** The container/manager for the Web Listener */
 	protected Server httpServer = null;
+	/** The current allocated FQNID sequence */
+	protected long fqnAllocatedSequence = 0;
+	/** The last allocated FQN sequence to be doled out before a refresh */
+	protected long fqnMaxSequence = 0;
 	
 	
 	/** The config property name for the H2 Init DDL resource */
@@ -106,6 +115,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 	/** The default H2 Init DDL resource */
 	public static final String DEFAULT_DB_H2_DDL = "classpath:/ddl/catalog.sql";
 	
+	/** The config property name for the increment on the FQN ID Sequence */
+	public static final String DB_FQN_SEQ_INCR = "helios.search.catalog.h2.fqn.incr";
+	/** The default increment on the FQN ID Sequence */
+	public static final int DEFAULT_DB_FQN_SEQ_INCR = 100;
 	
 	/** The config property name for the H2 TCP Listener port */
 	public static final String DB_H2_TCP_PORT = "helios.search.catalog.h2.port.tcp";
@@ -137,7 +150,12 @@ public class H2DBCatalog implements CatalogDBInterface {
 	public static String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
 	
 	/** The SQL to insert a TSMeta TSD_FQN */
-	public static String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN (METRIC_UID, FQN, TSUID) VALUES (?,?,?)";
+	public static String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN (FQNID, METRIC_UID, FQN, TSUID) VALUES (?,?,?,?)";
+	
+	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
+	public static final String FQN_SEQ_INCR_VAR = "FQN_SEQ_SIZE";
+	
+
 	
 
 	/**
@@ -153,6 +171,44 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 */
 	public DataSource getDataSource() {
 		return dataSource;
+	}
+	
+	/**
+	 * Returns the next cached sequence.
+	 * Only one thread runs in here, so no need to get excited.... yet.
+	 * @return the next cached sequence
+	 */
+	private long getNextFQNSequence() {
+		if(fqnAllocatedSequence == fqnMaxSequence) {
+			fqnAllocatedSequence = refreshFQNSequence();
+			fqnMaxSequence = fqnAllocatedSequence + fqnSeqIncrement;
+			return fqnAllocatedSequence;
+		}
+		fqnAllocatedSequence++;
+		return fqnAllocatedSequence;
+	}
+	
+	/**
+	 * Gets the next DB FQNID sequence 
+	 * @return the next DB FQNID sequence 
+	 */
+	private long refreshFQNSequence() {
+		Connection conn = null;
+		Statement st = null;
+		ResultSet rset = null;
+		try {
+			conn = dataSource.getConnection();
+			st = conn.createStatement();
+			rset = st.executeQuery("SELECT FQN_SEQ.NEXTVAL");
+			rset.next();
+			return rset.getLong(1);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to refresh FQNID sequence", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
+			if(st!=null) try { st.close(); } catch (Exception ex) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
+		}
 	}
 	
 	/**
@@ -187,6 +243,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 */
 	public void initialize(TSDB tsdb, Properties extracted) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
+		Map<String, Object> userDefinedVars = new HashMap<String, Object>();
 		jdbcUrl = ConfigurationHelper.getSystemThenEnvProperty(DB_JDBC_URL, DEFAULT_DB_JDBC_URL, extracted);
 		jdbcDriver = ConfigurationHelper.getSystemThenEnvProperty(DB_JDBC_DRIVER, DEFAULT_DB_JDBC_DRIVER, extracted);
 		jdbcUser = ConfigurationHelper.getSystemThenEnvProperty(DB_JDBC_USER, DEFAULT_DB_JDBC_USER, extracted);
@@ -195,10 +252,13 @@ public class H2DBCatalog implements CatalogDBInterface {
 		tcpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_TCP_PORT, DEFAULT_DB_H2_TCP_PORT, extracted);
 		tcpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_TCP_ALLOW_OTHERS, DEFAULT_DB_H2_TCP_ALLOW_OTHERS, extracted);
 		httpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_HTTP_PORT, DEFAULT_DB_H2_HTTP_PORT, extracted);
-		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);		
+		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);
+		fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
+		userDefinedVars.put(FQN_SEQ_INCR_VAR, fqnSeqIncrement);
 		dataSource = JdbcConnectionPool.create(jdbcUrl, jdbcUser, jdbcPassword);
+		
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
-		runDDLResources();
+		runDDLResources(userDefinedVars);
 		log.info("DDL Resources Processed");
 		if(tcpPort>0 || httpPort >0) {
 			log.info("Starting H2 Listeners: TCP:{}, Web:{}", tcpPort>0, httpPort>0);
@@ -209,6 +269,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 		
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", jdbcUrl);
 	}
+	
 	
 	/**
 	 * Terminates the database resources
@@ -330,6 +391,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected PreparedStatement uidMetaTagPairPs = null;
 	/** batched ps for fqn inserts */
 	protected PreparedStatement tsMetaFqnPs = null;
+	/** array of generated keys for fqn inserts */
+	protected int[] fqnKeys = new int[1024];
 	
 	/**
 	 * Processes a batch of events
@@ -356,7 +419,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 					if(stored(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					ops++;
-					log.info("Processed TSMeta [{}]", tsMeta);
+//					log.info("Processed TSMeta [{}]", tsMeta);
 					break;
 				case UIDMETA_DELETE:
 					break;
@@ -382,7 +445,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 					}
 					batchedUids.add(uidMeta.toString());
 					ops++;
-					log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
+//					log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
 					break;
 				default:
 					log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
@@ -397,6 +460,12 @@ public class H2DBCatalog implements CatalogDBInterface {
 			}
 			if(tsMetaFqnPs!=null) {
 				executeBatch(tsMetaFqnPs);
+				ResultSet rset = tsMetaFqnPs.getGeneratedKeys();
+				long keyCnt = 0;
+				if(rset.next()) {
+					keyCnt = rset.getLong(1);
+					log.info("\n\t*********\n\tFQN Batch Returned [{}] Keys\n\t*********", keyCnt);
+				}				
 				tsMetaFqnPs.clearBatch();				
 			}			
 			conn.commit();
@@ -463,9 +532,11 @@ public class H2DBCatalog implements CatalogDBInterface {
 		fqn.deleteCharAt(fqn.length()-1);
 		try {
 			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
-			tsMetaFqnPs.setString(1, tsMeta.getMetric().getUID());
-			tsMetaFqnPs.setString(2, fqn.toString());
-			tsMetaFqnPs.setString(3, tsMeta.getTSUID());
+			long fqnSeq = getNextFQNSequence();
+			tsMetaFqnPs.setLong(1, fqnSeq);
+			tsMetaFqnPs.setString(2, tsMeta.getMetric().getUID());
+			tsMetaFqnPs.setString(3, fqn.toString());
+			tsMetaFqnPs.setString(4, tsMeta.getTSUID());
 			tsMetaFqnPs.addBatch();
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
@@ -584,14 +655,21 @@ public class H2DBCatalog implements CatalogDBInterface {
 	
 	/**
 	 * Executes the configured DDL resources against the created DB
+	 * @param userDefinedVars A map of user defined variables to set
 	 */
-	protected void runDDLResources() {
+	protected void runDDLResources(Map<String, Object> userDefinedVars) {
 		String pResource = null;
 		Connection conn = null;
 		Statement st = null;
 		try {
 			conn = dataSource.getConnection();
 			st = conn.createStatement();
+			String format = "SET @%s = %s;";
+			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
+				st.execute(String.format(format, entry.getKey(), entry.getValue()));
+				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
+			}
+			st.execute("SET @FQN_SEQ_SIZE = 103;");
 			log.info("Connected to [{}]", conn.getMetaData().getURL());
 			for(String rez: ddlResources) {
 				pResource = rez; 

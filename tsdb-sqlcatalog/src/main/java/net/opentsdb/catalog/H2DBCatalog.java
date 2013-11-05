@@ -30,33 +30,45 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.h2.tools.Server;
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.SystemClock;
+import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.helios.tsdb.plugins.util.URLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Title: InitializeH2Database</p>
- * <p>Description: DB initializer for H2 DB</p> 
+ * <p>Title: H2DBCatalog</p>
+ * <p>Description: DB catalog interface for H2 DB</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.catalog.InitializeH2Database</code></p>
+ * <p><code>net.opentsdb.catalog.H2DBCatalog</code></p>
  */
 
-public class InitializeH2Database implements IDBInitializer {
+public class H2DBCatalog implements CatalogDBInterface {
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
 	
@@ -112,12 +124,21 @@ public class InitializeH2Database implements IDBInitializer {
 	/** The default H2 HTTP Console Listener port*/
 	public static final boolean DEFAULT_DB_H2_HTTP_ALLOW_OTHERS = false;
 	
-	
-	
+	/** The UIDMeta indexing SQL template */	
+	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (UID,NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?)";
+
+	/** The SQL template for verification of whether a UIDMeta has been saved or not */
+	public static String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE UID = ?";
+	/** The SQL for verification of whether a UIDMeta pair has been saved or not */
+	public static String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE UID = ?";
+
+	/** The SQL for verification of whether a TSMeta has been saved or not */
+	public static String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
+
 	/**
-	 * Creates a new InitializeH2Database
+	 * Creates a new H2DBCatalog
 	 */
-	public InitializeH2Database() {
+	public H2DBCatalog() {
 		log.info("Created DB Initializer");
 	}
 	
@@ -129,14 +150,30 @@ public class InitializeH2Database implements IDBInitializer {
 		return dataSource;
 	}
 	
-	
-	public static void main(String[] args) {
-		Properties p = new Properties();
-		InitializeH2Database idb = new InitializeH2Database();
-		idb.initialize(null, p);
-		try { Thread.currentThread().join(); } catch (Exception ex) {};
-		idb.shutdown();
+	/**
+	 * Returns the indexing SQL for a TagK UIDMeta
+	 * @return the indexing SQL for a TagK UIDMeta
+	 */
+	public String getUIDMetaTagKIndexSQL() {
+		return String.format(UID_INDEX_SQL_TEMPLATE, "TSD_TAGK");
 	}
+	
+	/**
+	 * Returns the indexing SQL for a TagV UIDMeta
+	 * @return the indexing SQL for a TagV UIDMeta
+	 */
+	public String getUIDMetaTagVIndexSQL() {
+		return String.format(UID_INDEX_SQL_TEMPLATE, "TSD_TAGV");
+	}
+
+	/**
+	 * Returns the indexing SQL for a Metric UIDMeta
+	 * @return the indexing SQL for a Metric UIDMeta
+	 */
+	public String getUIDMetaMetricIndexSQL() {
+		return String.format(UID_INDEX_SQL_TEMPLATE, "TSD_METRIC");
+	}
+
 	
 	/**
 	 * Runs the initialization routine
@@ -195,6 +232,241 @@ public class InitializeH2Database implements IDBInitializer {
 		log.info("\n\t================================================\n\tTSDB Catalog DB Stopped\n\tName:{}\n\t================================================", jdbcUrl);
 	}
 	
+	
+	/**
+	 * Determines if the passed UIDMeta has been stored
+	 * @param conn A supplied connection
+	 * @param uidMeta the UIDMeta to test
+	 * @return true if stored, false otherwise
+	 */
+	public boolean stored(Connection conn, UIDMeta uidMeta) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;		
+		try {
+			switch(uidMeta.getType()) {
+				case METRIC:
+					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_METRIC"));
+					break;
+				case TAGK:
+					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_TAGK"));
+					break;
+				case TAGV:
+					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_TAGV"));
+					break;
+				default:
+					throw new RuntimeException("yeow. Unrecognized UIDMeta type [" + uidMeta.getType().name() + "]");			
+			}
+			ps.setString(1, uidMeta.getUID());
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1)>0;
+		} catch (SQLException sex) {
+			throw new RuntimeException("Failed to lookup UIDMeta [" + uidMeta + uidMeta.getName() + "]", sex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Determines if the passed TSMeta has been stored
+	 * @param conn A supplied connection
+	 * @param tsMeta the TSMeta to test
+	 * @return true if stored, false otherwise
+	 */
+	public boolean stored(Connection conn, TSMeta tsMeta) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;		
+		try {
+			ps = conn.prepareStatement(TSUID_EXISTS_SQL);
+			ps.setString(1, tsMeta.getTSUID());
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1)>0;
+		} catch (SQLException sex) {
+			throw new RuntimeException("Failed to lookup TSMeta [" + tsMeta  + "]", sex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Determines if the passed UIDMeta pair has been stored
+	 * @param conn A supplied connection
+	 * @param tagPairUid The UID of the tag pair
+	 * @return true if stored, false otherwise
+	 */
+	public boolean tagPairStored(Connection conn, String tagPairUid) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(UID_PAIR_EXISTS_SQL);
+			ps.setString(1, tagPairUid);
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1)>0;
+		} catch (SQLException sex) {
+			throw new RuntimeException("Failed to lookup UIDMeta Pair [" + tagPairUid + "]", sex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	
+	/** batched ps for tag key inserts */
+	protected PreparedStatement uidMetaTagKIndexPs = null;
+	/** batched ps for tag value inserts */
+	protected PreparedStatement uidMetaTagVIndexPs = null;
+	/** batched ps for metric name inserts */
+	protected PreparedStatement uidMetaMetricIndexPs = null;
+	/** batched ps for tag pair inserts */
+	protected PreparedStatement uidMetaTagPairPs = null;
+	
+	/**
+	 * Processes a batch of events
+	 * @param conn The connection to execute the events against
+	 * @param events An ordered batch of events to process
+	 */
+	public void processEvents(Connection conn, Set<TSDBSearchEvent> events) {		
+		
+		int ops = 0;
+		ElapsedTime et = SystemClock.startClock();
+		try {			
+			for(TSDBSearchEvent event: events) {
+				switch(event.eventType) {
+				case ANNOTATION_DELETE:
+					break;
+				case ANNOTATION_INDEX:
+					break;
+				case TSMETA_DELETE:
+					break;
+				case TSMETA_INDEX:
+					TSMeta tsMeta = event.tsMeta;
+					if(stored(conn, tsMeta)) continue;
+					processTSMeta(conn, tsMeta);
+					break;
+				case UIDMETA_DELETE:
+					break;
+				case UIDMETA_INDEX:					
+					UIDMeta uidMeta = event.uidMeta;
+					if(stored(conn, uidMeta)) continue;
+					switch(uidMeta.getType()) {
+						case METRIC:
+							if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());
+							bindUIDMeta(uidMeta, uidMetaMetricIndexPs);							
+							break;
+						case TAGK:
+							if(uidMetaTagKIndexPs==null) uidMetaTagKIndexPs = conn.prepareStatement(getUIDMetaTagKIndexSQL());
+							bindUIDMeta(uidMeta, uidMetaTagKIndexPs);							
+							break;
+						case TAGV:
+							if(uidMetaTagVIndexPs==null) uidMetaTagVIndexPs = conn.prepareStatement(getUIDMetaTagVIndexSQL());
+							bindUIDMeta(uidMeta, uidMetaTagVIndexPs);														
+							break;
+						default:
+							log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
+							break;
+					}
+					ops++;
+					log.info("Bound {} Index [{}]", uidMeta.getType().name(), uidMeta.getName());
+					break;
+				default:
+					log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
+					break;
+					
+				}
+			} // end for event processor for loop
+			if(uidMetaMetricIndexPs!=null) executeBatch(uidMetaMetricIndexPs);
+			if(uidMetaTagVIndexPs!=null) executeBatch(uidMetaTagVIndexPs);
+			if(uidMetaTagKIndexPs!=null) executeBatch(uidMetaTagKIndexPs);
+			if(uidMetaTagPairPs!=null) executeBatch(uidMetaTagPairPs);
+			
+			conn.commit();
+			log.info("Executed {} ops in {} ms.", ops, et.elapsedMs());
+		} catch (Exception ex) {
+			log.error("batch operations failed", ex);
+		} finally {
+			if(uidMetaTagKIndexPs!=null) try { uidMetaTagKIndexPs.close(); uidMetaTagKIndexPs = null;} catch (Exception x) {/* No Op */}
+			if(uidMetaTagVIndexPs!=null) try { uidMetaTagVIndexPs.close(); uidMetaTagVIndexPs = null; } catch (Exception x) {/* No Op */}
+			if(uidMetaMetricIndexPs!=null) try { uidMetaMetricIndexPs.close(); uidMetaMetricIndexPs = null;} catch (Exception x) {/* No Op */}
+			if(uidMetaTagPairPs!=null) try { uidMetaTagPairPs.close(); uidMetaTagPairPs = null;} catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	protected void processTSMeta(Connection conn, TSMeta tsMeta) {
+		UIDMeta[] tagPair = new UIDMeta[2];
+		String tagPairUid = null;
+		for(UIDMeta meta: tsMeta.getTags()) {
+			if(tagPair[0]==null) {
+				tagPair[0] = meta;
+				continue;
+			} else if(tagPair[1]==null) {
+				tagPair[1] = meta;
+				tagPairUid = processUIDMetaPair(conn, tagPair);
+				tagPair[0] = null; tagPair[1] = null; 
+			}
+		}
+	}
+
+	protected String processUIDMetaPair(Connection conn, UIDMeta[] tagPair) {
+		if(tagPair[0].getType()!=UniqueIdType.TAGK) throw new IllegalArgumentException("Provided uidMetaKey was expected to be of type TAGK but was actually [" + tagPair[0].getType() + "]");
+		if(tagPair[1].getType()!=UniqueIdType.TAGV) throw new IllegalArgumentException("Provided uidMetaValue was expected to be of type TAGV but was actually [" + tagPair[1].getType() + "]");
+		String tagPairUid = tagPair[0].getUID() + tagPair[1].getUID();
+		if(tagPairStored(conn, tagPairUid)) return tagPairUid;
+		String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (UID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
+		try {
+			if(uidMetaTagPairPs==null) {
+				uidMetaTagPairPs = conn.prepareStatement(INSERT_TAGPAIR_SQL);
+			}
+			uidMetaTagPairPs.setString(1, tagPairUid);
+			uidMetaTagPairPs.setString(2, tagPair[0].getUID());
+			uidMetaTagPairPs.setString(3, tagPair[1].getUID());
+			uidMetaTagPairPs.setString(4, tagPair[0].getName() + "=" + tagPair[1].getName());
+			uidMetaTagPairPs.addBatch();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to write tagpair [" + tagPairUid + "]", ex);
+		} 
+		return null;
+	}
+	/**
+	 * Executes the batched statements in the passed statement and validates the results.
+	 * @param ps The statement to execute batch on
+	 * @throws SQLException thrown on a batch execution error
+	 */
+	protected void executeBatch(PreparedStatement ps) throws SQLException {
+		int[] results = ps.executeBatch();
+		if(results!=null && results.length>0) {
+			Arrays.sort(results);
+			if(results[0] < Statement.SUCCESS_NO_INFO) {
+				ps.getConnection().rollback();
+				throw new SQLException("Batch results had failed result code [" + results[0] + "]");
+			}
+		}
+		log.info("Processed Batch of Size:{}", results.length);
+		
+		
+	}
+	
+	/**
+	 * Binds and batches a UIDMeta indexing operation
+	 * @param uidMeta The UIDMeta to index
+	 * @param ps The prepared statement to bind against and batch
+	 * @throws SQLException thrown on binding or batching failures
+	 */
+	protected void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
+		ps.setString(1, uidMeta.getUID());
+		ps.setString(2, uidMeta.getName());
+		ps.setTimestamp(3, new Timestamp(uidMeta.getCreated()));
+		ps.setString(4, uidMeta.getDescription());
+		ps.setString(5, uidMeta.getDisplayName());
+		ps.setString(6, uidMeta.getNotes());
+		Map<String, String> custom = uidMeta.getCustom();
+		if(custom==null) custom = Collections.emptyMap();
+		ps.setString(7, custom.toString());
+		ps.addBatch();
+	}
 	
 	/**
 	 * Starts the H2 Web and TCP listeners if configured

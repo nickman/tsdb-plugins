@@ -160,6 +160,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	public Deferred<Object>  shutdown(Deferred<Object> deferredToAdd) {
 		if(scheduleHandle!=null) {
 			scheduleHandle.cancel(false);
+			scheduleHandle = null;
 		}
 		if(deferredToAdd!=null) {
 			shutdownDeferred.chain(deferredToAdd);
@@ -218,9 +219,10 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 			publishEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_PUBLISH, false, config) &&  Publisher.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_PUBLISH_PLUGIN, null, config));
 			log.info("\n\tCallback Plugins Enabled for EventDispatcher:\n\t\tSearch:{}\n\t\tPublish:{}\n", searchEnabled, publishEnabled);
 			doInitialize();
-			
-			scheduleHandle = scheduler.scheduleWithFixedDelay(this, 15, 15, TimeUnit.SECONDS);
-			log.info("Started Stats Collector Scheduling");
+			if(!ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.PLUGIN_ENABLE_STATS_POLLING, Constants.DEFAULT_PLUGIN_ENABLE_STATS_POLLING, config)) {
+				scheduleHandle = scheduler.scheduleWithFixedDelay(this, 15, 15, TimeUnit.SECONDS);
+				log.info("Started Stats Collector Scheduling");
+			}
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);

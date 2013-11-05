@@ -41,6 +41,11 @@ public class Constants {
 	/** The TSDB config for enabling new/edited TSMeta through Tree rule sets */
 	public static final String CONFIG_ENABLE_TREE = "tsd.core.tree.enable_processing";
 	
+	/** The config property name for disabling background polling of plugin stats  */
+	public static final String PLUGIN_ENABLE_STATS_POLLING = "tsd.plugins.disableStatsCollect";
+	/** The default disabling background polling of plugin stats  */
+	public static final boolean DEFAULT_PLUGIN_ENABLE_STATS_POLLING = false;
+	
 	// ===========================================================================================	
 	//		ITSDBPluginService
 	// ===========================================================================================

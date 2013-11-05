@@ -24,27 +24,32 @@
  */
 package net.opentsdb.catalog;
 
+import java.sql.Connection;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.sql.DataSource;
+
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 
 import net.opentsdb.core.TSDB;
 
 
 /**
- * <p>Title: IDBInitializer</p>
+ * <p>Title: CatalogDBInterface</p>
  * <p>Description: Defines a SQL catalog DB initializer</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.catalog.IDBInitializer</code></p>
+ * <p><code>net.opentsdb.catalog.CatalogDBInterface</code></p>
  */
 
-public interface IDBInitializer {
+public interface CatalogDBInterface {
 
 	/** The config property name for the JDBC URL */
 	public static final String DB_JDBC_URL = "helios.search.catalog.jdbc.url";
 	/** The default JDBC URL */
-	public static final String DEFAULT_DB_JDBC_URL = "jdbc:h2:mem:tsdb";
+	public static final String DEFAULT_DB_JDBC_URL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1";
+	// jdbc:h2:file:~/.apmrouter/h2/db;JMX=TRUE;MULTI_THREADED=TRUE;DB_CLOSE_DELAY=-1
 	/** The config property name for the JDBC Driver Name */
 	public static final String DB_JDBC_DRIVER = "helios.search.catalog.jdbc.driver";
 	/** The default JDBC Driver */
@@ -75,6 +80,13 @@ public interface IDBInitializer {
 	 * Terminates the database resources
 	 */
 	public void shutdown();
+	
 
+	/**
+	 * Processes a batch of events
+	 * @param conn The connection to execute the events against
+	 * @param events An ordered batch of events to process
+	 */
+	public void processEvents(Connection conn, Set<TSDBSearchEvent> events);		
 	
 }

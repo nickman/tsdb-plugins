@@ -47,6 +47,12 @@
 	<artifactId>h2</artifactId>
       </dependency>
         
+      <dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-jdbc</artifactId>
+      </dependency>
+        
+        
       <!--
 	  ====
 	  Provided by mandatory tsdb-plugins-core

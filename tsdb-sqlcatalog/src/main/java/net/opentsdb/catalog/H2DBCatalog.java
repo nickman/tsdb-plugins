@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.sql.DataSource;
 
@@ -168,10 +169,6 @@ public class H2DBCatalog implements CatalogDBInterface {
 	
 	/** The SQL to insert the TSMeta UID pairs */
 	public static String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
-			
-			
-	/** A JSON representation of an empty map */
-	public static final String EMPTY_MAP = "{}";
 			
 	
 	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
@@ -627,7 +624,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 		ps.setString(4, uidMeta.getDescription());
 		ps.setString(5, uidMeta.getDisplayName());
 		ps.setString(6, uidMeta.getNotes());
-		ps.setString(7, JSONMapSupport.nokToString(uidMeta.getCustom()));
+		Map<String, String> custom = uidMeta.getCustom();
+		if(custom==null) custom = new TreeMap<String, String>();
+		custom.put("saved.by", getClass().getSimpleName());		
+		ps.setString(7, JSONMapSupport.nokToString(custom));
 		ps.addBatch();
 	}
 	
@@ -707,8 +707,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
 				st.execute(String.format(format, entry.getKey(), entry.getValue()));
 				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
-			}
-			st.execute("SET @FQN_SEQ_SIZE = 103;");
+			}			
 			log.info("Connected to [{}]", conn.getMetaData().getURL());
 			for(String rez: ddlResources) {
 				pResource = rez; 

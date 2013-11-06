@@ -26,6 +26,8 @@ package net.opentsdb.catalog.h2;
 
 import java.sql.*;
 
+import net.opentsdb.catalog.h2.json.JSONMapSupport;
+
 /**
  * <p>Title: H2Support</p>
  * <p>Description: Static support functions for H2 DB</p> 
@@ -35,6 +37,46 @@ import java.sql.*;
  */
 
 public class H2Support {
+	
+	/**
+	 * Returns the named value from the map
+	 * @param key The key to retrieve the value for
+	 * @param jsonMap The JSON map source
+	 * @return the bound value or null if one was not found
+	 */
+	public static String jsonGet(String key, String jsonMap) {
+		return JSONMapSupport.getOrNull(key, jsonMap);
+	}
+	
+	/**
+	 * Returns the keys of the map as a string array
+	 * @param jsonMap The JSON map source
+	 * @return an array of the map's keys
+	 */
+	public static String[] jsonKeys(String jsonMap) {
+		return JSONMapSupport.keys(jsonMap);
+	}
+	
+	/**
+	 * Returns the values of the map as a string array
+	 * @param jsonMap The JSON map source
+	 * @return an array of the map's values
+	 */
+	public static String[] jsonValues(String jsonMap) {
+		return JSONMapSupport.keys(jsonMap);
+	}
+	
+	/**
+	 * Returns the keys and values of the map as a 2D string array
+	 * @param jsonMap The JSON map source
+	 * @return a 2D array of the map's keys and values
+	 */
+	public static String[][] jsonPairs(String jsonMap) {
+		return JSONMapSupport.pairs(jsonMap);
+	}
+	
+	
+	
 	/**
 	 * Looks up the name of a TAGV
 	 * @param conn The DB connection

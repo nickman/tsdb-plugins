@@ -117,8 +117,66 @@ public class JSONMapSupport {
 	 * or if the key not bound into the map
 	 */
 	public static String get(CharSequence key, CharSequence source) {
+		String value =  read(source).get(nvls("Key", key));
+		if(value==null) throw new JSONException("No value found for key [%s]", key);
+		return value;
+	}
+	
+	/**
+	 * Retrieves the value bound in the map for the passed key, returning null if a bound value is not found
+	 * @param key The key to retrieve the bound value for
+	 * @param source The JSON source to parse
+	 * @return The bound value for the key
+	 * @throws JSONException thrown if the key or source is empty or null 
+	 * or if the key not bound into the map
+	 */
+	public static String getOrNull(CharSequence key, CharSequence source) {
 		return read(source).get(nvls("Key", key));
 	}
+	
+	/**
+	 * Returns the keys of the map as a string array
+	 * @param source The source of the json map
+	 * @return an array of the keys in the map
+	 */
+	public static String[] keys(CharSequence source) {
+		return read(source).keySet().toArray(new String[0]);
+	}
+	
+	/**
+	 * Returns the values of the map as a string array
+	 * @param source The source of the json map
+	 * @return an array of the values in the map
+	 */
+	public static String[] values(CharSequence source) {
+		return read(source).values().toArray(new String[0]);
+	}
+	
+	/**
+	 * Returns the keys and values of the map as a 2D string array
+	 * where <b><code>arr[n][0]</code></b> is the key and <b><code>arr[n][1]</code></b> is the value.
+	 * <pre>
+           +--+--+--+--+..+--+
+           |0 |k0|k1|k2|..|kn|
+           +--+--+--+--+..+--+
+           +--+--+--+--+..+--+
+           |1 |v0|v1|v2|..|vn|
+           +--+--+--+--+..+--+
+	 * </pre>
+	 * @param source The source of the json map
+	 * @return a 2D array of the keys and values in the map.
+	 */
+	public static String[][] pairs(CharSequence source) {
+		Map<String, String> map = read(source);
+		String[][] arr = new String[map.size()][];
+		int cnt = 0;
+		for(Map.Entry<String, String> entry: map.entrySet()) {
+			arr[cnt] = new String[]{entry.getKey(), entry.getValue()};
+			cnt++;
+		}
+		return arr;
+	}
+	
 	
 	/**
 	 * Puts the passed key/value pair into the map represented by the passed JSON source

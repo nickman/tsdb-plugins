@@ -25,14 +25,17 @@
 package net.opentsdb.catalog;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.helios.tsdb.plugins.event.TSDBSearchEvent;
-
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.UIDMeta;
+
+import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 
 
 /**
@@ -87,6 +90,13 @@ public interface CatalogDBInterface {
 	 * @param conn The connection to execute the events against
 	 * @param events An ordered batch of events to process
 	 */
-	public void processEvents(Connection conn, Set<TSDBSearchEvent> events);		
+	public void processEvents(Connection conn, Set<TSDBSearchEvent> events);
+	
+	/**
+	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of UIDMetas
+	 */
+	public Collection<UIDMeta> readUIDMetas(ResultSet rset);
 	
 }

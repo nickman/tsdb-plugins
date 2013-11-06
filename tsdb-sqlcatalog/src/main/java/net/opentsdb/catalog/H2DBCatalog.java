@@ -37,9 +37,10 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -47,6 +48,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -89,6 +91,18 @@ public class H2DBCatalog implements CatalogDBInterface {
 	/** The configured increment on the FQN ID sequence */
 	protected int fqnSeqIncrement = 100;
 	
+	/** batched ps for tag key inserts */
+	protected PreparedStatement uidMetaTagKIndexPs = null;
+	/** batched ps for tag value inserts */
+	protected PreparedStatement uidMetaTagVIndexPs = null;
+	/** batched ps for metric name inserts */
+	protected PreparedStatement uidMetaMetricIndexPs = null;
+	/** batched ps for tag pair inserts */
+	protected PreparedStatement uidMetaTagPairPs = null;
+	/** batched ps for fqn inserts */
+	protected PreparedStatement tsMetaFqnPs = null;
+	/** batched ps for FQN tag pair inserts */
+	protected PreparedStatement uidMetaTagPairFQNPs = null;
 	
 	
 	/** The H2 TCP Port */
@@ -151,6 +165,14 @@ public class H2DBCatalog implements CatalogDBInterface {
 	
 	/** The SQL to insert a TSMeta TSD_FQN */
 	public static String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN (FQNID, METRIC_UID, FQN, TSUID) VALUES (?,?,?,?)";
+	
+	/** The SQL to insert the TSMeta UID pairs */
+	public static String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
+			
+			
+	/** A JSON representation of an empty map */
+	public static final String EMPTY_MAP = "{}";
+			
 	
 	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
 	public static final String FQN_SEQ_INCR_VAR = "FQN_SEQ_SIZE";
@@ -381,18 +403,6 @@ public class H2DBCatalog implements CatalogDBInterface {
 	}
 	
 	
-	/** batched ps for tag key inserts */
-	protected PreparedStatement uidMetaTagKIndexPs = null;
-	/** batched ps for tag value inserts */
-	protected PreparedStatement uidMetaTagVIndexPs = null;
-	/** batched ps for metric name inserts */
-	protected PreparedStatement uidMetaMetricIndexPs = null;
-	/** batched ps for tag pair inserts */
-	protected PreparedStatement uidMetaTagPairPs = null;
-	/** batched ps for fqn inserts */
-	protected PreparedStatement tsMetaFqnPs = null;
-	/** array of generated keys for fqn inserts */
-	protected int[] fqnKeys = new int[1024];
 	
 	/**
 	 * Processes a batch of events
@@ -460,16 +470,14 @@ public class H2DBCatalog implements CatalogDBInterface {
 			}
 			if(tsMetaFqnPs!=null) {
 				executeBatch(tsMetaFqnPs);
-				ResultSet rset = tsMetaFqnPs.getGeneratedKeys();
-				long keyCnt = 0;
-				if(rset.next()) {
-					keyCnt = rset.getLong(1);
-					log.info("\n\t*********\n\tFQN Batch Returned [{}] Keys\n\t*********", keyCnt);
-				}				
 				tsMetaFqnPs.clearBatch();				
-			}			
+			}
+			if(uidMetaTagPairFQNPs!=null) {
+				executeBatch(uidMetaTagPairFQNPs);
+				uidMetaTagPairFQNPs.clearBatch();								
+			}
 			conn.commit();
-			log.info("Executed {} ops in {} ms.", ops, et.elapsedMs());
+			log.info(et.printAvg("Indexes", ops));
 		} catch (Exception ex) {
 			log.error("batch operations failed", ex);
 		} finally {
@@ -478,7 +486,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			if(uidMetaMetricIndexPs!=null) try { uidMetaMetricIndexPs.close(); uidMetaMetricIndexPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairPs!=null) try { uidMetaTagPairPs.close(); uidMetaTagPairPs = null;} catch (Exception x) {/* No Op */}
 			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
-			
+			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
 			
 		}
 	}
@@ -538,6 +546,16 @@ public class H2DBCatalog implements CatalogDBInterface {
 			tsMetaFqnPs.setString(3, fqn.toString());
 			tsMetaFqnPs.setString(4, tsMeta.getTSUID());
 			tsMetaFqnPs.addBatch();
+			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL);
+			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
+			int pairCount = tsMeta.getTags().size()/2;
+			for(short i = 0; i < pairCount; i++) {
+				String pairUID = pairs.removeFirst().getUID() + pairs.removeFirst().getUID();
+				uidMetaTagPairFQNPs.setLong(1, fqnSeq);
+				uidMetaTagPairFQNPs.setString(2, pairUID);
+				uidMetaTagPairFQNPs.setShort(3, i);
+				uidMetaTagPairFQNPs.addBatch();
+			}
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -591,7 +609,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 				throw new SQLException("Batch results had failed result code [" + results[0] + "]");
 			}
 		}
-		log.info("Processed Batch of Size:{}", results.length);
+		//log.info("Processed Batch of Size:{}", results.length);
 		
 		
 	}
@@ -609,11 +627,32 @@ public class H2DBCatalog implements CatalogDBInterface {
 		ps.setString(4, uidMeta.getDescription());
 		ps.setString(5, uidMeta.getDisplayName());
 		ps.setString(6, uidMeta.getNotes());
-		Map<String, String> custom = uidMeta.getCustom();
-		if(custom==null) custom = Collections.emptyMap();
-		ps.setString(7, custom.toString());
+		ps.setString(7, JSONMapSupport.nokToString(uidMeta.getCustom()));
 		ps.addBatch();
 	}
+	
+	/**
+	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of UIDMetas
+	 */
+	public Collection<UIDMeta> readUIDMetas(ResultSet rset) {
+		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
+		List<UIDMeta> uidMetas = new ArrayList<UIDMeta>();
+		
+		try {
+			String tName = rset.getMetaData().getTableName(1).toUpperCase().replace("TSD_", "");
+			UniqueIdType utype = UniqueIdType.valueOf(tName); 
+			while(rset.next()) {
+				
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to read UIDMetas from ResultSet", ex);
+		}
+		return uidMetas;
+	}
+	
+	
 	
 	/**
 	 * Starts the H2 Web and TCP listeners if configured

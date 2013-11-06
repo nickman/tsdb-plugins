@@ -279,7 +279,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 							events.add(ev);
 						}						
 					} while(events.size()<batchSize && ts>System.currentTimeMillis());
-					log.info("Processing Batch of [{}] Events", events.size());
+					log.debug("Processing Batch of [{}] Events", events.size());
 					dbInterface.processEvents(conn, events);
 				}
 			} catch (InterruptedException iex) {

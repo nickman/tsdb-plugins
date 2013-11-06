@@ -135,7 +135,7 @@ public class SystemClock {
 			Map<TimeUnit, String> tmp =  new EnumMap<TimeUnit, String>(TimeUnit.class);
 			tmp.put(TimeUnit.DAYS, "days");
 			tmp.put(TimeUnit.HOURS, "hrs.");
-			tmp.put(TimeUnit.MICROSECONDS, "us.");
+			tmp.put(TimeUnit.MICROSECONDS, "\u00b5s.");
 			tmp.put(TimeUnit.MILLISECONDS, "ms.");
 			tmp.put(TimeUnit.MINUTES, "min.");
 			tmp.put(TimeUnit.NANOSECONDS, "ns.");
@@ -171,8 +171,7 @@ public class SystemClock {
 		 * @param cnt The number of events
 		 * @return The average elapsed time in ms.
 		 */
-		public long avgMs(double cnt) {
-			
+		public long avgMs(double cnt) {			
 			return _avg(elapsed(TimeUnit.MILLISECONDS), cnt);
 		}
 		
@@ -254,7 +253,20 @@ public class SystemClock {
 		public String elapsedStrMs() {			
 			return elapsedStr(TimeUnit.MILLISECONDS);
 		}
-		
+
+		public String printAvg(String unitName, double cnt) {
+			endNs = System.nanoTime();
+			long elapsedNs = endNs - startNs;
+			long avgNs = _avg(elapsedNs, cnt);
+			return String.format("Completed %s %s in %s ms.  AvgPer: %s ms/%s \u00b5s/%s ns.",
+					cnt,
+					unitName, 
+					TimeUnit.MILLISECONDS.convert(elapsedNs, TimeUnit.NANOSECONDS),
+					TimeUnit.MILLISECONDS.convert(avgNs, TimeUnit.NANOSECONDS),
+					TimeUnit.MICROSECONDS.convert(avgNs, TimeUnit.NANOSECONDS),
+					avgNs					
+			);
+		}
 		
 	}
 	

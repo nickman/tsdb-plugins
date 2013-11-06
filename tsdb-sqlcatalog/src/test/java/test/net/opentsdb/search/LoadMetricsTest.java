@@ -251,10 +251,9 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	@Test
 	public void testUIDMetaIndexing() throws Exception {
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
-		for(int i = 0; i < 1000; i++) {
-			//String[] frags = getRandomFragments();
-			ons.add(JMXHelper.objectName("%s:foo=%s,bar=%s,%s=%s", getRandomFragments()));
-		}
+//		for(int i = 0; i < 1000; i++) {
+//			ons.add(JMXHelper.objectName("%s:foo=%s,bar=%s,%s=%s", getRandomFragments()));
+//		}
 		for(ObjectName on: ons) {
 			LinkedList<UIDMeta> uidMetas = objectNameToUIDMeta(on);
 			for(UIDMeta m : uidMetas) {

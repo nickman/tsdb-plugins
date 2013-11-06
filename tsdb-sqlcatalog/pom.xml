@@ -30,6 +30,15 @@
 		  <groupId>org.mockito</groupId>
 		  <artifactId>mockito-all</artifactId>
 		</dependency>
+		
+	<dependency>
+	  <groupId>org.helios.tsdb</groupId>
+	  <artifactId>tsdb-plugins-core</artifactId>      
+	  <version>${project.version}</version>
+	  <type>test-jar</type>
+	  <scope>test</scope>
+    </dependency>
+		
 
 	<dependency>
 	  <groupId>org.helios.tsdb</groupId>
@@ -186,6 +195,31 @@
 		<groupId>org.apache.maven.plugins</groupId>
 		<artifactId>maven-jar-plugin</artifactId>
 	    </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+			  	<artifactId>maven-shade-plugin</artifactId>
+	        	<executions>
+	          		<execution>
+	            		<phase>package</phase>
+			            <goals>
+			              <goal>shade</goal>
+			            </goals>
+			            <configuration>
+			              <artifactSet>
+			                <excludes>
+			                </excludes>
+			              </artifactSet>
+					    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+					    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						<includePluginDependencies>false</includePluginDependencies>
+						<transformers>
+			            	<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">			                	
+			                </transformer>
+			              </transformers>
+			            </configuration>
+			          </execution>
+			        </executions>
+			      </plugin>	    
         </plugins>
     </build>
 

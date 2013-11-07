@@ -24,9 +24,14 @@
  */
 package net.opentsdb.catalog.h2;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
+
+import org.h2.api.Trigger;
 
 /**
  * <p>Title: H2Support</p>
@@ -315,6 +320,76 @@ public class H2Support {
 		p[0] = pair.substring(0, index);
 		p[1] = pair.substring(index+1);
 		return p;
+	}
+	
+	public static class UpdateRowQueuePKTrigger implements Trigger {
+		/** The updated table name the update went to */
+		protected String eventSource = null;
+		
+		/** The queue table insert template */
+		public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (EVENT_TYPE, EVENT_ID) VALUES (?,?)";
+		
+		
+		/*
+CREATE TABLE SYNC_QUEUE (
+	QID BIGINT IDENTITY COMMENT 'The synthetic identifier for this sync operation',
+	EVENT_TYPE VARCHAR(20) NOT NULL 
+		COMMENT 'The source of the update that triggered this sync operation'
+		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
+	EVENT_ID VARCHAR2(20) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
+	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
+	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
+);
+		 */
+		
+		/**
+		 * {@inheritDoc}
+		 * @see org.h2.api.Trigger#init(java.sql.Connection, java.lang.String, java.lang.String, java.lang.String, boolean, int)
+		 */
+		@Override
+		public void init(Connection conn, String schemaName, String triggerName, String tableName, boolean before, int type) 				throws SQLException {
+			this.eventSource = tableName;
+			PreparedStatement ps = null;
+			try {
+				ps = conn.prepareStatement("SELECT COLUMN_LIST FROM ");
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to get PK for [" + tableName + "]", ex);
+			} finally {
+				if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			}
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see org.h2.api.Trigger#fire(java.sql.Connection, java.lang.Object[], java.lang.Object[])
+		 */
+		@Override
+		public void fire(Connection conn, Object[] oldRow, Object[] newRow)
+				throws SQLException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see org.h2.api.Trigger#close()
+		 */
+		@Override
+		public void close() throws SQLException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see org.h2.api.Trigger#remove()
+		 */
+		@Override
+		public void remove() throws SQLException {
+			// TODO Auto-generated method stub
+			
+		}
+		
 	}
 	
 	

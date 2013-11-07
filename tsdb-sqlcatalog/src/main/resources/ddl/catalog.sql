@@ -105,7 +105,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_FQN_AK ON TSD_FQN (FQN);
 
 ALTER TABLE TSD_FQN ADD CONSTRAINT IF NOT EXISTS TSD_FQN_METRIC_FK FOREIGN KEY(METRIC_UID) REFERENCES TSD_METRIC ( UID );
 
-CREATE TABLE IF NOT EXISTS ANNOTATION (
+CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 	ANNID BIGINT IDENTITY COMMENT 'The synthetic unique identifier for this annotation',
 	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
 	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
@@ -113,13 +113,38 @@ CREATE TABLE IF NOT EXISTS ANNOTATION (
 	FQNID BIGINT COMMENT 'AN optional reference to the associated TSMeta. If null, this will be a global annotation',
     END_TIME TIMESTAMP COMMENT 'The optional effective end time for this annotation',
     CUSTOM VARCHAR(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this annotation'    
-); COMMENT ON TABLE ANNOTATION IS 'Table storing created annotations';
+); COMMENT ON TABLE TSD_ANNOTATION IS 'Table storing created annotations';
 
-CREATE UNIQUE INDEX IF NOT EXISTS ANNOTATION_AK ON ANNOTATION (START_TIME, FQNID);
-ALTER TABLE ANNOTATION ADD CONSTRAINT IF NOT EXISTS ANNOTATION_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID );
+CREATE UNIQUE INDEX IF NOT EXISTS TSD_ANNOTATION_AK ON TSD_ANNOTATION (START_TIME, FQNID);
+ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT IF NOT EXISTS TSD_ANNOTATION_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID );
 
 
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID ) ON DELETE CASCADE;
+
+
+
+-- ==============================================================================================
+--  Sync Queue Table
+-- ==============================================================================================
+
+CREATE TABLE SYNC_QUEUE (
+	QID BIGINT IDENTITY COMMENT 'The synthetic identifier for this sync operation',
+	EVENT_TYPE VARCHAR(20) NOT NULL 
+		COMMENT 'The source of the update that triggered this sync operation'
+		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
+	EVENT_ID VARCHAR2(20) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
+	EVENT_TIME TIMESTAMP AS NOW() NOT NULL,
+	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
+	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
+);
+
+-- ==============================================================================================
+--  Queue Triggers
+-- ==============================================================================================
+
+
+
+
 
 -- ==============================================================================================
 --  User Defined Functions

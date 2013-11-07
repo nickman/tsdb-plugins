@@ -191,5 +191,89 @@ public class JSONMapSupport {
 		return toString(map);
 	}
 
+	/**
+	 * Determines if the JSON Map contains the passed key
+	 * @param key The mapped key
+	 * @param source The JSON source to parse
+	 * @return true if the key was found, false otherwise
+	 */
+	public static boolean containsKey(CharSequence key, CharSequence source) {
+		return read(source).containsKey(nvls("Key", key));
+	}
+	
+	/**
+	 * Determines if all the passed keys are present in the JSON Map.
+	 * Will return false if no keys are passed or if any of the keys are null or empty
+	 * @param source The JSON source to parse
+	 * @param keys The keys to look for
+	 * @return true if all keys were found, false otherwise
+	 */
+	public static boolean containsAllKeys(CharSequence source, String...keys) {
+		if(keys==null || keys.length==0) return false;
+		Map<String, String> map = read(source);
+		if(map.isEmpty()) return false;
+		for(String s: keys) {
+			if(s==null || s.trim().isEmpty()) return false;
+			if(!map.containsKey(s.trim())) return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Determines if any of the passed keys are present in the JSON Map.
+	 * Will return false if no keys are passed or if any of the keys are null or empty
+	 * @param source The JSON source to parse
+	 * @param keys The keys to look for
+	 * @return true if any key is found, false otherwise
+	 */
+	public static boolean containsAnyKeys(CharSequence source, String...keys) {
+		if(keys==null || keys.length==0) return false;
+		Map<String, String> map = read(source);
+		if(map.isEmpty()) return false;
+		for(String s: keys) {
+			if(s==null || s.trim().isEmpty()) continue;
+			if(map.containsKey(s.trim())) return true;
+		}
+		return false;
+	}
+	
+	
+	/**
+	 * Determines if all the passed values are present in the JSON Map.
+	 * Will return false if no values are passed or if any of the values are null
+	 * @param source The JSON source to parse
+	 * @param values The values to look for
+	 * @return true if all values were found, false otherwise 
+	 */
+	public static boolean containsAllValues(CharSequence source, String...values) {
+		if(values==null || values.length==0) return false;
+		Map<String, String> map = read(source);
+		if(map.isEmpty()) return false;
+		for(String s: values) {
+			if(s==null) return false;
+			if(!map.containsValue(s.trim())) return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Determines if any of the passed values are present in the JSON Map.
+	 * Will return false if no values are passed or if any of the values are null
+	 * @param source The JSON source to parse
+	 * @param values The values to look for
+	 * @return true if any value was found, false otherwise 
+	 */
+	public static boolean containsAnyValues(CharSequence source, String...values) {
+		if(values==null || values.length==0) return false;
+		Map<String, String> map = read(source);
+		if(map.isEmpty()) return false;
+		for(String s: values) {
+			if(s==null) return false;
+			if(map.containsValue(s.trim())) return true;
+		}
+		return false;
+	}
+	
+	
 	
 }

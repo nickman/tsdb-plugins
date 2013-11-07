@@ -250,7 +250,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	 * Tests the indexing of a set of UIDMetas.
 	 * @throws Exception thrown on any error
 	 */
-	@Test
+	@Test(timeout=60000)
 	public void testUIDMetaIndexing() throws Exception {
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
 //		for(int i = 0; i < 1000; i++) {

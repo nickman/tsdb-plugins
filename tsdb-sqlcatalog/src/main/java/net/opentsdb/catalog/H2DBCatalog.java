@@ -180,7 +180,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
 	
 	/** The SQL to insert an Annotation */
-	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?)";
+	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?)";
 			
 	
 	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
@@ -565,7 +565,12 @@ public class H2DBCatalog implements CatalogDBInterface {
 			annotationsPs.setTimestamp(1, new Timestamp(annotation.getStartTime()));
 			annotationsPs.setString(2, annotation.getDescription());
 			annotationsPs.setString(3, annotation.getNotes());
-			annotationsPs.setLong(4, H2Support.fqnId(conn, annotation.getTSUID()));
+			if(annotation.getTSUID()==null) {
+				annotationsPs.setNull(4, Types.BIGINT);
+			} else {
+				annotationsPs.setLong(4, H2Support.fqnId(conn, annotation.getTSUID()));
+			}
+			
 			
 			long endTime = annotation.getEndTime();
 			if(endTime==0) {

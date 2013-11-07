@@ -11,41 +11,45 @@
 CREATE SEQUENCE IF NOT EXISTS FQN_SEQ START WITH 0 INCREMENT BY @FQN_SEQ_SIZE;
 ALTER SEQUENCE FQN_SEQ INCREMENT BY @FQN_SEQ_SIZE;
 -- ===========================================================================================
+CREATE ALIAS IF NOT EXISTS DNAN AS $$
+	double getNan() { return Double.NaN; }
+$$;
+CREATE CONSTANT IF NOT EXISTS DOUBLE_NAN VALUE DNAN(); 
 
 CREATE TABLE IF NOT EXISTS TSD_TAGK (
     UID CHAR(6) NOT NULL COMMENT 'The tag key UID as a hex encoded string',
-    NAME VARCHAR2(60) NOT NULL COMMENT 'The name of the UID object',
-    CREATED TIMESTAMP NOT NULL COMMENT '',
-    DESCRIPTION VARCHAR2(120) COMMENT '',
-    DISPLAY_NAME VARCHAR2(60) COMMENT '',
-    NOTES VARCHAR2(120) COMMENT '',
-    CUSTOM VARCHAR2(120) COMMENT ''    
+    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag key',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag key',
+    DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag key',
+    NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag key',
+    CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this tag key'    
 ); COMMENT ON TABLE TSD_TAGK IS 'Table storing distinct time-series tag keys';
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGK_AK ON TSD_TAGK (NAME ASC);
 ALTER TABLE TSD_TAGK ADD CONSTRAINT IF NOT EXISTS TSD_TAGK_PK PRIMARY KEY ( UID ) ;
 
 CREATE TABLE IF NOT EXISTS TSD_TAGV (
-    UID CHAR(6) NOT NULL COMMENT '' ,
-    NAME VARCHAR2(60) NOT NULL COMMENT '',
-    CREATED TIMESTAMP NOT NULL COMMENT '',
-    DESCRIPTION VARCHAR2(120) COMMENT '',
-    DISPLAY_NAME VARCHAR2(60) COMMENT '',
-    NOTES VARCHAR2(120) COMMENT '',
-    CUSTOM VARCHAR2(120) COMMENT ''    
+    UID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
+    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
+    DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag value',
+    NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag value',
+    CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this tag value'    
 ); COMMENT ON TABLE TSD_TAGV IS 'Table storing distinct time-series tag values';
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGV_AK ON TSD_TAGV (NAME ASC);
 ALTER TABLE TSD_TAGV ADD CONSTRAINT IF NOT EXISTS TSD_TAGV_PK PRIMARY KEY ( UID ) ;
 
 CREATE TABLE IF NOT EXISTS TSD_METRIC (
-    UID CHAR(6) NOT NULL COMMENT '' ,
-    NAME VARCHAR2(60) NOT NULL COMMENT '',
-    CREATED TIMESTAMP NOT NULL COMMENT '',
-    DESCRIPTION VARCHAR2(120) COMMENT '',
-    DISPLAY_NAME VARCHAR2(60) COMMENT '',
-    NOTES VARCHAR2(120) COMMENT '',
-    CUSTOM VARCHAR2(120) COMMENT ''    
+    UID CHAR(6) NOT NULL COMMENT 'The metric UID as a hex encoded string',
+    NAME VARCHAR2(60) NOT NULL COMMENT 'The metric name',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this metric',
+    DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this metric',
+    NOTES VARCHAR2(120) COMMENT 'Optional notes for this metric',
+    CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this metric'    
 ); COMMENT ON TABLE TSD_TAGK IS 'Table storing distinct time-series metric names';
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_METRIC_AK ON TSD_METRIC (NAME ASC);
@@ -53,11 +57,11 @@ ALTER TABLE TSD_METRIC ADD CONSTRAINT IF NOT EXISTS TSD_METRIC_PK PRIMARY KEY ( 
 
 
 CREATE TABLE IF NOT EXISTS TSD_TAGPAIR (
-	UID CHAR(12) NOT NULL COMMENT '',
-	TAGK CHAR(6) NOT NULL REFERENCES TSD_TAGK(UID) COMMENT '',
-	TAGV CHAR(6) NOT NULL REFERENCES TSD_TAGV(UID) COMMENT '',
-	NAME  VARCHAR2(120) NOT NULL COMMENT ''
-);
+	UID CHAR(12) NOT NULL COMMENT 'The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs.',
+	TAGK CHAR(6) NOT NULL COMMENT 'The pair tag key' REFERENCES TSD_TAGK(UID),
+	TAGV CHAR(6) NOT NULL COMMENT 'The pair tag value' REFERENCES TSD_TAGV(UID),
+	NAME  VARCHAR2(120) NOT NULL COMMENT 'The tag pair name expressed as T=V'
+); COMMENT ON TABLE TSD_TAGPAIR IS 'Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta';
 
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGPAIR_AK ON TSD_TAGPAIR (TAGK ASC, TAGV ASC);
@@ -77,21 +81,45 @@ CREATE TABLE IF NOT EXISTS TSD_FQN_TAGPAIR (
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_TAGPAIR_AK ON TSD_FQN_TAGPAIR (FQN_TP_ID);
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_TAGPAIR_IND ON TSD_FQN_TAGPAIR (FQNID, UID, PORDER);
-ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FK FOREIGN KEY(UID) REFERENCES TSD_TAGPAIR ( UID );
+ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FK FOREIGN KEY(UID) REFERENCES TSD_TAGPAIR ( UID ) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS TSD_FQN (
 	FQNID BIGINT NOT NULL COMMENT 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry',
 	METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
 	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
-	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string'
+	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
+	MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
+	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
+	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
+	DESCRIPTION VARCHAR(60) COMMENT 'An optional description for the time-series',
+	DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
+	NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
+	UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
+	RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite'
 ); COMMENT ON TABLE TSD_FQN IS 'Table storing each distinct time-series TSMeta and its attributes';
 
 ALTER TABLE TSD_FQN ADD CONSTRAINT IF NOT EXISTS TSD_FQN_PK PRIMARY KEY ( FQNID ) ;
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_AK ON TSD_FQN (FQNID);
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_TSUID_AK ON TSD_FQN (TSUID);
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_FQN_AK ON TSD_FQN (FQN);
-ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID );
+
 ALTER TABLE TSD_FQN ADD CONSTRAINT IF NOT EXISTS TSD_FQN_METRIC_FK FOREIGN KEY(METRIC_UID) REFERENCES TSD_METRIC ( UID );
+
+CREATE TABLE IF NOT EXISTS ANNOTATION (
+	ANNID BIGINT IDENTITY COMMENT 'The synthetic unique identifier for this annotation',
+	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
+	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
+    NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',
+	FQNID BIGINT COMMENT 'AN optional reference to the associated TSMeta. If null, this will be a global annotation',
+    END_TIME TIMESTAMP COMMENT 'The optional effective end time for this annotation',
+    CUSTOM VARCHAR(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this annotation'    
+); COMMENT ON TABLE ANNOTATION IS 'Table storing created annotations';
+
+CREATE UNIQUE INDEX IF NOT EXISTS ANNOTATION_AK ON ANNOTATION (START_TIME, FQNID);
+ALTER TABLE ANNOTATION ADD CONSTRAINT IF NOT EXISTS ANNOTATION_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID );
+
+
+ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID ) ON DELETE CASCADE;
 
 -- ==============================================================================================
 --  User Defined Functions
@@ -111,6 +139,9 @@ CREATE ALIAS IF NOT EXISTS TAGPAIRU FOR "net.opentsdb.catalog.h2.H2Support.tagPa
 
 CREATE ALIAS IF NOT EXISTS TAGPAIRKEY FOR "net.opentsdb.catalog.h2.H2Support.tagPairKeyNameByUid";
 CREATE ALIAS IF NOT EXISTS TAGPAIRVALUE FOR "net.opentsdb.catalog.h2.H2Support.tagPairValueNameByUid";
+
+CREATE ALIAS IF NOT EXISTS FQNID FOR "net.opentsdb.catalog.h2.H2Support.fqnId";
+
 
 CREATE ALIAS IF NOT EXISTS JSONGET FOR "net.opentsdb.catalog.h2.H2Support.jsonGet";
 CREATE ALIAS IF NOT EXISTS JSONKEYS FOR "net.opentsdb.catalog.h2.H2Support.jsonKeys";

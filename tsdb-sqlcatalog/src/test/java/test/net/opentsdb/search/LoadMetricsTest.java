@@ -33,9 +33,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.management.MBeanInfo;
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -262,6 +264,12 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			}
 			TSMeta tsMeta = fromUids(uidMetas);
 			tsdb.indexTSMeta(tsMeta);
+			Annotation ann = new Annotation();
+			ann.setTSUID(tsMeta.getTSUID());
+			MBeanInfo minfo = JMXHelper.getMBeanInfo(on);
+			ann.setDescription(minfo.getDescription());
+			ann.setNotes(minfo.getClassName());
+			tsdb.indexAnnotation(ann);
 		}
 		while(TSDBCatalogSearchEventHandler.getInstance().getProcessingQueueDepth()>0) {
 			Thread.sleep(1000);

@@ -75,7 +75,24 @@ public class H2Support {
 		return JSONMapSupport.pairs(jsonMap);
 	}
 	
-	
+	/**
+	 * Returns the FNQID of the TSMeta with the passed TSUID
+	 * @param conn The DB connection
+	 * @param tsuid The TSUID of the TSMeta to get the id for
+	 * @return the FNQID of the TSMeta or -1 if the passed tsuid was null or empty
+	 */
+	public static long fqnId(Connection conn, String tsuid) {
+		if(tsuid==null || tsuid.trim().isEmpty()) return -1;
+		try {
+			PreparedStatement ps = conn.prepareStatement("SELECT FQNID FROM TSD_FQN WHERE TSUID = ?");
+			ps.setString(1, tsuid);
+			ResultSet rs = ps.executeQuery();
+			rs.next();
+			return rs.getLong(1);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to find FQNID for TSUID [" + tsuid + "]", ex);
+		}
+	}
 	
 	/**
 	 * Looks up the name of a TAGV

@@ -66,6 +66,11 @@ public interface CatalogDBInterface {
 	/** The default JDBC User Password */
 	public static final String DEFAULT_DB_JDBC_PW = "";
 	
+	/*
+	 * Remote JDBC URL
+	 * jdbc:h2:tcp://localhost:9092/mem:tsdb
+	 */
+	
 	/**
 	 * Returns the created data source
 	 * @return a connection pool data source

@@ -35,9 +35,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -49,8 +51,10 @@ import java.util.TreeMap;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
@@ -104,6 +108,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected PreparedStatement tsMetaFqnPs = null;
 	/** batched ps for FQN tag pair inserts */
 	protected PreparedStatement uidMetaTagPairFQNPs = null;
+	/** batched ps for annotation inserts */
+	protected PreparedStatement annotationsPs = null;
 	
 	
 	/** The H2 TCP Port */
@@ -157,24 +163,44 @@ public class H2DBCatalog implements CatalogDBInterface {
 	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (UID,NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?)";
 
 	/** The SQL template for verification of whether a UIDMeta has been saved or not */
-	public static String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE UID = ?";
+	public static final String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE UID = ?";
 	/** The SQL for verification of whether a UIDMeta pair has been saved or not */
-	public static String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE UID = ?";
+	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE UID = ?";
 
 	/** The SQL for verification of whether a TSMeta has been saved or not */
-	public static String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
+	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
 	
 	/** The SQL to insert a TSMeta TSD_FQN */
-	public static String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN (FQNID, METRIC_UID, FQN, TSUID) VALUES (?,?,?,?)";
+	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
+			"(FQNID, METRIC_UID, FQN, TSUID, MAX_VALUE, MIN_VALUE, " + 
+			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION) " + 
+			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 	
 	/** The SQL to insert the TSMeta UID pairs */
-	public static String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
+	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
+	
+	/** The SQL to insert an Annotation */
+	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?)";
 			
 	
 	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
 	public static final String FQN_SEQ_INCR_VAR = "FQN_SEQ_SIZE";
 	
-
+	/** The keys to insert into a new custom map for UISMetas and Annotations */
+	public static final Map<String, String> INIT_CUSTOM;
+	
+	/** The custom map key to identify how the object was saved */
+	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
+	/** The custom map key to specify the version of the object */
+	public static final String VERSION_KEY = "tsd.sql.version";
+	
+	static {
+		Map<String, String> tmp = new TreeMap<String, String>();
+		tmp.put(SAVED_BY_KEY, H2DBCatalog.class.getSimpleName());
+		tmp.put(VERSION_KEY, "1");
+		INIT_CUSTOM = Collections.unmodifiableMap(tmp);
+	}
+	
 	
 
 	/**
@@ -412,12 +438,14 @@ public class H2DBCatalog implements CatalogDBInterface {
 		ElapsedTime et = SystemClock.startClock();
 		Set<String> batchedUids = new HashSet<String>(events.size());
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
+		Set<Annotation> annotations = new HashSet<Annotation>();
 		try {			
 			for(TSDBSearchEvent event: events) {
 				switch(event.eventType) {
 				case ANNOTATION_DELETE:
 					break;
 				case ANNOTATION_INDEX:
+					annotations.add(event.annotation);
 					break;
 				case TSMETA_DELETE:
 					break;
@@ -460,19 +488,35 @@ public class H2DBCatalog implements CatalogDBInterface {
 					
 				}
 			} // end for event processor for loop
+			
+			// Execute batch inserts for TAGK, TAGV and METRIC
 			executeUIDBatches(conn);
+			// Execute batch inserts for TAG PAIRS
 			if(uidMetaTagPairPs!=null) {
 				executeBatch(uidMetaTagPairPs);
 				uidMetaTagPairPs.clearBatch();
 			}
+			// Execute batch inserts for TSMetas
 			if(tsMetaFqnPs!=null) {
 				executeBatch(tsMetaFqnPs);
 				tsMetaFqnPs.clearBatch();				
 			}
+			// Execute batch inserts for FQN TAG Pairs
 			if(uidMetaTagPairFQNPs!=null) {
 				executeBatch(uidMetaTagPairFQNPs);
 				uidMetaTagPairFQNPs.clearBatch();								
 			}
+			if(!annotations.isEmpty())
+			// Insert annotations
+			for(Annotation a: annotations) {
+				processAnnotation(conn, a);
+			}
+			// Execute batch inserts for Annotations
+			if(annotationsPs!=null) {
+				executeBatch(annotationsPs);
+				annotationsPs.clearBatch();								
+			}
+			
 			conn.commit();
 			log.info(et.printAvg("Indexes", ops));
 		} catch (Exception ex) {
@@ -484,7 +528,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			if(uidMetaTagPairPs!=null) try { uidMetaTagPairPs.close(); uidMetaTagPairPs = null;} catch (Exception x) {/* No Op */}
 			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
-			
+			if(annotationsPs!=null) try { annotationsPs.close(); annotationsPs = null;} catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -508,6 +552,50 @@ public class H2DBCatalog implements CatalogDBInterface {
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to execute UID Batches", ex);
 		}		
+	}
+	
+	/**
+	 * Stores a new annotation
+	 * @param conn The connection to write to
+	 * @param annotation The annotation to save
+	 */
+	protected void processAnnotation(Connection conn, Annotation annotation) {
+		try {
+			if(annotationsPs==null) annotationsPs = conn.prepareStatement(TSD_INSERT_ANNOTATION);
+			annotationsPs.setTimestamp(1, new Timestamp(annotation.getStartTime()));
+			annotationsPs.setString(2, annotation.getDescription());
+			annotationsPs.setString(3, annotation.getNotes());
+			annotationsPs.setLong(4, H2Support.fqnId(conn, annotation.getTSUID()));
+			
+			long endTime = annotation.getEndTime();
+			if(endTime==0) {
+				annotationsPs.setNull(5, Types.TIMESTAMP);
+			} else {
+				annotationsPs.setTimestamp(5, new Timestamp(endTime));
+			}
+			Map<String, String> custom = fillInCustom(annotation.getCustom());
+			annotationsPs.setString(6, JSONMapSupport.nokToString(custom));
+			annotationsPs.addBatch();
+			// INSERT INTO ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) 
+			// VALUES (?, ?, ? FQNID(?), ?, ?)
+		} catch (SQLException sex) {
+			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
+		}
+	}
+	
+	/**
+	 * Creates or updates a custom map
+	 * @param customMap The map to create or update
+	 * @return a map with the custom tags plus whatever was in the map passed in
+	 */
+	protected static Map<String, String> fillInCustom(Map<String, String> customMap) {
+		Map<String, String> _customMap = customMap;
+		if(_customMap==null) {
+			_customMap = new TreeMap<String, String>(INIT_CUSTOM);
+		} else {
+			_customMap.putAll(INIT_CUSTOM);
+		}
+		return _customMap;
 	}
 
 	/**
@@ -538,10 +626,24 @@ public class H2DBCatalog implements CatalogDBInterface {
 		try {
 			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
 			long fqnSeq = getNextFQNSequence();
-			tsMetaFqnPs.setLong(1, fqnSeq);
-			tsMetaFqnPs.setString(2, tsMeta.getMetric().getUID());
-			tsMetaFqnPs.setString(3, fqn.toString());
-			tsMetaFqnPs.setString(4, tsMeta.getTSUID());
+			int bId = 0;
+			tsMetaFqnPs.setLong(++bId, fqnSeq);
+			tsMetaFqnPs.setString(++bId, tsMeta.getMetric().getUID());
+			tsMetaFqnPs.setString(++bId, fqn.toString());
+			tsMetaFqnPs.setString(++bId, tsMeta.getTSUID());
+			
+			tsMetaFqnPs.setDouble(++bId, tsMeta.getMax());
+			tsMetaFqnPs.setDouble(++bId, tsMeta.getMin());
+			
+			tsMetaFqnPs.setString(++bId, tsMeta.getDataType());
+			tsMetaFqnPs.setString(++bId, tsMeta.getDescription());
+			tsMetaFqnPs.setString(++bId, tsMeta.getDisplayName());
+			tsMetaFqnPs.setString(++bId, tsMeta.getNotes());
+			tsMetaFqnPs.setString(++bId, tsMeta.getUnits());
+			tsMetaFqnPs.setInt(++bId, tsMeta.getRetention());
+			
+			
+			
 			tsMetaFqnPs.addBatch();
 			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL);
 			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
@@ -554,7 +656,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 				uidMetaTagPairFQNPs.addBatch();
 			}
 		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+			throw new RuntimeException("Failed to store TSMeta [" + tsMeta + "]", ex);
 		}
 		
 		
@@ -624,9 +726,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 		ps.setString(4, uidMeta.getDescription());
 		ps.setString(5, uidMeta.getDisplayName());
 		ps.setString(6, uidMeta.getNotes());
-		Map<String, String> custom = uidMeta.getCustom();
-		if(custom==null) custom = new TreeMap<String, String>();
-		custom.put("saved.by", getClass().getSimpleName());		
+		Map<String, String> custom = fillInCustom(uidMeta.getCustom());
 		ps.setString(7, JSONMapSupport.nokToString(custom));
 		ps.addBatch();
 	}

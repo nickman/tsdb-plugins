@@ -250,7 +250,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	 * Tests the indexing of a set of UIDMetas.
 	 * @throws Exception thrown on any error
 	 */
-	@Test(timeout=60000)
+	//@Test(timeout=60000)
+	@Test
 	public void testUIDMetaIndexing() throws Exception {
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
 //		for(int i = 0; i < 1000; i++) {
@@ -274,7 +275,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		while(TSDBCatalogSearchEventHandler.getInstance().getProcessingQueueDepth()>0) {
 			Thread.sleep(1000);
 		}
-		Thread.currentThread().join();
+		//Thread.currentThread().join();
 		//jdbcHelper.query(sql)
 	}
 

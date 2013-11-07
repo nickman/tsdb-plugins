@@ -142,7 +142,7 @@ CREATE TABLE SYNC_QUEUE (
 --  Queue Triggers
 -- ==============================================================================================
 
-
+CREATE TRIGGER TSD_ANNOTATION_UPDATED_TRG AFTER UPDATE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
 
 
 

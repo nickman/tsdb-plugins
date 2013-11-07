@@ -132,7 +132,7 @@ CREATE TABLE SYNC_QUEUE (
 	EVENT_TYPE VARCHAR(20) NOT NULL 
 		COMMENT 'The source of the update that triggered this sync operation'
 		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-	EVENT_ID VARCHAR2(20) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
+	EVENT_ID VARCHAR2(40) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
 	EVENT_TIME TIMESTAMP AS NOW() NOT NULL,
 	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
 	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'

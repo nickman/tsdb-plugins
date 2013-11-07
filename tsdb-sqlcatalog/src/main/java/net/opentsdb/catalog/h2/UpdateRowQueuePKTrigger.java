@@ -25,13 +25,14 @@
 package net.opentsdb.catalog.h2;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
 import org.h2.api.Trigger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 
@@ -76,7 +77,7 @@ LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operat
 	@Override
 	public void init(Connection conn, String schemaName, String triggerName, String tableName, boolean before, int type) throws SQLException {
 		log = LoggerFactory.getLogger(getClass().getName() + "." + triggerName);
-		this.eventSource = tableName;
+		eventSource = tableName;
 		ResultSet rset = conn.getMetaData().getPrimaryKeys(null, schemaName, tableName);
 		rset.next();
 		eventType = rset.getString(4);
@@ -97,6 +98,15 @@ LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operat
 	public void fire(Connection conn, Object[] oldRow, Object[] newRow) throws SQLException {
 		if(!Arrays.deepEquals(oldRow, newRow)) {
 			log.info("Detected Change In {}:[{}]", eventSource, oldRow[pkIndex]);
+			PreparedStatement ps = null;
+			try {
+				ps = conn.prepareStatement(QUEUE_SQL_TEMPLATE);
+				ps.setString(1, eventSource);
+				ps.setString(2, oldRow[pkIndex].toString());
+				ps.executeUpdate();
+			} finally {
+				if(ps!=null) try { ps.close(); } catch (Exception ex) {/* No Op */}
+			}
 		}
 		
 	}

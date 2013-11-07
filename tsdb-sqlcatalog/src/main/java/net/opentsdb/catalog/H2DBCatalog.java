@@ -562,7 +562,11 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected void processAnnotation(Connection conn, Annotation annotation) {
 		try {
 			if(annotationsPs==null) annotationsPs = conn.prepareStatement(TSD_INSERT_ANNOTATION);
-			annotationsPs.setTimestamp(1, new Timestamp(annotation.getStartTime()));
+			long startTime = annotation.getStartTime(); 
+			if(startTime==0) {
+				startTime = SystemClock.time();
+			}
+			annotationsPs.setTimestamp(1, new Timestamp(startTime));
 			annotationsPs.setString(2, annotation.getDescription());
 			annotationsPs.setString(3, annotation.getNotes());
 			if(annotation.getTSUID()==null) {
@@ -727,7 +731,11 @@ public class H2DBCatalog implements CatalogDBInterface {
 	protected void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
 		ps.setString(1, uidMeta.getUID());
 		ps.setString(2, uidMeta.getName());
-		ps.setTimestamp(3, new Timestamp(uidMeta.getCreated()));
+		long created = uidMeta.getCreated();
+		if(created==0) {
+			created = SystemClock.time();
+		}
+		ps.setTimestamp(3, new Timestamp(created));
 		ps.setString(4, uidMeta.getDescription());
 		ps.setString(5, uidMeta.getDisplayName());
 		ps.setString(6, uidMeta.getNotes());

@@ -113,6 +113,7 @@ public class BaseTest {
 	protected static Field dispatcherInstanceField;
 	
 	static {
+		System.setProperty("tsd.plugins.disableStatsCollect", "true");
 		try {
 			sinkDataPointField = TSDB.class.getDeclaredField("rt_publisher");
 			sinkDataPointField.setAccessible(true);

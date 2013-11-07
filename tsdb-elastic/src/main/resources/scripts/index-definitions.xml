@@ -10,7 +10,7 @@
 				<setting name="number_of_shards" value="5"/>
 				<setting name="refresh_interval" value="1"/>
 			</settings>
-		</index>	
+		</index>
 	</indexes>
 
 	<objects>

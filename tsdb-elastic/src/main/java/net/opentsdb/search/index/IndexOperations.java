@@ -77,9 +77,7 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.replication.ReplicationType;
 import org.elasticsearch.client.ClusterAdminClient;
@@ -93,6 +91,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.threadpool.ThreadPoolStats.Stats;
@@ -285,6 +284,8 @@ public class IndexOperations extends NotificationBroadcasterSupport implements I
 				cnt++;
 			}
 			log.info("Loaded [{}] Existing Percolations", cnt);
+		} catch (IndexMissingException ime) {
+			log.info("Percolate Index does not exist, so there's no existing docs to prepare. Index will be created annon");
 		} catch (Exception ex) {
 			log.error("Failed to prepopulate percolates", ex);
 		}

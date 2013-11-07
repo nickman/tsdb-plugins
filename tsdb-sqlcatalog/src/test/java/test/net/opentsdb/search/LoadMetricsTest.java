@@ -43,6 +43,7 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.junit.Before;
@@ -275,7 +276,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		while(TSDBCatalogSearchEventHandler.getInstance().getProcessingQueueDepth()>0) {
 			Thread.sleep(1000);
 		}
-		//Thread.currentThread().join();
+		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
+			Thread.currentThread().join();
+		}
+		
 		//jdbcHelper.query(sql)
 	}
 

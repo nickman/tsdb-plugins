@@ -151,7 +151,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	public static final boolean DEFAULT_DB_H2_TCP_ALLOW_OTHERS = false;
 	
 	/** The config property name for the H2 HTTP Console Listener port */
-	public static final String DB_H2_HTTP_PORT = "helios.search.catalog.h2.port.tcp";
+	public static final String DB_H2_HTTP_PORT = "helios.search.catalog.h2.port.http";
 	/** The default H2 HTTP Console Listener port*/
 	public static final int DEFAULT_DB_H2_HTTP_PORT = 8082;
 	/** The config property name for the H2 HTTP Console Listener accessibility from other hosts */

@@ -118,7 +118,10 @@ public class ESInitializer {
 		for(Node indexNode: XMLHelper.getChildNodesByName(XMLHelper.getChildNodeByName(rootNode, "indexes", false), "index", false)) {
 			String indexName = XMLHelper.getAttributeByName(indexNode, "name", null).trim();
 			long indexSerial = getIndexSerial(indexName);
-			String alias = XMLHelper.getAttributeByName(indexNode, "alias", null).trim();
+			String alias = XMLHelper.getAttributeByName(indexNode, "alias", null);
+			if(alias!=null) {
+				alias = alias.trim();
+			}
 			log.info("Index:[{}] Serial:[{}] Alias:[{}]", indexName, indexSerial, alias);
 			Node settingsNode = XMLHelper.getChildNodeByName(indexNode, "settings", false);
 			Map<String, Object> settings = new HashMap<String, Object>();
@@ -159,19 +162,21 @@ public class ESInitializer {
 			//==============================
 			//indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias)).actionGet();
 			// check if alias exists
-			if(!indexClient.aliasesExist(new IndicesGetAliasesRequest(alias).indices(indexName)).actionGet().isExists()) {
-				log.info("Creating Alias [{}] for Index [{}]....", alias, indexName);				
-				ActionFuture<IndicesAliasesResponse> af = indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias));
-				if(af.getRootFailure()!=null) {
-					log.error("Failed to create alias", af.getRootFailure());
+			if(alias!=null) {
+				if(!indexClient.aliasesExist(new IndicesGetAliasesRequest(alias).indices(indexName)).actionGet().isExists()) {
+					log.info("Creating Alias [{}] for Index [{}]....", alias, indexName);				
+					ActionFuture<IndicesAliasesResponse> af = indexClient.aliases(new IndicesAliasesRequest().addAlias(indexName, alias));
+					if(af.getRootFailure()!=null) {
+						log.error("Failed to create alias", af.getRootFailure());
+					}
+					indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
+					log.info("Created Alias [{}] for Index [{}].", alias, indexName);
+				} else {
+					log.info("Alias [{}] for Index [{}] Exists", alias, indexName);
 				}
-				indexClient.aliases(Requests.indexAliasesRequest().addAlias(indexName, alias)).actionGet();
-				log.info("Created Alias [{}] for Index [{}].", alias, indexName);
-			} else {
-				log.info("Alias [{}] for Index [{}] Exists", alias, indexName);
+				
+				indexAliasNames.put(indexName, alias);
 			}
-			
-			indexAliasNames.put(indexName, alias);
 		}
 		for(Map.Entry<String, Map<String, String>> entry: indexMappings.entrySet()) {
 			String idxName = entry.getKey();

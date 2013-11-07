@@ -897,6 +897,49 @@ while(m.find()) {
 	}
 	
 	/**
+	 * Returns the MBeanInfo for the passed ObjectName from the specified MBeanServer
+	 * @param server The MBeanServer to get the MBeanInfo from
+	 * @param objectName The ObjectName of the MBean to get info for
+	 * @return the MBeanInfo of the specified ObjectName
+	 */
+	public static MBeanInfo getMBeanInfo(MBeanServerConnection server, ObjectName objectName) {
+		try {
+			return server.getMBeanInfo(objectName);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get MBeanInfo for [" + objectName + "]");
+		}
+	}
+	
+	/**
+	 * Returns the MBeanInfo for the passed ObjectName from the helios MBeanServer
+	 * @param objectName The ObjectName of the MBean to get info for
+	 * @return the MBeanInfo of the specified ObjectName
+	 */
+	public static MBeanInfo getMBeanInfo(ObjectName objectName) {
+		return getMBeanInfo(getHeliosMBeanServer(), objectName);
+	}
+	
+	/**
+	 * Returns the MBeanInfo for the passed ObjectName from the specified MBeanServer
+	 * @param server The MBeanServer to get the MBeanInfo from
+	 * @param objectName The ObjectName of the MBean to get info for
+	 * @return the MBeanInfo of the specified ObjectName
+	 */
+	public static MBeanInfo getMBeanInfo(MBeanServerConnection server, CharSequence objectName) {
+		return getMBeanInfo(server, objectName(objectName));
+	}
+	
+	/**
+	 * Returns the MBeanInfo for the passed ObjectName from the helios MBeanServer
+	 * @param objectName The ObjectName of the MBean to get info for
+	 * @return the MBeanInfo of the specified ObjectName
+	 */
+	public static MBeanInfo getMBeanInfo(CharSequence objectName) {
+		return getMBeanInfo(getHeliosMBeanServer(), objectName(objectName));
+	}
+
+	
+	/**
 	 * Extracts a composite data field from a CompositeData instance using a compound name.
 	 * @param cd The composite data instance
 	 * @param delimeter The delimiter used for the compound name

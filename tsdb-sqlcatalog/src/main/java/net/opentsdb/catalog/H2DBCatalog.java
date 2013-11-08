@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
@@ -159,7 +160,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	/** The default H2 HTTP Console Listener port*/
 	public static final int DEFAULT_DB_H2_HTTP_PORT = 8082;
 	/** The config property name for the H2 HTTP Console Listener accessibility from other hosts */
-	public static final String DB_H2_HTTP_ALLOW_OTHERS = "helios.search.catalog.h2.allowothers.tcp";
+	public static final String DB_H2_HTTP_ALLOW_OTHERS = "helios.search.catalog.h2.allowothers.http";
 	/** The default H2 HTTP Console Listener port*/
 	public static final boolean DEFAULT_DB_H2_HTTP_ALLOW_OTHERS = false;
 	
@@ -185,6 +186,14 @@ public class H2DBCatalog implements CatalogDBInterface {
 	
 	/** The SQL to insert an Annotation */
 	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?)";
+	
+	/** The SQL to delete an Annotation */
+	public static final String TSD_DELETE_ANNOTATION = "DELETE FROM TSD_ANNOTATION WHERE START_TIME = ? AND (TSUID = ? OR TSUID IS NULL)";
+	/** The SQL template to delete a UIDMeta */
+	public static final String TSD_DELETE_UID = "DELETE FROM TSD_%s WHERE UID = ?";
+	/** The SQL template to delete a TSMeta */
+	public static final String TSD_DELETE_TS = "DELETE FROM TSD_FQN WHERE TSUID = ?";
+	
 			
 	
 	/** The name of the user defined variable specifying the increment size of the FQN sequence  */
@@ -218,6 +227,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * Returns the created data source
 	 * @return a connection pool data source
 	 */
+	@Override
 	public DataSource getDataSource() {
 		return dataSource;
 	}
@@ -290,6 +300,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * @param tsdb The parent TSDB instance
 	 * @param extracted The extracted configuration
 	 */
+	@Override
 	public void initialize(TSDB tsdb, Properties extracted) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
 		Map<String, Object> userDefinedVars = new HashMap<String, Object>();
@@ -339,6 +350,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	/**
 	 * Terminates the database resources
 	 */
+	@Override
 	public void shutdown() {
 		log.info("\n\t================================================\n\tStopping TSDB Catalog DB\n\tName:{}\n\t================================================", jdbcUrl);
 		if(tcpServer!=null) {
@@ -454,6 +466,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * @param conn The connection to execute the events against
 	 * @param events An ordered batch of events to process
 	 */
+	@Override
 	public void processEvents(Connection conn, Set<TSDBSearchEvent> events) {		
 		
 		int ops = 0;
@@ -463,22 +476,32 @@ public class H2DBCatalog implements CatalogDBInterface {
 		Set<Annotation> annotations = new HashSet<Annotation>();
 		try {			
 			for(TSDBSearchEvent event: events) {
+				if(BatchMileStone.class.isInstance(event)) {
+					((BatchMileStone)event).countDown();
+					continue;
+				}
 				switch(event.eventType) {
 				case ANNOTATION_DELETE:
+					deleteAnnotation(conn, event.annotation);
+					ops++;
 					break;
 				case ANNOTATION_INDEX:
 					annotations.add(event.annotation);
+					ops++;
 					break;
 				case TSMETA_DELETE:
+					deleteTSMeta(conn, event.tsuid);
+					ops++;
 					break;
 				case TSMETA_INDEX:
 					TSMeta tsMeta = event.tsMeta;
 					if(stored(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					ops++;
-//					log.info("Processed TSMeta [{}]", tsMeta);
 					break;
 				case UIDMETA_DELETE:
+					deleteUIDMeta(conn, event.uidMeta);
+					ops++;
 					break;
 				case UIDMETA_INDEX:					
 					UIDMeta uidMeta = event.uidMeta;
@@ -587,6 +610,8 @@ public class H2DBCatalog implements CatalogDBInterface {
 			long startTime = annotation.getStartTime(); 
 			if(startTime==0) {
 				startTime = SystemClock.time();
+			} else {
+				startTime = TimeUnit.MILLISECONDS.convert(startTime, TimeUnit.SECONDS);
 			}
 			annotationsPs.setTimestamp(1, new Timestamp(startTime));
 			annotationsPs.setString(2, annotation.getDescription());
@@ -723,6 +748,64 @@ public class H2DBCatalog implements CatalogDBInterface {
 		} 
 		return null;
 	}
+	
+	/**
+	 * Deletes a UIDMeta
+	 * @param conn The connection to use
+	 * @param uidMeta The UIDMeta to delete
+	 */
+	protected void deleteUIDMeta(Connection conn, UIDMeta uidMeta) {		
+		PreparedStatement ps = null;		
+		try {
+			ps = conn.prepareStatement(String.format(TSD_DELETE_UID, uidMeta.getType().name()));
+			ps.setString(1, uidMeta.getUID());
+			ps.executeUpdate();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to delete UID [" + uidMeta.getUID() + "]", ex);
+		} finally {
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Deletes a TSMeta
+	 * @param conn The connection to use
+	 * @param tsUid The TSUid of the TSMeta to delete
+	 */
+	protected void deleteTSMeta(Connection conn, String tsUid) {		
+		PreparedStatement ps = null;		
+		try {
+			ps = conn.prepareStatement(TSD_DELETE_TS);
+			ps.setString(1, tsUid);
+			ps.executeUpdate();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to delete TSUID [" + tsUid + "]", ex);
+		} finally {
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Deletes an Annotation
+	 * @param conn The connection to use
+	 * @param annotation The annotation to delete
+	 */
+	protected void deleteAnnotation(Connection conn, Annotation annotation) {		
+		PreparedStatement ps = null;		
+		try {
+			ps = conn.prepareStatement(TSD_DELETE_ANNOTATION);
+			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(annotation.getStartTime(), TimeUnit.SECONDS)));
+			ps.setString(1, annotation.getTSUID());
+			ps.executeUpdate();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to delete Annotation [" + annotation + "]", ex);
+		} finally {
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	
+	
 	/**
 	 * Executes the batched statements in the passed statement and validates the results.
 	 * @param ps The statement to execute batch on
@@ -769,6 +852,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * @param rset The result set to read from
 	 * @return a [possibly empty] collection of UIDMetas
 	 */
+	@Override
 	public Collection<UIDMeta> readUIDMetas(ResultSet rset) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<UIDMeta> uidMetas = new ArrayList<UIDMeta>();

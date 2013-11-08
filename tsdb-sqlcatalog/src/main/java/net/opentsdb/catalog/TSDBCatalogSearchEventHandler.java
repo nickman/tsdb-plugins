@@ -126,6 +126,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		tmp.put(TSDBEventType.SEARCH, 5);		
 		tmp.put(TSDBEventType.ANNOTATION_DELETE, 6);
 		tmp.put(TSDBEventType.ANNOTATION_INDEX, 7);
+		
 		EVENT_ORDERING = Collections.unmodifiableMap(tmp);
 	}
 	
@@ -247,6 +248,26 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	}
 	
 	/**
+	 * Creates a new mile-stone and queues it for processing
+	 * @param count The latch count
+	 * @return the created milestone
+	 */
+	public BatchMileStone milestone(int count) {
+		BatchMileStone bms = new BatchMileStone(count);
+		processingQueue.add(bms);
+		return bms;
+	}
+	
+	/**
+	 * Creates a new mile-stone with a latch count of 1 and queues it for processing
+	 * @return the created milestone
+	 */
+	public BatchMileStone milestone() {
+		return milestone(1);
+	}
+	
+	
+	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
 	 */
@@ -330,6 +351,12 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		 */
 		@Override
 		public int compare(TSDBSearchEvent t1, TSDBSearchEvent t2) {
+			boolean ms1 = BatchMileStone.class.isInstance(t1), ms2 = BatchMileStone.class.isInstance(t2);
+			if(ms1||ms2) {
+				if(ms1&&ms2) return ((BatchMileStone)t1).compareTo((BatchMileStone)t2);
+				if(ms1) return 1;
+				return -1;				
+			}
 			int i1 = EVENT_ORDERING.get(t1.eventType);
 			int i2 = EVENT_ORDERING.get(t2.eventType);
 			return i1 < i2 ? -1 : 1;

@@ -28,15 +28,18 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MBeanInfo;
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
+import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -46,9 +49,14 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
+import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import test.net.opentsdb.search.util.JDBCHelper;
 
@@ -59,7 +67,8 @@ import test.net.opentsdb.search.util.JDBCHelper;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.LoadMetricsTest</code></p>
  */
-
+//@RunWith(PowerMockRunner.class)
+//@PrepareForTest(TSDB.class) 
 public class LoadMetricsTest extends CatalogBaseTest {
 	
 	/** The JDBCHelper, initialized with a datasource from the handler */
@@ -254,7 +263,9 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	//@Test(timeout=60000)
 	@Test
 	public void testUIDMetaIndexing() throws Exception {
+		
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
+		Set<TSMeta> createdTSMetas = new HashSet<TSMeta>(ons.size());
 //		for(int i = 0; i < 1000; i++) {
 //			ons.add(JMXHelper.objectName("%s:foo=%s,bar=%s,%s=%s", getRandomFragments()));
 //		}
@@ -266,22 +277,93 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			}
 			TSMeta tsMeta = fromUids(uidMetas);
 			tsdb.indexTSMeta(tsMeta);
+			createdTSMetas.add(tsMeta);
 			Annotation ann = new Annotation();
 			ann.setTSUID(tsMeta.getTSUID());
 			MBeanInfo minfo = JMXHelper.getMBeanInfo(on);
 			ann.setDescription(minfo.getDescription());
 			ann.setNotes(minfo.getClassName());
 			tsdb.indexAnnotation(ann);
-		}
-		while(TSDBCatalogSearchEventHandler.getInstance().getProcessingQueueDepth()>0) {
-			Thread.sleep(1000);
+		} 
+		ElapsedTime et = SystemClock.startClock();
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
+			Assert.fail("Timed out waiting for Indexing Milestone");
+		} else {
+			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
 		}
 		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
 			Thread.currentThread().join();
 		}
 		
+		for(ObjectName on: ons) {
+//			log("Testing DB For [%s]", on);
+			String metric = on.getDomain();
+			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_METRIC WHERE NAME = '" + metric + "'");
+			Assert.assertEquals("Unexpected Metric RowCount for [" + metric + "]", 1, rowCount);
+			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+				String key = entry.getKey();
+				String value = entry.getValue();
+				String combined = key + "=" + value;						
+				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGK WHERE NAME = '" + key + "'");
+				Assert.assertEquals("Unexpected Tag Key RowCount for [" + key + "]", 1, rowCount);
+				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGV WHERE NAME = '" + value + "'");
+				Assert.assertEquals("Unexpected Tag Value RowCount for [" + value + "]", 1, rowCount);				
+				String pairUid = jdbcHelper.query("SELECT UID FROM TSD_TAGPAIR WHERE NAME = '" + combined + "'")[0][0].toString();				
+				Assert.assertTrue("Unexpected Null or Empty Tag Pair UID for Combined [" + combined + "]", pairUid!=null && !pairUid.trim().isEmpty());
+				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE UID = '" + pairUid + "'");
+				Assert.assertTrue("Unexpected FQN Tag Pair UID RowCount for [" + pairUid + "]", rowCount >= 1);
+			}
+		}
+		Object[][] fqns = jdbcHelper.query("SELECT * FROM TSD_FQN");
+		for(Object[] row: fqns) {
+			ObjectName on = JMXHelper.objectName(row[2]);
+			Assert.assertTrue("The ObjectName [" + on + "] was not registered", JMXHelper.isRegistered(on));
+		}
+		for(TSMeta tsMeta: createdTSMetas) {
+			String tsUid = tsMeta.getTSUID();
+			int tagCount = tsMeta.getTags().size()/2;
+			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = '" + tsUid + "'");
+			Assert.assertEquals("Unexpected TSUID RowCount for [" + tsUid + "]", 1, rowCount);
+			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE FQNID IN " + 
+					"(SELECT FQNID FROM TSD_FQN WHERE TSUID = '" + tsUid + "')");
+			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", tagCount, rowCount);			
+			tsdb.deleteTSMeta(tsMeta.getTSUID());
+		}
+		et = SystemClock.startClock();
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
+			Assert.fail("Timed out waiting for TSUID Deletes Milestone");
+		} else {
+			log("TSUID Deletes Milestone met after [%s] ms.", et.elapsedMs());
+		}
+		for(TSMeta tsMeta: createdTSMetas) {
+			String tsUid = tsMeta.getTSUID();			
+			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = '" + tsUid + "'");
+			Assert.assertEquals("Unexpected TSUID RowCount for [" + tsUid + "]", 0, rowCount);
+			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE FQNID IN " + 
+					"(SELECT FQNID FROM TSD_FQN WHERE TSUID = '" + tsUid + "')");
+			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", 0, rowCount);						
+		}
+		
+
+/*		FQNID BIGINT NOT NULL COMMENT 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry',
+		METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
+		FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
+		TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
+		MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
+		MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
+		DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
+		DESCRIPTION VARCHAR(60) COMMENT 'An optional description for the time-series',
+		DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
+		NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
+		UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
+		RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite'
+*/		
+		
+		
+		
 		//jdbcHelper.query(sql)
-	}
+	}				
+
 
 
 }

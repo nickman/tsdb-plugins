@@ -65,13 +65,8 @@ public interface ICatalogDataSource {
 	public static final String DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCH = "false";
 
 	/** The config property name for the pool closeConnectionWatchTimeout */
-	public static final String JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUT = "tsdb.jdbc.closeConnectionWatchTimeout";
-	/** The default pool closeConnectionWatchTimeout */
-	public static final String DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUT = "0";
-
-	/** The config property name for the pool closeConnectionWatchTimeoutInMs */
 	public static final String JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUTINMS = "tsdb.jdbc.closeConnectionWatchTimeoutInMs";
-	/** The default pool closeConnectionWatchTimeoutInMs */
+	/** The default pool closeConnectionWatchTimeout */
 	public static final String DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUTINMS = "0";
 
 	/** The config property name for the pool closeOpenStatements */
@@ -98,11 +93,6 @@ public interface ICatalogDataSource {
 	public static final String JDBC_POOL_CONNECTIONTESTSTATEMENT = "tsdb.jdbc.connectionTestStatement";
 	/** The default pool connectionTestStatement */
 	public static final String DEFAULT_JDBC_POOL_CONNECTIONTESTSTATEMENT = "";
-
-	/** The config property name for the pool connectionTimeout */
-	public static final String JDBC_POOL_CONNECTIONTIMEOUT = "tsdb.jdbc.connectionTimeout";
-	/** The default pool connectionTimeout */
-	public static final String DEFAULT_JDBC_POOL_CONNECTIONTIMEOUT = "0";
 
 	/** The config property name for the pool connectionTimeoutInMs */
 	public static final String JDBC_POOL_CONNECTIONTIMEOUTINMS = "tsdb.jdbc.connectionTimeoutInMs";
@@ -169,11 +159,6 @@ public interface ICatalogDataSource {
 	/** The default pool externalAuth */
 	public static final String DEFAULT_JDBC_POOL_EXTERNALAUTH = "false";
 
-	/** The config property name for the pool idleConnectionTestPeriod */
-	public static final String JDBC_POOL_IDLECONNECTIONTESTPERIOD = "tsdb.jdbc.idleConnectionTestPeriod";
-	/** The default pool idleConnectionTestPeriod */
-	public static final String DEFAULT_JDBC_POOL_IDLECONNECTIONTESTPERIOD = "240";
-
 	/** The config property name for the pool idleConnectionTestPeriodInMinutes */
 	public static final String JDBC_POOL_IDLECONNECTIONTESTPERIODINMINUTES = "tsdb.jdbc.idleConnectionTestPeriodInMinutes";
 	/** The default pool idleConnectionTestPeriodInMinutes */
@@ -183,11 +168,6 @@ public interface ICatalogDataSource {
 	public static final String JDBC_POOL_IDLECONNECTIONTESTPERIODINSECONDS = "tsdb.jdbc.idleConnectionTestPeriodInSeconds";
 	/** The default pool idleConnectionTestPeriodInSeconds */
 	public static final String DEFAULT_JDBC_POOL_IDLECONNECTIONTESTPERIODINSECONDS = "14400";
-
-	/** The config property name for the pool idleMaxAge */
-	public static final String JDBC_POOL_IDLEMAXAGE = "tsdb.jdbc.idleMaxAge";
-	/** The default pool idleMaxAge */
-	public static final String DEFAULT_JDBC_POOL_IDLEMAXAGE = "60";
 
 	/** The config property name for the pool idleMaxAgeInMinutes */
 	public static final String JDBC_POOL_IDLEMAXAGEINMINUTES = "tsdb.jdbc.idleMaxAgeInMinutes";
@@ -224,11 +204,6 @@ public interface ICatalogDataSource {
 	public static final String JDBC_POOL_LOGSTATEMENTSENABLED = "tsdb.jdbc.logStatementsEnabled";
 	/** The default pool logStatementsEnabled */
 	public static final String DEFAULT_JDBC_POOL_LOGSTATEMENTSENABLED = "false";
-
-	/** The config property name for the pool maxConnectionAge */
-	public static final String JDBC_POOL_MAXCONNECTIONAGE = "tsdb.jdbc.maxConnectionAge";
-	/** The default pool maxConnectionAge */
-	public static final String DEFAULT_JDBC_POOL_MAXCONNECTIONAGE = "0";
 
 	/** The config property name for the pool maxConnectionAgeInSeconds */
 	public static final String JDBC_POOL_MAXCONNECTIONAGEINSECONDS = "tsdb.jdbc.maxConnectionAgeInSeconds";
@@ -275,20 +250,10 @@ public interface ICatalogDataSource {
 	/** The default pool poolStrategy */
 	public static final String DEFAULT_JDBC_POOL_POOLSTRATEGY = "DEFAULT";
 
-	/** The config property name for the pool preparedStatementsCacheSize */
-	public static final String JDBC_POOL_PREPAREDSTATEMENTSCACHESIZE = "tsdb.jdbc.preparedStatementsCacheSize";
-	/** The default pool preparedStatementsCacheSize */
-	public static final String DEFAULT_JDBC_POOL_PREPAREDSTATEMENTSCACHESIZE = "0";
-
 	/** The config property name for the pool queryExecuteTimeLimitInMs */
 	public static final String JDBC_POOL_QUERYEXECUTETIMELIMITINMS = "tsdb.jdbc.queryExecuteTimeLimitInMs";
 	/** The default pool queryExecuteTimeLimitInMs */
 	public static final String DEFAULT_JDBC_POOL_QUERYEXECUTETIMELIMITINMS = "0";
-
-	/** The config property name for the pool releaseHelperThreads */
-	public static final String JDBC_POOL_RELEASEHELPERTHREADS = "tsdb.jdbc.releaseHelperThreads";
-	/** The default pool releaseHelperThreads */
-	public static final String DEFAULT_JDBC_POOL_RELEASEHELPERTHREADS = "0";
 
 	/** The config property name for the pool reConnectionOnClose */
 	public static final String JDBC_POOL_RECONNECTIONONCLOSE = "tsdb.jdbc.reConnectionOnClose";
@@ -301,15 +266,9 @@ public interface ICatalogDataSource {
 	public static final String DEFAULT_JDBC_POOL_SERVICEORDER = "FIFO";
 
 	/** The config property name for the pool statementCacheSize */
-	public static final String JDBC_POOL_STATEMENTCACHESIZE = "tsdb.jdbc.statementCacheSize";
+	public static final String JDBC_POOL_STATEMENTSCACHESIZE = "tsdb.jdbc.statementsCacheSize";
 	/** The default pool statementCacheSize */
-	public static final String DEFAULT_JDBC_POOL_STATEMENTCACHESIZE = "100";
-
-	/** The config property name for the pool statementReleaseHelperThreads */
-	public static final String JDBC_POOL_STATEMENTRELEASEHELPERTHREADS = "tsdb.jdbc.statementReleaseHelperThreads";
-	/** The default pool statementReleaseHelperThreads */
-	public static final String DEFAULT_JDBC_POOL_STATEMENTRELEASEHELPERTHREADS = "0";
-
+	public static final String DEFAULT_JDBC_POOL_STATEMENTSCACHESIZE = "100";
 
 	/** The config property name for the pool statementsCachedPerConnection */
 	public static final String JDBC_POOL_STATEMENTSCACHEDPERCONNECTION = "tsdb.jdbc.statementsCachedPerConnection";

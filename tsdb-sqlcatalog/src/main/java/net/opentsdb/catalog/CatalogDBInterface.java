@@ -52,7 +52,6 @@ public interface CatalogDBInterface {
 	public static final String DB_JDBC_URL = "helios.search.catalog.jdbc.url";
 	/** The default JDBC URL */
 	public static final String DEFAULT_DB_JDBC_URL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1";
-	// jdbc:h2:file:~/.apmrouter/h2/db;JMX=TRUE;MULTI_THREADED=TRUE;DB_CLOSE_DELAY=-1
 	/** The config property name for the JDBC Driver Name */
 	public static final String DB_JDBC_DRIVER = "helios.search.catalog.jdbc.driver";
 	/** The default JDBC Driver */

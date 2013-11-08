@@ -38,6 +38,7 @@
 		<chronicle.version>1.7.2</chronicle.version>
 		<guava.version>13.0.1</guava.version>		
 		<mockito.version>1.9.5</mockito.version>
+		<powermock.version>1.5.1</powermock.version>
 		<javassist.version>3.18.0-GA</javassist.version>
 		<asynchbase.version>1.4.1</asynchbase.version>
 		<spring.version>3.2.4.RELEASE</spring.version>
@@ -93,7 +94,19 @@
 		  <version>${mockito.version}</version>
 		  <scope>test</scope>
 		</dependency>
-
+		<dependency>
+		    <groupId>org.powermock</groupId>
+		    <artifactId>powermock-module-junit4</artifactId>
+		    <version>${powermock.version}</version>
+		    <scope>test</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.powermock</groupId>
+		    <artifactId>powermock-api-mockito</artifactId>
+		    <version>${powermock.version}</version>
+		    <scope>test</scope>
+		</dependency>
+		
 
       <!-- ==========================================================
 	  ElasticSearch Dependencies

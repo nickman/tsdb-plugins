@@ -77,7 +77,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 		try {
 			Properties dsProps = configure(extracted);
 			Class.forName(ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, extracted));
-			config = new BoneCPConfig(dsProps);
+			config = new BoneCPConfig(dsProps);			
 			config.sanitize();
 			connectionPool = new BoneCPDataSource(config);
 		} catch (Exception ex) {
@@ -98,14 +98,12 @@ public class CatalogDataSource implements ICatalogDataSource {
 		setIfNotEmpty(p, "classLoader", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLASSLOADER, DEFAULT_JDBC_POOL_CLASSLOADER, config));
 		setIfNotEmpty(p, "clientInfo", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLIENTINFO, DEFAULT_JDBC_POOL_CLIENTINFO, config));
 		setIfNotEmpty(p, "closeConnectionWatch", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLOSECONNECTIONWATCH, DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCH, config));
-		setIfNotEmpty(p, "closeConnectionWatchTimeout", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUT, DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUT, config));
 		setIfNotEmpty(p, "closeConnectionWatchTimeoutInMs", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUTINMS, DEFAULT_JDBC_POOL_CLOSECONNECTIONWATCHTIMEOUTINMS, config));
 		setIfNotEmpty(p, "closeOpenStatements", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CLOSEOPENSTATEMENTS, DEFAULT_JDBC_POOL_CLOSEOPENSTATEMENTS, config));
 		setIfNotEmpty(p, "configFile", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONFIGFILE, DEFAULT_JDBC_POOL_CONFIGFILE, config));
 		setIfNotEmpty(p, "connectionHook", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONNECTIONHOOK, DEFAULT_JDBC_POOL_CONNECTIONHOOK, config));
 		setIfNotEmpty(p, "connectionHookClassName", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONNECTIONHOOKCLASSNAME, DEFAULT_JDBC_POOL_CONNECTIONHOOKCLASSNAME, config));
 		setIfNotEmpty(p, "connectionTestStatement", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONNECTIONTESTSTATEMENT, DEFAULT_JDBC_POOL_CONNECTIONTESTSTATEMENT, config));
-		setIfNotEmpty(p, "connectionTimeout", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONNECTIONTIMEOUT, DEFAULT_JDBC_POOL_CONNECTIONTIMEOUT, config));
 		setIfNotEmpty(p, "connectionTimeoutInMs", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_CONNECTIONTIMEOUTINMS, DEFAULT_JDBC_POOL_CONNECTIONTIMEOUTINMS, config));
 		setIfNotEmpty(p, "datasourceBean", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_DATASOURCEBEAN, DEFAULT_JDBC_POOL_DATASOURCEBEAN, config));
 		setIfNotEmpty(p, "defaultAutoCommit", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_DEFAULTAUTOCOMMIT, DEFAULT_JDBC_POOL_DEFAULTAUTOCOMMIT, config));
@@ -119,17 +117,14 @@ public class CatalogDataSource implements ICatalogDataSource {
 		setIfNotEmpty(p, "disableJMX", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_DISABLEJMX, DEFAULT_JDBC_POOL_DISABLEJMX, config));
 		setIfNotEmpty(p, "driverProperties", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_DRIVERPROPERTIES, DEFAULT_JDBC_POOL_DRIVERPROPERTIES, config));
 		setIfNotEmpty(p, "externalAuth", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_EXTERNALAUTH, DEFAULT_JDBC_POOL_EXTERNALAUTH, config));
-		setIfNotEmpty(p, "idleConnectionTestPeriod", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLECONNECTIONTESTPERIOD, DEFAULT_JDBC_POOL_IDLECONNECTIONTESTPERIOD, config));
 		setIfNotEmpty(p, "idleConnectionTestPeriodInMinutes", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLECONNECTIONTESTPERIODINMINUTES, DEFAULT_JDBC_POOL_IDLECONNECTIONTESTPERIODINMINUTES, config));
 		setIfNotEmpty(p, "idleConnectionTestPeriodInSeconds", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLECONNECTIONTESTPERIODINSECONDS, DEFAULT_JDBC_POOL_IDLECONNECTIONTESTPERIODINSECONDS, config));
-		setIfNotEmpty(p, "idleMaxAge", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLEMAXAGE, DEFAULT_JDBC_POOL_IDLEMAXAGE, config));
 		setIfNotEmpty(p, "idleMaxAgeInMinutes", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLEMAXAGEINMINUTES, DEFAULT_JDBC_POOL_IDLEMAXAGEINMINUTES, config));
 		setIfNotEmpty(p, "idleMaxAgeInSeconds", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_IDLEMAXAGEINSECONDS, DEFAULT_JDBC_POOL_IDLEMAXAGEINSECONDS, config));
 		setIfNotEmpty(p, "initSQL", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_INITSQL, DEFAULT_JDBC_POOL_INITSQL, config));
 		setIfNotEmpty(p, "jdbcUrl", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCURL, DEFAULT_JDBC_POOL_JDBCURL, config));
 		setIfNotEmpty(p, "lazyInit", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_LAZYINIT, DEFAULT_JDBC_POOL_LAZYINIT, config));
 		setIfNotEmpty(p, "logStatementsEnabled", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_LOGSTATEMENTSENABLED, DEFAULT_JDBC_POOL_LOGSTATEMENTSENABLED, config));
-		setIfNotEmpty(p, "maxConnectionAge", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_MAXCONNECTIONAGE, DEFAULT_JDBC_POOL_MAXCONNECTIONAGE, config));
 		setIfNotEmpty(p, "maxConnectionAgeInSeconds", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_MAXCONNECTIONAGEINSECONDS, DEFAULT_JDBC_POOL_MAXCONNECTIONAGEINSECONDS, config));
 		setIfNotEmpty(p, "maxConnectionsPerPartition", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_MAXCONNECTIONSPERPARTITION, DEFAULT_JDBC_POOL_MAXCONNECTIONSPERPARTITION, config));
 		setIfNotEmpty(p, "minConnectionsPerPartition", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_MINCONNECTIONSPERPARTITION, DEFAULT_JDBC_POOL_MINCONNECTIONSPERPARTITION, config));
@@ -139,13 +134,10 @@ public class CatalogDataSource implements ICatalogDataSource {
 		setIfNotEmpty(p, "poolAvailabilityThreshold", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_POOLAVAILABILITYTHRESHOLD, DEFAULT_JDBC_POOL_POOLAVAILABILITYTHRESHOLD, config));
 		setIfNotEmpty(p, "poolName", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_POOLNAME, DEFAULT_JDBC_POOL_POOLNAME, config));
 		setIfNotEmpty(p, "poolStrategy", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_POOLSTRATEGY, DEFAULT_JDBC_POOL_POOLSTRATEGY, config));
-		setIfNotEmpty(p, "preparedStatementsCacheSize", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_PREPAREDSTATEMENTSCACHESIZE, DEFAULT_JDBC_POOL_PREPAREDSTATEMENTSCACHESIZE, config));
 		setIfNotEmpty(p, "queryExecuteTimeLimitInMs", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_QUERYEXECUTETIMELIMITINMS, DEFAULT_JDBC_POOL_QUERYEXECUTETIMELIMITINMS, config));
-		setIfNotEmpty(p, "releaseHelperThreads", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_RELEASEHELPERTHREADS, DEFAULT_JDBC_POOL_RELEASEHELPERTHREADS, config));
 		setIfNotEmpty(p, "reConnectionOnClose", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_RECONNECTIONONCLOSE, DEFAULT_JDBC_POOL_RECONNECTIONONCLOSE, config));
 		setIfNotEmpty(p, "serviceOrder", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_SERVICEORDER, DEFAULT_JDBC_POOL_SERVICEORDER, config));
-		setIfNotEmpty(p, "statementCacheSize", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_STATEMENTCACHESIZE, DEFAULT_JDBC_POOL_STATEMENTCACHESIZE, config));
-		setIfNotEmpty(p, "statementReleaseHelperThreads", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_STATEMENTRELEASEHELPERTHREADS, DEFAULT_JDBC_POOL_STATEMENTRELEASEHELPERTHREADS, config));
+		setIfNotEmpty(p, "statementsCacheSize", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_STATEMENTSCACHESIZE, DEFAULT_JDBC_POOL_STATEMENTSCACHESIZE, config));
 		setIfNotEmpty(p, "statementsCachedPerConnection", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_STATEMENTSCACHEDPERCONNECTION, DEFAULT_JDBC_POOL_STATEMENTSCACHEDPERCONNECTION, config));
 		setIfNotEmpty(p, "statisticsEnabled", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_STATISTICSENABLED, DEFAULT_JDBC_POOL_STATISTICSENABLED, config));
 		setIfNotEmpty(p, "transactionRecoveryEnabled", ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_TRANSACTIONRECOVERYENABLED, DEFAULT_JDBC_POOL_TRANSACTIONRECOVERYENABLED, config));

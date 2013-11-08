@@ -75,7 +75,7 @@ public class JSONMapSupport {
 	 * @param source The JSON source to pass
 	 * @return the parsed map
 	 */
-	public static Map<String, String> read(CharSequence source) {
+	public static Map<String, String> read(String source) {
 		return JSON.parseToObject(nvl("JSON Source", source).toString().trim(), Map.class);
 	}
 	
@@ -116,7 +116,7 @@ public class JSONMapSupport {
 	 * @throws JSONException thrown if the key or source is empty or null 
 	 * or if the key not bound into the map
 	 */
-	public static String get(CharSequence key, CharSequence source) {
+	public static String get(CharSequence key, String source) {
 		String value =  read(source).get(nvls("Key", key));
 		if(value==null) throw new JSONException("No value found for key [%s]", key);
 		return value;
@@ -130,7 +130,7 @@ public class JSONMapSupport {
 	 * @throws JSONException thrown if the key or source is empty or null 
 	 * or if the key not bound into the map
 	 */
-	public static String getOrNull(CharSequence key, CharSequence source) {
+	public static String getOrNull(CharSequence key, String source) {
 		return read(source).get(nvls("Key", key));
 	}
 	
@@ -139,7 +139,7 @@ public class JSONMapSupport {
 	 * @param source The source of the json map
 	 * @return an array of the keys in the map
 	 */
-	public static String[] keys(CharSequence source) {
+	public static String[] keys(String source) {
 		return read(source).keySet().toArray(new String[0]);
 	}
 	
@@ -148,7 +148,7 @@ public class JSONMapSupport {
 	 * @param source The source of the json map
 	 * @return an array of the values in the map
 	 */
-	public static String[] values(CharSequence source) {
+	public static String[] values(String source) {
 		return read(source).values().toArray(new String[0]);
 	}
 	
@@ -166,7 +166,7 @@ public class JSONMapSupport {
 	 * @param source The source of the json map
 	 * @return a 2D array of the keys and values in the map.
 	 */
-	public static String[][] pairs(CharSequence source) {
+	public static String[][] pairs(String source) {
 		Map<String, String> map = read(source);
 		String[][] arr = new String[map.size()][];
 		int cnt = 0;
@@ -185,7 +185,7 @@ public class JSONMapSupport {
 	 * @param source The JSON source to parse
 	 * @return the JSON source of the modified map
 	 */
-	public static String set(CharSequence key, Object value, CharSequence source) {
+	public static String set(CharSequence key, Object value, String source) {
 		Map<String, String> map = read(source);
 		map.put(nvls("Key", key), nvls("Value", value));
 		return toString(map);
@@ -197,7 +197,7 @@ public class JSONMapSupport {
 	 * @param source The JSON source to parse
 	 * @return true if the key was found, false otherwise
 	 */
-	public static boolean containsKey(CharSequence key, CharSequence source) {
+	public static boolean containsKey(CharSequence key, String source) {
 		return read(source).containsKey(nvls("Key", key));
 	}
 	
@@ -208,7 +208,7 @@ public class JSONMapSupport {
 	 * @param keys The keys to look for
 	 * @return true if all keys were found, false otherwise
 	 */
-	public static boolean containsAllKeys(CharSequence source, String...keys) {
+	public static boolean containsAllKeys(String source, String...keys) {
 		if(keys==null || keys.length==0) return false;
 		Map<String, String> map = read(source);
 		if(map.isEmpty()) return false;
@@ -226,7 +226,7 @@ public class JSONMapSupport {
 	 * @param keys The keys to look for
 	 * @return true if any key is found, false otherwise
 	 */
-	public static boolean containsAnyKeys(CharSequence source, String...keys) {
+	public static boolean containsAnyKeys(String source, String...keys) {
 		if(keys==null || keys.length==0) return false;
 		Map<String, String> map = read(source);
 		if(map.isEmpty()) return false;
@@ -245,7 +245,7 @@ public class JSONMapSupport {
 	 * @param values The values to look for
 	 * @return true if all values were found, false otherwise 
 	 */
-	public static boolean containsAllValues(CharSequence source, String...values) {
+	public static boolean containsAllValues(String source, String...values) {
 		if(values==null || values.length==0) return false;
 		Map<String, String> map = read(source);
 		if(map.isEmpty()) return false;
@@ -263,7 +263,7 @@ public class JSONMapSupport {
 	 * @param values The values to look for
 	 * @return true if any value was found, false otherwise 
 	 */
-	public static boolean containsAnyValues(CharSequence source, String...values) {
+	public static boolean containsAnyValues(String source, String...values) {
 		if(values==null || values.length==0) return false;
 		Map<String, String> map = read(source);
 		if(map.isEmpty()) return false;
@@ -274,6 +274,182 @@ public class JSONMapSupport {
 		return false;
 	}
 	
+	/**
+	 * Increments the int in the map bound to the passed key by the specified amount
+	 * @param source The map JSON source
+	 * @param incr The amount to increment by
+	 * @param key The key that the int is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String increment(String source, int incr, String key) {
+		Map<String, String> map = read(source);
+		int value = Integer.parseInt(map.get(nvl("Key", key))) + incr;
+		map.put(key, Integer.toString(value));
+		return JSON.serializeToString(map);	
+	}
 	
+	/**
+	 * Increments the long in the map bound to the passed key by the specified amount
+	 * @param source The map JSON source
+	 * @param incr The amount to increment by
+	 * @param key The key that the long is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String increment(String source, long incr, String key) {
+		Map<String, String> map = read(source);
+		long value = Long.parseLong(map.get(nvl("Key", key))) + incr;
+		map.put(key, Long.toString(value));
+		return JSON.serializeToString(map);
+	}
+	
+	/**
+	 * Increments the double in the map bound to the passed key by the specified amount
+	 * @param source The map JSON source
+	 * @param incr The amount to increment by
+	 * @param key The key that the double is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String increment(String source, double incr, String key) {
+		Map<String, String> map = read(source);
+		double value = Double.parseDouble(map.get(nvl("Key", key))) + incr;
+		map.put(key, Double.toString(value));
+		return JSON.serializeToString(map);
+	}
+	
+	/**
+	 * Increments the float in the map bound to the passed key by the specified amount
+	 * @param source The map JSON source
+	 * @param incr The amount to increment by
+	 * @param key The key that the float is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String increment(String source, float incr, String key) {
+		Map<String, String> map = read(source);
+		float value = Float.parseFloat(map.get(nvl("Key", key))) + incr;
+		map.put(key, Float.toString(value));
+		return JSON.serializeToString(map);
+	}
+	
+	
+	/**
+	 * Increments the int in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the int is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String incrementInt(String source, String key) {
+		return increment(source, 1, key);		
+	}
+	
+	/**
+	 * Increments the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String incrementLong(String source, String key) {
+		return increment(source, 1L, key);		
+	}
+	
+	/**
+	 * Increments the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String incrementFloat(String source, String key) {
+		return increment(source, 1F, key);		
+	}
+
+	/**
+	 * Increments the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String incrementDouble(String source, String key) {
+		return increment(source, 1D, key);		
+	}
+
+	/**
+	 * Decrements the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String decrementInt(String source, String key) {
+		return increment(source, -1, key);		
+	}
+
+	/**
+	 * Decrements the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String decrementLong(String source, String key) {
+		return increment(source, -1L, key);		
+	}
+	
+	/**
+	 * Decrements the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String decrementFloat(String source, String key) {
+		return increment(source, -1F, key);		
+	}
+
+	/**
+	 * Decrements the number in the map bound to the passed key by 1
+	 * @param source The map JSON source
+	 * @param key The key that the number is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String decrementDouble(String source, String key) {
+		return increment(source, -1D, key);		
+	}
+
+	
+	/**
+	 * Retrieves the value bound to the JSON map as a number
+	 * @param source The map JSON source
+	 * @param key The map key the number is bound to
+	 * @return the bound number
+	 */
+	public static int getInt(String source, String key) {
+		return Integer.parseInt(read(source).get(nvl("Key", key)));
+	}
+	
+	/**
+	 * Retrieves the value bound to the JSON map as a number
+	 * @param source The map JSON source
+	 * @param key The map key the number is bound to
+	 * @return the bound number
+	 */
+	public static long getLong(String source, String key) {
+		return Long.parseLong(read(source).get(nvl("Key", key)));
+	}
+	
+	/**
+	 * Retrieves the value bound to the JSON map as a number
+	 * @param source The map JSON source
+	 * @param key The map key the number is bound to
+	 * @return the bound number
+	 */
+	public static float getFloat(String source, String key) {
+		return Float.parseFloat(read(source).get(nvl("Key", key)));
+	}
+	
+	/**
+	 * Retrieves the value bound to the JSON map as a number
+	 * @param source The map JSON source
+	 * @param key The map key the number is bound to
+	 * @return the bound number
+	 */
+	public static double getDouble(String source, String key) {
+		return Double.parseDouble(read(source).get(nvl("Key", key)));
+	}
 	
 }

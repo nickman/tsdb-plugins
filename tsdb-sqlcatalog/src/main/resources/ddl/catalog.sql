@@ -176,6 +176,10 @@ CREATE ALIAS IF NOT EXISTS JSONGET FOR "net.opentsdb.catalog.h2.H2Support.jsonGe
 CREATE ALIAS IF NOT EXISTS JSONKEYS FOR "net.opentsdb.catalog.h2.H2Support.jsonKeys";
 CREATE ALIAS IF NOT EXISTS JSONVALUES FOR "net.opentsdb.catalog.h2.H2Support.jsonValues";
 CREATE ALIAS IF NOT EXISTS JSONPAIRS FOR "net.opentsdb.catalog.h2.H2Support.jsonPairs";
+CREATE ALIAS IF NOT EXISTS JSONSET FOR "net.opentsdb.catalog.h2.H2Support.jsonSet";
+CREATE ALIAS IF NOT EXISTS JSONINCRINT FOR "net.opentsdb.catalog.h2.json.JSONMapSupport.incrementInt";
+
+
 
 
 

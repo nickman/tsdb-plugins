@@ -81,6 +81,19 @@ public class H2Support {
 	}
 	
 	/**
+	 * Sets a value in the map
+	 * @param jsonMap The JSON source of the map
+	 * @param key The key to update the value for
+	 * @param value The value to update to
+	 * @return the updated json source
+	 */
+	public static String jsonSet(String jsonMap, String key, Object value) {
+		return JSONMapSupport.set(key, value, jsonMap);
+	}
+	
+
+	
+	/**
 	 * Returns the FNQID of the TSMeta with the passed TSUID
 	 * @param conn The DB connection
 	 * @param tsuid The TSUID of the TSMeta to get the id for

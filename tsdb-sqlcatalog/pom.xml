@@ -55,6 +55,73 @@
 	<groupId>com.h2database</groupId>
 	<artifactId>h2</artifactId>
       </dependency>
+      
+      <!-- ==========================
+	    JDBC Pooling Support
+	      ========================== -->
+      <dependency>
+		<groupId>com.jolbox</groupId>
+		<artifactId>bonecp</artifactId>
+      </dependency>
+      <dependency>
+		<groupId>com.jolbox</groupId>
+		<artifactId>bonecp-jdk-compat</artifactId>
+      </dependency>
+      
+      <!-- ==========================
+	    Lucene Text Search Support
+	      ========================== -->
+
+	<dependency>
+	  <groupId>org.apache.lucene</groupId>
+	  <artifactId>lucene-core</artifactId>
+	  <version>3.6.2</version>
+	</dependency>				
+
+      
+      <!-- 
+      
+	<dependency>
+	  <groupId>org.apache.lucene</groupId>
+	  <artifactId>lucene-core</artifactId>
+	</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-queries</artifactId>
+		</dependency>				
+      
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-analyzers-common</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-join</artifactId>
+		</dependency>				
+	
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-queryparser</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-highlighter</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-suggest</artifactId>
+		</dependency>				
+
+		<dependency>
+		  <groupId>org.apache.lucene</groupId>
+		  <artifactId>lucene-codecs</artifactId>
+		</dependency>				
+
+		-->
         
       <dependency>
 		<groupId>org.springframework</groupId>

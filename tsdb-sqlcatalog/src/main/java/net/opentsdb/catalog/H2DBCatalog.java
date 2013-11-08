@@ -51,15 +51,17 @@ import java.util.TreeMap;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
-import org.h2.jdbcx.JdbcConnectionPool;
+import org.h2.fulltext.FullTextLucene;
 import org.h2.tools.Server;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -90,7 +92,9 @@ public class H2DBCatalog implements CatalogDBInterface {
 	/** The JDBC User password */
 	protected String jdbcPassword = null;	
 	/** The constructed datasource */
-	protected JdbcConnectionPool dataSource = null;
+	protected DataSource dataSource = null;
+	/** The data source initializer */
+	protected CatalogDataSource cds = null;
 	/** The H2 DDL resource */
 	protected String[] ddlResources = null;	
 	/** The configured increment on the FQN ID sequence */
@@ -300,7 +304,10 @@ public class H2DBCatalog implements CatalogDBInterface {
 		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);
 		fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		userDefinedVars.put(FQN_SEQ_INCR_VAR, fqnSeqIncrement);
-		dataSource = JdbcConnectionPool.create(jdbcUrl, jdbcUser, jdbcPassword);
+		cds = new CatalogDataSource();
+		cds.initialize(tsdb, extracted);
+		dataSource = cds.getDataSource(); 
+				//JdbcConnectionPool.create(jdbcUrl, jdbcUser, jdbcPassword);
 		
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
 		runDDLResources(userDefinedVars);
@@ -310,6 +317,19 @@ public class H2DBCatalog implements CatalogDBInterface {
 			startServers();
 		} else {
 			log.info("No H2 Listeners Configured");
+		}
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			FullTextLucene.init(conn);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_FQN", null);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_METRIC", null);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGK", null);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGV", null);
+		} catch (SQLException e) {
+			e.printStackTrace(System.err);
+		} finally {
+			try { conn.close(); } catch (Exception ex) {}
 		}
 		
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", jdbcUrl);
@@ -337,9 +357,11 @@ public class H2DBCatalog implements CatalogDBInterface {
 				log.info("Web Server Stopped");
 			} catch (Exception ex) {/* No Op */}  
 		}		
-		if(dataSource!=null) {
-			dataSource.dispose();
+		if(cds!=null) {
+			cds.shutdown();
+			dataSource = null;
 		}
+		
 		log.info("\n\t================================================\n\tTSDB Catalog DB Stopped\n\tName:{}\n\t================================================", jdbcUrl);
 	}
 	
@@ -585,8 +607,6 @@ public class H2DBCatalog implements CatalogDBInterface {
 			Map<String, String> custom = fillInCustom(annotation.getCustom());
 			annotationsPs.setString(6, JSONMapSupport.nokToString(custom));
 			annotationsPs.addBatch();
-			// INSERT INTO ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) 
-			// VALUES (?, ?, ? FQNID(?), ?, ?)
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
 		}
@@ -757,7 +777,13 @@ public class H2DBCatalog implements CatalogDBInterface {
 			String tName = rset.getMetaData().getTableName(1).toUpperCase().replace("TSD_", "");
 			UniqueIdType utype = UniqueIdType.valueOf(tName); 
 			while(rset.next()) {
-				
+				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("UID")), rset.getString("NAME"));
+				meta.setCreated(rset.getTimestamp("CREATED").getTime());
+				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
+				meta.setDescription(rset.getString("DESCRIPTION"));
+				meta.setNotes(rset.getString("NOTES"));
+				meta.setDisplayName(rset.getString("DISPLAY_NAME"));
+				uidMetas.add(meta);
 			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to read UIDMetas from ResultSet", ex);

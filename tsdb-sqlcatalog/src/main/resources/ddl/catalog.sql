@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS TSD_FQN (
 	METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
 	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
 	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
+	CREATED TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the creation of the TSMeta',
 	MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
 	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
 	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',

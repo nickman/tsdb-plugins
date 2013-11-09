@@ -470,40 +470,6 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	}
 	
 	
-	/**
-	 * Asserts the equality of the passed indexable objects
-	 * @param c the created indexable object
-	 * @param r the retrieved indexable object
-	 */
-	protected void validate(Object c, Object r) {
-		Assert.assertNotNull("The created indexable was null", c);
-		Assert.assertNotNull("The retrieved indexable was null", r);
-		Assert.assertEquals("The retrieved indexable is not the same type as the created", c.getClass(), r.getClass());
-		if(c instanceof Annotation) {
-			Annotation a = (Annotation)c, a2 = (Annotation)r;
-			Assert.assertEquals("The annotation TSUIDs do not match", a.getTSUID(), a2.getTSUID());
-			Assert.assertEquals("The annotation Start Times do not match", a.getStartTime(), a2.getStartTime());
-			Assert.assertEquals("The annotation Descriptions do not match", a.getDescription(), a2.getDescription());
-			Assert.assertEquals("The annotation Notes do not match", a.getNotes(), a2.getNotes());
-			Assert.assertEquals("The annotation Customs do not match", a.getCustom(), a2.getCustom());						
-		} else if(c instanceof TSMeta) {
-			TSMeta t = (TSMeta)c, t2 = (TSMeta)r;
-			Assert.assertEquals("The TSMeta TSUIDs do not match", t.getTSUID(), t2.getTSUID());
-			Assert.assertEquals("The TSMeta Create Times do not match", t.getCreated(), t2.getCreated());
-			Assert.assertEquals("The TSMeta descriptions do not match", t.getDescription(), t2.getDescription());
-			Assert.assertEquals("The TSMeta notes do not match", t.getNotes(), t2.getNotes());
-			Assert.assertEquals("The TSMeta customs do not match", t.getCustom(), t2.getCustom());
-		} else if(c instanceof UIDMeta) {
-			UIDMeta u = (UIDMeta)c, u2 = (UIDMeta)r;
-			Assert.assertEquals("The UIDMeta UIDs do not match", u.getUID(), u2.getUID());
-			Assert.assertEquals("The UIDMeta Create Times do not match", u.getCreated(), u2.getCreated());
-			Assert.assertEquals("The UIDMeta descriptions do not match", u.getDescription(), u2.getDescription());
-			Assert.assertEquals("The UIDMeta notes do not match", u.getNotes(), u2.getNotes());
-			Assert.assertEquals("The UIDMeta customs do not match", u.getCustom(), u2.getCustom());
-		} else {
-			throw new RuntimeException("Invalid Indexable Type [" + c.getClass().getName() + "]");
-		}
-	}
 	
 	
 	/**

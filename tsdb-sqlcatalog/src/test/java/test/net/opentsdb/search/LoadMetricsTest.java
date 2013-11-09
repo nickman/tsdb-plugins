@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,10 +40,11 @@ import javax.management.MBeanInfo;
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
@@ -54,11 +56,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import test.net.opentsdb.search.util.JDBCHelper;
+
+import com.stumbleupon.async.Callback;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: LoadMetricsTest</p>
@@ -276,6 +278,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 				tsdb.indexUIDMeta(m);
 			}
 			TSMeta tsMeta = fromUids(uidMetas);
+			tsMeta.setCreated(SystemClock.unixTime());
 			tsdb.indexTSMeta(tsMeta);
 			createdTSMetas.add(tsMeta);
 			Annotation ann = new Annotation();
@@ -341,27 +344,24 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Unexpected TSUID RowCount for [" + tsUid + "]", 0, rowCount);
 			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE FQNID IN " + 
 					"(SELECT FQNID FROM TSD_FQN WHERE TSUID = '" + tsUid + "')");
-			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", 0, rowCount);						
+			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", 0, rowCount);
+			SearchQuery searchQuery = new SearchQuery();
+			searchQuery.setType(SearchType.TSMETA);
+			searchQuery.setQuery("TSUID:" + tsUid);
+			searchQuery.setLimit(0);
+			searchQuery.setStartIndex(0);
+			final CountDownLatch latch = new CountDownLatch(1);
+			Deferred<SearchQuery> result = tsdb.executeSearch(searchQuery)
+					.addBoth(new Callback<SearchQuery, SearchQuery>() {
+						@Override
+						public SearchQuery call(SearchQuery arg)
+								throws Exception {
+							// TODO Auto-generated method stub
+							return null;
+						}
+					});
+			
 		}
-		
-
-/*		FQNID BIGINT NOT NULL COMMENT 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry',
-		METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
-		FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
-		TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
-		MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
-		MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
-		DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
-		DESCRIPTION VARCHAR(60) COMMENT 'An optional description for the time-series',
-		DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
-		NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
-		UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
-		RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite'
-*/		
-		
-		
-		
-		//jdbcHelper.query(sql)
 	}				
 
 

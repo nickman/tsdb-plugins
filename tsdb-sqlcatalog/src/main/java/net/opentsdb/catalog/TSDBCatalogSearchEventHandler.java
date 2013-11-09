@@ -332,9 +332,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
      * @param result The deferred to write the query results into
      * @return the deferred results
      */
-    public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
-    	
-    	return result;
+    public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {    	
+    	return dbInterface.executeQuery(query, result);
     }
     
 	/**

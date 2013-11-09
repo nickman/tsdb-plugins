@@ -59,6 +59,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.search.SearchQuery;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
@@ -71,6 +72,8 @@ import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.helios.tsdb.plugins.util.URLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: H2DBCatalog</p>
@@ -177,9 +180,9 @@ public class H2DBCatalog implements CatalogDBInterface {
 	
 	/** The SQL to insert a TSMeta TSD_FQN */
 	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
-			"(FQNID, METRIC_UID, FQN, TSUID, MAX_VALUE, MIN_VALUE, " + 
+			"(FQNID, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION) " + 
-			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	
 	/** The SQL to insert the TSMeta UID pairs */
 	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER) VALUES (?,?,?)";
@@ -337,6 +340,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_METRIC", null);
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGK", null);
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGV", null);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_ANNOTATION", null);
 		} catch (SQLException e) {
 			e.printStackTrace(System.err);
 		} finally {
@@ -685,7 +689,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			tsMetaFqnPs.setString(++bId, tsMeta.getMetric().getUID());
 			tsMetaFqnPs.setString(++bId, fqn.toString());
 			tsMetaFqnPs.setString(++bId, tsMeta.getTSUID());
-			
+			tsMetaFqnPs.setTimestamp(++bId, new Timestamp(utoms(tsMeta.getCreated())));
 			tsMetaFqnPs.setDouble(++bId, tsMeta.getMax());
 			tsMetaFqnPs.setDouble(++bId, tsMeta.getMin());
 			
@@ -853,7 +857,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 	 * @return a [possibly empty] collection of UIDMetas
 	 */
 	@Override
-	public Collection<UIDMeta> readUIDMetas(ResultSet rset) {
+	public List<UIDMeta> readUIDMetas(ResultSet rset) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<UIDMeta> uidMetas = new ArrayList<UIDMeta>();
 		
@@ -862,7 +866,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 			UniqueIdType utype = UniqueIdType.valueOf(tName); 
 			while(rset.next()) {
 				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("UID")), rset.getString("NAME"));
-				meta.setCreated(rset.getTimestamp("CREATED").getTime());
+				meta.setCreated(mstou(rset.getTimestamp("CREATED").getTime()));
 				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
 				meta.setDescription(rset.getString("DESCRIPTION"));
 				meta.setNotes(rset.getString("NOTES"));
@@ -874,6 +878,201 @@ public class H2DBCatalog implements CatalogDBInterface {
 		}
 		return uidMetas;
 	}
+	
+	/**
+	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of UIDMetas
+	 */
+	@Override
+	public List<TSMeta> readTSMetas(ResultSet rset) {
+		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
+		List<TSMeta> tsMetas = new ArrayList<TSMeta>();
+		try {
+			while(rset.next()) {
+				TSMeta meta = new TSMeta(UniqueId.stringToUid(rset.getString("TSUID")), mstou(rset.getTimestamp("CREATED").getTime()));
+				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
+				meta.setDescription(rset.getString("DESCRIPTION"));
+				meta.setNotes(rset.getString("NOTES"));
+				meta.setDisplayName(rset.getString("DISPLAY_NAME"));
+				meta.setDataType(rset.getString("DATA_TYPE"));
+				meta.setMax(rset.getDouble("MAX_VALUE"));
+				meta.setMin(rset.getDouble("MIN_VALUE"));
+				meta.setRetention(rset.getInt("RETENTION"));
+				meta.setUnits(rset.getString("UNITS"));
+				tsMetas.add(meta);
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to read TSMetas from ResultSet", ex);
+		}
+		return tsMetas;
+	}
+	
+	/**
+	 * Returns a collection of {@link Annotation}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of Annotations
+	 */
+	@Override
+	public List<Annotation> readAnnotations(ResultSet rset) {
+		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
+		List<Annotation> annotations = new ArrayList<Annotation>();
+		try {
+			while(rset.next()) {
+				Annotation meta = new Annotation();
+				
+				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
+				meta.setDescription(rset.getString("DESCRIPTION"));
+				meta.setNotes(rset.getString("NOTES"));
+				meta.setStartTime(mstou(rset.getTimestamp("START_TIME").getTime()));
+				Timestamp ts = rset.getTimestamp("END_TIME");
+				if(ts!=null) {
+					meta.setEndTime(mstou(ts.getTime()));
+				}
+				annotations.add(meta);
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to read Annotations from ResultSet", ex);
+		}
+		return annotations;		
+	}
+	
+	   /**
+     * Executes a search query and returns the deferred for the results
+     * @param query The query to execute
+     * @param result The deferred to write the query results into
+     * @return the deferred results
+     */
+    public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
+    	final ElapsedTime et = SystemClock.startClock();
+    	Connection conn = null;
+    	PreparedStatement ps = null;
+    	Statement st = null;
+    	ResultSet rset = null;
+    	
+    	try {
+    		conn = dataSource.getConnection();
+    		ps = conn.prepareStatement("SELECT * FROM FTL_SEARCH(?, ?, ?)");
+    		// query.getQuery(), query.getLimit(), query.getStartIndex()
+    		ps.setString(1, query.getQuery());
+    		ps.setInt(2, query.getLimit());
+    		ps.setInt(3, query.getStartIndex());
+    		rset = ps.executeQuery();
+    		String dataSQL = union(rset);    		
+    		rset.close(); rset = null;
+    		ps.close(); ps = null;
+    		
+    		if(dataSQL.isEmpty()) {
+				query.setTotalResults(0);
+				query.setResults(Collections.emptyList());
+    		} else {
+	    		st = conn.createStatement();
+	    		rset = st.executeQuery(dataSQL);	    		
+		    	switch(query.getType()) {
+					case ANNOTATION:
+						List<Annotation> annResults = readAnnotations(rset);
+						query.setTotalResults(annResults.size());
+						query.setResults(new ArrayList<Object>(annResults));
+						break;
+					case UIDMETA:
+						List<UIDMeta> uidResults = readUIDMetas(rset);
+						query.setTotalResults(uidResults.size());
+						query.setResults(new ArrayList<Object>(uidResults));					
+						break;					
+					case TSMETA:
+						List<TSMeta> tsResults = readTSMetas(rset);
+						query.setTotalResults(tsResults.size());
+						query.setResults(new ArrayList<Object>(tsResults));					
+						break;
+					case TSUIDS:
+						tsResults = readTSMetas(rset);
+						query.setTotalResults(tsResults.size());
+						List<Object> tsuids = new ArrayList<Object>(tsResults.size());
+						for(TSMeta tsmeta: tsResults) {
+							tsuids.add(tsmeta.getTSUID());
+						}
+						query.setResults(tsuids);
+						break;
+					case TSMETA_SUMMARY:
+						tsResults = readTSMetas(rset);
+						query.setTotalResults(tsResults.size());
+						List<Object> tsummary = new ArrayList<Object>(tsResults.size());
+						for(TSMeta tsmeta: tsResults) {
+							tsummary.add(summarize(tsmeta));
+						}
+						query.setResults(tsummary);
+						break;
+					default:
+						throw new RuntimeException("yeow. Unrecognized Query Type [" + query.getType() + "]");
+		    	}
+    		}
+	    	query.setTime(et.elapsedMs());
+	    	result.callback(query);
+    	} catch (Exception ex) {
+    		log.error("Failed to execute SearchQuery [{}]", query, ex);
+    		result.callback(ex);
+    	} finally {
+    		if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+    		if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}
+    		if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+    		if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+    	}
+    	return result;
+    }
+    
+    /**
+     * Converts the passed TSMeta into a map summary
+     * @param meta The meta to summarize
+     * @return the summary map
+     */
+    public static Map<String, Object> summarize(TSMeta meta) {
+    	final HashMap<String, Object> map = 
+    			new HashMap<String, Object>(3);
+    	map.put("tsuid", meta.getTSUID());
+    	map.put("metric", meta.getMetric().getName());
+    	final HashMap<String, String> tags = 
+    			new HashMap<String, String>(meta.getTags().size() / 2);
+    	int idx = 0;
+    	String name = "";
+    	for (final UIDMeta uid : meta.getTags()) {
+    		if (idx % 2 == 0) {
+    			name = uid.getName();
+    		} else {
+    			tags.put(name, uid.getName());
+    		}
+    		idx++;
+    	}
+    	map.put("tags", tags);
+    	return map;
+    }
+    
+    
+    /** The union all SQL clause */
+    public static final String UNION_CLAUSE = " UNION ALL";
+    /** The number of chars in the UNION_CLAUSE */
+    public static final int UNION_LENGTH = UNION_CLAUSE.length();
+    /** The select all SQL clause */
+    public static final String SELECT_ALL = "SELECT * FROM ";
+    
+    /**
+     * Generates the UNION SQL to retrieve the actual records matched via the lucene text query
+     * @param rset The lucene text query result set 
+     * @return The SQL to execute to retrieve the actual rows
+     * @throws SQLException thrown on any SQL error
+     */
+    protected String union(ResultSet rset) throws SQLException {
+    	StringBuilder b = new StringBuilder();    	
+    	int cnt = 0;
+    	while(rset.next()) {
+    		b.append(SELECT_ALL).append(rset.getString(1)).append(UNION_CLAUSE);
+    		cnt++;
+    	}
+    	if(cnt>0) {
+    		int bl = b.length();
+    		b.delete(bl-UNION_LENGTH, bl);
+    	}
+    	return b.toString();
+    }
 	
 	
 	
@@ -1005,5 +1204,23 @@ public class H2DBCatalog implements CatalogDBInterface {
 		}
 	}
 
-
+	/**
+	 * Converts a millisecond based timestamp to a unix seconds based timestamp
+	 * @param time The millisecond timestamp to convert
+	 * @return a unix timestamp
+	 */
+	public static long mstou(long time) {
+		return TimeUnit.SECONDS.convert(time, TimeUnit.MILLISECONDS);
+	}
+	
+	/**
+	 * Converts a unix second based timestamp to a long millisecond based timestamp
+	 * @param time The unix timestamp to convert
+	 * @return a long millisecond timestamp
+	 */
+	public static long utoms(long time) {
+		return TimeUnit.MILLISECONDS.convert(time, TimeUnit.SECONDS);
+	}
+	
+	
 }

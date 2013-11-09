@@ -33,9 +33,14 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+
+import com.stumbleupon.async.Deferred;
 
 
 /**
@@ -102,5 +107,28 @@ public interface CatalogDBInterface {
 	 * @return a [possibly empty] collection of UIDMetas
 	 */
 	public Collection<UIDMeta> readUIDMetas(ResultSet rset);
+	
+	/**
+	 * Returns a collection of {@link TSMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of TSMetas
+	 */
+	public Collection<TSMeta> readTSMetas(ResultSet rset);
+	
+	/**
+	 * Returns a collection of {@link Annotation}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @return a [possibly empty] collection of Annotations
+	 */
+	public Collection<Annotation> readAnnotations(ResultSet rset);
+	
+	/**
+	 * Executes a search query against this catalog
+	 * @param query The OpenTSDB SearchQuery
+	 * @param result The deferred to write the result (or error) to
+	 * @return The deferred
+	 */
+	public Deferred<SearchQuery> executeQuery(SearchQuery query, Deferred<SearchQuery> result);
+	
 	
 }

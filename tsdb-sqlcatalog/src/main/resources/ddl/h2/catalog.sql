@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS TSD_FQN_TAGPAIR (
 	FQN_TP_ID BIGINT NOT NULL IDENTITY COMMENT 'Synthetic primary key of an association between an FQN and a Tag Pair',
 	FQNID BIGINT NOT NULL COMMENT 'The ID of the parent FQN',
 	UID CHAR(12) NOT NULL COMMENT 'The ID of a child tag key/value pair',
-	PORDER TINYINT NOT NULL COMMENT 'The order of the tags in the FQN'
+	PORDER TINYINT NOT NULL COMMENT 'The order of the tags in the FQN',
+	NODE CHAR(1) NOT NULL COMMENT 'Indicates if this tagpair is a Branch (B) or a Leaf (L)' CHECK NODE IN ('B', 'L')
 ); COMMENT ON TABLE TSD_FQN_TAGPAIR IS 'Associative table between TSD_FQN and TSD_TAGPAIR, or the TSMeta and the Tag keys and values of the UIDMetas therein';
 
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_FQN_TAGPAIR_AK ON TSD_FQN_TAGPAIR (FQN_TP_ID);

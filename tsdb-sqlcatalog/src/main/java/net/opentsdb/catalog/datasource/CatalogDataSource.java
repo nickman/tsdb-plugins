@@ -32,8 +32,6 @@ import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
-import test.net.opentsdb.core.TSDBMocker;
-
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
 
@@ -77,6 +75,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 * Creates a new CatalogDataSource
 	 */
 	private CatalogDataSource() {
+		
 	}
 	
 	/**
@@ -189,6 +188,15 @@ public class CatalogDataSource implements ICatalogDataSource {
 		}
 		config = null;
 		instance = null;		
+	}
+
+
+	/**
+	 * Returns 
+	 * @return the config
+	 */
+	public BoneCPConfig getConfig() {
+		return config;
 	}
 
 }

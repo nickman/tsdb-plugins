@@ -42,6 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.datasource.CatalogDataSource;
+
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -86,6 +88,14 @@ public class JDBCHelper {
 	public JDBCHelper(DataSource ds) {
 		super();
 		this.ds = ds;
+	}
+	
+	/**
+	 * Creates a new JDBCHelper, acquiring a datasource from the CatalogDataSource singleton
+	 * (which has hopefully been initialized.....) 
+	 */
+	public JDBCHelper() {
+		this(CatalogDataSource.getInstance().getDataSource());
 	}
 	
 	/**

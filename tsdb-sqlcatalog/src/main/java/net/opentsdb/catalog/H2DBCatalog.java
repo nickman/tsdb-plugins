@@ -318,7 +318,7 @@ public class H2DBCatalog implements CatalogDBInterface {
 		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);
 		fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		userDefinedVars.put(FQN_SEQ_INCR_VAR, fqnSeqIncrement);
-		cds = new CatalogDataSource();
+		cds = CatalogDataSource.getInstance();
 		cds.initialize(tsdb, extracted);
 		dataSource = cds.getDataSource(); 
 				//JdbcConnectionPool.create(jdbcUrl, jdbcUser, jdbcPassword);

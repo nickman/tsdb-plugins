@@ -32,6 +32,8 @@ import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
+import test.net.opentsdb.core.TSDBMocker;
+
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
 
@@ -45,16 +47,36 @@ import com.jolbox.bonecp.BoneCPDataSource;
  */
 
 public class CatalogDataSource implements ICatalogDataSource {
+	/** The singleton instance */
+	private static volatile CatalogDataSource instance = null;
+	/** The singleton instance ctor lock */
+	private static final Object lock = new Object();
+
+	/** The built datasource configuration */
 	protected BoneCPConfig config = null;
+	/** The built datasource */
 	protected BoneCPDataSource connectionPool = null;
 	
-	
+	/**
+	 * Acquires the CatalogDataSource singleton instance
+	 * @return the CatalogDataSource singleton instance
+	 */
+	public static CatalogDataSource getInstance() {
+		if(instance==null) {
+			synchronized(lock) {
+				if(instance==null) {
+					instance = new CatalogDataSource();
+				}
+			}
+		}
+		return instance;
+	}
+
 	
 	/**
 	 * Creates a new CatalogDataSource
 	 */
-	public CatalogDataSource() {
-		// JDBC_POOL_JDBCDRIVER
+	private CatalogDataSource() {
 	}
 	
 	/**
@@ -161,11 +183,12 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 * Closes out the datasource
 	 */
 	public void shutdown() {
-		if(connectionPool==null) {
+		if(connectionPool!=null) {
 			connectionPool.close();
-			connectionPool = null;
+			connectionPool = null;			
 		}
-		
+		config = null;
+		instance = null;		
 	}
 
 }

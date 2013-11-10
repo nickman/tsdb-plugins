@@ -64,7 +64,7 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: LoadMetricsTest</p>
- * <p>Description: </p> 
+ * <p>Description: Search event handling unit tests using the default in-mem H2 DB and the EventBus async driver.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.LoadMetricsTest</code></p>
@@ -265,7 +265,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	//@Test(timeout=60000)
 	@Test
 	public void testUIDMetaIndexing() throws Exception {
-		
+		TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
 		Set<TSMeta> createdTSMetas = new HashSet<TSMeta>(ons.size());
 //		for(int i = 0; i < 1000; i++) {
@@ -289,7 +289,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			tsdb.indexAnnotation(ann);
 		} 
 		ElapsedTime et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(3000000, TimeUnit.MILLISECONDS)) {
 			Assert.fail("Timed out waiting for Indexing Milestone");
 		} else {
 			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
@@ -350,6 +350,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			searchQuery.setQuery("TSUID:" + tsUid);
 			searchQuery.setLimit(0);
 			searchQuery.setStartIndex(0);
+			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
 			final CountDownLatch latch = new CountDownLatch(1);
 //			Deferred<SearchQuery> result = tsdb.executeSearch(searchQuery)
 //					.addErrback(new )

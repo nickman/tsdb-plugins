@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
@@ -267,12 +268,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	public void initialize(TSDB tsdb, Properties extracted) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
 		this.tsdb = tsdb;
-		//fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(tsdb, extracted);
 		dataSource = cds.getDataSource();
-
-		UpdateRowQueuePKTrigger.setSequenceCache(syncQueueSequence);
 		doInitialize(tsdb, extracted);
 		fqnSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted), 
@@ -286,6 +284,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		syncQueueSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR, extracted), 
 				"QID_SEQ", dataSource); // QID_SEQ
+		// This guy is only for H2, but has no effect on other impls.
+		UpdateRowQueuePKTrigger.setSequenceCache(syncQueueSequence);
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
@@ -348,34 +348,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		Set<String> batchedUids = new HashSet<String>(events.size());
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
 		Set<Annotation> annotations = new HashSet<Annotation>();
+		BatchMileStone latch = null;
 		try {			
 			for(TSDBSearchEvent event: events) {
 				if(BatchMileStone.class.isInstance(event)) {
-					((BatchMileStone)event).countDown();
+					log.info("==== Set Milestone ====");
+					latch = (BatchMileStone)event;
 					continue;
 				}
+				ops++;
 				switch(event.eventType) {
 				case ANNOTATION_DELETE:
 					deleteAnnotation(conn, event.annotation);
-					ops++;
 					break;
 				case ANNOTATION_INDEX:
 					annotations.add(event.annotation);
-					ops++;
 					break;
 				case TSMETA_DELETE:
 					deleteTSMeta(conn, event.tsuid);
-					ops++;
 					break;
 				case TSMETA_INDEX:
 					TSMeta tsMeta = event.tsMeta;
 					if(stored(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
-					ops++;
 					break;
 				case UIDMETA_DELETE:
 					deleteUIDMeta(conn, event.uidMeta);
-					ops++;
 					break;
 				case UIDMETA_INDEX:					
 					UIDMeta uidMeta = event.uidMeta;
@@ -397,14 +395,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 							log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
 							break;
 					}
-					batchedUids.add(uidMeta.toString());
-					ops++;
-//					log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
+					batchedUids.add(uidMeta.toString());					
+					//log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
 					break;
 				default:
 					log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
-					break;
-					
+					break;					
 				}
 			} // end for event processor for loop
 			
@@ -438,6 +434,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			
 			conn.commit();
 			log.info(et.printAvg("Indexes", ops));
+			if(latch!=null) {
+				latch.countDown();
+				latch = null;
+			}			
 		} catch (Exception ex) {
 			log.error("batch operations failed", ex);
 			try { conn.rollback(); } catch (Exception nex) {
@@ -738,7 +738,39 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		}
 	}
 	
-	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#purge()
+	 */
+	@Override
+	public void purge() {
+		Connection conn = null;
+		Statement st = null;
+		try {
+			conn = dataSource.getConnection();
+			conn.setAutoCommit(false);
+			st = conn.createStatement();
+			st.execute("DELETE FROM TSD_FQN");
+			conn.commit();
+			st.execute("DELETE FROM TSD_TAGPAIR");
+			conn.commit();
+			st.execute("DELETE FROM TSD_TAGK");
+			conn.commit();
+			st.execute("DELETE FROM TSD_TAGV");
+			conn.commit();
+			st.execute("DELETE FROM TSD_FQN_TAGPAIR");
+			conn.commit();
+			st.execute("DELETE FROM TSD_ANNOTATION");
+			conn.commit();
+			st.execute("DELETE FROM SYNC_QUEUE");
+			conn.commit();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to purge Store", ex);
+		} finally {
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
 	
 
 	// ==================================================================================================

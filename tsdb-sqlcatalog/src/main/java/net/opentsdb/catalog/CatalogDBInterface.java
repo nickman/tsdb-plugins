@@ -263,4 +263,9 @@ public interface CatalogDBInterface {
 	 */
 	public Deferred<SearchQuery> executeQuery(SearchQuery query, Deferred<SearchQuery> result);
 	
+	/**
+	 * Purges all tables in the store
+	 */
+	public void purge();
+	
 }

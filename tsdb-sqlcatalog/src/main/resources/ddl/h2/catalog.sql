@@ -144,7 +144,7 @@ ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_F
 --  Sync Queue Table
 -- ==============================================================================================
 
-CREATE TABLE SYNC_QUEUE (
+CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
 	QID BIGINT NOT NULL COMMENT 'The synthetic identifier for this sync operation',
 	EVENT_TYPE VARCHAR(20) NOT NULL 
 		COMMENT 'The source of the update that triggered this sync operation'
@@ -161,11 +161,11 @@ ALTER TABLE SYNC_QUEUE ADD CONSTRAINT IF NOT EXISTS SYNC_QUEUE_PK PRIMARY KEY ( 
 --  Queue Triggers
 -- ==============================================================================================
 
-CREATE TRIGGER TSD_ANNOTATION_UPDATED_TRG AFTER UPDATE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_FQN_UPDATED_TRG AFTER UPDATE ON TSD_FQN FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_METRIC_UPDATED_TRG AFTER UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_TAGK_UPDATED_TRG AFTER UPDATE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_TAGV_UPDATED_TRG AFTER UPDATE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_ANNOTATION_UPDATED_TRG AFTER UPDATE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_FQN_UPDATED_TRG AFTER UPDATE ON TSD_FQN FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_METRIC_UPDATED_TRG AFTER UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_TAGK_UPDATED_TRG AFTER UPDATE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_TAGV_UPDATED_TRG AFTER UPDATE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
 
 
 

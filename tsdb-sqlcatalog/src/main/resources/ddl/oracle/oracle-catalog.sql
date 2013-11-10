@@ -5,7 +5,7 @@
 -- ====================================================================
 
 -- ===========================================================================================
---  The Sequence driving the FQN key
+--  The Sequence driving the synthetic PKs
 -- ===========================================================================================
 CREATE SEQUENCE FQN_SEQ START WITH 1 INCREMENT BY 20;
 CREATE SEQUENCE FQN_TP_SEQ START WITH 1 INCREMENT BY 100;
@@ -120,7 +120,7 @@ CREATE UNIQUE INDEX TSD_FQN_TAGPAIR_IND ON TSD_FQN_TAGPAIR (FQNID, XUID, PORDER)
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT TSD_FQN_TAGPAIR_FK FOREIGN KEY(XUID) REFERENCES TSD_TAGPAIR ( XUID ) ON DELETE CASCADE;
 ALTER TABLE TSD_FQN_TAGPAIR ADD (CONSTRAINT  NODE_IS_B_OR_L CHECK (NODE IN ('B', 'L'))); 
 
-DROP TABLE TSD_FQN;
+
 CREATE TABLE TSD_FQN (
 	FQNID NUMBER NOT NULL,
 	METRIC_UID CHAR(6) NOT NULL,

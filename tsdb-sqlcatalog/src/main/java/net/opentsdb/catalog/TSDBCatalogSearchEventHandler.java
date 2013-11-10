@@ -113,7 +113,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	/** The connection pool */
 	protected DataSource dataSource = null;
 	/** The queue processing thread */
-	protected Thread queueProcessorThread = new Thread(this, "TSDBCatalogQueueProcessor");
+	protected Thread queueProcessorThread = null;
 	/** Indicates if we're shutting down */
 	protected final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 	
@@ -151,6 +151,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	 */
 	private TSDBCatalogSearchEventHandler() {
 		super();
+		
 	}
 	
 	/**
@@ -184,6 +185,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	@Override
 	public void initialize(TSDB tsdb, Properties extracted) {		
 		super.initialize(tsdb, extracted);
+		shuttingDown.set(false);
 		batchSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_JDBC_BATCH_SIZE, DEFAULT_DB_JDBC_BATCH_SIZE, extracted);
 		queueSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_PROC_QUEUE_SIZE, DEFAULT_DB_PROC_QUEUE_SIZE, extracted);
 		timeout = ConfigurationHelper.getLongSystemThenEnvProperty(DB_PROC_QUEUE_TIMEOUT, DEFAULT_DB_PROC_QUEUE_TIMEOUT, extracted);
@@ -192,8 +194,10 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		dbInterface = loadDB(initerClassName);
 		dataSource = dbInterface.getDataSource();
 		log.info("Acquired DataSource");	
+		queueProcessorThread = new Thread(this, "TSDBCatalogQueueProcessor");
 		queueProcessorThread.setDaemon(true);
 		queueProcessorThread.start();
+		log.info("\n\t==================================\n\tStarted TSDBCatalogQueueProcessor\n\t==================================");
 		latch.countDown();
 	}
 	
@@ -204,6 +208,12 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	@Override
 	public void shutdown() {
 		shuttingDown.set(true);
+		if(queueProcessorThread!=null) {
+			queueProcessorThread.interrupt();
+			queueProcessorThread = null;
+		}
+		dbInterface.shutdown();
+		dbInterface = null;
 		super.shutdown();
 	}
 	
@@ -278,7 +288,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 			if(!searchEnabled) return;
 			executeQuery(event.searchQuery, event.deferred);
 		} else {
-			processingQueue.add(event.asSearchEvent());
+			processingQueue.add(event.asSearchEvent());			
 		}
 	}
 	
@@ -321,7 +331,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 			} finally {
 				if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 			}
-		}		
+		}
+		log.info("\n\t==================================\n\tTSDBCatalogQueueProcessor Stopped\n\t==================================");
 	}
 	
 
@@ -368,6 +379,15 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	 */
 	public DataSource getDataSource() {
 		return dataSource;
+	}
+
+
+	/**
+	 * Returns 
+	 * @return the dbInterface
+	 */
+	public CatalogDBInterface getDbInterface() {
+		return dbInterface;
 	}
     
 }

@@ -50,7 +50,9 @@ import javax.sql.DataSource;
 
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
+import net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
+import net.opentsdb.catalog.sequence.LocalSequenceCache;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -83,15 +85,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	protected DataSource dataSource = null;
 	/** The data source initializer */
 	protected CatalogDataSource cds = null;
-	/** The configured increment on the FQN ID sequence */
-	protected int fqnSeqIncrement = 100;
-	/** The current allocated FQNID sequence */
-	protected long fqnAllocatedSequence = 0;
-	/** The last allocated FQN sequence to be doled out before a refresh */
-	protected long fqnMaxSequence = 0;
 	/** The parent TSDB */
 	protected TSDB tsdb = null;
-	
+
+	// ========================================================================================
+	//	The batched prepared statements
+	// ========================================================================================
 	
 	/** batched ps for tag key inserts */
 	protected PreparedStatement uidMetaTagKIndexPs = null;
@@ -107,26 +106,52 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	protected PreparedStatement uidMetaTagPairFQNPs = null;
 	/** batched ps for annotation inserts */
 	protected PreparedStatement annotationsPs = null;
+
+	// ========================================================================================
+	//	The local sequence managers
+	// ========================================================================================
+	/** The sequence for the FQN PK */
+	protected LocalSequenceCache fqnSequence = null; // FQN_SEQ
+	/** The sequence for the FQN Tag Pairs PK */
+	protected LocalSequenceCache fqnTpSequence = null; // FQN_TP_SEQ
+	/** The sequence for the Annotation PK */
+	protected LocalSequenceCache annSequence = null; // ANN_SEQ
+	/** The sequence for the SyncQueue PK */
+	protected LocalSequenceCache syncQueueSequence = null; // QID_SEQ
+	
 	
 	// ========================================================================================
 	//	FQN Sequence Related Constants
 	// ========================================================================================
 	
 	/** The config property name for the increment on the FQN ID Sequence */
-	public static final String DB_FQN_SEQ_INCR = "helios.search.catalog.fqn.incr";
+	public static final String DB_FQN_SEQ_INCR = "helios.search.catalog.seq.fqn.incr";
 	/** The default increment on the FQN ID Sequence */
-	public static final int DEFAULT_DB_FQN_SEQ_INCR = 100;
-	/** The SQL to execute to get the next batch of FQNID sequence numbers */
-	public static final String NEXT_FQNID_SEQ_SQL = "SELECT FQN_SEQ.NEXTVAL";
+	public static final int DEFAULT_DB_FQN_SEQ_INCR = 50;
 	
+	/** The config property name for the increment on the FQN TagPair ID Sequence */
+	public static final String DB_TP_FQN_SEQ_INCR = "helios.search.catalog.seq.fqntp.incr";
+	/** The default increment on the FQN TagPair ID Sequence */
+	public static final int DEFAULT_DB_TP_FQN_SEQ_INCR = DEFAULT_DB_FQN_SEQ_INCR * 4;
 
+	/** The config property name for the increment on the Annotation ID Sequence */
+	public static final String DB_ANN_SEQ_INCR = "helios.search.catalog.seq.ann.incr";
+	/** The default increment on the Annotation ID Sequence */
+	public static final int DEFAULT_DB_ANN_SEQ_INCR = 50;
+
+	/** The config property name for the increment on the Sync Queue ID Sequence */
+	public static final String DB_SYNCQ_SEQ_INCR = "helios.search.catalog.seq.syncq.incr";
+	/** The default increment on the Annotation ID Sequence */
+	public static final int DEFAULT_DB_SYNCQ_SEQ_INCR = 50;
+	
+	
 	// ========================================================================================
 	//	Object COUNT and EXISTS SQL
 	// ========================================================================================
 	/** The SQL template for verification of whether a UIDMeta has been saved or not */
-	public static final String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE UID = ?";
+	public static final String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE XUID = ?";
 	/** The SQL for verification of whether a UIDMeta pair has been saved or not */
-	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE UID = ?";
+	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE XUID = ?";
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
 	
@@ -136,18 +161,18 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	//	Object INSERT SQL
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
-	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (UID,NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?)";
+	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?)";
 	/** The SQL to insert a TSMeta TSD_FQN */
 	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
 			"(FQNID, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION) " + 
 			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	/** The SQL to insert the TSMeta UID pairs */
-	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQNID, UID, PORDER, NODE) VALUES (?,?,?,?)";
+	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
 	/** The SQL to insert an Annotation */
-	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?)";
+	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?)";
 	/** The SQL to insert a Tag Pair */
-	public static final String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (UID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
+	public static final String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
 
 	// ========================================================================================
 	//	Object DELETE SQL
@@ -155,7 +180,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	/** The SQL to delete an Annotation */
 	public static final String TSD_DELETE_ANNOTATION = "DELETE FROM TSD_ANNOTATION WHERE START_TIME = ? AND (TSUID = ? OR TSUID IS NULL)";
 	/** The SQL template to delete a UIDMeta */
-	public static final String TSD_DELETE_UID = "DELETE FROM TSD_%s WHERE UID = ?";
+	public static final String TSD_DELETE_UID = "DELETE FROM TSD_%s WHERE XUID = ?";
 	/** The SQL template to delete a TSMeta */
 	public static final String TSD_DELETE_TS = "DELETE FROM TSD_FQN WHERE TSUID = ?";
 
@@ -242,11 +267,25 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	public void initialize(TSDB tsdb, Properties extracted) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
 		this.tsdb = tsdb;
-		fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
+		//fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(tsdb, extracted);
-		dataSource = cds.getDataSource(); 
+		dataSource = cds.getDataSource();
+
+		UpdateRowQueuePKTrigger.setSequenceCache(syncQueueSequence);
 		doInitialize(tsdb, extracted);
+		fqnSequence = createLocalSequenceCache(
+				ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted), 
+				"FQN_SEQ", dataSource); // FQN_SEQ		
+		fqnTpSequence = createLocalSequenceCache(
+				ConfigurationHelper.getIntSystemThenEnvProperty(DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR, extracted), 
+				"FQN_TP_SEQ", dataSource); // FQN_TP_SEQ
+		annSequence = createLocalSequenceCache(
+				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
+				"ANN_SEQ", dataSource); // ANN_SEQ
+		syncQueueSequence = createLocalSequenceCache(
+				ConfigurationHelper.getIntSystemThenEnvProperty(DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR, extracted), 
+				"QID_SEQ", dataSource); // QID_SEQ
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
@@ -256,6 +295,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	 * @param extracted The extracted configuration
 	 */
 	protected abstract void doInitialize(TSDB tsdb, Properties extracted);
+	
+	
+	/**
+	 * Creates a local sequence cache suitable for this database
+	 * @param increment The local sequence increment
+	 * @param sequenceName The DB Sequence name, fully qualified if necessary
+	 * @param dataSource The datasource to provide connections to refresh the sequence cache
+	 * @return the created local sequence cache
+	 */
+	protected LocalSequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
+		return new LocalSequenceCache(increment, sequenceName, dataSource);
+	}
+	
 	
 	// ========================================================================================
 	//	Catalog Service Shutdown
@@ -489,24 +541,26 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			} else {
 				startTime = TimeUnit.MILLISECONDS.convert(startTime, TimeUnit.SECONDS);
 			}
-			annotationsPs.setTimestamp(1, new Timestamp(startTime));
-			annotationsPs.setString(2, annotation.getDescription());
-			annotationsPs.setString(3, annotation.getNotes());
+			//annSequence
+			annotationsPs.setLong(1, annSequence.next());
+			annotationsPs.setTimestamp(2, new Timestamp(startTime));
+			annotationsPs.setString(3, annotation.getDescription());
+			annotationsPs.setString(4, annotation.getNotes());
 			if(annotation.getTSUID()==null) {
-				annotationsPs.setNull(4, Types.BIGINT);
+				annotationsPs.setNull(5, Types.BIGINT);
 			} else {
-				annotationsPs.setLong(4, H2Support.fqnId(conn, annotation.getTSUID()));
+				annotationsPs.setLong(5, H2Support.fqnId(conn, annotation.getTSUID()));
 			}
 			
 			
 			long endTime = annotation.getEndTime();
 			if(endTime==0) {
-				annotationsPs.setNull(5, Types.TIMESTAMP);
+				annotationsPs.setNull(6, Types.TIMESTAMP);
 			} else {
-				annotationsPs.setTimestamp(5, new Timestamp(endTime));
+				annotationsPs.setTimestamp(6, new Timestamp(endTime));
 			}
 			Map<String, String> custom = fillInCustom(annotation.getCustom());
-			annotationsPs.setString(6, JSONMapSupport.nokToString(custom));
+			annotationsPs.setString(7, JSONMapSupport.nokToString(custom));
 			annotationsPs.addBatch();
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
@@ -536,7 +590,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		fqn.deleteCharAt(fqn.length()-1);
 		try {
 			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
-			long fqnSeq = getNextFQNSequence();
+			long fqnSeq = fqnSequence.next();
 			int bId = 0;
 			tsMetaFqnPs.setLong(++bId, fqnSeq);
 			tsMetaFqnPs.setString(++bId, tsMeta.getMetric().getUID());
@@ -552,19 +606,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			tsMetaFqnPs.setString(++bId, tsMeta.getUnits());
 			tsMetaFqnPs.setInt(++bId, tsMeta.getRetention());
 			tsMetaFqnPs.addBatch();
-			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL);
+			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL); 
 			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
 			int pairCount = tsMeta.getTags().size()/2;
 			int leaf = pairCount-1;
 			for(short i = 0; i < pairCount; i++) {
 				String pairUID = pairs.removeFirst().getUID() + pairs.removeFirst().getUID();
-				uidMetaTagPairFQNPs.setLong(1, fqnSeq);
-				uidMetaTagPairFQNPs.setString(2, pairUID);
-				uidMetaTagPairFQNPs.setShort(3, i);
+				uidMetaTagPairFQNPs.setLong(1, fqnTpSequence.next());
+				uidMetaTagPairFQNPs.setLong(2, fqnSeq);
+				uidMetaTagPairFQNPs.setString(3, pairUID);
+				uidMetaTagPairFQNPs.setShort(4, i);
 				if(i==leaf) {
-					uidMetaTagPairFQNPs.setString(4, "L");
+					uidMetaTagPairFQNPs.setString(5, "L");
 				} else {
-					uidMetaTagPairFQNPs.setString(4, "B");
+					uidMetaTagPairFQNPs.setString(5, "B");
 				}
 				uidMetaTagPairFQNPs.addBatch();
 			}
@@ -686,7 +741,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			String tName = rset.getMetaData().getTableName(1).toUpperCase().replace("TSD_", "");
 			UniqueIdType utype = UniqueIdType.valueOf(tName); 
 			while(rset.next()) {
-				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("UID")), rset.getString("NAME"));
+				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("XUID")), rset.getString("NAME"));
 				meta.setCreated(mstou(rset.getTimestamp("CREATED").getTime()));
 				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
 				meta.setDescription(rset.getString("DESCRIPTION"));
@@ -923,48 +978,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	}
 
 	
-	//================================================================================================
-	//  FQNID and Sequence Management
-	//================================================================================================
-		
-	/**
-	 * Returns the next cached sequence.
-	 * Only one thread runs in here, so no need to get excited.... yet.
-	 * @return the next cached sequence
-	 */
-	private long getNextFQNSequence() {
-		if(fqnAllocatedSequence == fqnMaxSequence) {
-			fqnAllocatedSequence = refreshFQNSequence();
-			fqnMaxSequence = fqnAllocatedSequence + fqnSeqIncrement;
-			return fqnAllocatedSequence;
-		}
-		fqnAllocatedSequence++;
-		return fqnAllocatedSequence;
-	}
-	
-	
-	/**
-	 * Gets the next DB FQNID sequence 
-	 * @return the next DB FQNID sequence 
-	 */
-	private long refreshFQNSequence() {
-		Connection conn = null;
-		Statement st = null;
-		ResultSet rset = null;
-		try {
-			conn = dataSource.getConnection();
-			st = conn.createStatement();
-			rset = st.executeQuery(NEXT_FQNID_SEQ_SQL);
-			rset.next();
-			return rset.getLong(1);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to refresh FQNID sequence", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
-			if(st!=null) try { st.close(); } catch (Exception ex) {/* No Op */}
-			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
-		}
-	}
 	
 	//================================================================================================
 	//  Static utility methods

@@ -115,8 +115,13 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	
 	
 	/** The name of the H2 user defined variable specifying the increment size of the FQN sequence  */
-	public static final String FQN_SEQ_INCR_VAR = "FQN_SEQ_SIZE";
-	
+	public static final String FQN_SEQ_SIZE = "FQN_SEQ_SIZE";
+	/** The name of the H2 user defined variable specifying the increment size of the FQN TagPair sequence  */
+	public static final String FQN_TP_SEQ_SIZE = "FQN_TP_SEQ_SIZE";
+	/** The name of the H2 user defined variable specifying the increment size of the annotation sequence  */
+	public static final String ANN_SEQ_SIZE = "ANN_SEQ_SIZE";
+	/** The name of the H2 user defined variable specifying the increment size of the annotation sequence  */
+	public static final String QID_SEQ_SIZE = "QID_SEQ_SIZE";
 	
 	/**
 	 * Runs the initialization routine
@@ -131,8 +136,22 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		tcpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_TCP_ALLOW_OTHERS, DEFAULT_DB_H2_TCP_ALLOW_OTHERS, extracted);
 		httpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_HTTP_PORT, DEFAULT_DB_H2_HTTP_PORT, extracted);
 		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);
-		fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
-		userDefinedVars.put(FQN_SEQ_INCR_VAR, fqnSeqIncrement);
+		long fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
+		long fqnTagPairSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR, extracted);
+		long fqnAnnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted);
+		long syncQSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR, extracted);
+		userDefinedVars.put(FQN_SEQ_SIZE, fqnSeqIncrement);
+		userDefinedVars.put(FQN_TP_SEQ_SIZE, fqnTagPairSeqIncrement);
+		userDefinedVars.put(ANN_SEQ_SIZE, fqnAnnSeqIncrement);
+		userDefinedVars.put(QID_SEQ_SIZE, syncQSeqIncrement);
+		
+		// // FQN_SEQ_SIZE, FQN_TP_SEQ_SIZE, ANN_SEQ_SIZE, QID_SEQ_SIZE
+		/*
+		 * DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR
+		 * DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR
+		 * DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR
+		 */
+
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
 		runDDLResources(userDefinedVars);
 		log.info("DDL Resources Processed");

@@ -311,9 +311,9 @@ public class LoadMetricsTest extends CatalogBaseTest {
 				Assert.assertEquals("Unexpected Tag Key RowCount for [" + key + "]", 1, rowCount);
 				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGV WHERE NAME = '" + value + "'");
 				Assert.assertEquals("Unexpected Tag Value RowCount for [" + value + "]", 1, rowCount);				
-				String pairUid = jdbcHelper.query("SELECT UID FROM TSD_TAGPAIR WHERE NAME = '" + combined + "'")[0][0].toString();				
+				String pairUid = jdbcHelper.query("SELECT XUID FROM TSD_TAGPAIR WHERE NAME = '" + combined + "'")[0][0].toString();				
 				Assert.assertTrue("Unexpected Null or Empty Tag Pair UID for Combined [" + combined + "]", pairUid!=null && !pairUid.trim().isEmpty());
-				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE UID = '" + pairUid + "'");
+				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE XUID = '" + pairUid + "'");
 				Assert.assertTrue("Unexpected FQN Tag Pair UID RowCount for [" + pairUid + "]", rowCount >= 1);
 			}
 		}
@@ -351,15 +351,17 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			searchQuery.setLimit(0);
 			searchQuery.setStartIndex(0);
 			final CountDownLatch latch = new CountDownLatch(1);
-			Deferred<SearchQuery> result = tsdb.executeSearch(searchQuery)
-					.addBoth(new Callback<SearchQuery, SearchQuery>() {
-						@Override
-						public SearchQuery call(SearchQuery arg)
-								throws Exception {
-							// TODO Auto-generated method stub
-							return null;
-						}
-					});
+//			Deferred<SearchQuery> result = tsdb.executeSearch(searchQuery)
+//					.addErrback(new )
+//					
+//					.addBoth(new Callback<SearchQuery, SearchQuery>() {
+//						@Override
+//						public SearchQuery call(SearchQuery arg)
+//								throws Exception {
+//							// TODO Auto-generated method stub
+//							return null;
+//						}
+//					});
 			
 		}
 	}				

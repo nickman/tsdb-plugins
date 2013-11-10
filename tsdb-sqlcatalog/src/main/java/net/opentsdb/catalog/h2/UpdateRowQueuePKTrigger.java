@@ -30,6 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import net.opentsdb.catalog.sequence.LocalSequenceCache;
+
 import org.h2.api.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,24 +53,23 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	/** The index of the pk column for the event source */
 	protected int pkIndex = -1;
 	
+	/** The sequence cache providing the value for SYNC_QUEUE.QID */
+	protected static LocalSequenceCache sequenceCache = null;
+	
 	/** Instance logger */
 	protected Logger log = null;
 	
 	/** The queue table insert template */
-	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (EVENT_TYPE, EVENT_ID) VALUES (?,?)";
+	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (QID, EVENT_TYPE, EVENT_ID) VALUES (?,?,?)";
 	
 	
-	/*
-CREATE TABLE SYNC_QUEUE (
-QID BIGINT IDENTITY COMMENT 'The synthetic identifier for this sync operation',
-EVENT_TYPE VARCHAR(20) NOT NULL 
-	COMMENT 'The source of the update that triggered this sync operation'
-	CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-EVENT_ID VARCHAR2(20) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
-LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
-LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
-);
+	/**
+	 * Sets the sequence cache for all instances of this triger
+	 * @param sequenceCache The sequence cache to set
 	 */
+	public static void setSequenceCache(LocalSequenceCache sequenceCache) {
+		UpdateRowQueuePKTrigger.sequenceCache = sequenceCache;
+	}
 	
 	/**
 	 * {@inheritDoc}
@@ -99,10 +100,14 @@ LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operat
 		if(!Arrays.deepEquals(oldRow, newRow)) {
 			log.info("Detected Change In {}:[{}]", eventSource, oldRow[pkIndex]);
 			PreparedStatement ps = null;
+			if(sequenceCache==null) {
+				throw new IllegalStateException("This trigger is in an invalid state as the sequenceCache has not been set. Please call UpdateRowQueuePKTrigger.setSequenceCache");
+			}
 			try {
 				ps = conn.prepareStatement(QUEUE_SQL_TEMPLATE);
-				ps.setString(1, eventSource);
-				ps.setString(2, oldRow[pkIndex].toString());
+				ps.setLong(1, sequenceCache.next());
+				ps.setString(2, eventSource);
+				ps.setString(3, oldRow[pkIndex].toString());
 				ps.executeUpdate();
 			} finally {
 				if(ps!=null) try { ps.close(); } catch (Exception ex) {/* No Op */}

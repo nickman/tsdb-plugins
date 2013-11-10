@@ -116,77 +116,88 @@ CREATE UNIQUE INDEX TSD_FQN_TAGPAIR_IND ON TSD_FQN_TAGPAIR (FQNID, XUID, PORDER)
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT TSD_FQN_TAGPAIR_FK FOREIGN KEY(XUID) REFERENCES TSD_TAGPAIR ( XUID ) ON DELETE CASCADE;
 ALTER TABLE TSD_FQN_TAGPAIR ADD (CONSTRAINT  NODE_IS_B_OR_L CHECK (NODE IN ('B', 'L'))); 
 
--- =======  OK BEFORE HERE ==========
-
+DROP TABLE TSD_FQN;
 CREATE TABLE TSD_FQN (
-	FQNID BIGINT NOT NULL COMMENT 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry',
-	METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
-	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
-	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
-	CREATED TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the creation of the TSMeta',
-	MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
-	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
-	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
-	DESCRIPTION VARCHAR(60) COMMENT 'An optional description for the time-series',
-	DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
-	NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
-	UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
-	RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite'
-); COMMENT ON TABLE TSD_FQN IS 'Table storing each distinct time-series TSMeta and its attributes';
+	FQNID NUMBER NOT NULL,
+	METRIC_UID CHAR(6) NOT NULL,
+	FQN VARCHAR(4000) NOT NULL,
+	TSUID VARCHAR(120) NOT NULL,
+	CREATED TIMESTAMP DEFAULT SYSDATE NOT NULL,
+	MAX_VALUE NUMBER,
+	MIN_VALUE NUMBER,
+	DATA_TYPE VARCHAR(20),
+	DESCRIPTION VARCHAR(60),
+	DISPLAY_NAME VARCHAR(20),
+	NOTES VARCHAR(120),
+	UNITS VARCHAR(20),
+	RETENTION INTEGER DEFAULT 0
+); 
+
+COMMENT ON TABLE TSD_FQN IS 'Table storing each distinct time-series TSMeta and its attributes';
+COMMENT ON COLUMN TSD_FQN.FQNID IS 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry';
+COMMENT ON COLUMN TSD_FQN.METRIC_UID IS 'The unique identifier of the metric name associated with this TSMeta';
+COMMENT ON COLUMN TSD_FQN.FQN IS 'The fully qualified metric name';
+COMMENT ON COLUMN TSD_FQN.TSUID IS 'The TSUID as a hex encoded string';
+COMMENT ON COLUMN TSD_FQN.CREATED IS 'The timestamp of the creation of the TSMeta';
+COMMENT ON COLUMN TSD_FQN.MAX_VALUE IS 'Optional max value for the timeseries';
+COMMENT ON COLUMN TSD_FQN.MIN_VALUE IS 'Optional min value for the timeseries';
+COMMENT ON COLUMN TSD_FQN.DATA_TYPE IS 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE';
+COMMENT ON COLUMN TSD_FQN.DESCRIPTION IS 'An optional description for the time-series';
+COMMENT ON COLUMN TSD_FQN.DISPLAY_NAME IS 'An optional name for the time-series';
+COMMENT ON COLUMN TSD_FQN.NOTES IS 'Optional notes for the time-series';
+COMMENT ON COLUMN TSD_FQN.UNITS IS 'Optional units designation for the time-series';
+COMMENT ON COLUMN TSD_FQN.RETENTION IS 'Optional retention time for the time-series in days where 0 is indefinite';
+
 
 ALTER TABLE TSD_FQN ADD CONSTRAINT TSD_FQN_PK PRIMARY KEY ( FQNID ) ;
-CREATE UNIQUE INDEX TSD_FQN_AK ON TSD_FQN (FQNID);
 CREATE UNIQUE INDEX TSD_FQN_TSUID_AK ON TSD_FQN (TSUID);
 CREATE UNIQUE INDEX TSD_FQN_FQN_AK ON TSD_FQN (FQN);
 
-ALTER TABLE TSD_FQN ADD CONSTRAINT TSD_FQN_METRIC_FK FOREIGN KEY(METRIC_UID) REFERENCES TSD_METRIC ( UID );
+ALTER TABLE TSD_FQN ADD CONSTRAINT TSD_FQN_METRIC_FK FOREIGN KEY(METRIC_UID) REFERENCES TSD_METRIC ( XUID );
 
 CREATE TABLE TSD_ANNOTATION (
-	ANNID BIGINT IDENTITY COMMENT 'The synthetic unique identifier for this annotation',
-	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
-	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
-    NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',
-	FQNID BIGINT COMMENT 'AN optional reference to the associated TSMeta. If null, this will be a global annotation',
-    END_TIME TIMESTAMP COMMENT 'The optional effective end time for this annotation',
-    CUSTOM VARCHAR(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this annotation'    
-); COMMENT ON TABLE TSD_ANNOTATION IS 'Table storing created annotations';
+	ANNID NUMBER NOT NULL,
+	START_TIME TIMESTAMP NOT NULL,
+	DESCRIPTION VARCHAR(120) NOT NULL,
+    NOTES VARCHAR(120),
+	FQNID NUMBER,
+    END_TIME TIMESTAMP,
+    CUSTOM VARCHAR(120)    
+); 
+COMMENT ON TABLE TSD_ANNOTATION IS 'Table storing created annotations';
+COMMENT ON COLUMN TSD_ANNOTATION.ANNID IS 'The synthetic unique identifier for this annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.START_TIME IS 'The effective start time for this annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.DESCRIPTION IS 'The mandatory description for this annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.NOTES IS 'Optional notes for this annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.FQNID IS 'An optional reference to the associated TSMeta. If null, this will be a global annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.END_TIME IS 'The optional effective end time for this annotation';
+COMMENT ON COLUMN TSD_ANNOTATION.CUSTOM IS 'An optional map of key/value pairs encoded in JSON for this annotation';
 
+ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT TSD_ANNOTATION_PK PRIMARY KEY ( ANNID ) ;
 CREATE UNIQUE INDEX TSD_ANNOTATION_AK ON TSD_ANNOTATION (START_TIME, FQNID);
 ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT TSD_ANNOTATION_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID ) ON DELETE CASCADE;
 
-
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_FQN ( FQNID ) ON DELETE CASCADE;
-
-
 
 -- ==============================================================================================
 --  Sync Queue Table
 -- ==============================================================================================
 
 CREATE TABLE SYNC_QUEUE (
-	QID BIGINT IDENTITY COMMENT 'The synthetic identifier for this sync operation',
-	EVENT_TYPE VARCHAR(20) NOT NULL 
-		COMMENT 'The source of the update that triggered this sync operation'
-		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-	EVENT_ID VARCHAR2(40) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
-	EVENT_TIME TIMESTAMP AS NOW() NOT NULL,
-	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
-	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
+	QID NUMBER NOT NULL,
+	EVENT_TYPE VARCHAR(20) NOT NULL, 
+	EVENT_ID VARCHAR2(40) NOT NULL,
+	EVENT_TIME TIMESTAMP DEFAULT SYSDATE NOT NULL,
+	LAST_SYNC_ATTEMPT TIMESTAMP,
+	LAST_SYNC_ERROR CLOB 
 );
-
--- ==============================================================================================
---  Queue Triggers
--- ==============================================================================================
-
-CREATE TRIGGER TSD_ANNOTATION_UPDATED_TRG AFTER UPDATE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_FQN_UPDATED_TRG AFTER UPDATE ON TSD_FQN FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_METRIC_UPDATED_TRG AFTER UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_TAGK_UPDATED_TRG AFTER UPDATE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-CREATE TRIGGER TSD_TAGV_UPDATED_TRG AFTER UPDATE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger";
-
-
-
-
-
-
+COMMENT ON TABLE SYNC_QUEUE IS 'A queue and status summary of snchronizations back to the TSDB when updates are made directly to the DB';
+COMMENT ON COLUMN SYNC_QUEUE.QID IS 'The synthetic identifier for this sync operation';
+COMMENT ON COLUMN SYNC_QUEUE.EVENT_TYPE IS 'The source of the update that triggered this sync operation';
+COMMENT ON COLUMN SYNC_QUEUE.EVENT_ID IS 'The PK of the event that triggered this Sync Operation';
+COMMENT ON COLUMN SYNC_QUEUE.EVENT_TIME IS 'The timestamp when the sync event occured';
+COMMENT ON COLUMN SYNC_QUEUE.LAST_SYNC_ATTEMPT IS 'The last [failed] sync operation attempt timestamp';
+COMMENT ON COLUMN SYNC_QUEUE.LAST_SYNC_ERROR IS 'The exception trace of the last failed sync operation';
+ALTER TABLE SYNC_QUEUE ADD CONSTRAINT SYNC_QUEUE_PK PRIMARY KEY ( QID ) ;
+ALTER TABLE SYNC_QUEUE ADD (CONSTRAINT  EVENT_TYPE_ISVALID CHECK (EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'))); 
 

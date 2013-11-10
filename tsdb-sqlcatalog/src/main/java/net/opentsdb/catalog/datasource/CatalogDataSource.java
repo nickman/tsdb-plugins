@@ -24,6 +24,8 @@
  */
 package net.opentsdb.catalog.datasource;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -32,6 +34,7 @@ import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
+import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
 
@@ -54,6 +57,8 @@ public class CatalogDataSource implements ICatalogDataSource {
 	protected BoneCPConfig config = null;
 	/** The built datasource */
 	protected BoneCPDataSource connectionPool = null;
+
+	
 	
 	/**
 	 * Acquires the CatalogDataSource singleton instance
@@ -183,6 +188,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 */
 	public void shutdown() {
 		if(connectionPool!=null) {
+			preShutdownWorkAround();
 			connectionPool.close();
 			connectionPool = null;			
 		}
@@ -198,5 +204,54 @@ public class CatalogDataSource implements ICatalogDataSource {
 	public BoneCPConfig getConfig() {
 		return config;
 	}
+	
+	
+	//============================================================================================
+	//  All the following stuff is a temporary work around for a lib version mismatch
+	//  between versions of Guava for OpenTSDB (13.x) and BoneCP (15).
+	//  BoneCP attempts to call com.google.common.base.FinalizableReferenceQueue.close()
+	//	which does not exist in 13.x.
+	//  This work around reflectively cleans up the 13.x version FinalizableReferenceQueue
+	// 	and then sets it to null so close is never called.
+	//  Should be fixed when OpenTSDB code set upgrades to Guava 15+
+	//	or we implement isolated class loaders for plugins.
+	//============================================================================================
+	
+	private void preShutdownWorkAround() {
+		try {
+			BoneCP bcp = connectionPool.getPool();
+			Object obj = refQueueField.get(bcp);
+			if(obj!=null) {
+				refQueueCleanup.invoke(obj);
+				refQueueField.set(bcp, null);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
+	}
+	
+	
+	/** The ref queue field in the BoneCP class */
+	private static final Field refQueueField;
+	/** The ref queue cleanup method */
+	private static final Method refQueueCleanup;
+	
+	static {
+		try {
+			Class<?> refQueueClazz = Class.forName("com.google.common.base.FinalizableReferenceQueue", true, BoneCP.class.getClassLoader());
+			refQueueField = BoneCP.class.getDeclaredField("finalizableRefQueue");
+			refQueueField.setAccessible(true);
+			refQueueCleanup = refQueueClazz.getDeclaredMethod("cleanUp");
+			refQueueCleanup.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	
+//	if (finalizableRefQueue != null) {
+//		finalizableRefQueue.close();
+//	}
+
+	
 
 }

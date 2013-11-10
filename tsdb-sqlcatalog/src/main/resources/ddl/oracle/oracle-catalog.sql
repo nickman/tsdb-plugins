@@ -7,7 +7,11 @@
 -- ===========================================================================================
 --  The Sequence driving the FQN key
 -- ===========================================================================================
-CREATE SEQUENCE FQN_SEQ START WITH 1 INCREMENT BY 1024;
+CREATE SEQUENCE FQN_SEQ START WITH 1 INCREMENT BY 20;
+CREATE SEQUENCE FQN_TP_SEQ START WITH 1 INCREMENT BY 100;
+CREATE SEQUENCE ANN_SEQ START WITH 1 INCREMENT BY 20;
+CREATE SEQUENCE QID_SEQ START WITH 1 INCREMENT BY 20;
+
 
 CREATE TABLE TSD_TAGK (
     XUID CHAR(6) NOT NULL ,

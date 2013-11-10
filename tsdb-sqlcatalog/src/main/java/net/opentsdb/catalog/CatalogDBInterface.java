@@ -235,6 +235,12 @@ public interface CatalogDBInterface {
 	 */
 	public void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta);
 	
+	/**
+	 * Indicates if NaNs should be passed to the DB as nulls
+	 * @return true to pass NaNs as nulls, false if the DB supports storing NaNs.
+	 */
+	public boolean isNaNToNull();
+	
 	// ========================================================================================
 	//	Search Impl.
 	// ========================================================================================

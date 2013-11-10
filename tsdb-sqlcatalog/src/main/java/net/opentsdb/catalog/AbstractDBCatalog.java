@@ -569,6 +569,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	
 	/**
 	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#isNaNToNull()
+	 */
+	@Override
+	public boolean isNaNToNull() {
+		return false;
+	}
+
+	
+	/**
+	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#processTSMeta(java.util.Set, java.sql.Connection, net.opentsdb.meta.TSMeta)
 	 */
 	@Override
@@ -597,8 +607,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			tsMetaFqnPs.setString(++bId, fqn.toString());
 			tsMetaFqnPs.setString(++bId, tsMeta.getTSUID());
 			tsMetaFqnPs.setTimestamp(++bId, new Timestamp(utoms(tsMeta.getCreated())));
-			tsMetaFqnPs.setDouble(++bId, tsMeta.getMax());
-			tsMetaFqnPs.setDouble(++bId, tsMeta.getMin());
+			if(isNaNToNull() && Double.isNaN(tsMeta.getMax())) {
+				tsMetaFqnPs.setNull(++bId, Types.DOUBLE);
+			} else {
+				tsMetaFqnPs.setDouble(++bId, tsMeta.getMax());
+			}
+			if(isNaNToNull() && Double.isNaN(tsMeta.getMin())) {
+				tsMetaFqnPs.setNull(++bId, Types.DOUBLE);
+			} else {
+				tsMetaFqnPs.setDouble(++bId, tsMeta.getMin());
+			}
 			tsMetaFqnPs.setString(++bId, tsMeta.getDataType());
 			tsMetaFqnPs.setString(++bId, tsMeta.getDescription());
 			tsMetaFqnPs.setString(++bId, tsMeta.getDisplayName());

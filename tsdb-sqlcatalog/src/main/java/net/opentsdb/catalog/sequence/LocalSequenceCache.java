@@ -28,6 +28,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -149,12 +150,14 @@ public class LocalSequenceCache {
 	public static void main(String[] args) {
 		// jdbc:oracle:thin:@192.168.1.23:1521:ORCL
 		// oracle.jdbc.driver.OracleDriver
-		System.setProperty(ICatalogDataSource.JDBC_POOL_JDBCDRIVER, "oracle.jdbc.driver.OracleDriver");
-		System.setProperty(ICatalogDataSource.JDBC_POOL_JDBCURL, "jdbc:oracle:thin:@192.168.1.23:1521:ORCL");
-		System.setProperty(ICatalogDataSource.JDBC_POOL_USERNAME, "TSDB");
-		System.setProperty(ICatalogDataSource.JDBC_POOL_PASSWORD, "tsdb");
+		Properties p = new Properties();
+		p.setProperty(ICatalogDataSource.JDBC_POOL_JDBCDRIVER, "oracle.jdbc.driver.OracleDriver");
+		p.setProperty(ICatalogDataSource.JDBC_POOL_JDBCURL, "jdbc:oracle:thin:@192.168.1.23:1521:ORCL");
+		p.setProperty(ICatalogDataSource.JDBC_POOL_USERNAME, "TSDB");
+		p.setProperty(ICatalogDataSource.JDBC_POOL_PASSWORD, "tsdb");
 		CatalogDataSource cds = CatalogDataSource.getInstance();
-		cds.initialize(null, System.getProperties());
+		cds.initialize(null, p);
+		System.out.println(p);
 		int loops = 1000;
 		LocalSequenceCache lsc = new OracleLocalSequenceCache(50, "TEST_SEQ", cds.getDataSource());
 		Set<Long> sequences = new HashSet<Long>(loops);

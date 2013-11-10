@@ -202,6 +202,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	}
 	
 	
+	
    /**
      * Executes a search query and returns the deferred for the results
      * @param query The query to execute

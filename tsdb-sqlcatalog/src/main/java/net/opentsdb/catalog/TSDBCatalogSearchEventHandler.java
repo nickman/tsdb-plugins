@@ -77,9 +77,9 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	
 	/** Map of the relative priority ordering of events keyed by the event type enum */
 	public static final Map<TSDBEventType, Integer> EVENT_ORDERING;
-	/** The config property name for the JDBC DB Initializer Class */
-	public static final String DB_JDBC_INITER = "helios.search.catalog.jdbc.pw";
-	/** The default JDBC DB Initializer Class */
+	/** The config property name for the JDBC DB interface Class */
+	public static final String DB_JDBC_INITER = "helios.search.catalog.jdbc.impl";
+	/** The default JDBC DB interface Class */
 	public static final String DEFAULT_DB_JDBC_INITER = H2DBCatalog.class.getName();
 	/** The config property name for the JDBC processing batch size */
 	public static final String DB_JDBC_BATCH_SIZE = "helios.search.catalog.jdbc.batchsize";

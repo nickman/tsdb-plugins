@@ -46,6 +46,30 @@ public class TSDBSearchEvent extends TSDBEvent {
 		super();
 	}
 	
+	
+	/**
+	 * Creates a new TSDBSearchEvent from an event
+	 * @param event the event to copy from
+	 */
+	public TSDBSearchEvent(TSDBEvent event) {
+		annotation = event.annotation;
+		deferred = event.deferred;
+		doubleValue = event.doubleValue;		
+		eventType = event.eventType;
+		longValue = event.longValue;		
+		metric = event.metric;
+		searchQuery = event.searchQuery;
+		tags = event.tags;		
+		timestamp = event.timestamp;
+		tsMeta = event.tsMeta;
+		tsuid = event.tsuid;
+		tsuidBytes = event.tsuidBytes;
+		uidMeta = event.uidMeta;
+	}
+	
+	
+
+	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.event.TSDBEvent#deleteAnnotation(net.opentsdb.meta.Annotation)

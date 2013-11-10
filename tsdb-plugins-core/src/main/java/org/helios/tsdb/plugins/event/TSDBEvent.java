@@ -84,27 +84,28 @@ public class TSDBEvent  {
 	 */
 	public TSDBSearchEvent asSearchEvent() {
 		if(!eventType.isForSearch()) {
-			throw new RuntimeException("Cannot cast this event to Search. Event Type is [" + eventType + "]");
+			throw new RuntimeException("Cannot cast this event to Search. Event Type is [" + eventType + "] Class is [" + getClass().getName() + "]");
 		}
-		return (TSDBSearchEvent)this;
+		return new TSDBSearchEvent(this);
 	}
 	
 	/**
 	 * Nulls out all the fields.
 	 */
 	public void reset() {
-		eventType = null;
-		metric = null;
-		timestamp = -1;
-		longValue = -1;
-		doubleValue = -1;
 		annotation = null;
-		tags = null;
-		tsuidBytes = null;
-		tsuid = null;
-		uidMeta = null;
-		tsMeta = null;
+		deferred = null;
+		doubleValue = -1;		
+		eventType = null;
+		longValue = -1;		
+		metric = null;
 		searchQuery = null;
+		tags = null;		
+		timestamp = -1;
+		tsMeta = null;
+		tsuid = null;
+		tsuidBytes = null;
+		uidMeta = null;
 	}
 	
 	 /** The event factory for TSDBEvents */

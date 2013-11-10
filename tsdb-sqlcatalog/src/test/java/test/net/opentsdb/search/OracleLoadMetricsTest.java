@@ -32,7 +32,7 @@ import test.net.opentsdb.search.util.JDBCHelper;
 
 /**
  * <p>Title: OracleLoadMetricsTest</p>
- * <p>Description: </p> 
+ * <p>Description: Search event handling unit tests using the Oracle DB and the EventBus async driver.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.OracleLoadMetricsTest</code></p>

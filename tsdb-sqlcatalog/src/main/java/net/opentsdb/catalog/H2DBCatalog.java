@@ -129,7 +129,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 * @param extracted The extracted configuration
 	 */
 	@Override
-	public void doInitialize(TSDB tsdb, Properties extracted) {
+	protected void doInitialize(TSDB tsdb, Properties extracted) {
 		Map<String, Object> userDefinedVars = new HashMap<String, Object>();
 		ddlResources = ConfigurationHelper.getSystemThenEnvPropertyArray(DB_H2_DDL, DEFAULT_DB_H2_DDL, extracted);
 		tcpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_TCP_PORT, DEFAULT_DB_H2_TCP_PORT, extracted);
@@ -178,6 +178,8 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	}
 	
 	
+	
+	
 	/**
 	 * Terminates the database resources
 	 */
@@ -199,6 +201,15 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				log.info("Web Server Stopped");
 			} catch (Exception ex) {/* No Op */}  
 		}		
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			FullTextLucene.dropAll(conn);
+		} catch (Exception ex) {
+			log.warn("Failed to uninstall full-text search", ex);
+		} finally {
+			if(conn==null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
 	}
 	
 	
@@ -353,6 +364,10 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 */
 	protected void startServers() {
 		List<String> args = new ArrayList<String>();
+		if(!ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
+			tcpPort = DEFAULT_DB_H2_TCP_PORT;
+			httpPort = DEFAULT_DB_H2_HTTP_PORT;
+		}
 		if(tcpPort>0) {
 			args.addAll(Arrays.asList("-tcp", "-tcpDaemon", "-tcpPort", "" + tcpPort));
 			if(tcpAllowOthers) {

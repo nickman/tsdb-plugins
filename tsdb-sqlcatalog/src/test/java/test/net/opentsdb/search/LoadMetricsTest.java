@@ -266,6 +266,9 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	@Test
 	public void testUIDMetaIndexing() throws Exception {
 		TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN");
+		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
+
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
 		Set<TSMeta> createdTSMetas = new HashSet<TSMeta>(ons.size());
 //		for(int i = 0; i < 1000; i++) {
@@ -289,7 +292,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			tsdb.indexAnnotation(ann);
 		} 
 		ElapsedTime et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(3000000, TimeUnit.MILLISECONDS)) {
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
 			Assert.fail("Timed out waiting for Indexing Milestone");
 		} else {
 			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());

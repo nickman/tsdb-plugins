@@ -319,12 +319,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	@Override
 	public void shutdown() {
 		log.info("\n\t================================================\n\tStopping TSDB Catalog DB\n\tName:{}\n\t================================================", cds.getConfig().getJdbcUrl());
+		doShutdown();
 		if(cds!=null) {
 			cds.shutdown();
 			cds = null;
 			dataSource = null;
 		}
-		doShutdown();
+		
 		log.info("\n\t================================================\n\tTSDB Catalog DB Stopped\n\t================================================");
 	}
 	
@@ -745,33 +746,55 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	@Override
 	public void purge() {
 		Connection conn = null;
-		Statement st = null;
+		PreparedStatement ps = null;
+		int rowsDeleted = 0;
+		StringBuilder b = new StringBuilder("\n\t================================\n\tDatabase Purge\n\t================================");
+		
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
-			st = conn.createStatement();
-			st.execute("DELETE FROM TSD_FQN");
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_FQN");
 			conn.commit();
-			st.execute("DELETE FROM TSD_TAGPAIR");
+			b.append("\n").append("TSD_FQN:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TAGPAIR");
 			conn.commit();
-			st.execute("DELETE FROM TSD_TAGK");
+			b.append("\n").append("TSD_TAGPAIR:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TAGK");
 			conn.commit();
-			st.execute("DELETE FROM TSD_TAGV");
+			b.append("\n").append("TSD_TAGK:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_METRIC");
 			conn.commit();
-			st.execute("DELETE FROM TSD_FQN_TAGPAIR");
+			b.append("\n").append("TSD_METRIC:").append(rowsDeleted);			
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TAGV");
 			conn.commit();
-			st.execute("DELETE FROM TSD_ANNOTATION");
+			b.append("\n").append("TSD_TAGV:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_FQN_TAGPAIR");
 			conn.commit();
-			st.execute("DELETE FROM SYNC_QUEUE");
+			b.append("\n").append("TSD_FQN_TAGPAIR:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn, "DELETE FROM TSD_ANNOTATION");
 			conn.commit();
+			b.append("\n").append("TSD_ANNOTATION:").append(rowsDeleted);
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM SYNC_QUEUE");
+			conn.commit();
+			b.append("\n").append("SYNC_QUEUE:").append(rowsDeleted);
+			log.info(b.append("\n\t======================================").toString());
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to purge Store", ex);
-		} finally {
-			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}
+		} finally {			
 			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
+	private int prepareAndExec(Connection conn, String sql) throws SQLException {
+		PreparedStatement ps = null;
+		try {
+			ps = conn.prepareStatement(sql);
+			return ps.executeUpdate();
+		} finally {
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/*No Op*/}
+		}
+			
+	}
 
 	// ==================================================================================================
 	//  Object Unmarshalling  (i.e. ResultSet to List of Objects)

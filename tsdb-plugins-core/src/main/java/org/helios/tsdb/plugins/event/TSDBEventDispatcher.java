@@ -47,6 +47,15 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 		}				
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#initialize(java.lang.ClassLoader)
+	 */
+	@Override
+	public void initialize(ClassLoader supportClassLoader) {		
+		super.initialize(supportClassLoader);
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -81,7 +90,7 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 		asyncDispatcher.initialize(config, asyncExecutor, allHandlers);
 		log.info("Async Dispatcher [{}] Initialized.", asyncDispatcher.getClass().getSimpleName());
 		for(IEventHandler handler: allHandlers) {
-			handler.initialize(tsdb, config);
+			handler.initialize(tsdb, config, supportClassLoader);
 		}
 	}
 	

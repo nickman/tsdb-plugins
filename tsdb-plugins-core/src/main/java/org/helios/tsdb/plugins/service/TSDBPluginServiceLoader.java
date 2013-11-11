@@ -25,30 +25,29 @@
 package org.helios.tsdb.plugins.service;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import net.opentsdb.core.TSDB;
-import net.opentsdb.search.SearchPlugin;
-import net.opentsdb.tsd.RTPublisher;
-import net.opentsdb.tsd.RpcPlugin;
+import net.opentsdb.utils.Config;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.shell.Plugin;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 
 /**
  * <p>Title: TSDBPluginServiceLoader</p>
- * <p>Description: </p> 
+ * <p>Description: A loader utility to manage the location and classloading of the plugin service and related classes.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.service.TSDBPluginServiceLoader</code></p>
@@ -67,6 +66,9 @@ public class TSDBPluginServiceLoader {
 	protected final ITSDBPluginService pluginService;
 	/** The plugin service support classpath */
 	protected final ClassLoader supportClassLoader;
+	
+	/** Static class logger */
+	private static final Logger LOG = LoggerFactory.getLogger(TSDBPluginServiceLoader.class);
 	
 	/**
 	 * This is a testing hook.
@@ -118,7 +120,15 @@ public class TSDBPluginServiceLoader {
 		return instance.pluginService;
 	}
 	
-
+	/**
+	 * Returns the loader instance
+	 * @return the loader instance
+	 */
+	public static TSDBPluginServiceLoader getLoaderInstance() {
+		return instance;
+	}
+	
+	
 	
 	
 	/**
@@ -129,7 +139,7 @@ public class TSDBPluginServiceLoader {
 		this.tsdb = tsdb;
 		config = new Properties();
 		config.putAll(this.tsdb.getConfig().getMap());
-		supportClassLoader = getSupportClassLoader(tsdb);
+		supportClassLoader = getSupportClassLoader(tsdb.getConfig());
 		String className = ConfigurationHelper.getSystemThenEnvProperty(Constants.PLUGIN_SERVICE_CLASS_NAME, Constants.DEFAULT_PLUGIN_SERVICE_CLASS_NAME, config);
 		final ClassLoader ctx = Thread.currentThread().getContextClassLoader();
 		try {
@@ -141,7 +151,7 @@ public class TSDBPluginServiceLoader {
 			@SuppressWarnings("unchecked")
 			Class<ITSDBPluginService> clazz = (Class<ITSDBPluginService>)_clazz;
 			pluginService = loadService(clazz);
-			pluginService.initialize();
+			pluginService.initialize(supportClassLoader);
 		} catch (IllegalArgumentException iae) {
 			throw iae;
 		} catch (Exception ex) {
@@ -164,13 +174,13 @@ public class TSDBPluginServiceLoader {
 	 * Returns a classloader enabled to load jars, classes and resources 
 	 * from the plugin support path defined in {@link Constants#CONFIG_PLUGIN_SUPPORT_PATH}.
 	 * If no path is defined, the current thread's {@link Thread#getContextClassLoader()} is returned.
-	 * @param tsdb The TSDB we're configuring for
+	 * @param tsdbConfig The TSDB config we're configuring for
 	 * @return a classloader
 	 */
-	public static ClassLoader getSupportClassLoader(TSDB tsdb) {
+	public static ClassLoader getSupportClassLoader(Config tsdbConfig) {
 		ClassLoader DEFAULT = Thread.currentThread().getContextClassLoader();
 		Properties p = new Properties();
-		p.putAll(tsdb.getConfig().getMap());
+		p.putAll(tsdbConfig.getMap());
 		String[] supportClassPaths = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.CONFIG_PLUGIN_SUPPORT_PATH, "", p);
 		
 		if(supportClassPaths==null ||supportClassPaths.length==0) return DEFAULT;
@@ -189,7 +199,14 @@ public class TSDBPluginServiceLoader {
 			} 
 		}
 		if(urls.isEmpty()) return DEFAULT;
-		return new URLClassLoader(urls.toArray(new URL[urls.size()]), DEFAULT);
+		URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), DEFAULT); 
+		StringBuilder b = new StringBuilder("\n\t===============================\n\tTSDB Plugin Support Classpath\n\t===============================");
+		for(URL url: urls) {
+			b.append("\n\t").append(url);
+		}
+		b.append("\n\t===============================\n\tClassLoader:").append(classLoader).append("\n\t===============================");
+		LOG.info(b.toString());
+		return classLoader;
 	}
 
 	/**
@@ -207,6 +224,41 @@ public class TSDBPluginServiceLoader {
 	public TSDB getTSDB() {
 		return tsdb;
 	}
+	
+	/**
+	 * Loads a class
+	 * @param name The class name
+	 * @return The loaded class
+	 */
+	public Class<?> loadClass(String name) {
+		try {
+			return Class.forName(name);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to load class [" + name + "]", ex);
+		}
+	}
 
+	
+	/**
+	 * Loads a class using the support classpath
+	 * @param name The class name
+	 * @return The loaded class
+	 */
+	public Class<?> loadClassFromSupport(String name) {
+		try {
+			return Class.forName(name, true, supportClassLoader);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to load class [" + name + "]", ex);
+		}
+	}
+
+	/**
+	 * Returns the 
+	 * @return the supportClassLoader
+	 */
+	public ClassLoader getSupportClassLoader() {
+		return supportClassLoader;
+	}
+	
 
 }

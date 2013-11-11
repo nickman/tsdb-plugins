@@ -47,6 +47,8 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	protected TSDB tsdb;
 	/** The extracted config */
 	protected Properties config;
+	/** The plugin support classloader */
+	protected ClassLoader supportClassLoader = null;
 	
 	/**
 	 * Creates a new AbstractTSDBEventHandler
@@ -57,12 +59,13 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
 		this.tsdb = tsdb;
 		this.config = extracted;
+		this.supportClassLoader = supportClassLoader;
 	}
 
 	/**

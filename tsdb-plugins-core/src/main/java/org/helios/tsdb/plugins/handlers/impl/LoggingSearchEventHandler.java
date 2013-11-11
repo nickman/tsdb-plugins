@@ -51,11 +51,11 @@ public class LoggingSearchEventHandler extends EmptySearchEventHandler {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {		
-		super.initialize(tsdb, extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {		
+		super.initialize(tsdb, extracted, supportClassLoader);
 		log = LoggerFactory.getLogger(ConfigurationHelper.getSystemThenEnvProperty("org.helios.logginghandler.logger", getClass().getName(), extracted));
 	}
 	

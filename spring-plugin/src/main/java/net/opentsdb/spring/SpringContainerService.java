@@ -263,6 +263,14 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#initialize(java.lang.ClassLoader)
+	 */
+	@Override
+	public void initialize(ClassLoader supportClassLoader) {	
+		super.initialize(supportClassLoader);
+	}
 
 	/**
 	 * Indexes an annotation

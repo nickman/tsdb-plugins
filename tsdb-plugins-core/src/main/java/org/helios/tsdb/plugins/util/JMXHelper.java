@@ -377,7 +377,7 @@ public class JMXHelper {
 		try {
 			return new ObjectName(on.toString().trim());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to create Object Name", e);
+			throw new RuntimeException("Failed to create Object Name [" + on + "]", e);
 		}
 	}	
 	

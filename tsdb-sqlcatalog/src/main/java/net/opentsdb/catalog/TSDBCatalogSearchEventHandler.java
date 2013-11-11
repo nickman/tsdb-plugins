@@ -25,11 +25,6 @@
 package net.opentsdb.catalog;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -44,17 +39,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.datasource.ICatalogDataSource;
 import net.opentsdb.core.TSDB;
-import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
-import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
@@ -180,11 +175,11 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {		
-		super.initialize(tsdb, extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {		
+		super.initialize(tsdb, extracted, supportClassLoader);
 		shuttingDown.set(false);
 		batchSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_JDBC_BATCH_SIZE, DEFAULT_DB_JDBC_BATCH_SIZE, extracted);
 		queueSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_PROC_QUEUE_SIZE, DEFAULT_DB_PROC_QUEUE_SIZE, extracted);
@@ -226,9 +221,12 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		log.info("Loading Catalog DB Initializer [{}]", initerClassName);
 		CatalogDBInterface idb = null;
 		try {
-			Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName);
+			Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName, true, getClass().getClassLoader());
+			String jdbcDriver = ConfigurationHelper.getSystemThenEnvProperty(ICatalogDataSource.JDBC_POOL_JDBCDRIVER, ICatalogDataSource.DEFAULT_JDBC_POOL_JDBCDRIVER, config);			
+			log.info("PreLoading JDBC Driver [{}] with ClassLoader [{}]", jdbcDriver, supportClassLoader.toString());
+			Class.forName(jdbcDriver, true, supportClassLoader);
 			idb = clazz.newInstance();
-			idb.initialize(tsdb, config);
+			idb.initialize(tsdb, config, supportClassLoader);
 			log.info("Catalog DB Initializer [{}] Created and Run", initerClassName);
 			return idb;
 		} catch (Exception ex) {

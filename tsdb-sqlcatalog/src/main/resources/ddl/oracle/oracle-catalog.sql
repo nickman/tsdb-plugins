@@ -25,7 +25,7 @@ CREATE TABLE TSD_TAGK (
 ); 
 COMMENT ON TABLE TSD_TAGK IS 'Table storing distinct time-series tag keys';
 COMMENT ON COLUMN TSD_TAGK.XUID IS 'The tag key UID as a hex encoded string';
-COMMENT ON COLUMN TSD_TAGK.VERSION 'The version of this instance';
+COMMENT ON COLUMN TSD_TAGK.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_TAGK.NAME IS 'The tag key';
 COMMENT ON COLUMN TSD_TAGK.CREATED IS 'The timestamp of the creation of the UID';
 COMMENT ON COLUMN TSD_TAGK.DESCRIPTION IS 'An optional description for this tag key';
@@ -48,7 +48,7 @@ CREATE TABLE TSD_TAGV (
 ); 
 COMMENT ON TABLE TSD_TAGV IS 'Table storing distinct time-series tag values';
 COMMENT ON COLUMN TSD_TAGV.XUID IS 'The tag value UID as a hex encoded string';
-COMMENT ON COLUMN TSD_TAGV.VERSION 'The version of this instance';
+COMMENT ON COLUMN TSD_TAGV.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_TAGV.NAME IS 'The tag value';
 COMMENT ON COLUMN TSD_TAGV.CREATED IS 'The timestamp of the creation of the UID';
 COMMENT ON COLUMN TSD_TAGV.DESCRIPTION IS 'An optional description for this tag value';
@@ -72,7 +72,7 @@ CREATE TABLE TSD_METRIC (
 ); 
 COMMENT ON TABLE TSD_METRIC IS 'Table storing distinct time-series metric names';
 COMMENT ON COLUMN TSD_METRIC.XUID IS 'The metric names UID as a hex encoded string';
-COMMENT ON COLUMN TSD_METRIC.VERSION 'The version of this instance';
+COMMENT ON COLUMN TSD_METRIC.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_METRIC.NAME IS 'The metric name';
 COMMENT ON COLUMN TSD_METRIC.CREATED IS 'The timestamp of the creation of the metric';
 COMMENT ON COLUMN TSD_METRIC.DESCRIPTION IS 'An optional description for this metric name';
@@ -147,7 +147,7 @@ CREATE TABLE TSD_FQN (
 
 COMMENT ON TABLE TSD_FQN IS 'Table storing each distinct time-series TSMeta and its attributes';
 COMMENT ON COLUMN TSD_FQN.FQNID IS 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry';
-COMMENT ON COLUMN TSD_FQN.VERSION 'The version of this instance';
+COMMENT ON COLUMN TSD_FQN.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_FQN.METRIC_UID IS 'The unique identifier of the metric name associated with this TSMeta';
 COMMENT ON COLUMN TSD_FQN.FQN IS 'The fully qualified metric name';
 COMMENT ON COLUMN TSD_FQN.TSUID IS 'The TSUID as a hex encoded string';

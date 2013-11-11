@@ -86,6 +86,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	/** The TSDB instance extracted config */
 	protected final Properties config;
 	
+	/** The plugin support classloader */
+	protected ClassLoader supportClassLoader = null;
+	
 	/** Indicates if event dispatcher configuration has started */
 	protected final AtomicBoolean configured = new AtomicBoolean(false);
 	/** Indicates if event dispatcher is shutdown */
@@ -136,6 +139,15 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		this.tsdb = tsdb;
 		this.config = config;
 		log.info("Created TSDBPluginService [{}]", getClass().getName());
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#getPluginSupportClassLoader()
+	 */
+	@Override
+	public ClassLoader getPluginSupportClassLoader() {
+		return supportClassLoader;
 	}
 	
 	/**
@@ -210,11 +222,13 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	
 	/**
 	 * Initialize the plugin handlers that are responsible for setting up any IO they need as well as starting any required background threads. Note: Implementations should throw exceptions if they can't start up properly. The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
-	 */	
-	public void initialize() {
+	 * @param supportClassLoader The plugin support classloader
+	 */
+	public void initialize(ClassLoader supportClassLoader) {
 		try {
 			if(!configured.compareAndSet(false, true)) return;  // We only initialize once even if there are multiple shells.
-			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());			
+			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());
+			this.supportClassLoader = supportClassLoader; 
 			searchEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_SEARCH, false, config) &&  Search.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_SEARCH_PLUGIN, null, config));
 			publishEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_PUBLISH, false, config) &&  Publisher.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_PUBLISH_PLUGIN, null, config));
 			log.info("\n\tCallback Plugins Enabled for EventDispatcher:\n\t\tSearch:{}\n\t\tPublish:{}\n", searchEnabled, publishEnabled);
@@ -356,12 +370,13 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	protected void loadHandlers(String eventHandlerNames) {
 		String[] classNames = eventHandlerNames.split(",");
 		if(log.isDebugEnabled()) log.debug("EventHandler Class Names:" + Arrays.toString(classNames));
+		log.info("Starting EventHandler Configuration. Loading classes with classloader [{}]", supportClassLoader);
 		Set<Class<IEventHandler>> handlerClasses = new HashSet<Class<IEventHandler>>(classNames.length);
 		for(String className: classNames) {
 			try {
 				className = className.trim();
 				
-				Class<?> _clazz = Class.forName(className, true, this.getClass().getClassLoader());
+				Class<?> _clazz = Class.forName(className, true, supportClassLoader);
 				if(!IEventHandler.class.isAssignableFrom(_clazz)) {
 					log.warn("The class [" + className + "] does not implement [" + IEventHandler.class.getName() + "]");
 					continue;

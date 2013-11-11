@@ -24,6 +24,7 @@
  */
 package test.net.opentsdb.search;
 
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.test.BaseTest;
 
 /**
@@ -42,5 +43,21 @@ public class CatalogBaseTest extends BaseTest {
 	public CatalogBaseTest() {
 		
 	}
+	
+	/**
+	 * Determines if Oracle is available
+	 * @param tsdbConfigName The TSDB environment configuration to build a classpath from
+	 * @return true if Oracle is available, false otherwise
+	 */
+	public static boolean oracleAvailable(String tsdbConfigName) {
+		try {
+			ClassLoader cl = tsdbClassLoader(tsdbConfigName);
+			Class.forName("oracle.jdbc.driver.OracleDriver", true, cl);
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
 
 }

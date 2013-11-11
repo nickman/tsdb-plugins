@@ -24,8 +24,10 @@
  */
 package net.opentsdb.catalog.datasource;
 
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.DriverManager;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -98,14 +100,22 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 * Initializes the data source
 	 * @param tsdb The parent TSDB (not really needed here, but it's the convention)
 	 * @param extracted The extracted configuration
+	 * @param supportClassLoader The plugin support classloader
 	 */
-	public void initialize(TSDB tsdb, Properties extracted) {
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
 		try {
 			Properties dsProps = configure(extracted);
-			Class.forName(ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, extracted));
-			config = new BoneCPConfig(dsProps);			
+			String driver = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, extracted);
+			
+			//Class.forName(driver, true, supportClassLoader);
+			config = new BoneCPConfig(dsProps);		
+			config.setClassLoader(supportClassLoader);
+			config.setDefaultAutoCommit(false);
 			config.sanitize();
 			connectionPool = new BoneCPDataSource(config);
+			connectionPool.setDriverClass(driver);
+			connectionPool.setLogWriter(new PrintWriter(System.err));
+			DriverManager.setLogWriter(new PrintWriter(System.err));
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
 		}

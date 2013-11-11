@@ -26,6 +26,7 @@ package test.net.opentsdb.search;
 
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 
+import org.junit.Before;
 import org.junit.BeforeClass;
 
 import test.net.opentsdb.search.util.JDBCHelper;
@@ -40,6 +41,7 @@ import test.net.opentsdb.search.util.JDBCHelper;
 
 public class DisruptorOracleLoadMetricsTest extends LoadMetricsTest {
 
+	
 	/**
 	 * Configures the TSDB for all tests in this class.
 	 */
@@ -52,6 +54,7 @@ public class DisruptorOracleLoadMetricsTest extends LoadMetricsTest {
 	 */
 	@BeforeClass
 	public static void initialize() {
+		org.junit.Assume.assumeTrue(oracleAvailable("OracleCatalogSearchDisruptorConfig"));
 		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
 		createSearchShellJar();
 		configureTSDB();

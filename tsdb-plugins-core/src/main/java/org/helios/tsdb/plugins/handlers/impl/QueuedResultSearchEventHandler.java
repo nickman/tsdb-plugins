@@ -76,11 +76,11 @@ public class QueuedResultSearchEventHandler extends EmptySearchEventHandler {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
-		super.initialize(tsdb, extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
+		super.initialize(tsdb, extracted, supportClassLoader);
 		maxSize = ConfigurationHelper.getIntSystemThenEnvProperty("org.helios.qhandler.search.maxsize", 1024, extracted);
 		fair = ConfigurationHelper.getBooleanSystemThenEnvProperty("org.helios.qhandler.search.fair", true, extracted);
 		resultQueue = new ArrayBlockingQueue<Object>(maxSize, fair);

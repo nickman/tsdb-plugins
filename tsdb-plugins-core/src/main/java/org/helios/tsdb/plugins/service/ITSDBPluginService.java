@@ -53,9 +53,16 @@ public interface ITSDBPluginService {
 	public void addPluginInstance(Plugin plugin);
 	
 	/**
-	 * Initializes the service after creation
+	 * Returns the plugin support class loader 
+	 * @return the plugin support class loader 
 	 */
-	public void initialize();
+	public ClassLoader getPluginSupportClassLoader();
+	
+	/**
+	 * Initializes the service after creation
+	 * @param supportClassLoader The plugin support classloader
+	 */
+	public void initialize(ClassLoader supportClassLoader);
 	
 	/**
 	 * Called by the TSD when a request for statistics collection has come in.

@@ -73,9 +73,13 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	protected EmptySearchEventHandler() {
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
+	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
-		super.initialize(tsdb, extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
+		super.initialize(tsdb, extracted, supportClassLoader);
 		int swSize = ConfigurationHelper.getIntSystemThenEnvProperty(ES_SW_SIZE, DEFAULT_ES_SW_SIZE, extracted);
 		StringBuilder b = new StringBuilder("\nMetric Collection Keys:\n========================");
 		for(TSDBEventType et: TSDBEventType.values()) {

@@ -267,11 +267,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	 * @see net.opentsdb.catalog.CatalogDBInterface#initialize(net.opentsdb.core.TSDB, java.util.Properties)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
 		this.tsdb = tsdb;
 		cds = CatalogDataSource.getInstance();
-		cds.initialize(tsdb, extracted);
+		cds.initialize(tsdb, extracted, supportClassLoader);
 		dataSource = cds.getDataSource();
 		doInitialize(tsdb, extracted);
 		fqnSequence = createLocalSequenceCache(

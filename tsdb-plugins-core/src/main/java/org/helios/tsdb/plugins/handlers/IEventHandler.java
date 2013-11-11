@@ -46,8 +46,9 @@ public interface IEventHandler {
 	 * The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
 	 * @param tsdb The parent TSDB object
 	 * @param extracted Properties that have been extracted from the TSDB config
+	 * @param supportClassLoader The plugin support classloader
 	 */
-	public void initialize(TSDB tsdb, Properties extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader);
 	
 	/**
 	 * Called to gracefully shutdown the plugin. Implementations should close any IO they have open

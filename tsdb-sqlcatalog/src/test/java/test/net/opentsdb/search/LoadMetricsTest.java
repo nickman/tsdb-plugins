@@ -322,7 +322,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 		Object[][] fqns = jdbcHelper.query("SELECT * FROM TSD_FQN");
 		for(Object[] row: fqns) {
-			ObjectName on = JMXHelper.objectName(row[2]);
+			ObjectName on = JMXHelper.objectName(row[3]);
 			Assert.assertTrue("The ObjectName [" + on + "] was not registered", JMXHelper.isRegistered(on));
 		}
 		for(TSMeta tsMeta: createdTSMetas) {

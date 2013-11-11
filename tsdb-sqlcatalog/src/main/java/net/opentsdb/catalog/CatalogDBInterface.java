@@ -92,8 +92,9 @@ public interface CatalogDBInterface {
 	 * Runs the initialization routine
 	 * @param tsdb The parent TSDB instance
 	 * @param extracted The extracted configuration
+	 * @param supportClassLoader The plugin support classloader
 	 */
-	public void initialize(TSDB tsdb, Properties extracted);
+	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader);
 	
 	/**
 	 * Terminates the database resources

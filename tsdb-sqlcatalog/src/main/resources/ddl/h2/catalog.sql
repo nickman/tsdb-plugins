@@ -29,6 +29,7 @@ CREATE CONSTANT IF NOT EXISTS DOUBLE_NAN VALUE DNAN();
 
 CREATE TABLE IF NOT EXISTS TSD_TAGK (
     XUID CHAR(6) NOT NULL COMMENT 'The tag key UID as a hex encoded string',
+    VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag key',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag key',
@@ -43,6 +44,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGK_AK ON TSD_TAGK (NAME ASC);
 
 CREATE TABLE IF NOT EXISTS TSD_TAGV (
     XUID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
+    VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
@@ -58,6 +60,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGV_AK ON TSD_TAGV (NAME ASC);
 
 CREATE TABLE IF NOT EXISTS TSD_METRIC (
     XUID CHAR(6) NOT NULL COMMENT 'The metric UID as a hex encoded string',
+    VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The metric name',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this metric',
@@ -100,6 +103,7 @@ ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FK FORE
 
 CREATE TABLE IF NOT EXISTS TSD_FQN (
 	FQNID BIGINT NOT NULL COMMENT 'A synthetic unique identifier for each individual TSMeta/TimeSeries entry',
+	VERSION INT NOT NULL COMMENT 'The version of this instance',
 	METRIC_UID CHAR(6) NOT NULL COMMENT 'The unique identifier of the metric name associated with this TSMeta',
 	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
 	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
@@ -111,7 +115,8 @@ CREATE TABLE IF NOT EXISTS TSD_FQN (
 	DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
 	NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
 	UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
-	RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite'
+	RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite',
+	CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this tag key'
 ); COMMENT ON TABLE TSD_FQN IS 'Table storing each distinct time-series TSMeta and its attributes';
 
 ALTER TABLE TSD_FQN ADD CONSTRAINT IF NOT EXISTS TSD_FQN_PK PRIMARY KEY ( FQNID ) ;
@@ -123,6 +128,7 @@ ALTER TABLE TSD_FQN ADD CONSTRAINT IF NOT EXISTS TSD_FQN_METRIC_FK FOREIGN KEY(M
 
 CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 	ANNID BIGINT NOT NULL COMMENT 'The synthetic unique identifier for this annotation',
+	VERSION INT NOT NULL COMMENT 'The version of this instance',
 	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
 	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
     NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',

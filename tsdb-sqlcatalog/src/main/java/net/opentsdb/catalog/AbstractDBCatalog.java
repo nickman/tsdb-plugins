@@ -155,6 +155,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE XUID = ?";
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
+	/** The SQL for verification of whether an Annotation has been saved or not */
+	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? " + 
+			" AND EXISTS (SELECT FQNID FROM ";
 	
 	
 	
@@ -162,16 +165,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	//	Object INSERT SQL
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
-	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?)";
+	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?)";
 	/** The SQL to insert a TSMeta TSD_FQN */
 	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
-			"(FQNID, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
-			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION) " + 
-			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
+			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM) " + 
+			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	/** The SQL to insert the TSMeta UID pairs */
 	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
 	/** The SQL to insert an Annotation */
-	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?)";
+	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	/** The SQL to insert a Tag Pair */
 	public static final String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
 
@@ -201,7 +204,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	static {
 		Map<String, String> tmp = new TreeMap<String, String>();
 		tmp.put(SAVED_BY_KEY, H2DBCatalog.class.getSimpleName());
-		tmp.put(VERSION_KEY, "1");
+		//tmp.put(VERSION_KEY, "1");
 		INIT_CUSTOM = Collections.unmodifiableMap(tmp);
 	}
 
@@ -483,18 +486,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	 */
 	@Override
 	public void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
-		ps.setString(1, uidMeta.getUID());
-		ps.setString(2, uidMeta.getName());
+		ps.setString(1, uidMeta.getUID());		
+		ps.setString(3, uidMeta.getName());
 		long created = uidMeta.getCreated();
 		if(created==0) {
 			created = SystemClock.time();
 		}
-		ps.setTimestamp(3, new Timestamp(created));
-		ps.setString(4, uidMeta.getDescription());
-		ps.setString(5, uidMeta.getDisplayName());
-		ps.setString(6, uidMeta.getNotes());
+		ps.setTimestamp(4, new Timestamp(created));
+		ps.setString(5, uidMeta.getDescription());
+		ps.setString(6, uidMeta.getDisplayName());
+		ps.setString(7, uidMeta.getNotes());
 		Map<String, String> custom = fillInCustom(uidMeta.getCustom());
-		ps.setString(7, JSONMapSupport.nokToString(custom));
+		ps.setString(8, JSONMapSupport.nokToString(custom));
+		ps.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
 		ps.addBatch();
 	}
 	
@@ -544,24 +548,25 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			}
 			//annSequence
 			annotationsPs.setLong(1, annSequence.next());
-			annotationsPs.setTimestamp(2, new Timestamp(startTime));
-			annotationsPs.setString(3, annotation.getDescription());
-			annotationsPs.setString(4, annotation.getNotes());
+			annotationsPs.setTimestamp(3, new Timestamp(startTime));
+			annotationsPs.setString(4, annotation.getDescription());
+			annotationsPs.setString(5, annotation.getNotes());
 			if(annotation.getTSUID()==null) {
-				annotationsPs.setNull(5, Types.BIGINT);
+				annotationsPs.setNull(6, Types.BIGINT);
 			} else {
-				annotationsPs.setLong(5, H2Support.fqnId(conn, annotation.getTSUID()));
+				annotationsPs.setLong(6, H2Support.fqnId(conn, annotation.getTSUID()));
 			}
 			
 			
 			long endTime = annotation.getEndTime();
 			if(endTime==0) {
-				annotationsPs.setNull(6, Types.TIMESTAMP);
+				annotationsPs.setNull(7, Types.TIMESTAMP);
 			} else {
-				annotationsPs.setTimestamp(6, new Timestamp(endTime));
+				annotationsPs.setTimestamp(7, new Timestamp(endTime));
 			}
 			Map<String, String> custom = fillInCustom(annotation.getCustom());
-			annotationsPs.setString(7, JSONMapSupport.nokToString(custom));
+			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
+			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
 			annotationsPs.addBatch();
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
@@ -600,30 +605,38 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		}
 		fqn.deleteCharAt(fqn.length()-1);
 		try {
+			// annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
+//			Map<String, String> custom = fillInCustom(annotation.getCustom());
+//			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
+//			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
+			
 			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
 			long fqnSeq = fqnSequence.next();
-			int bId = 0;
-			tsMetaFqnPs.setLong(++bId, fqnSeq);
-			tsMetaFqnPs.setString(++bId, tsMeta.getMetric().getUID());
-			tsMetaFqnPs.setString(++bId, fqn.toString());
-			tsMetaFqnPs.setString(++bId, tsMeta.getTSUID());
-			tsMetaFqnPs.setTimestamp(++bId, new Timestamp(utoms(tsMeta.getCreated())));
+			tsMetaFqnPs.setLong(1, fqnSeq);
+			tsMetaFqnPs.setString(3, tsMeta.getMetric().getUID());
+			tsMetaFqnPs.setString(4, fqn.toString());
+			tsMetaFqnPs.setString(5, tsMeta.getTSUID());
+			tsMetaFqnPs.setTimestamp(6, new Timestamp(utoms(tsMeta.getCreated())));
 			if(isNaNToNull() && Double.isNaN(tsMeta.getMax())) {
-				tsMetaFqnPs.setNull(++bId, Types.DOUBLE);
+				tsMetaFqnPs.setNull(7, Types.DOUBLE);
 			} else {
-				tsMetaFqnPs.setDouble(++bId, tsMeta.getMax());
+				tsMetaFqnPs.setDouble(7, tsMeta.getMax());
 			}
 			if(isNaNToNull() && Double.isNaN(tsMeta.getMin())) {
-				tsMetaFqnPs.setNull(++bId, Types.DOUBLE);
+				tsMetaFqnPs.setNull(8, Types.DOUBLE);
 			} else {
-				tsMetaFqnPs.setDouble(++bId, tsMeta.getMin());
+				tsMetaFqnPs.setDouble(8, tsMeta.getMin());
 			}
-			tsMetaFqnPs.setString(++bId, tsMeta.getDataType());
-			tsMetaFqnPs.setString(++bId, tsMeta.getDescription());
-			tsMetaFqnPs.setString(++bId, tsMeta.getDisplayName());
-			tsMetaFqnPs.setString(++bId, tsMeta.getNotes());
-			tsMetaFqnPs.setString(++bId, tsMeta.getUnits());
-			tsMetaFqnPs.setInt(++bId, tsMeta.getRetention());
+			tsMetaFqnPs.setString(9, tsMeta.getDataType());
+			tsMetaFqnPs.setString(10, tsMeta.getDescription());
+			tsMetaFqnPs.setString(11, tsMeta.getDisplayName());
+			tsMetaFqnPs.setString(12, tsMeta.getNotes());
+			tsMetaFqnPs.setString(13, tsMeta.getUnits());
+			tsMetaFqnPs.setInt(14, tsMeta.getRetention());
+			Map<String, String> custom = fillInCustom(tsMeta.getCustom());
+			tsMetaFqnPs.setString(15, JSONMapSupport.nokToString(custom));
+			tsMetaFqnPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
+			
 			tsMetaFqnPs.addBatch();
 			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL); 
 			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
@@ -1085,6 +1098,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			_customMap = new TreeMap<String, String>(INIT_CUSTOM);
 		} else {
 			_customMap.putAll(INIT_CUSTOM);
+		}
+		if(_customMap.containsKey(VERSION_KEY)) {
+			_customMap.put(VERSION_KEY, "" + (Integer.parseInt(customMap.get(VERSION_KEY))+1));
+		} else {
+			_customMap.put(VERSION_KEY, "1");
 		}
 		return _customMap;
 	}	

@@ -155,6 +155,10 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
 		runDDLResources(userDefinedVars);
 		log.info("DDL Resources Processed");
+		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
+			tcpPort = DEFAULT_DB_H2_TCP_PORT;
+			httpPort = DEFAULT_DB_H2_HTTP_PORT;
+		}		
 		if(tcpPort>0 || httpPort >0) {
 			log.info("Starting H2 Listeners: TCP:{}, Web:{}", tcpPort>0, httpPort>0);
 			startServers();
@@ -364,10 +368,6 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 */
 	protected void startServers() {
 		List<String> args = new ArrayList<String>();
-		if(!ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
-			tcpPort = DEFAULT_DB_H2_TCP_PORT;
-			httpPort = DEFAULT_DB_H2_HTTP_PORT;
-		}
 		if(tcpPort>0) {
 			args.addAll(Arrays.asList("-tcp", "-tcpDaemon", "-tcpPort", "" + tcpPort));
 			if(tcpAllowOthers) {

@@ -33,7 +33,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -53,7 +52,6 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchPlugin;
-import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 import net.opentsdb.tsd.RpcPlugin;
 import net.opentsdb.utils.Config;
@@ -229,6 +227,21 @@ public class BaseTest {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to get test TSDB [" + configName + "]", e);
 		}		
+	}
+	
+	/**
+	 * Returns the environment classloader for the passed TSDB config
+	 * @param configName The config name
+	 * @return The classloader that would be created for the passed config
+	 */
+	public static ClassLoader tsdbClassLoader(String configName) {
+		try {
+			Config config = getConfig(configName);
+			return TSDBPluginServiceLoader.getSupportClassLoader(config);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to load config [" + configName + "]", ex);
+			
+		}
 	}
 	
 	/**

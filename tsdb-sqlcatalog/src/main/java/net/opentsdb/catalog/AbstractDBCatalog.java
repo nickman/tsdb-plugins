@@ -156,8 +156,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
 	/** The SQL for verification of whether an Annotation has been saved or not */
-	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? " + 
-			" AND EXISTS (SELECT FQNID FROM ";
+	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ?  AND EXISTS (SELECT FQNID FROM TSD_FQN T WHERE T.FQNID = A.FQNID  AND TSUID = ?)";
 	
 	
 	
@@ -496,9 +495,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		ps.setString(5, uidMeta.getDescription());
 		ps.setString(6, uidMeta.getDisplayName());
 		ps.setString(7, uidMeta.getNotes());
-		Map<String, String> custom = fillInCustom(uidMeta.getCustom());
+		HashMap<String, String> custom = fillInCustom(uidMeta.getCustom());
 		ps.setString(8, JSONMapSupport.nokToString(custom));
 		ps.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
+		uidMeta.setCustom(custom);		
 		ps.addBatch();
 	}
 	
@@ -543,10 +543,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			long startTime = annotation.getStartTime(); 
 			if(startTime==0) {
 				startTime = SystemClock.time();
+				annotation.setStartTime(mstou(startTime));
 			} else {
-				startTime = TimeUnit.MILLISECONDS.convert(startTime, TimeUnit.SECONDS);
+				startTime = utoms(startTime);
 			}
-			//annSequence
 			annotationsPs.setLong(1, annSequence.next());
 			annotationsPs.setTimestamp(3, new Timestamp(startTime));
 			annotationsPs.setString(4, annotation.getDescription());
@@ -562,16 +562,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			if(endTime==0) {
 				annotationsPs.setNull(7, Types.TIMESTAMP);
 			} else {
-				annotationsPs.setTimestamp(7, new Timestamp(endTime));
+				annotationsPs.setTimestamp(7, new Timestamp(utoms(endTime)));
 			}
-			Map<String, String> custom = fillInCustom(annotation.getCustom());
+			HashMap<String, String> custom = fillInCustom(annotation.getCustom());
 			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
-			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
+			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
+			annotation.setCustom(custom);
 			annotationsPs.addBatch();
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
 		}
 	}
+	
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -633,10 +636,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			tsMetaFqnPs.setString(12, tsMeta.getNotes());
 			tsMetaFqnPs.setString(13, tsMeta.getUnits());
 			tsMetaFqnPs.setInt(14, tsMeta.getRetention());
-			Map<String, String> custom = fillInCustom(tsMeta.getCustom());
+			HashMap<String, String> custom = fillInCustom(tsMeta.getCustom());
 			tsMetaFqnPs.setString(15, JSONMapSupport.nokToString(custom));
 			tsMetaFqnPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
-			
+			tsMeta.setCustom(custom);
 			tsMetaFqnPs.addBatch();
 			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL); 
 			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
@@ -1092,12 +1095,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	 * @param customMap The map to create or update
 	 * @return a map with the custom tags plus whatever was in the map passed in
 	 */
-	public static Map<String, String> fillInCustom(Map<String, String> customMap) {
-		Map<String, String> _customMap = customMap;
-		if(_customMap==null) {
-			_customMap = new TreeMap<String, String>(INIT_CUSTOM);
-		} else {
-			_customMap.putAll(INIT_CUSTOM);
+	public static HashMap<String, String> fillInCustom(Map<String, String> customMap) {
+		HashMap<String, String> _customMap = new HashMap<String, String>();
+		_customMap.putAll(INIT_CUSTOM);
+		if(customMap!=null) {
+			_customMap.putAll(customMap);
 		}
 		if(_customMap.containsKey(VERSION_KEY)) {
 			_customMap.put(VERSION_KEY, "" + (Integer.parseInt(customMap.get(VERSION_KEY))+1));

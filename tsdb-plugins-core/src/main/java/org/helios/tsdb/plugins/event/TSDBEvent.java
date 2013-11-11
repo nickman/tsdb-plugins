@@ -71,6 +71,9 @@ public class TSDBEvent  {
 	/** The deferred search query result for search events */
 	public Deferred<SearchQuery> deferred;
 	
+	/** Indicates that the associated object should be synced to store through the TSDB */
+	public boolean synToStore = false;
+	
 	/**
 	 * Creates a new TSDBEvent
 	 */
@@ -100,12 +103,14 @@ public class TSDBEvent  {
 		longValue = -1;		
 		metric = null;
 		searchQuery = null;
+		synToStore = false;
 		tags = null;		
 		timestamp = -1;
 		tsMeta = null;
 		tsuid = null;
 		tsuidBytes = null;
 		uidMeta = null;
+		
 	}
 	
 	 /** The event factory for TSDBEvents */

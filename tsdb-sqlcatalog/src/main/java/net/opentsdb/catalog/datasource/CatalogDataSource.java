@@ -27,13 +27,23 @@ package net.opentsdb.catalog.datasource;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+
+import javassist.ClassPool;
+import javassist.LoaderClassPath;
 
 import javax.sql.DataSource;
 
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
@@ -58,9 +68,20 @@ public class CatalogDataSource implements ICatalogDataSource {
 	protected BoneCPConfig config = null;
 	/** The built datasource */
 	protected BoneCPDataSource connectionPool = null;
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
+	/** The driver wrapper */
+	protected DelegatingDriver delegatingDriver = null;
 
 	/** DataSource log writer */
 	protected final PrintWriter dmLog = new PrintWriter(System.err);
+	
+	/** The config property name to enable DriverManager logging to system err */
+	public static final String JDBC_POOL_DMLOGGING = "tsdb.jdbc.drivermanager.enablelogging";
+	/** The default DriverManager logging enablement  */
+	public static final boolean DEFAULT_JDBC_POOL_DMLOGGING = false;
+	
 	
 	/**
 	 * Acquires the CatalogDataSource singleton instance
@@ -98,31 +119,48 @@ public class CatalogDataSource implements ICatalogDataSource {
 	
 	/**
 	 * Initializes the data source
-	 * @param tsdb The parent TSDB (not really needed here, but it's the convention)
-	 * @param extracted The extracted configuration
-	 * @param supportClassLoader The plugin support classloader
-	 */
-	/**
-	 * Initializes the data source
 	 * @param pc The plugin context
 	 */
 	public void initialize(PluginContext pc) {
 		try {			
+			log.info("Initializing CatalogDataSource. CL:[{}]  ThreadCL:[{}]", getClass().getClassLoader(), Thread.currentThread().getContextClassLoader());
 			Properties dsProps = configure(pc.getExtracted());
-			String driver = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, pc.getExtracted());
-			
-			//Class.forName(driver, true, supportClassLoader);
+			if(ConfigurationHelper.getBooleanSystemThenEnvProperty(JDBC_POOL_DMLOGGING, DEFAULT_JDBC_POOL_DMLOGGING, pc.getExtracted())) {
+				DriverManager.setLogWriter(dmLog);
+			}
+			delegatingDriver = new DelegatingDriver(pc);
+			DriverManager.registerDriver(delegatingDriver);
 			config = new BoneCPConfig(dsProps);		
 			config.setDefaultAutoCommit(false);
-			
 			config.sanitize();
-			config.setClassLoader(pc.getSupportClassLoader());
 			connectionPool = new BoneCPDataSource(config);
-			//connectionPool.setDriverClass(driver);
-			//connectionPool.setLogWriter(dmLog);
-			//DriverManager.setLogWriter(dmLog);
+//			log.info("Loading JDBC Driver [{}] with classloader [{}]", driver, pc.getSupportClassLoader());
+//			config.setClassLoader(pc.getSupportClassLoader());
+//			checkDriverClasspath(driver, Thread.currentThread().getContextClassLoader());
+//			checkDriverClasspath(driver, pc.getSupportClassLoader());
+			
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
+		}
+	}
+	
+	/**
+	 * Prints some diagnostics about a loaded driver
+	 * @param driver The driver
+	 * @param classLoader The driver classloader
+	 * @return true if the driver was found on the classpath
+	 */
+	protected boolean checkDriverClasspath(String driver, ClassLoader classLoader) {
+		try {
+			log.info("Testing for Driver [{}] with classloader [{}]", driver, classLoader);
+			ClassPool cp = new ClassPool();
+			cp.appendClassPath(new LoaderClassPath(classLoader));
+			cp.get(driver);
+			log.info("Found Driver [{}] with classloader [{}]", driver, classLoader);
+			return true;
+		} catch (Exception ex) {
+			log.info("FAILED to find Driver [{}] with classloader [{}]", driver, classLoader);
+			return false;
 		}
 	}
 	
@@ -209,6 +247,8 @@ public class CatalogDataSource implements ICatalogDataSource {
 		}
 		config = null;
 		instance = null;		
+		try { DriverManager.deregisterDriver(delegatingDriver); } catch (Exception ex) {/* No Op */}
+		try { DriverManager.deregisterDriver(delegatingDriver.driver); } catch (Exception ex) {/* No Op */}
 	}
 
 
@@ -263,10 +303,114 @@ public class CatalogDataSource implements ICatalogDataSource {
 		}
 	}
 	
-//	if (finalizableRefQueue != null) {
-//		finalizableRefQueue.close();
-//	}
 
-	
+	/**
+	 * <p>Title: DelegatingDriver</p>
+	 * <p>Description: Delegating driver to persuade the DriverManager to use this driver</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.datasource.CatalogDataSource.DelegatingDriver</code></p>
+	 */
+	public static class DelegatingDriver implements Driver {
+		/** The wrapped driver */
+		private final Driver driver;
+
+		/**
+		 * Creates a new DelegatingDriver
+		 * @param driver the driver to wrap
+		 */
+		public DelegatingDriver(Driver driver) {
+			this.driver = driver;
+		}
+		
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		public String toString() {
+			return driver.toString();
+		}
+		
+		/**
+		 * Creates a new DelegatingDriver
+		 * @param pc The plugin context
+		 */
+		public DelegatingDriver(PluginContext pc) {
+			try {
+				String driverName = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, pc.getExtracted()).trim();
+				Class<Driver> clazz = (Class<Driver>) Class.forName(driverName, true, pc.getSupportClassLoader());
+				driver = clazz.newInstance();
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to create delegating driver", ex);
+			}
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#connect(java.lang.String, java.util.Properties)
+		 */
+		@Override
+		public Connection connect(String url, Properties info)
+				throws SQLException {
+			return driver.connect(url, info);
+		}
+
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#acceptsURL(java.lang.String)
+		 */
+		@Override
+		public boolean acceptsURL(String url) throws SQLException {
+			return driver.acceptsURL(url);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#getPropertyInfo(java.lang.String, java.util.Properties)
+		 */
+		@Override
+		public DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
+				throws SQLException {
+			return driver.getPropertyInfo(url, info);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#getMajorVersion()
+		 */
+		@Override
+		public int getMajorVersion() {
+			return driver.getMajorVersion();
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#getMinorVersion()
+		 */
+		@Override
+		public int getMinorVersion() {
+			return driver.getMinorVersion();
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#jdbcCompliant()
+		 */
+		@Override
+		public boolean jdbcCompliant() {
+			return driver.jdbcCompliant();
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.sql.Driver#getParentLogger()
+		 */
+		@Override
+		public java.util.logging.Logger getParentLogger()
+				throws SQLFeatureNotSupportedException {
+			return driver.getParentLogger();
+		}
+	}
 
 }

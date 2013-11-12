@@ -404,7 +404,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 					}
 					searchHandlers.add((ISearchEventHandler)eventHandler);
 					allHandlers.add(eventHandler);
-					log.info("Loaded SearchEvent Handler [" + className + "]");
+					log.info("Loaded SearchEvent Handler [{}] from ClassLoader [{}]", className, eventHandler.getClass().getClassLoader());
 				}				
 				if(!installed) {
 					log.warn("The event handler [" + className + "] was not registered");

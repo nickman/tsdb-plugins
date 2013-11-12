@@ -353,7 +353,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			searchQuery.setQuery("TSUID:" + tsUid);
 			searchQuery.setLimit(0);
 			searchQuery.setStartIndex(0);
-			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
+			//TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
 			final CountDownLatch latch = new CountDownLatch(1);
 //			Deferred<SearchQuery> result = tsdb.executeSearch(searchQuery)
 //					.addErrback(new )

@@ -180,7 +180,7 @@ CREATE TABLE TSD_ANNOTATION (
 ); 
 COMMENT ON TABLE TSD_ANNOTATION IS 'Table storing created annotations';
 COMMENT ON COLUMN TSD_ANNOTATION.ANNID IS 'The synthetic unique identifier for this annotation';
-COMMENT ON COLUMN TSD_TAGK.VERSION 'The version of this instance';
+COMMENT ON COLUMN TSD_ANNOTATION.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_ANNOTATION.START_TIME IS 'The effective start time for this annotation';
 COMMENT ON COLUMN TSD_ANNOTATION.DESCRIPTION IS 'The mandatory description for this annotation';
 COMMENT ON COLUMN TSD_ANNOTATION.NOTES IS 'Optional notes for this annotation';

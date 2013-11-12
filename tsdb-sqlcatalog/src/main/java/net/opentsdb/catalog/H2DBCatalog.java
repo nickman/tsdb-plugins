@@ -41,10 +41,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -125,12 +123,11 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	
 	/**
 	 * Runs the initialization routine
-	 * @param tsdb The parent TSDB instance
-	 * @param extracted The extracted configuration
 	 */
 	@Override
-	protected void doInitialize(TSDB tsdb, Properties extracted) {
+	protected void doInitialize() {
 		Map<String, Object> userDefinedVars = new HashMap<String, Object>();
+		
 		ddlResources = ConfigurationHelper.getSystemThenEnvPropertyArray(DB_H2_DDL, DEFAULT_DB_H2_DDL, extracted);
 		tcpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_TCP_PORT, DEFAULT_DB_H2_TCP_PORT, extracted);
 		tcpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_TCP_ALLOW_OTHERS, DEFAULT_DB_H2_TCP_ALLOW_OTHERS, extracted);
@@ -144,14 +141,6 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		userDefinedVars.put(FQN_TP_SEQ_SIZE, fqnTagPairSeqIncrement);
 		userDefinedVars.put(ANN_SEQ_SIZE, fqnAnnSeqIncrement);
 		userDefinedVars.put(QID_SEQ_SIZE, syncQSeqIncrement);
-		
-		// // FQN_SEQ_SIZE, FQN_TP_SEQ_SIZE, ANN_SEQ_SIZE, QID_SEQ_SIZE
-		/*
-		 * DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR
-		 * DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR
-		 * DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR
-		 */
-
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
 		runDDLResources(userDefinedVars);
 		log.info("DDL Resources Processed");
@@ -212,7 +201,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		} catch (Exception ex) {
 			log.warn("Failed to uninstall full-text search", ex);
 		} finally {
-			if(conn==null) try { conn.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -411,13 +400,15 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		Statement st = null;
 		try {
 			conn = dataSource.getConnection();
+			conn.setAutoCommit(true);
 			st = conn.createStatement();
 			String format = "SET @%s = %s;";
 			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
 				st.execute(String.format(format, entry.getKey(), entry.getValue()));
 				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
 			}			
-			log.info("Connected to [{}]", conn.getMetaData().getURL());
+			Connection internal = ((com.jolbox.bonecp.ConnectionHandle)conn).getInternalConnection();
+			log.info("\n\tConnected to [{}]. \n\tConnection Class [{}] \n\tLoaded from [{}]", conn.getMetaData().getURL(), internal.getClass().getName(), internal.getClass().getClassLoader().toString()); 
 			for(String rez: ddlResources) {
 				pResource = rez; 
 				log.info("Processing DDL Resource [{}]", rez);

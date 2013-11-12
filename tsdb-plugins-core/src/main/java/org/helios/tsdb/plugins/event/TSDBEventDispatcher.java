@@ -1,10 +1,8 @@
 package org.helios.tsdb.plugins.event;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -16,6 +14,7 @@ import org.helios.tsdb.plugins.async.AsyncEventDispatcher;
 import org.helios.tsdb.plugins.async.EventBusEventDispatcher;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.service.AbstractTSDBPluginService;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
 import com.stumbleupon.async.Deferred;
@@ -49,11 +48,11 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#initialize(java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#initialize()
 	 */
 	@Override
-	public void initialize(ClassLoader supportClassLoader) {		
-		super.initialize(supportClassLoader);
+	public void initialize() {		
+		super.initialize();
 	}
 	
 	
@@ -90,7 +89,7 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 		asyncDispatcher.initialize(config, asyncExecutor, allHandlers);
 		log.info("Async Dispatcher [{}] Initialized.", asyncDispatcher.getClass().getSimpleName());
 		for(IEventHandler handler: allHandlers) {
-			handler.initialize(tsdb, config, supportClassLoader);
+			handler.initialize(pluginContext);
 		}
 	}
 	
@@ -119,11 +118,10 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 
 	/**
 	 * Creates a new TSDBEventDispatcher
-	 * @param tsdb The callback supplied TSDB instance
-	 * @param config The extracted configuration 
+	 * @param pc The plugin context
 	 */
-	public TSDBEventDispatcher(TSDB tsdb, Properties config) {
-		super(tsdb, config);
+	public TSDBEventDispatcher(PluginContext pc) {
+		super(pc);
 	}
 	
 	

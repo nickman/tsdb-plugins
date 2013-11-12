@@ -29,6 +29,7 @@ import java.util.Properties;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,8 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	protected Properties config;
 	/** The plugin support classloader */
 	protected ClassLoader supportClassLoader = null;
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
 	
 	/**
 	 * Creates a new AbstractTSDBEventHandler
@@ -59,13 +62,14 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.handlers.IEventHandler#initialize(org.helios.tsdb.plugins.service.PluginContext)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
-		this.tsdb = tsdb;
-		this.config = extracted;
-		this.supportClassLoader = supportClassLoader;
+	public void initialize(PluginContext pc) {
+		pluginContext = pc;
+		tsdb = pluginContext.getTsdb();
+		config = pluginContext.getExtracted();
+		supportClassLoader = pluginContext.getSupportClassLoader();		
 	}
 
 	/**

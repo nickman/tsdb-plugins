@@ -68,7 +68,7 @@ public class SpringContainerTestCase extends BaseTest {
 		createSearchShellJar();
 //		try {
 			TSDB tsdb = newTSDB("SpringSearchConfig");
-			GenericApplicationContext appCtx = SpringContainerService.getInstance(null, null).getAppContext();
+			GenericApplicationContext appCtx = SpringContainerService.getInstance().getAppContext();
 			QueuedResultSearchEventHandler handler = appCtx.getBean("EventHandler", QueuedResultSearchEventHandler.class);
 			Assert.assertNotNull("The spring configured handler was null", handler);
 			BlockingQueue<Object> events = handler.getResultQueue();
@@ -106,7 +106,7 @@ public class SpringContainerTestCase extends BaseTest {
 	public void testDataPointDelivery() throws Exception {
 		createPublishShellJar();
 		TSDB tsdb = newTSDB("SpringPublishConfig");
-		GenericApplicationContext appCtx = SpringContainerService.getInstance(null, null).getAppContext();
+		GenericApplicationContext appCtx = SpringContainerService.getInstance().getAppContext();
 		QueuedResultSearchEventHandler handler = appCtx.getBean("EventHandler", QueuedResultSearchEventHandler.class);
 		Assert.assertNotNull("The spring configured handler was null", handler);
 		BlockingQueue<Object> events = handler.getResultQueue();

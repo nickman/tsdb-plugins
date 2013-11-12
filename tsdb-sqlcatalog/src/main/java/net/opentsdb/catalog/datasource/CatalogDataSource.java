@@ -32,8 +32,7 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
-import net.opentsdb.core.TSDB;
-
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
 import com.jolbox.bonecp.BoneCP;
@@ -60,7 +59,8 @@ public class CatalogDataSource implements ICatalogDataSource {
 	/** The built datasource */
 	protected BoneCPDataSource connectionPool = null;
 
-	
+	/** DataSource log writer */
+	protected final PrintWriter dmLog = new PrintWriter(System.err);
 	
 	/**
 	 * Acquires the CatalogDataSource singleton instance
@@ -102,20 +102,25 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 * @param extracted The extracted configuration
 	 * @param supportClassLoader The plugin support classloader
 	 */
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
-		try {
-			Properties dsProps = configure(extracted);
-			String driver = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, extracted);
+	/**
+	 * Initializes the data source
+	 * @param pc The plugin context
+	 */
+	public void initialize(PluginContext pc) {
+		try {			
+			Properties dsProps = configure(pc.getExtracted());
+			String driver = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, pc.getExtracted());
 			
 			//Class.forName(driver, true, supportClassLoader);
 			config = new BoneCPConfig(dsProps);		
-			config.setClassLoader(supportClassLoader);
 			config.setDefaultAutoCommit(false);
+			
 			config.sanitize();
+			config.setClassLoader(pc.getSupportClassLoader());
 			connectionPool = new BoneCPDataSource(config);
-			connectionPool.setDriverClass(driver);
-			connectionPool.setLogWriter(new PrintWriter(System.err));
-			DriverManager.setLogWriter(new PrintWriter(System.err));
+			//connectionPool.setDriverClass(driver);
+			//connectionPool.setLogWriter(dmLog);
+			//DriverManager.setLogWriter(dmLog);
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
 		}

@@ -39,15 +39,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sql.DataSource;
 
-import net.opentsdb.catalog.datasource.ICatalogDataSource;
-import net.opentsdb.core.TSDB;
 import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
-import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 
@@ -178,9 +176,10 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {		
-		super.initialize(tsdb, extracted, supportClassLoader);
+	public void initialize(PluginContext pc) {		
+		super.initialize(pc);
 		shuttingDown.set(false);
+		Properties extracted = pc.getExtracted();
 		batchSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_JDBC_BATCH_SIZE, DEFAULT_DB_JDBC_BATCH_SIZE, extracted);
 		queueSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_PROC_QUEUE_SIZE, DEFAULT_DB_PROC_QUEUE_SIZE, extracted);
 		timeout = ConfigurationHelper.getLongSystemThenEnvProperty(DB_PROC_QUEUE_TIMEOUT, DEFAULT_DB_PROC_QUEUE_TIMEOUT, extracted);
@@ -222,11 +221,9 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		CatalogDBInterface idb = null;
 		try {
 			Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName, true, getClass().getClassLoader());
-			String jdbcDriver = ConfigurationHelper.getSystemThenEnvProperty(ICatalogDataSource.JDBC_POOL_JDBCDRIVER, ICatalogDataSource.DEFAULT_JDBC_POOL_JDBCDRIVER, config);			
-			log.info("PreLoading JDBC Driver [{}] with ClassLoader [{}]", jdbcDriver, supportClassLoader.toString());
-			Class.forName(jdbcDriver, true, supportClassLoader);
+			//Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName);
 			idb = clazz.newInstance();
-			idb.initialize(tsdb, config, supportClassLoader);
+			idb.initialize(pluginContext);
 			log.info("Catalog DB Initializer [{}] Created and Run", initerClassName);
 			return idb;
 		} catch (Exception ex) {

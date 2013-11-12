@@ -34,6 +34,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 
@@ -75,12 +76,12 @@ public class EmptySearchEventHandler  extends AbstractTSDBEventHandler implement
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(org.helios.tsdb.plugins.service.PluginContext)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
-		super.initialize(tsdb, extracted, supportClassLoader);
-		int swSize = ConfigurationHelper.getIntSystemThenEnvProperty(ES_SW_SIZE, DEFAULT_ES_SW_SIZE, extracted);
+	public void initialize(PluginContext pc) {
+		super.initialize(pc);
+		int swSize = ConfigurationHelper.getIntSystemThenEnvProperty(ES_SW_SIZE, DEFAULT_ES_SW_SIZE, pc.getExtracted());
 		StringBuilder b = new StringBuilder("\nMetric Collection Keys:\n========================");
 		for(TSDBEventType et: TSDBEventType.values()) {
 			if(et.isForSearch()) {

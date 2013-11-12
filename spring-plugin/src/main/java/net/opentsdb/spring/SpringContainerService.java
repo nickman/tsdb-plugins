@@ -36,14 +36,12 @@ import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.service.AbstractTSDBPluginService;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
@@ -98,15 +96,14 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	
 	/**
 	 * Acquires the SpringContainerService singleton instance
-	 * @param tsdb The parent TSDB instance
-	 * @param config The extracted configuration properties
+	 * @param pc The plugin context
 	 * @return the SpringContainerService singleton instance
 	 */
-	public static SpringContainerService getInstance(TSDB tsdb, Properties config) {
+	public static SpringContainerService getInstance(PluginContext pc) {
 		if(instance==null) {
 			synchronized(lock) {
 				if(instance==null) {
-					instance = new SpringContainerService(tsdb, config);
+					instance = new SpringContainerService(pc);
 				}
 			}
 		}
@@ -114,12 +111,22 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	}
 	
 	/**
-	 * Creates a new SpringContainerService
-	 * @param tsdb the core TSDB instance
-	 * @param config The extracted config properties
+	 * Returns the singleton instance, throwing an exception if it has not been initialized yet
+	 * @return the singleton instance
 	 */
-	private SpringContainerService(TSDB tsdb, Properties config) {		
-		super(tsdb, config);
+	public static SpringContainerService getInstance() {
+		if(instance==null) {
+			throw new RuntimeException("Service not configured");
+		}
+		return instance;
+	}
+	
+	/**
+	 * Creates a new SpringContainerService
+	 * @param pc The plugin context
+	 */
+	private SpringContainerService(PluginContext pc) {		
+		super(pc);
 	}
 
 	/**
@@ -265,11 +272,11 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#initialize(java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.service.AbstractTSDBPluginService#initialize()
 	 */
 	@Override
-	public void initialize(ClassLoader supportClassLoader) {	
-		super.initialize(supportClassLoader);
+	public void initialize() {	
+		super.initialize();
 	}
 
 	/**

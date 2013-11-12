@@ -85,6 +85,8 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	protected final TSDB tsdb;
 	/** The TSDB instance extracted config */
 	protected final Properties config;
+	/** The plugin service context */
+	protected PluginContext pluginContext = null;
 	
 	/** The plugin support classloader */
 	protected ClassLoader supportClassLoader = null;
@@ -132,23 +134,17 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 
 	/**
 	 * Creates a new AbstractTSDBPluginService
-	 * @param tsdb The callback supplied TSDB instance
-	 * @param config The TSDB instance extracted config 
+	 * @param pc The plugin context
 	 */
-	protected AbstractTSDBPluginService(TSDB tsdb, Properties config) {
-		this.tsdb = tsdb;
-		this.config = config;
+	protected AbstractTSDBPluginService(PluginContext pc) {
+		this.pluginContext = pc;
+		this.tsdb = pc.getTsdb();
+		this.config = pc.getExtracted();
+		this.supportClassLoader = pc.getSupportClassLoader();
 		log.info("Created TSDBPluginService [{}]", getClass().getName());
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#getPluginSupportClassLoader()
-	 */
-	@Override
-	public ClassLoader getPluginSupportClassLoader() {
-		return supportClassLoader;
-	}
+
 	
 	/**
 	 * Abandons a graceful shutdown and forces it. Used when a startup/initialize fails and we need
@@ -222,13 +218,11 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	
 	/**
 	 * Initialize the plugin handlers that are responsible for setting up any IO they need as well as starting any required background threads. Note: Implementations should throw exceptions if they can't start up properly. The TSD will then shutdown so the operator can fix the problem. Please use IllegalArgumentException for configuration issues.
-	 * @param supportClassLoader The plugin support classloader
 	 */
-	public void initialize(ClassLoader supportClassLoader) {
+	public void initialize() {
 		try {
 			if(!configured.compareAndSet(false, true)) return;  // We only initialize once even if there are multiple shells.
-			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName());
-			this.supportClassLoader = supportClassLoader; 
+			log.info("\n\t====================================\n\tConfiguring Plugin Service [{}]\n\t====================================", getClass().getSimpleName()); 
 			searchEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_SEARCH, false, config) &&  Search.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_SEARCH_PLUGIN, null, config));
 			publishEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(Constants.CONFIG_ENABLE_PUBLISH, false, config) &&  Publisher.class.getName().equals(ConfigurationHelper.getSystemThenEnvProperty(Constants.CONFIG_PUBLISH_PLUGIN, null, config));
 			log.info("\n\tCallback Plugins Enabled for EventDispatcher:\n\t\tSearch:{}\n\t\tPublish:{}\n", searchEnabled, publishEnabled);
@@ -377,6 +371,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				className = className.trim();
 				
 				Class<?> _clazz = Class.forName(className, true, supportClassLoader);
+				//Class<?> _clazz = Class.forName(className);
 				if(!IEventHandler.class.isAssignableFrom(_clazz)) {
 					log.warn("The class [" + className + "] does not implement [" + IEventHandler.class.getName() + "]");
 					continue;

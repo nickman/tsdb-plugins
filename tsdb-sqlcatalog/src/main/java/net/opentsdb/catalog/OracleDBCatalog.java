@@ -27,10 +27,8 @@ package net.opentsdb.catalog;
 import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.util.Properties;
 import java.util.Set;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.search.SearchQuery;
 
 /**
@@ -46,10 +44,10 @@ public class OracleDBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.AbstractDBCatalog#doInitialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see net.opentsdb.catalog.AbstractDBCatalog#doInitialize()
 	 */
 	@Override
-	protected void doInitialize(TSDB tsdb, Properties extracted) {
+	protected void doInitialize() {
 
 	}
 	

@@ -52,7 +52,7 @@ public class SpringEnabledQueuedResultEventHandler extends QueuedResultSearchEve
 	
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		this.initialize(tsdb, config);
+		this.initialize(pluginContext);
 		log.info("Configuration Complete");
 	}
 	

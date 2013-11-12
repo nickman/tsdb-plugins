@@ -33,6 +33,7 @@ import net.opentsdb.core.TSDB;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 
 /**
@@ -75,13 +76,13 @@ public class QueuedResultPublishEventHandler extends EmptyPublishEventHandler {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(org.helios.tsdb.plugins.service.PluginContext)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
-		super.initialize(tsdb, extracted, supportClassLoader);
-		maxSize = ConfigurationHelper.getIntSystemThenEnvProperty("org.helios.qhandler.publish.maxsize", 1024, extracted);
-		fair = ConfigurationHelper.getBooleanSystemThenEnvProperty("org.helios.qhandler.publish.fair", true, extracted);
+	public void initialize(PluginContext pc) {
+		super.initialize(pc);
+		maxSize = ConfigurationHelper.getIntSystemThenEnvProperty("org.helios.qhandler.publish.maxsize", 1024, pc.getExtracted());
+		fair = ConfigurationHelper.getBooleanSystemThenEnvProperty("org.helios.qhandler.publish.fair", true, pc.getExtracted());
 		resultQueue = new ArrayBlockingQueue<Object>(maxSize, fair);
 		log.info("Created Queueing Handler with max size:{}  and fairness:{}", maxSize, fair);
 	}

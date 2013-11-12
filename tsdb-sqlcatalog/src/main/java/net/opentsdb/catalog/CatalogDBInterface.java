@@ -30,18 +30,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.sql.DataSource;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.service.PluginContext;
 
 import com.stumbleupon.async.Deferred;
 
@@ -56,22 +55,6 @@ import com.stumbleupon.async.Deferred;
 
 public interface CatalogDBInterface {
 
-	/** The config property name for the JDBC URL */
-	public static final String DB_JDBC_URL = "helios.search.catalog.jdbc.url";
-	/** The default JDBC URL */
-	public static final String DEFAULT_DB_JDBC_URL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1";
-	/** The config property name for the JDBC Driver Name */
-	public static final String DB_JDBC_DRIVER = "helios.search.catalog.jdbc.driver";
-	/** The default JDBC Driver */
-	public static final String DEFAULT_DB_JDBC_DRIVER = "org.h2.Driver";
-	/** The config property name for the JDBC User Name */
-	public static final String DB_JDBC_USER = "helios.search.catalog.jdbc.user";
-	/** The default JDBC User */
-	public static final String DEFAULT_DB_JDBC_USER = "sa";
-	/** The config property name for the JDBC User Password */
-	public static final String DB_JDBC_PW = "helios.search.catalog.jdbc.pw";
-	/** The default JDBC User Password */
-	public static final String DEFAULT_DB_JDBC_PW = "";
 	
 	/*
 	 * Remote JDBC URL
@@ -90,11 +73,9 @@ public interface CatalogDBInterface {
 	// ===================================================================================================
 	/**
 	 * Runs the initialization routine
-	 * @param tsdb The parent TSDB instance
-	 * @param extracted The extracted configuration
-	 * @param supportClassLoader The plugin support classloader
+	 * @param pluginContext The plugin context
 	 */
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader);
+	public void initialize(PluginContext pluginContext);
 	
 	/**
 	 * Terminates the database resources

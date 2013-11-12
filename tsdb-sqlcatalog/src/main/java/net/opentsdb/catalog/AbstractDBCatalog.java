@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
@@ -63,6 +62,7 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
@@ -88,6 +88,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	protected CatalogDataSource cds = null;
 	/** The parent TSDB */
 	protected TSDB tsdb = null;
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
+	/** The extracted TSDB config properties */
+	protected Properties extracted = null;
 
 	// ========================================================================================
 	//	The batched prepared statements
@@ -264,16 +268,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#initialize(net.opentsdb.core.TSDB, java.util.Properties)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#initialize(org.helios.tsdb.plugins.service.PluginContext)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {
+	public void initialize(PluginContext pc) {
 		log.info("\n\t================================================\n\tStarting DB Initializer\n\tName:{}\n\t================================================", getClass().getSimpleName());
-		this.tsdb = tsdb;
+		pluginContext = pc;
+		tsdb = pluginContext.getTsdb();
+		extracted = pluginContext.getExtracted();
 		cds = CatalogDataSource.getInstance();
-		cds.initialize(tsdb, extracted, supportClassLoader);
+		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
-		doInitialize(tsdb, extracted);
+		doInitialize();
+		extracted = pluginContext.getExtracted();
 		fqnSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted), 
 				"FQN_SEQ", dataSource); // FQN_SEQ		
@@ -293,10 +300,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	
 	/**
 	 * Perform the concrete catalog service initialzation
-	 * @param tsdb The parent TSDB
-	 * @param extracted The extracted configuration
 	 */
-	protected abstract void doInitialize(TSDB tsdb, Properties extracted);
+	protected abstract void doInitialize();
 	
 	
 	/**

@@ -24,18 +24,13 @@
  */
 package org.helios.tsdb.plugins.handlers.impl;
 
-import java.util.Properties;
-
-import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
-import org.helios.tsdb.plugins.util.ConfigurationHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.helios.tsdb.plugins.service.PluginContext;
 
 /**
  * <p>Title: LoggingSearchEventHandler</p>
@@ -46,17 +41,13 @@ import org.slf4j.LoggerFactory;
  */
 
 public class LoggingSearchEventHandler extends EmptySearchEventHandler {
-	/** The handler's logger */
-	Logger log = null;
-	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties, java.lang.ClassLoader)
+	 * @see org.helios.tsdb.plugins.handlers.EmptySearchEventHandler#initialize(org.helios.tsdb.plugins.service.PluginContext)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted, ClassLoader supportClassLoader) {		
-		super.initialize(tsdb, extracted, supportClassLoader);
-		log = LoggerFactory.getLogger(ConfigurationHelper.getSystemThenEnvProperty("org.helios.logginghandler.logger", getClass().getName(), extracted));
+	public void initialize(PluginContext pc) {		
+		super.initialize(pc);
 	}
 	
 	public void indexAnnotation(Annotation annotation) {		

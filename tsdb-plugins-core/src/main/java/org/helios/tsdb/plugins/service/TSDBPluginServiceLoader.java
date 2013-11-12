@@ -66,7 +66,8 @@ public class TSDBPluginServiceLoader {
 	protected final ITSDBPluginService pluginService;
 	/** The plugin service support classpath */
 	protected final ClassLoader supportClassLoader;
-	
+	/** The plugin context */
+	protected final PluginContext pluginContext;
 	/** Static class logger */
 	private static final Logger LOG = LoggerFactory.getLogger(TSDBPluginServiceLoader.class);
 	
@@ -140,18 +141,20 @@ public class TSDBPluginServiceLoader {
 		config = new Properties();
 		config.putAll(this.tsdb.getConfig().getMap());
 		supportClassLoader = getSupportClassLoader(tsdb.getConfig());
+		pluginContext = new PluginContextImpl(this.tsdb, this.tsdb.getConfig(), config, supportClassLoader);
 		String className = ConfigurationHelper.getSystemThenEnvProperty(Constants.PLUGIN_SERVICE_CLASS_NAME, Constants.DEFAULT_PLUGIN_SERVICE_CLASS_NAME, config);
 		final ClassLoader ctx = Thread.currentThread().getContextClassLoader();
 		try {
 			Thread.currentThread().setContextClassLoader(supportClassLoader);
 			Class<?> _clazz = Class.forName(className, true, supportClassLoader);
+			//Class<?> _clazz = Class.forName(className);
 			if(!ITSDBPluginService.class.isAssignableFrom(_clazz)) {
 				throw new IllegalArgumentException("The class [" + className + "] does not implement ITSDBPluginService");
 			}
 			@SuppressWarnings("unchecked")
 			Class<ITSDBPluginService> clazz = (Class<ITSDBPluginService>)_clazz;
 			pluginService = loadService(clazz);
-			pluginService.initialize(supportClassLoader);
+			pluginService.initialize();
 		} catch (IllegalArgumentException iae) {
 			throw iae;
 		} catch (Exception ex) {
@@ -168,7 +171,7 @@ public class TSDBPluginServiceLoader {
 	 * @throws Exception thrown on any error
 	 */
 	protected ITSDBPluginService loadService(Class<ITSDBPluginService> clazz) throws Exception {
-		return ConfigurationHelper.inst(clazz, new Class[] {TSDB.class, Properties.class}, tsdb, config);
+		return ConfigurationHelper.inst(clazz, new Class[] {PluginContext.class}, pluginContext);
 	}
 	/**
 	 * Returns a classloader enabled to load jars, classes and resources 
@@ -225,40 +228,7 @@ public class TSDBPluginServiceLoader {
 		return tsdb;
 	}
 	
-	/**
-	 * Loads a class
-	 * @param name The class name
-	 * @return The loaded class
-	 */
-	public Class<?> loadClass(String name) {
-		try {
-			return Class.forName(name);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to load class [" + name + "]", ex);
-		}
-	}
-
 	
-	/**
-	 * Loads a class using the support classpath
-	 * @param name The class name
-	 * @return The loaded class
-	 */
-	public Class<?> loadClassFromSupport(String name) {
-		try {
-			return Class.forName(name, true, supportClassLoader);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to load class [" + name + "]", ex);
-		}
-	}
 
-	/**
-	 * Returns the 
-	 * @return the supportClassLoader
-	 */
-	public ClassLoader getSupportClassLoader() {
-		return supportClassLoader;
-	}
-	
 
 }

@@ -38,7 +38,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import net.opentsdb.core.TSDB;
 import net.opentsdb.search.index.ESInitializer;
 import net.opentsdb.search.index.IndexOperations;
 import net.opentsdb.stats.StatsCollector;
@@ -50,6 +49,7 @@ import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.URLHelper;
@@ -214,8 +214,9 @@ public class ElasticSearchEventHandler extends EmptySearchEventHandler {
 	 * @see org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler#initialize(net.opentsdb.core.TSDB, java.util.Properties)
 	 */
 	@Override
-	public void initialize(TSDB tsdb, Properties extracted) {
-		super.initialize(tsdb, extracted);
+	public void initialize(PluginContext pc) {
+		super.initialize(pc);
+		Properties extracted = pc.getExtracted();
 		try {
 			log.info("\n\t=========================================\n\tStarting ElasticSearchEventHandler\n\t=========================================");
 			tsmeta_type = ConfigurationHelper.getSystemThenEnvProperty(ES_TSMETA_TYPE, DEFAULT_ES_TSMETA_TYPE, extracted); 

@@ -24,8 +24,9 @@
  */
 package test.net.opentsdb.search;
 
-import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.test.BaseTest;
+
+import test.net.opentsdb.core.EmptyTSDB;
 
 /**
  * <p>Title: CatalogBaseTest</p>
@@ -59,5 +60,8 @@ public class CatalogBaseTest extends BaseTest {
 		}
 	}
 
+	public static class FakeSyncToStore extends EmptyTSDB {
+		
+	}
 
 }

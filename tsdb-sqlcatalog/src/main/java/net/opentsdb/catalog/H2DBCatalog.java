@@ -120,6 +120,16 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	public static final String ANN_SEQ_SIZE = "ANN_SEQ_SIZE";
 	/** The name of the H2 user defined variable specifying the increment size of the annotation sequence  */
 	public static final String QID_SEQ_SIZE = "QID_SEQ_SIZE";
+
+    /** The union all SQL clause */
+    public static final String UNION_CLAUSE = " UNION ALL";
+    /** The number of chars in the UNION_CLAUSE */
+    public static final int UNION_LENGTH = UNION_CLAUSE.length();
+    /** The select all SQL clause */
+    public static final String SELECT_ALL = "SELECT * FROM ";
+
+    /** The key of the user defined var to flag a connection as the event queue processor */
+    public static final String EQ_CONN_FLAG = "eqprocessor";
 	
 	/**
 	 * Runs the initialization routine
@@ -323,12 +333,16 @@ public class H2DBCatalog extends AbstractDBCatalog {
     	
     }
     
-    /** The union all SQL clause */
-    public static final String UNION_CLAUSE = " UNION ALL";
-    /** The number of chars in the UNION_CLAUSE */
-    public static final int UNION_LENGTH = UNION_CLAUSE.length();
-    /** The select all SQL clause */
-    public static final String SELECT_ALL = "SELECT * FROM ";
+    
+    
+    /**
+     * <p>Sets the H2 user defined variables to signal to H2 triggers that this is the event queue processor.</p>
+     * {@inheritDoc}
+     * @see net.opentsdb.catalog.AbstractDBCatalog#initConnection(java.sql.Connection)
+     */
+    public void initConnection(Connection conn) {
+    	setUserDefinedVar(conn, EQ_CONN_FLAG, "true");
+    }
     
     /**
      * Generates the UNION SQL to retrieve the actual records matched via the lucene text query
@@ -391,6 +405,39 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	}
 	
 	/**
+	 * Sets the passed user defined variable in the passed connection's session
+	 * @param conn The connection to set the vars in
+	 * @param key The variable key
+	 * @param value The variable value
+	 */
+	protected void setUserDefinedVar(Connection conn, String key, Object value) {
+		setUserDefinedVars(conn, Collections.singletonMap(key, value));
+	}
+	
+	
+	/**
+	 * Sets the passed user defined variables in the passed connection's session
+	 * @param conn The connection to set the vars in
+	 * @param userDefinedVars A map of variables to set
+	 */
+	protected void setUserDefinedVars(Connection conn, Map<String, Object> userDefinedVars) {
+		if(userDefinedVars==null) throw new IllegalArgumentException("User Vars was null");
+		Statement st = null;
+		try {
+			st = conn.createStatement();
+			String format = "SET @%s = %s;";
+			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
+				st.execute(String.format(format, entry.getKey(), entry.getValue()));
+				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
+			}						
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set user defined vars [" + userDefinedVars + "]", ex);
+		} finally {
+			if(st!=null) try { st.close(); } catch (Exception x) { /* No Op */ }
+		}
+	}
+	
+	/**
 	 * Executes the configured DDL resources against the created DB
 	 * @param userDefinedVars A map of user defined variables to set
 	 */
@@ -402,11 +449,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(true);
 			st = conn.createStatement();
-			String format = "SET @%s = %s;";
-			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
-				st.execute(String.format(format, entry.getKey(), entry.getValue()));
-				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
-			}			
+			setUserDefinedVars(conn, userDefinedVars);
 			Connection internal = ((com.jolbox.bonecp.ConnectionHandle)conn).getInternalConnection();
 			log.info("\n\tConnected to [{}]. \n\tConnection Class [{}] \n\tLoaded from [{}]", conn.getMetaData().getURL(), internal.getClass().getName(), internal.getClass().getClassLoader().toString()); 
 			for(String rez: ddlResources) {

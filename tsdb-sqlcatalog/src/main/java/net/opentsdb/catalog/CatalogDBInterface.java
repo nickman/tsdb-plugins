@@ -67,6 +67,12 @@ public interface CatalogDBInterface {
 	 */
 	public DataSource getDataSource();
 	
+	/**
+	 * Initializes a JDBC connection to prep any special requirements for event queue processing
+	 * @param conn The connection to configure
+	 */
+	public void initConnection(Connection conn);
+	
 	
 	// ===================================================================================================
 	// Lifecycle Ops

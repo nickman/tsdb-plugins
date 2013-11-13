@@ -56,12 +56,30 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	/** The sequence cache providing the value for SYNC_QUEUE.QID */
 	protected static LocalSequenceCache sequenceCache = null;
 	
+    /** The key of the user defined var to flag a connection as the event queue processor */
+    public static final String EQ_CONN_FLAG = "eqprocessor";
+
+	
 	/** Instance logger */
 	protected Logger log = null;
 	
 	/** The queue table insert template */
-	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (QID, EVENT_TYPE, EVENT_ID) VALUES (?,?,?)";
+	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (QID, EVENT_TYPE, EVENT, OP_TYPE) VALUES (?,?,?,?)";
 	
+	/*
+	QID BIGINT NOT NULL COMMENT 'The synthetic identifier for this sync operation',
+	EVENT_TYPE VARCHAR(20) NOT NULL 
+		COMMENT 'The source of the update that triggered this sync operation'
+		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
+	EVENT CLOB NOT NULL COMMENT 'The event JSON that triggered this Sync Operation',
+	OP_TYPE CHAR(1) NOT NULL
+		COMMENT 'The SQL Operation type that triggered this sync operation'
+		CHECK OP_TYPE IN ('I', 'D', 'U'), 	
+	EVENT_TIME TIMESTAMP AS NOW() NOT NULL COMMENT 'The timestamp when the sync event occured',
+	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
+	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
+
+	 */
 	
 	/**
 	 * Sets the sequence cache for all instances of this triger
@@ -97,8 +115,9 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	 */
 	@Override
 	public void fire(Connection conn, Object[] oldRow, Object[] newRow) throws SQLException {
+		final boolean isEventQueueProcessor = H2Support.getUserDefinedVar(conn, EQ_CONN_FLAG, false, Boolean.class); 
 		if(!Arrays.deepEquals(oldRow, newRow)) {
-			log.info("Detected Change In {}:[{}]", eventSource, oldRow[pkIndex]);
+			log.info("Is EQP:{}  - Detected Change In {}:[{}]", isEventQueueProcessor, eventSource, oldRow[pkIndex]);
 			PreparedStatement ps = null;
 			if(sequenceCache==null) {
 				throw new IllegalStateException("This trigger is in an invalid state as the sequenceCache has not been set. Please call UpdateRowQueuePKTrigger.setSequenceCache");
@@ -115,24 +134,25 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 		}
 		
 	}
+	
 
 	/**
+	 * <p>Called when database is shutdown</p>
 	 * {@inheritDoc}
 	 * @see org.h2.api.Trigger#close()
 	 */
 	@Override
 	public void close() throws SQLException {
-		// TODO Auto-generated method stub
 		
 	}
 
 	/**
+	 * <p>Called when trigger is dropped</p>
 	 * {@inheritDoc}
 	 * @see org.h2.api.Trigger#remove()
 	 */
 	@Override
 	public void remove() throws SQLException {
-		// TODO Auto-generated method stub
 		
 	}
 	

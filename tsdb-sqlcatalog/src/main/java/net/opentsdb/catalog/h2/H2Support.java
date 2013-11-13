@@ -29,9 +29,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.management.ObjectName;
+
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 
-import org.h2.api.Trigger;
+import org.helios.tsdb.plugins.util.JMXHelper;
 
 /**
  * <p>Title: H2Support</p>
@@ -335,6 +337,57 @@ public class H2Support {
 		return p;
 	}
 	
+	/** The JMX ObjectName of the MBeanServer Delegate */
+	public static final ObjectName JMI_IMPL_OBJECT_NAME = JMXHelper.objectName("JMImplementation:type=MBeanServerDelegate");
+	/** The MBeanServer delegate attribute name for the server id */
+	public static final String SERVER_ID_ATTR = "MBeanServerId";
 	
+	
+	/**
+	 * Returns the MBeanServerId of the current JVM's default MBeanServer.
+	 * Used to determine if H2 is running in-jvm or remote
+	 * @return the MBeanServerId of the current JVM's default MBeanServer.
+	 */
+	public static String getMBeanServerId() {
+		return (String)JMXHelper.getAttribute(JMI_IMPL_OBJECT_NAME, SERVER_ID_ATTR);
+	}
+	
+	/**
+	 * Retrieves the value of the named user defined variable from the passed connection
+	 * @param conn The connection to get the user defined variable from 
+	 * @param key The key of the user defined variable
+	 * @param type The expected type of the returned value
+	 * @return The value of the variable or null if the name was not bound (or null was bound to the name)
+	 */
+	public static <T> T getUserDefinedVar(Connection conn, String key, Class<T> type) {
+		return getUserDefinedVar(conn, key, null, type);
+	}
+	
+	
+	/**
+	 * Retrieves the value of the named user defined variable from the passed connection
+	 * @param conn The connection to get the user defined variable from 
+	 * @param key The key of the user defined variable
+	 * @param defaultValue The default value to return if the name is not bound or has a value of null
+	 * @param type The expected type of the returned value
+	 * @return The value of the variable or null if the name was not bound (or null was bound to the name)
+	 */
+	public static <T> T getUserDefinedVar(Connection conn, String key, T defaultValue, Class<T> type) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement("SELECT @" + key);
+			rset = ps.executeQuery();
+			rset.next();
+			Object obj = rset.getObject(1);
+			if(obj==null) return defaultValue;
+			return type.cast(obj);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get UserDefinedVar [" + key + "] from session", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
 	
 }

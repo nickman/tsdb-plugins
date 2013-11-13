@@ -261,6 +261,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	public DataSource getDataSource() {
 		return dataSource;
 	}
+	
+	/**
+	 * <p>Default impl, which does nothing</p>
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#initConnection(java.sql.Connection)
+	 */
+	public void initConnection(Connection conn) {
+		/* No Op */
+	}
 
 	// ========================================================================================
 	//	Catalog Service Initialization

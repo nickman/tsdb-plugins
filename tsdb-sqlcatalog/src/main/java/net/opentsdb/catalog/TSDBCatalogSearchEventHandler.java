@@ -288,12 +288,18 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	}
 	
 	
+	/**
+	 * <p>Consumes the event queue</p> 
+	 * {@inheritDoc}
+	 * @see java.lang.Runnable#run()
+	 */
 	public void run() {
 		log.info("Starting Catalog Processing Thread. Batch Size: [{}]", batchSize);
 		Connection conn = null;
 		while(!shuttingDown.get()) {
 			try {
 				conn = dataSource.getConnection();
+				dbInterface.initConnection(conn);
 				conn.setAutoCommit(false);
 				while(true) {
 					Set<TSDBSearchEvent> events = new LinkedHashSet<TSDBSearchEvent>(batchSize);

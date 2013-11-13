@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
 	EVENT CLOB NOT NULL COMMENT 'The event JSON that triggered this Sync Operation',
 	OP_TYPE CHAR(1) NOT NULL
 		COMMENT 'The SQL Operation type that triggered this sync operation'
-		CHECK EVENT_TYPE IN ('I', 'D', 'U'), 	
+		CHECK OP_TYPE IN ('I', 'D', 'U'), 	
 	EVENT_TIME TIMESTAMP AS NOW() NOT NULL COMMENT 'The timestamp when the sync event occured',
 	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
 	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
@@ -208,7 +208,7 @@ CREATE ALIAS IF NOT EXISTS JSONSET FOR "net.opentsdb.catalog.h2.H2Support.jsonSe
 CREATE ALIAS IF NOT EXISTS JSONINCRINT FOR "net.opentsdb.catalog.h2.json.JSONMapSupport.incrementInt";
 
 
-
+CREATE ALIAS IF NOT EXISTS JMXID FOR "net.opentsdb.catalog.h2.H2Support.getMBeanServerId";
 
 
 

@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
 	EVENT_TYPE VARCHAR(20) NOT NULL 
 		COMMENT 'The source of the update that triggered this sync operation'
 		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-	EVENT CLOB NOT NULL COMMENT 'The event JSON that triggered this Sync Operation',
+	EVENT VARCHAR(120) NOT NULL COMMENT 'The event PK as JSON that triggered this Sync Operation',
 	OP_TYPE CHAR(1) NOT NULL
 		COMMENT 'The SQL Operation type that triggered this sync operation'
 		CHECK OP_TYPE IN ('I', 'D', 'U'), 	

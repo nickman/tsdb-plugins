@@ -58,6 +58,8 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	
     /** The key of the user defined var to flag a connection as the event queue processor */
     public static final String EQ_CONN_FLAG = "eqprocessor";
+    /** The key of the user defined var to flag a connection as the sync queue processor */
+    public static final String SYNC_CONN_FLAG = "syncprocessor";
 
 	
 	/** Instance logger */
@@ -143,7 +145,7 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	 */
 	@Override
 	public void close() throws SQLException {
-		
+		/* No Op */
 	}
 
 	/**
@@ -153,7 +155,7 @@ public class UpdateRowQueuePKTrigger implements Trigger {
 	 */
 	@Override
 	public void remove() throws SQLException {
-		
+		/* No Op */
 	}
 	
 }

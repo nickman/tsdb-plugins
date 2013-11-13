@@ -130,6 +130,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 
     /** The key of the user defined var to flag a connection as the event queue processor */
     public static final String EQ_CONN_FLAG = "eqprocessor";
+    /** The key of the user defined var to flag a connection as the sync queue processor */
+    public static final String SYNC_CONN_FLAG = "syncprocessor";
+    
 	
 	/**
 	 * Runs the initialization routine
@@ -522,6 +525,43 @@ public class H2DBCatalog extends AbstractDBCatalog {
 			return new FileInputStream(ddlResource);
 		} else {
 			throw new RuntimeException("Failed to locate DDL resource [" + ddlResource + "]");
+		}
+	}
+
+
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#setConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void setConnectionProperty(Connection conn, String key, String value) {
+		setUserDefinedVar(conn, key, value);		
+	}
+
+
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public String getConnectionProperty(Connection conn, String key, String defaultValue) {
+		Statement st = null;
+		ResultSet rset = null;
+		try {
+			st = conn.createStatement();
+			rset = st.executeQuery("SELECT @" + key);
+			rset.next();
+			String val = rset.getString(1);
+			return val==null ? defaultValue : val;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get connection property [" + key + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
 		}
 	}
 

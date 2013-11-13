@@ -769,6 +769,18 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		}
 	}
 	
+	
+	
+	/**
+	 * Retrieves a locally scoped property on the passed connection
+	 * @param conn The connection to set the property on
+	 * @param key The property key
+	 * @return The property value or null 
+	 */
+	public String getConnectionProperty(Connection conn, String key) {
+		return getConnectionProperty(conn, key, null);
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#purge()

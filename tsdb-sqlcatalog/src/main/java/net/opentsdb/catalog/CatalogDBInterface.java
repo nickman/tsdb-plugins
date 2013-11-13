@@ -73,6 +73,36 @@ public interface CatalogDBInterface {
 	 */
 	public void initConnection(Connection conn);
 	
+	// ===================================================================================================
+	// Connection Properties
+	// ===================================================================================================
+	
+	/**
+	 * Sets a locally scoped property on the passed connection
+	 * @param conn The connection to set the property on
+	 * @param key The property key
+	 * @param value The property value
+	 */
+	public void setConnectionProperty(Connection conn, String key, String value);
+	
+	/**
+	 * Retrieves a locally scoped property on the passed connection
+	 * @param conn The connection to set the property on
+	 * @param key The property key
+	 * @param defaultValue value returned if no value is bound to the name, or the value is null
+	 * @return The property value
+	 */
+	public String getConnectionProperty(Connection conn, String key, String defaultValue);
+	
+	/**
+	 * Retrieves a locally scoped property on the passed connection
+	 * @param conn The connection to set the property on
+	 * @param key The property key
+	 * @return The property value
+	 */
+	public String getConnectionProperty(Connection conn, String key);
+
+	
 	
 	// ===================================================================================================
 	// Lifecycle Ops

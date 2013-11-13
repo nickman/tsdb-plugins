@@ -27,6 +27,7 @@ package net.opentsdb.catalog;
 import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Set;
 
 import net.opentsdb.search.SearchQuery;
@@ -48,7 +49,7 @@ public class OracleDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	protected void doInitialize() {
-
+		/* No Op */
 	}
 	
 	/**
@@ -66,8 +67,50 @@ public class OracleDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	protected void doShutdown() {
-
+		/* No Op */
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#setConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void setConnectionProperty(Connection conn, String key, String value) {
+		Statement st = null;
+		try {
+			st = conn.createStatement();
+			st.executeQuery("SELECT tsdb_support.set_env_var('" + key + "', '" + value + "') FROM DUAL");
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set connection property [" + key +  "/" + value + "]", ex);
+		} finally {
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
+		}		
+	}
+
+
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public String getConnectionProperty(Connection conn, String key, String defaultValue) {
+		Statement st = null;
+		ResultSet rset = null;
+		try {
+			st = conn.createStatement();
+			rset = st.executeQuery("SELECT tsdb_support.get_env_var('" + key + "') FROM DUAL");
+			rset.next();
+			String val = rset.getString(1);
+			return val==null ? defaultValue : val;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get connection property [" + key + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
+		}
+	}	
 
 	/**
 	 * {@inheritDoc}

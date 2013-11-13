@@ -201,7 +201,7 @@ ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(
 CREATE TABLE SYNC_QUEUE (
 	QID NUMBER NOT NULL,
 	EVENT_TYPE VARCHAR2(20) NOT NULL, 
-	EVENT CLOB NOT NULL,
+	EVENT VARCHAR2(120) NOT NULL,
 	OP_TYPE CHAR(1) NOT NULL,
 	EVENT_TIME TIMESTAMP DEFAULT SYSDATE NOT NULL,
 	LAST_SYNC_ATTEMPT TIMESTAMP,
@@ -210,12 +210,114 @@ CREATE TABLE SYNC_QUEUE (
 COMMENT ON TABLE SYNC_QUEUE IS 'A queue and status summary of snchronizations back to the TSDB when updates are made directly to the DB';
 COMMENT ON COLUMN SYNC_QUEUE.QID IS 'The synthetic identifier for this sync operation';
 COMMENT ON COLUMN SYNC_QUEUE.EVENT_TYPE IS 'The source of the update that triggered this sync operation';
-COMMENT ON COLUMN SYNC_QUEUE.EVENT IS 'The event JSON that triggered this Sync Operation';
+COMMENT ON COLUMN SYNC_QUEUE.EVENT IS 'The event PK as JSON that triggered this Sync Operation';
 COMMENT ON COLUMN SYNC_QUEUE.OP_TYPE IS 'The SQL Operation type that triggered this sync operation';
 COMMENT ON COLUMN SYNC_QUEUE.EVENT_TIME IS 'The timestamp when the sync event occured';
 COMMENT ON COLUMN SYNC_QUEUE.LAST_SYNC_ATTEMPT IS 'The last [failed] sync operation attempt timestamp';
 COMMENT ON COLUMN SYNC_QUEUE.LAST_SYNC_ERROR IS 'The exception trace of the last failed sync operation';
 ALTER TABLE SYNC_QUEUE ADD CONSTRAINT SYNC_QUEUE_PK PRIMARY KEY ( QID ) ;
 ALTER TABLE SYNC_QUEUE ADD (CONSTRAINT  EVENT_TYPE_ISVALID CHECK (EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'))); 
-ALTER TABLE SYNC_QUEUE ADD (CONSTRAINT  OP_TYPE_ISVALID CHECK (OP_TYPE IN ('I', 'U', 'D'))); 
+ALTER TABLE SYNC_QUEUE ADD (CONSTRAINT  OP_TYPE_ISVALID CHECK (OP_TYPE IN ('I', 'U', 'D')));
+
+
+-- =================================================================
+-- Per Connection ENV_VAR Support
+-- =================================================================
+
+create or replace 
+package tsdb_support as 
+  --======================================================================================
+  --  PACKAGE VAR DEFS
+  --======================================================================================
+  TYPE map_varchar IS TABLE OF VARCHAR2(30) INDEX BY VARCHAR2(30);  
+  TYPE VARSOUT IS RECORD (
+    key VARCHAR2(30),
+    value VARCHAR2(30));
+  TYPE VARSOUTS IS TABLE OF VARSOUT;
+    
+  TYPE map_type IS REF CURSOR;
+  --======================================================================================
+  --  SET ENV VAR
+  --======================================================================================
+  FUNCTION SET_ENV_VAR(
+    KEY   VARCHAR2,
+    VALUE VARCHAR2
+  ) RETURN VARCHAR2;
+  --======================================================================================
+  --  GET ENV VAR
+  --======================================================================================
+  FUNCTION GET_ENV_VAR(
+    KEY   VARCHAR2
+  ) RETURN VARCHAR2;
+  --======================================================================================
+  --  GET VARS
+  --======================================================================================
+  FUNCTION GET_VARS RETURN VARSOUTS PIPELINED; -- TO READ THIS, USE 'select * from TABLE(TSDB_SUPPORT.GET_VARS)'
+  --======================================================================================
+end tsdb_support;
+/
+
+create or replace
+package body tsdb_support as
+  ENV_VARS map_varchar;
+-- ==================================================================
+  FUNCTION SET_ENV_VAR(
+    KEY   VARCHAR2,
+    VALUE VARCHAR2
+  ) RETURN VARCHAR2 IS
+    CURRENTV VARCHAR2(30) := NULL;
+    BEGIN
+      IF ENV_VARS.EXISTS(KEY) THEN
+        CURRENTV := ENV_VARS(KEY);
+      END IF;      
+      ENV_VARS(KEY) := VALUE;
+    RETURN CURRENTV;
+  END SET_ENV_VAR;
+-- ==================================================================  
+  FUNCTION GET_ENV_VAR(
+    KEY   VARCHAR2
+  ) RETURN VARCHAR2 IS
+    BEGIN    
+    RETURN ENV_VARS(KEY);
+  END GET_ENV_VAR;
+  --======================================================================================
+  --  GET VARS
+  --======================================================================================
+  FUNCTION GET_VARS RETURN VARSOUTS PIPELINED IS  -- TO READ THIS, USE 'select * from TABLE(TSDB_SUPPORT.GET_VARS)'
+    out_rec VARSOUT;
+    ikey varchar2(30) := ENV_VARS.FIRST;
+  BEGIN
+    WHILE ikey IS NOT NULL LOOP
+      out_rec.key := ikey;
+      out_rec.value := ENV_VARS(ikey);
+      PIPE ROW(out_rec);
+      ikey := ENV_VARS.NEXT(ikey);
+    END LOOP;
+    RETURN;
+  END GET_VARS;
+  --======================================================================================  
+end tsdb_support;
+
+
+-- =================================================================
+-- Drop All Objects Script
+-- =================================================================
+
+/*
+DROP SEQUENCE ANN_SEQ;
+DROP SEQUENCE FQN_SEQ;
+DROP SEQUENCE FQN_TP_SEQ;
+DROP SEQUENCE QID_SEQ;
+
+DROP TABLE TSD_FQN_TAGPAIR;
+DROP TABLE TSD_TAGPAIR;
+DROP TABLE TSD_TAGK;
+DROP TABLE TSD_TAGV;
+DROP TABLE TSD_ANNOTATION;
+DROP TABLE TSD_FQN;
+DROP TABLE TSD_METRIC;
+DROP TABLE SYNC_QUEUE;
+
+DROP PACKAGE TSDB_SUPPORT;
+ */
 

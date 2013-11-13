@@ -52,6 +52,7 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	protected void doInitialize() {
+		/* No Op */
 	}
 
 	/**
@@ -60,6 +61,7 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	protected void doShutdown() {
+		/* No Op */
 	}
 
 	/**
@@ -82,6 +84,26 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 	@Override
 	public boolean isNaNToNull() {
 		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#setConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void setConnectionProperty(Connection conn, String key, String value) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getConnectionProperty(java.sql.Connection, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public String getConnectionProperty(Connection conn, String key, String defaultValue) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 

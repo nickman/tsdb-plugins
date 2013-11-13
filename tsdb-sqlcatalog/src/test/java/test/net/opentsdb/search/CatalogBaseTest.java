@@ -59,6 +59,22 @@ public class CatalogBaseTest extends BaseTest {
 			return false;
 		}
 	}
+	
+	/**
+	 * Determines if Postgres is available
+	 * @param tsdbConfigName The TSDB environment configuration to build a classpath from
+	 * @return true if Postgres is available, false otherwise
+	 */
+	public static boolean postgresAvailable(String tsdbConfigName) {
+		try {
+			ClassLoader cl = tsdbClassLoader(tsdbConfigName);
+			Class.forName("org.postgresql.Driver", true, cl);
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+	
 
 	public static class FakeSyncToStore extends EmptyTSDB {
 		

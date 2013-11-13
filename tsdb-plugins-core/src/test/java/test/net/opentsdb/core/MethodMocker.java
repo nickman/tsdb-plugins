@@ -89,10 +89,26 @@ public class MethodMocker {
 		}
 	}
 	
+	/**
+	 * Indicates if the passed class is currently mocked
+	 * @param clazz The class to test for
+	 * @return true if the passed class is currently mocked, false otherwise
+	 */
 	public boolean isClassMocked(Class<?> clazz) {
 		if(clazz==null) throw new IllegalArgumentException("Passed class was null");
-		
+		return transformedByteCode.getIfPresent(internalForm(clazz))!=null;
 	}
+	
+	/**
+	 * Indicates if the class with the passed internal form name is currently mocked
+	 * @param clazzName The class name to test for
+	 * @return true if the class is currently mocked, false otherwise
+	 */
+	public boolean isClassMocked(String clazzName) {
+		if(clazzName==null) throw new IllegalArgumentException("Passed class was null");
+		return transformedByteCode.getIfPresent(internalForm(clazzName.trim()))!=null;
+	}
+
 	
 	/**
 	 * Converts the passed binary class name to the internal form 

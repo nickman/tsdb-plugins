@@ -24,7 +24,26 @@
  */
 package test.net.opentsdb.core;
 
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
+import java.lang.reflect.Method;
+import java.security.ProtectionDomain;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import javassist.ByteArrayClassPath;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.LoaderClassPath;
+import javassist.NotFoundException;
+import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.utils.Config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +66,7 @@ public class MethodMocker {
 	/** The singleton instance ctor lock */
 	private static final Object lock = new Object();
 	
-	private static final Logger LOG = LoggerFactory.getLogger(TSDBMocker.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MethodMocker.class);
 	
 	/** The JVM's instrumentation instance */
 	private final Instrumentation instrumentation;
@@ -63,6 +82,7 @@ public class MethodMocker {
 			.maximumSize(1000)
 			.weakKeys()
 			.build();
+	
 	
 	
 	/**
@@ -108,8 +128,130 @@ public class MethodMocker {
 		if(clazzName==null) throw new IllegalArgumentException("Passed class was null");
 		return transformedByteCode.getIfPresent(internalForm(clazzName.trim()))!=null;
 	}
-
 	
+	/**
+	 * Executes the transformation
+	 * @param targetClass The target class to transform
+	 * @param mockedClass The source of the mocked methods to inject into the target
+	 */
+	public synchronized void transform(final Class<?> targetClass, Class<?> mockedClass) {
+		String internalFormName = internalForm(targetClass.getName());
+		if(transformedByteCode.getIfPresent(internalFormName)!=null) {
+			throw new RuntimeException("Class ["+ targetClass.getName() + "] already in mocked state. Restore first and then and retransform");
+		}
+		ClassFileTransformer transformer = null;
+		try {
+			originalByteCode.get(internalFormName, new Callable<byte[]>() {
+				@Override
+				public byte[] call() throws Exception {
+					ClassPool cp = new ClassPool();
+					cp.appendClassPath(new LoaderClassPath(TSDB.class.getClassLoader()));
+					CtClass tsdbClazz = cp.get(TSDB.class.getName());
+					return tsdbClazz.toBytecode();			
+				}
+			});		
+			transformer = newClassFileTransformer(internalFormName, mockedClass);
+			instrumentation.addTransformer(transformer, true);
+			instrumentation.retransformClasses(targetClass);			
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to transform [" + targetClass.getName() + "]", ex);
+		} finally {
+			if(transformer!=null) {
+				instrumentation.removeTransformer(transformer);
+			}
+		}
+	}
+	
+	/**
+	 * Restores a transformed class back to its original form 
+	 * @param targetClass The class to restore
+	 */
+	public synchronized void restore(Class<?> targetClass) {
+		final String internalFormName = internalForm(targetClass.getName());
+		final byte[] restoreByteCode = originalByteCode.getIfPresent(internalFormName);
+		if(restoreByteCode==null || transformedByteCode.getIfPresent(internalFormName)==null) {
+			throw new RuntimeException("Class ["+ targetClass.getName() + "] is not in mocked state");
+		}
+		ClassFileTransformer ctf = new ClassFileTransformer() {
+			public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+				if(internalFormName.equals(className)) {
+					transformedByteCode.invalidate(internalFormName);
+					return restoreByteCode;
+				}
+				return classfileBuffer;
+			}
+		};
+		try {
+			instrumentation.addTransformer(ctf, true);
+			instrumentation.retransformClasses(targetClass);
+		} catch (UnmodifiableClassException e) {
+			throw new RuntimeException("Failed to restore class [" + internalFormName + "]", e);
+		} finally {
+			instrumentation.removeTransformer(ctf);
+		}
+	}	
+	
+	/**
+	 * Indicates if the passed methods have the identical signature
+	 * @param m1 The first method
+	 * @param m2 The second method
+	 * @return true if both methods have the same signature, false otherwise
+	 */
+	protected boolean areMethodsEqual(Method m1, Method m2) {
+		if(!m1.getName().equals(m2.getName())) return false;
+		if(!m1.getReturnType().equals(m2.getReturnType())) return false;
+		return Arrays.deepEquals(m1.getParameterTypes(), m2.getParameterTypes());
+	}
+
+	/**
+	 * Creates a new classfile transformer
+	 * @param internalFormClassName The class name to transform
+	 * @param mockedClass The class containing the mocked template methods to inject into the target class
+	 * @return the transformer
+	 */
+	protected ClassFileTransformer newClassFileTransformer(final String internalFormClassName, final Class<?> mockedClass) {
+		final String binaryName = binaryForm(internalFormClassName);
+		return new ClassFileTransformer(){
+			@Override
+			public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+					if(internalFormClassName.equals(className)) {
+						LOG.info("\n\t================\n\tTransforming [{}]\n\tUsing [{}]\n\t================", binaryForm(internalFormClassName), mockedClass.getName());
+						try {
+							ClassPool cp = new ClassPool();
+							cp.appendClassPath(new ByteArrayClassPath(binaryName, classfileBuffer));
+							cp.appendClassPath(new LoaderClassPath(mockedClass.getClassLoader()));
+							CtClass targetClazz = cp.get(binaryName);
+							CtClass mockClazz = cp.get(mockedClass.getName());
+//							 
+							int methodCount = 0;
+							for(CtMethod templateMethod: mockClazz.getDeclaredMethods()) {
+								if(!templateMethod.getDeclaringClass().equals(mockClazz)) continue;
+								CtMethod targetMethod = null;
+								try {
+									targetMethod = targetClazz.getDeclaredMethod(templateMethod.getName(), templateMethod.getParameterTypes());
+									targetClazz.removeMethod(targetMethod);
+									targetMethod.setBody(templateMethod, null);
+									targetClazz.addMethod(targetMethod);
+									methodCount++;
+								} catch (NotFoundException nfe) {					
+								}				
+							}
+							if(methodCount==0) {
+								throw new RuntimeException("Failed to replace any methods");
+							}
+							byte[] byteCode =  targetClazz.toBytecode();
+							transformedByteCode.put(internalFormClassName, byteCode);
+							return byteCode;
+						} catch (Exception ex) {
+							LOG.error("Transform for [{}] using [{}] failed", binaryName, mockedClass.getName(), ex);
+							return classfileBuffer;
+						}
+					}
+					return classfileBuffer;
+			}
+		}; 
+
+	}
 	/**
 	 * Converts the passed binary class name to the internal form 
 	 * @param name The class name to convert
@@ -120,6 +262,16 @@ public class MethodMocker {
 	}
 	
 	/**
+	 * Converts the passed internal form class name to the binary name
+	 * @param name The class name to convert
+	 * @return the binary name of the class
+	 */
+	public static String binaryForm(CharSequence name) {
+		return name.toString().replace('/', '.');
+	}
+	
+	
+	/**
 	 * Converts the binary name of passed class to the internal form 
 	 * @param clazz The class for which the name should be converted
 	 * @return the internal form name of the class
@@ -128,7 +280,29 @@ public class MethodMocker {
 		return internalForm(clazz.getName());
 	}
 	
-	
+	public static void main(String[] args) {
+		LOG.info("Testing MethodMocker");
+		MethodMocker mocker = getInstance();
+		EmptyTSDB template = new EmptyTSDB() {
+			@Override
+			public void indexTSMeta(TSMeta meta) {
+				meta.setDescription("Your mock rocks");				
+			}
+		};
+		mocker.transform(TSDB.class, template.getClass());
+		TSMeta meta = new TSMeta();
+		TSDB tsdb = null;
+		try {
+			tsdb = new TSDB(new Config(true));
+			tsdb.indexTSMeta(meta);
+			LOG.info("TSMeta Description: [{}]", meta.getDescription());
+			
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to create TSDB", ex);
+		} finally {
+			if(tsdb!=null) try { tsdb.shutdown(); } catch (Exception ex) {}
+		}
+	}
 
 	
 }

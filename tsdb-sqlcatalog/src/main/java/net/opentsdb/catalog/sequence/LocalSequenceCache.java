@@ -27,16 +27,12 @@ package net.opentsdb.catalog.sequence;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
-
-import net.opentsdb.catalog.datasource.CatalogDataSource;
-import net.opentsdb.catalog.datasource.ICatalogDataSource;
 
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
@@ -69,20 +65,54 @@ public class LocalSequenceCache {
 	/** Instance logger */
 	protected final Logger log;
 	
+	/** All created sequence caches keyed by the upper case sequence name */
+	private static final ConcurrentHashMap<String, LocalSequenceCache> instances = new ConcurrentHashMap<String, LocalSequenceCache>();
+	
+	/**
+	 * Creates a new LocalSequenceCache or returns the already created one for the specified sequence
+	 * @param increment The local sequence increment
+	 * @param sequenceName The DB Sequence name, fully qualified if necessary
+	 * @param dataSource The datasource to provide connections to refresh the sequence cache
+	 * @return the LocalSequenceCache for the specified sequence
+	 */
+	public static LocalSequenceCache getInstance(int increment, String sequenceName, DataSource dataSource) {
+		LocalSequenceCache lsc = instances.get(sequenceName);
+		if(lsc==null) {
+			synchronized(instances) {
+				lsc = instances.get(sequenceName);
+				if(lsc==null) {
+					lsc = new LocalSequenceCache(increment, sequenceName, dataSource);
+				}
+			}
+		}
+		return lsc;
+	}
+	
 	/**
 	 * Creates a new LocalSequenceCache
 	 * @param increment The local sequence increment
 	 * @param sequenceName The DB Sequence name, fully qualified if necessary
 	 * @param dataSource The datasource to provide connections to refresh the sequence cache
 	 */
-	public LocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
+	public LocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {		
 		log = LoggerFactory.getLogger(getClass().getName() + "." + sequenceName);
+		if(instances.containsKey(sequenceName)) throw new RuntimeException("LocalSequenceCache for Sequence [" + sequenceName + "] already exists");
 		this.increment = increment;
 		this.sequenceName = sequenceName;
 		this.dataSource = dataSource;
 		init();
 		refresh();
 		log.info("Created LocalSequenceCache [{}]", sequenceName);
+		instances.put(sequenceName, this);
+	}
+	
+	/**
+	 * Retrieves the local sequence cache for the passed sequence name
+	 * @param sequenceName The sequence name the sequence cache was created for
+	 * @return the the local sequence cache or null if it was not found
+	 */
+	public static LocalSequenceCache getLocalSequenceCache(String sequenceName) {
+		return instances.get(sequenceName.trim().toUpperCase());
 	}
 	
 	/**

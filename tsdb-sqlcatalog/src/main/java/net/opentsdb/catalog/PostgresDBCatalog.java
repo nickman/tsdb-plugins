@@ -27,6 +27,7 @@ package net.opentsdb.catalog;
 import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -92,9 +93,19 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	public void setConnectionProperty(Connection conn, String key, String value) {
-		// TODO Auto-generated method stub
-		
+		Statement st = null;
+		try {
+			st = conn.createStatement();
+			st.executeQuery("SELECT set_env_var('" + key + "', '" + value + "')");
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set connection property [" + key +  "/" + value + "]", ex);
+		} finally {
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
+		}		
 	}
+
+
+
 
 	/**
 	 * {@inheritDoc}
@@ -102,9 +113,21 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 	 */
 	@Override
 	public String getConnectionProperty(Connection conn, String key, String defaultValue) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+		Statement st = null;
+		ResultSet rset = null;
+		try {
+			st = conn.createStatement();
+			rset = st.executeQuery("SELECT get_env_var('" + key + "')");
+			rset.next();
+			String val = rset.getString(1);
+			return val==null ? defaultValue : val;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get connection property [" + key + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
+		}
+	}	
 
 
 }

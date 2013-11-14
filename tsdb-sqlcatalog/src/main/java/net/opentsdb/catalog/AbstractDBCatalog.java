@@ -199,10 +199,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	/** The keys to insert into a new custom map for UISMetas and Annotations */
 	public static final Map<String, String> INIT_CUSTOM;
 	
-	/** The custom map key to identify how the object was saved */
-	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
-	/** The custom map key to specify the version of the object */
-	public static final String VERSION_KEY = "tsd.sql.version";
 	
 	static {
 		Map<String, String> tmp = new TreeMap<String, String>();
@@ -268,7 +264,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	 * @see net.opentsdb.catalog.CatalogDBInterface#initConnection(java.sql.Connection)
 	 */
 	public void initConnection(Connection conn) {
-		/* No Op */
+		setConnectionProperty(conn, TSD_CONN_TYPE, EQ_CONN_FLAG);
 	}
 
 	// ========================================================================================
@@ -299,11 +295,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		annSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
-		syncQueueSequence = createLocalSequenceCache(
-				ConfigurationHelper.getIntSystemThenEnvProperty(DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR, extracted), 
-				"QID_SEQ", dataSource); // QID_SEQ
-		// This guy is only for H2, but has no effect on other impls.
-		UpdateRowQueuePKTrigger.setSequenceCache(syncQueueSequence);
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	

@@ -337,15 +337,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
     }
     
     
-    
-    /**
-     * <p>Sets the H2 user defined variables to signal to H2 triggers that this is the event queue processor.</p>
-     * {@inheritDoc}
-     * @see net.opentsdb.catalog.AbstractDBCatalog#initConnection(java.sql.Connection)
-     */
-    public void initConnection(Connection conn) {
-    	setUserDefinedVar(conn, EQ_CONN_FLAG, "true");
-    }
+
     
     /**
      * Generates the UNION SQL to retrieve the actual records matched via the lucene text query
@@ -428,8 +420,13 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		Statement st = null;
 		try {
 			st = conn.createStatement();
-			String format = "SET @%s = %s;";
+			String format = null;
 			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
+				if(entry.getValue() instanceof CharSequence) {
+					format =  "SET @%s = '%s';";
+				} else {
+					format =  "SET @%s = %s;";
+				}
 				st.execute(String.format(format, entry.getKey(), entry.getValue()));
 				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
 			}						

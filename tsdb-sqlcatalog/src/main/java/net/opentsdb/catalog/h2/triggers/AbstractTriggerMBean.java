@@ -24,6 +24,8 @@
  */
 package net.opentsdb.catalog.h2.triggers;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.management.ObjectName;
 
 /**
@@ -88,4 +90,45 @@ public interface AbstractTriggerMBean {
 	 * @return the names of the operations that this trigger fires on
 	 */
 	public String getTypeNames();	
+	
+	/**
+	 * Returns the rolling average elapsed time in ns. of trigger ops
+	 * @return the rolling average elapsed time in ns. of trigger ops
+	 */
+	public long getAverageElapsedTimeNs();
+	
+	/**
+	 * Returns the last elapsed time in ns. of trigger ops
+	 * @return the last elapsed time in ns. of trigger ops
+	 */
+	public long getLastElapsedTimeNs();	
+	/**
+	 * Returns the rolling average elapsed time in ms. of trigger ops
+	 * @return the rolling average elapsed time in ms. of trigger ops
+	 */
+	public long getAverageElapsedTimeMs();
+	
+	/**
+	 * Returns the last elapsed time in ms. of trigger ops
+	 * @return the last elapsed time in ms. of trigger ops
+	 */
+	public long getLastElapsedTimeMs();	
+	
+	/**
+	 * Returns the rolling average elapsed time in us. of trigger ops
+	 * @return the rolling average elapsed time in us. of trigger ops
+	 */
+	public long getAverageElapsedTimeUs();
+	
+	/**
+	 * Returns the last elapsed time in us. of trigger ops
+	 * @return the last elapsed time in us. of trigger ops
+	 */
+	public long getLastElapsedTimeUs();	
+	
+	/**
+	 * Returns the rolling 90th percentile elapsed time in ns.
+	 * @return the rolling 90th percentile elapsed time in ns.
+	 */
+	public long get90PercentileElapsedTimeNs();	
 }

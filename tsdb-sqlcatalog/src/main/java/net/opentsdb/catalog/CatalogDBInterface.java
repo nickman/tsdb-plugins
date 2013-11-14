@@ -61,6 +61,19 @@ public interface CatalogDBInterface {
 	 * jdbc:h2:tcp://localhost:9092/mem:tsdb
 	 */
 	
+	/** The connection property key to specify the connection type */
+	public static final String TSD_CONN_TYPE = "TSDCONNTYPE";	
+    /** The connection property value for <b><code>tsdconntype</code></b> when the connection is from the event queue processor */
+    public static final String EQ_CONN_FLAG = "EQPROCESSOR";
+    /** The connection property value for <b><code>tsdconntype</code></b> when the connection is from the sync queue processor */
+    public static final String SYNC_CONN_FLAG = "SYNCPROCESSOR";
+	/** The custom map key to identify how the object was saved */
+	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
+	/** The custom map key to specify the version of the object */
+	public static final String VERSION_KEY = "tsd.sql.version";
+    
+	
+	
 	/**
 	 * Returns the created data source
 	 * @return a connection pool data source

@@ -2,7 +2,7 @@
  * Helios, OpenSource Monitoring
  * Brought to you by the Helios Development Group
  *
- * Copyright 2007, Helios Development Group and individual contributors
+ * Copyright 2013, Helios Development Group and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -27,20 +27,19 @@ package net.opentsdb.catalog.h2.triggers;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collections;
 
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 
 /**
- * <p>Title: UIDMetaTrigger</p>
- * <p>Description: Trigger for UIDMeta tables to capture deferred sync operations</p> 
+ * <p>Title: TSMetaTrigger</p>
+ * <p>Description: Trigger for the TSMeta table to capture deferred sync operations</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.catalog.h2.triggers.UIDMetaTrigger</code></p>
+ * <p><code>net.opentsdb.catalog.h2.triggers.TSMetaTrigger</code></p>
  */
 
-public class UIDMetaTrigger extends AbstractSyncQueueTrigger {
+public class TSMetaTrigger extends AbstractSyncQueueTrigger {
 
 	/**
 	 * {@inheritDoc}
@@ -58,7 +57,7 @@ public class UIDMetaTrigger extends AbstractSyncQueueTrigger {
 				// ======  INSERT  ======
 				if(!EQ) {
 					incrementVersion(newRow);
-					incrementVersion(7, newRow);				
+					incrementVersion(14, newRow);				
 				}
 				addSyncQueueEvent(conn, tableName, "I", newRow[0].toString());
 			} else if(newRow==null) {
@@ -69,7 +68,7 @@ public class UIDMetaTrigger extends AbstractSyncQueueTrigger {
 				if(Arrays.deepEquals(oldRow, newRow)) return;			
 				if(!EQ) {
 					incrementVersion(newRow);
-					incrementVersion(7, newRow);
+					incrementVersion(14, newRow);
 				}
 				addSyncQueueEvent(conn, tableName, "U", newRow[0].toString());			
 			}
@@ -78,6 +77,5 @@ public class UIDMetaTrigger extends AbstractSyncQueueTrigger {
 		}
 	}
 
-	
 
 }

@@ -190,6 +190,19 @@ public class JSONMapSupport {
 		map.put(nvls("Key", key), nvls("Value", value));
 		return toString(map);
 	}
+	
+	/**
+	 * Puts the passed key/value pair into the map represented by the passed JSON source
+	 * @param key The map key
+	 * @param value The map value
+	 * @param map The map
+	 * @return the JSON source of the modified map
+	 */
+	public static String set(CharSequence key, Object value, Map<String, String> map) {
+		map.put(nvls("Key", key), nvls("Value", value));
+		return toString(map);
+	}
+	
 
 	/**
 	 * Determines if the JSON Map contains the passed key
@@ -287,6 +300,20 @@ public class JSONMapSupport {
 		map.put(key, Integer.toString(value));
 		return JSON.serializeToString(map);	
 	}
+	
+	/**
+	 * Increments the int in the map bound to the passed key by the specified amount
+	 * @param map The map to update
+	 * @param incr The amount to increment by
+	 * @param key The key that the int is bound to in the map
+	 * @return the updated map JSON source
+	 */
+	public static String increment(Map<String, String> map, int incr, String key) {
+		int value = Integer.parseInt(map.get(nvl("Key", key))) + incr;
+		map.put(key, Integer.toString(value));
+		return JSON.serializeToString(map);	
+	}
+	
 	
 	/**
 	 * Increments the long in the map bound to the passed key by the specified amount

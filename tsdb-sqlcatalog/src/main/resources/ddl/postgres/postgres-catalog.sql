@@ -220,7 +220,7 @@ CREATE TABLE SYNC_QUEUE (
 COMMENT ON TABLE SYNC_QUEUE IS 'A queue and status summary of snchronizations back to the TSDB when updates are made directly to the DB';
 COMMENT ON COLUMN SYNC_QUEUE.QID IS 'The synthetic identifier for this sync operation';
 COMMENT ON COLUMN SYNC_QUEUE.EVENT_TYPE IS 'The source of the update that triggered this sync operation';
-COMMENT ON COLUMN SYNC_QUEUE.EVENT IS 'The event JSON that triggered this Sync Operation';
+COMMENT ON COLUMN SYNC_QUEUE.EVENT IS 'The pk of the event that triggered this Sync Operation';
 COMMENT ON COLUMN SYNC_QUEUE.OP_TYPE IS 'The SQL Operation type that triggered this sync operation';
 COMMENT ON COLUMN SYNC_QUEUE.EVENT_TIME IS 'The timestamp when the sync event occured';
 COMMENT ON COLUMN SYNC_QUEUE.LAST_SYNC_ATTEMPT IS 'The last [failed] sync operation attempt timestamp';

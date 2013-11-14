@@ -26,12 +26,17 @@ package net.opentsdb.catalog.h2.triggers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
+import net.opentsdb.catalog.h2.H2Support;
+
 import org.h2.api.Trigger;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
+import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +55,9 @@ public abstract class AbstractTrigger implements Trigger, AbstractTriggerMBean {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** A counter of the number of calls to this trigger */
 	protected final AtomicLong callCount = new AtomicLong(0L);
+	/** A sliding window of elapsed times in ns. for calls to this trigger */
+	protected ConcurrentLongSlidingWindow elapsedTimes;
+	
 	/** The schema name where the trigger resides */
 	protected String schemaName = null;
 	/** The H2 trigger name */
@@ -78,6 +86,61 @@ public abstract class AbstractTrigger implements Trigger, AbstractTriggerMBean {
 		return callCount.get();
 	}
 	
+	/**
+	 * Returns the rolling average elapsed time in ns. of trigger ops
+	 * @return the rolling average elapsed time in ns. of trigger ops
+	 */
+	public long getAverageElapsedTimeNs() {
+		return elapsedTimes.avg();
+	}
+	
+	/**
+	 * Returns the last elapsed time in ns. of trigger ops
+	 * @return the last elapsed time in ns. of trigger ops
+	 */
+	public long getLastElapsedTimeNs() {
+		return elapsedTimes.getFirst();
+	}
+	
+	/**
+	 * Returns the rolling average elapsed time in ms. of trigger ops
+	 * @return the rolling average elapsed time in ms. of trigger ops
+	 */
+	public long getAverageElapsedTimeMs() {
+		return TimeUnit.MILLISECONDS.convert(getAverageElapsedTimeNs(), TimeUnit.NANOSECONDS);
+	}
+	
+	/**
+	 * Returns the last elapsed time in ms. of trigger ops
+	 * @return the last elapsed time in ms. of trigger ops
+	 */
+	public long getLastElapsedTimeMs() {
+		return TimeUnit.MILLISECONDS.convert(getLastElapsedTimeNs(), TimeUnit.NANOSECONDS);
+	}
+	
+	/**
+	 * Returns the rolling average elapsed time in us. of trigger ops
+	 * @return the rolling average elapsed time in us. of trigger ops
+	 */
+	public long getAverageElapsedTimeUs() {
+		return TimeUnit.MICROSECONDS.convert(getAverageElapsedTimeNs(), TimeUnit.NANOSECONDS);
+	}
+	
+	/**
+	 * Returns the last elapsed time in us. of trigger ops
+	 * @return the last elapsed time in us. of trigger ops
+	 */
+	public long getLastElapsedTimeUs() {
+		return TimeUnit.MICROSECONDS.convert(getLastElapsedTimeNs(), TimeUnit.NANOSECONDS);
+	}
+	
+	/**
+	 * Returns the rolling 90th percentile elapsed time in ns.
+	 * @return the rolling 90th percentile elapsed time in ns.
+	 */
+	public long get90PercentileElapsedTimeNs() {
+		return elapsedTimes.percentile(90);
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -90,7 +153,7 @@ public abstract class AbstractTrigger implements Trigger, AbstractTriggerMBean {
 		this.tableName = tableName;
 		this.before = before;
 		this.type = type;
-		on = JMXHelper.objectName(getClass().getPackage().getName(), "trigger", getClass().getSimpleName(), "type", TriggerOp.getEnabledStatesName(type));
+		on = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":table=").append(tableName).append(",type=").append(TriggerOp.getEnabledStatesName(type)));
 		if(JMXHelper.getHeliosMBeanServer().isRegistered(on)) {
 			try { JMXHelper.getHeliosMBeanServer().unregisterMBean(on); } catch (Exception ex) {/* No Op */}
 		}
@@ -99,6 +162,8 @@ public abstract class AbstractTrigger implements Trigger, AbstractTriggerMBean {
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to register H2 Trigger [" + on + "]", ex);
 		}
+		int slidingWindowSize = ConfigurationHelper.getIntSystemThenEnvProperty("h2.trigger.elpased.slidingwindowsize", 150);
+		elapsedTimes = new ConcurrentLongSlidingWindow(slidingWindowSize);
 		log.info("Initialized Trigger [" + getClass().getSimpleName() + "]  Type [" + TriggerOp.getEnabledStatesName(type) + "]");
 		
 	}

@@ -24,10 +24,20 @@
  */
 package net.opentsdb.catalog.h2.triggers;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import static net.opentsdb.catalog.CatalogDBInterface.EQ_CONN_FLAG;
+import static net.opentsdb.catalog.CatalogDBInterface.SYNC_CONN_FLAG;
+import static net.opentsdb.catalog.CatalogDBInterface.TSD_CONN_TYPE;
 
-import net.opentsdb.catalog.sequence.LocalSequenceCache;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Map;
+
+import net.opentsdb.catalog.CatalogDBInterface;
+import net.opentsdb.catalog.h2.json.JSONMapSupport;
+
 
 
 /**
@@ -39,45 +49,112 @@ import net.opentsdb.catalog.sequence.LocalSequenceCache;
  */
 
 public abstract class AbstractSyncQueueTrigger extends AbstractTrigger {
-	/** The sequence cache providing the value for SYNC_QUEUE.QID */
-	protected LocalSequenceCache sequenceCache = null;
 	
-	
-	
-    /** The key of the user defined var to flag a connection as the event queue processor */
-    public static final String EQ_CONN_FLAG = "eqprocessor";
-    /** The key of the user defined var to flag a connection as the sync queue processor */
-    public static final String SYNC_CONN_FLAG = "syncprocessor";
 
 	/** The queue table insert template */
-	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (QID, EVENT_TYPE, EVENT, OP_TYPE) VALUES (?,?,?,?)";
-
-	/*
-	CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
-	QID BIGINT NOT NULL COMMENT 'The synthetic identifier for this sync operation',
-	EVENT_TYPE VARCHAR(20) NOT NULL 
-		COMMENT 'The source of the update that triggered this sync operation'
-		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_FQN', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-	EVENT VARCHAR(120) NOT NULL COMMENT 'The event PK as JSON that triggered this Sync Operation',
-	OP_TYPE CHAR(1) NOT NULL
-		COMMENT 'The SQL Operation type that triggered this sync operation'
-		CHECK OP_TYPE IN ('I', 'D', 'U'), 	
-	EVENT_TIME TIMESTAMP AS NOW() NOT NULL COMMENT 'The timestamp when the sync event occured',
-	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
-	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
-);
-
-	QID_SEQ INCREMENT BY @QID_SEQ_SIZE;
-
-	 */
+	public static final String QUEUE_SQL_TEMPLATE = "INSERT INTO SYNC_QUEUE (EVENT_TYPE, EVENT, OP_TYPE) VALUES (?,?,?)";
+	
 	
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.h2.triggers.AbstractTrigger#init(java.sql.Connection, java.lang.String, java.lang.String, java.lang.String, boolean, int)
+	 * Indicates if the connection is from the Event Queue Processor
+	 * @param conn the connection to test 
+	 * @return true if the connection is from the Event Queue Processor, false otherwise
 	 */
-	public void init(Connection conn, String schemaName, String triggerName, String tableName, boolean before, int type) throws SQLException {
-		super.init(conn, schemaName, triggerName, tableName, before, type);
-		sequenceCache = new LocalSequenceCache()
+	protected boolean isEQProcessor(Connection conn) {
+		return EQ_CONN_FLAG.equals(getConnectionProperty(conn, TSD_CONN_TYPE, null));
 	}
+	
+	/**
+	 * Indicates if the connection is from the Sync Queue Processor
+	 * @param conn the connection to test 
+	 * @return true if the connection is from the Sync Queue Processor, false otherwise
+	 */
+	protected boolean isSQProcessor(Connection conn) {
+		return SYNC_CONN_FLAG.equals(getConnectionProperty(conn, TSD_CONN_TYPE, null));
+	}
+	
+	
+	/**
+	 * Writes a new SyncQueue event to the SyncQueue
+	 * @param conn The connection to write with
+	 * @param eventType The event type
+	 * @param opType The operation type 
+	 * @param pk A map of named values comprising the primary key
+	 * @throws SQLException
+	 */
+	protected void addSyncQueueEvent(Connection conn, String eventType, String opType, String pk) throws SQLException {
+		PreparedStatement ps = null;
+		try {
+			ps = conn.prepareStatement(QUEUE_SQL_TEMPLATE);
+			ps.setString(1, eventType);
+			ps.setString(2, pk);
+			ps.setString(3, opType);
+			ps.executeUpdate();
+		} finally {
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	/**
+	 * Converts the passed PK map to a json string
+	 * @param pk The pk to jsonize
+	 * @return the JSON string representing the names values comprising the pk
+	 */
+	protected String pkToJSON(Map<String, Object> pk) {
+		if(pk==null || pk.isEmpty()) throw new RuntimeException("PK Map was null or empty");
+		StringBuilder b = new StringBuilder("{");
+		for(Map.Entry<String, Object> entry: pk.entrySet()) {
+			b.append("\"").append(entry.getKey()).append("\":").append("\"").append(entry.getValue()).append("\",");
+		}
+		b.deleteCharAt(b.length()-1);
+		return b.append("}").toString();
+	}
+
+	/**
+	 * Retrieves a connection property value from the passed connection
+	 * @param conn The connection to read from
+	 * @param key The property key
+	 * @param defaultValue Thye value to return if the property is not defined or is set to null
+	 * @return the read property value
+	 */
+	public String getConnectionProperty(Connection conn, String key, String defaultValue) {
+		Statement st = null;
+		ResultSet rset = null;
+		try {
+			st = conn.createStatement();
+			rset = st.executeQuery("SELECT @" + key);
+			rset.next();
+			String val = rset.getString(1);
+			return val==null ? defaultValue : val;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get connection property [" + key + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
+		}
+	}
+	
+	/**
+	 * Increments the numeric version column by 1
+	 * @param newRow The new row trigger supplied object array
+	 */
+	protected void incrementVersion(Object[] newRow) {
+		newRow[1] = ((Integer)newRow[1])+1;
+	}
+	
+	/**
+	 * Increments the custom JSON map version entry by 1
+	 * @param col The column id of the custom JSON map 
+	 * @param newRow The new row trigger supplied object array
+	 */
+	protected void incrementVersion(int col, Object[] newRow) {		
+		Map<String, String> map = JSONMapSupport.read((String)newRow[col]);
+		if(map.containsKey(CatalogDBInterface.VERSION_KEY)) {
+			newRow[col] = JSONMapSupport.increment(map, 1, CatalogDBInterface.VERSION_KEY);
+		} else {
+			newRow[col] = JSONMapSupport.set(CatalogDBInterface.VERSION_KEY, 1, map);
+		}
+	}
+
 
 }

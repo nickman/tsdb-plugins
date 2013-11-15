@@ -294,7 +294,6 @@ public class LongSlidingWindow  implements ILongSlidingWindow {
 		double _pp = _p/100d;
 		LongSlidingWindow sorted = new LongSlidingWindow(new LongSortedSet(clone().array).array);
 		int ix = (int)((_pp*sorted.size())+ONE_HALF);
-		log("NRP:" + p + "  ix:" + ix);
 		return sorted.get(ix);
 	}
 	

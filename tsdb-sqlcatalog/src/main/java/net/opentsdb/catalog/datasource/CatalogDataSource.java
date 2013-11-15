@@ -303,6 +303,34 @@ public class CatalogDataSource implements ICatalogDataSource {
 		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.datasource.ICatalogDataSource#getJdbcUrl()
+	 */
+	@Override
+	public String getJdbcUrl() {
+		return config.getJdbcUrl();
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.datasource.ICatalogDataSource#getUser()
+	 */
+	@Override
+	public String getUser() {
+		return config.getUser();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.datasource.ICatalogDataSource#getDriverName()
+	 */
+	@Override
+	public String getDriverName() {
+		return delegatingDriver.getName();
+	}
+	
 
 	/**
 	 * <p>Title: DelegatingDriver</p>
@@ -329,6 +357,14 @@ public class CatalogDataSource implements ICatalogDataSource {
 		 */
 		public String toString() {
 			return driver.toString();
+		}
+		
+		/**
+		 * Returns the driver name and version
+		 * @return the driver name and version
+		 */
+		public String getName() {
+			return String.format("%s version %s.%s", driver.getClass().getName(), driver.getMajorVersion(), driver.getMinorVersion());
 		}
 		
 		/**
@@ -412,5 +448,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 			return driver.getParentLogger();
 		}
 	}
+
+
 
 }

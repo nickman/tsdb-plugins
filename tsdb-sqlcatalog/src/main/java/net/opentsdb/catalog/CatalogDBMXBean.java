@@ -120,6 +120,26 @@ public interface CatalogDBMXBean {
 	 */
 	public long getAnnotationUpdateCount();
 	
+	/**
+	 * Returns the URL of the connected database
+	 * @return the URL of the connected database
+	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getJdbcUrl()
+	 */
+	public String getJdbcUrl();
+
+	/**
+	 * Returns the username of the database user
+	 * @return the username of the database user
+	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getUser()
+	 */
+	public String getUser();
+
+	/**
+	 * Returns the driver name and version
+	 * @return the driver name and version
+	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getDriverName()
+	 */
+	public String getDriverName();	
 	
 	
 	

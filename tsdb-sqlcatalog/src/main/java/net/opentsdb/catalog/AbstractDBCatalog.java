@@ -1451,6 +1451,33 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public long getAnnotationUpdateCount() {
 		return getOpCount(ANN_UPDATE_CNT);
 	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getJdbcUrl()
+	 */
+	@Override
+	public String getJdbcUrl() {
+		return cds.getJdbcUrl();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getUser()
+	 */
+	@Override
+	public String getUser() {
+		return cds.getUser();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getDriverName()
+	 */
+	@Override
+	public String getDriverName() {
+		return cds.getDriverName();
+	}
 	
 
 }

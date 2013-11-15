@@ -290,5 +290,26 @@ public interface ICatalogDataSource {
 	/** The default pool username */
 	public static final String DEFAULT_JDBC_POOL_USERNAME = "sa";
 
+	/**
+	 * Returns the URL of the connected database
+	 * @return the URL of the connected database
+	 * @see com.jolbox.bonecp.BoneCPConfig#getJdbcUrl()
+	 */
+	public String getJdbcUrl();
+
+
+	/**
+	 * Returns the username  of the connected database user
+	 * @return the username  of the connected database user
+	 * @see com.jolbox.bonecp.BoneCPConfig#getUser()
+	 */
+	public String getUser();
+	
+	/**
+	 * Returns the driver name and version used to connect to the database
+	 * @return the driver name and version used to connect to the database
+	 */
+	public String getDriverName();
+	
 
 }

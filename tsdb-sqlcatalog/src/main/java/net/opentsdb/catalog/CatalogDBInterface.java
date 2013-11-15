@@ -71,7 +71,6 @@ public interface CatalogDBInterface {
 	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
 	/** The custom map key to specify the version of the object */
 	public static final String VERSION_KEY = "tsd.sql.version";
-    
 	
 	
 	/**
@@ -155,13 +154,49 @@ public interface CatalogDBInterface {
 	 * @param ps The prepared statement to bind against and batch
 	 * @throws SQLException thrown on binding or batching failures
 	 */
-	public void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException;	
+	public void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException;
+	
+	/**
+	 * Binds and batches a UIDMeta update operation
+	 * @param uidMeta The UIDMeta to index
+	 * @param ps The prepared statement to bind against and batch
+	 * @throws SQLException thrown on binding or batching failures
+	 */
+	public void bindUIDMetaUpdate(UIDMeta uidMeta, PreparedStatement ps) throws SQLException;
 	
 	/**
 	 * Executes the UID indexing batches
 	 * @param conn The connection to execute the batches with
 	 */
 	public void executeUIDBatches(Connection conn);
+	
+	// ===================================================================================================
+	// Object Exists (INSERT or UPDATE ?)
+	// ===================================================================================================
+	
+	/**
+	 * Determines if the passed tsmeta is already stored
+	 * @param conn The connection to query on
+	 * @param tsMeta The tsmeta to verify
+	 * @return true if the passed tsmeta is already stored, false otherwise
+	 */
+	public boolean exists(Connection conn, TSMeta tsMeta);
+
+	/**
+	 * Determines if the passed uidmeta is already stored
+	 * @param conn The connection to query on
+	 * @param uidMeta The uidmeta to verify
+	 * @return true if the passed uidmeta is already stored, false otherwise
+	 */
+	public boolean exists(Connection conn, UIDMeta uidMeta);
+
+	/**
+	 * Determines if the passed annotation is already stored
+	 * @param conn The connection to query on
+	 * @param annotation The annotation to verify
+	 * @return true if the passed annotation is already stored, false otherwise
+	 */
+	public boolean exists(Connection conn, Annotation annotation);
 
 	// ===================================================================================================
 	// Object Unmarshalling (i.e. ResultSet to collection of Objects)
@@ -212,6 +247,23 @@ public interface CatalogDBInterface {
 	 */
 	public String getUIDMetaMetricIndexSQL();
 	
+	/**
+	 * Returns the update SQL for a Metric UIDMeta
+	 * @return the update SQL for a Metric UIDMeta
+	 */
+	public String getUIDMetaMetricUpdateSQL();
+	/**
+	 * Returns the update SQL for a TagV UIDMeta
+	 * @return the update SQL for a TagV UIDMeta
+	 */
+	public String getUIDMetaTagVUpdateSQL();
+	/**
+	 * Returns the update SQL for a TagK UIDMeta
+	 * @return the update SQL for a TagK UIDMeta
+	 */
+	public String getUIDMetaTagKUpdateSQL();
+	
+	
 	// ==================================================================================================
 	//  Object Deletion 
 	// ==================================================================================================
@@ -243,7 +295,14 @@ public interface CatalogDBInterface {
 	// ========================================================================================
 	
 	/**
-	 * Stores a new annotation
+	 * Saves or updates a UIDMeta
+	 * @param conn The connection to save on
+	 * @param uidMeta The UIDMeta to save or update
+	 */
+	public void processUIDMeta(Connection conn, UIDMeta uidMeta);
+	
+	/**
+	 * Saves or updates the passed annotation
 	 * @param conn The connection to write to
 	 * @param annotation The annotation to save
 	 */
@@ -259,7 +318,7 @@ public interface CatalogDBInterface {
 	public String processUIDMetaPair(final Set<String> batchUidPairs, Connection conn, UIDMeta[] tagPair);	
 	
 	/**
-	 * Stores the passed TSMeta
+	 * Saves or updates the passed TSMeta
 	 * @param batchUidPairs A set of UIDMeta tag pair keys that have already been saved in this batch.
 	 * @param conn The connection to write to
 	 * @param tsMeta The TSMeta to save

@@ -44,13 +44,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
 
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
-import net.opentsdb.catalog.h2.UpdateRowQueuePKTrigger;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.catalog.sequence.LocalSequenceCache;
 import net.opentsdb.core.TSDB;
@@ -64,11 +65,14 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -79,7 +83,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>net.opentsdb.catalog.AbstractDBCatalog</code></p>
  */
 
-public abstract class AbstractDBCatalog implements CatalogDBInterface {
+public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDBMXBean {
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
 	/** The constructed datasource */
@@ -99,10 +103,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	
 	/** batched ps for tag key inserts */
 	protected PreparedStatement uidMetaTagKIndexPs = null;
+	/** batched ps for tag key updates */
+	protected PreparedStatement uidMetaTagKUpdatePs = null;
 	/** batched ps for tag value inserts */
 	protected PreparedStatement uidMetaTagVIndexPs = null;
+	/** batched ps for tag value updates */
+	protected PreparedStatement uidMetaTagVUpdatePs = null;	
 	/** batched ps for metric name inserts */
-	protected PreparedStatement uidMetaMetricIndexPs = null;
+	protected PreparedStatement uidMetaMetricIndexPs = null;  
+	/** batched ps for metric name updates */
+	protected PreparedStatement uidMetaMetricUpdatePs = null;
 	/** batched ps for tag pair inserts */
 	protected PreparedStatement uidMetaTagPairPs = null;
 	/** batched ps for fqn inserts */
@@ -154,13 +164,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	//	Object COUNT and EXISTS SQL
 	// ========================================================================================
 	/** The SQL template for verification of whether a UIDMeta has been saved or not */
-	public static final String UID_EXISTS_SQL = "SELECT COUNT(*) FROM %s WHERE XUID = ?";
+	public static final String UID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_%s WHERE XUID = ?";
 	/** The SQL for verification of whether a UIDMeta pair has been saved or not */
 	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE XUID = ?";
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
 	/** The SQL for verification of whether an Annotation has been saved or not */
-	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ?  AND EXISTS (SELECT FQNID FROM TSD_FQN T WHERE T.FQNID = A.FQNID  AND TSUID = ?)";
+	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_FQN T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
 	
 	
 	
@@ -169,6 +179,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
 	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?)";
+	/** The UIDMeta update SQL template */	
+	public static final String UID_UPDATE_SQL_TEMPLATE = "UPDATE %s SET VERSION = ?, NAME = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, CUSTOM = ? WHERE XUID = ?";
+	
+	
 	/** The SQL to insert a TSMeta TSD_FQN */
 	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
 			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
@@ -248,6 +262,33 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		return String.format(UID_INDEX_SQL_TEMPLATE, "TSD_METRIC");
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getUIDMetaMetricUpdateSQL()
+	 */
+	@Override
+	public String getUIDMetaMetricUpdateSQL() { 
+		return String.format(UID_UPDATE_SQL_TEMPLATE, "TSD_METRIC");
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getUIDMetaTagVUpdateSQL()
+	 */
+	@Override
+	public String getUIDMetaTagVUpdateSQL() {
+		return String.format(UID_UPDATE_SQL_TEMPLATE, "TSD_TAGV");
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getUIDMetaTagKUpdateSQL()
+	 */
+	@Override
+	public String getUIDMetaTagKUpdateSQL() {
+		return String.format(UID_UPDATE_SQL_TEMPLATE, "TSD_TAGK");
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -295,6 +336,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		annSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
+		JMXHelper.registerMBean(this, JMXHelper.objectName("tsd.catalog:service=DBInterface"));
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
@@ -377,33 +419,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 					break;
 				case TSMETA_INDEX:
 					TSMeta tsMeta = event.tsMeta;
-					if(stored(conn, tsMeta)) continue;
+					if(exists(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					break;
 				case UIDMETA_DELETE:
 					deleteUIDMeta(conn, event.uidMeta);
 					break;
-				case UIDMETA_INDEX:					
-					UIDMeta uidMeta = event.uidMeta;
-					if(batchedUids.contains(uidMeta.toString()) || stored(conn, uidMeta)) continue;
-					switch(uidMeta.getType()) {
-						case METRIC:							
-							if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());							
-							bindUIDMeta(uidMeta, uidMetaMetricIndexPs);														
-							break;
-						case TAGK:
-							if(uidMetaTagKIndexPs==null) uidMetaTagKIndexPs = conn.prepareStatement(getUIDMetaTagKIndexSQL());
-							bindUIDMeta(uidMeta, uidMetaTagKIndexPs);							
-							break;
-						case TAGV:
-							if(uidMetaTagVIndexPs==null) uidMetaTagVIndexPs = conn.prepareStatement(getUIDMetaTagVIndexSQL());
-							bindUIDMeta(uidMeta, uidMetaTagVIndexPs);														
-							break;
-						default:
-							log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
-							break;
+				case UIDMETA_INDEX:		
+					if(!batchedUids.contains(event.uidMeta.toString())) {
+						processUIDMeta(conn, event.uidMeta);
+						batchedUids.add(event.uidMeta.toString());
 					}
-					batchedUids.add(uidMeta.toString());					
 					//log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
 					break;
 				default:
@@ -455,8 +481,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 			// TODO: Custom exception that indicates if rollback succeeded
 		} finally {
 			if(uidMetaTagKIndexPs!=null) try { uidMetaTagKIndexPs.close(); uidMetaTagKIndexPs = null;} catch (Exception x) {/* No Op */}
+			if(uidMetaTagKUpdatePs!=null) try { uidMetaTagKUpdatePs.close(); uidMetaTagKUpdatePs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagVIndexPs!=null) try { uidMetaTagVIndexPs.close(); uidMetaTagVIndexPs = null; } catch (Exception x) {/* No Op */}
+			if(uidMetaTagVUpdatePs!=null) try { uidMetaTagVUpdatePs.close(); uidMetaTagVUpdatePs = null; } catch (Exception x) {/* No Op */}
 			if(uidMetaMetricIndexPs!=null) try { uidMetaMetricIndexPs.close(); uidMetaMetricIndexPs = null;} catch (Exception x) {/* No Op */}
+			if(uidMetaMetricUpdatePs!=null) try { uidMetaMetricUpdatePs.close(); uidMetaMetricUpdatePs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairPs!=null) try { uidMetaTagPairPs.close(); uidMetaTagPairPs = null;} catch (Exception x) {/* No Op */}
 			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
@@ -509,6 +538,27 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	
 	/**
 	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#bindUIDMetaUpdate(net.opentsdb.meta.UIDMeta, java.sql.PreparedStatement)
+	 */
+	@Override
+	public void bindUIDMetaUpdate(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
+		Map<String, String> custom = uidMeta.getCustom();
+		if(custom==null) {
+			custom = new HashMap<String, String>(1);
+		}
+		int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
+		ps.setInt(1, version);
+		ps.setString(2, uidMeta.getName());
+		ps.setString(3, uidMeta.getDescription());
+		ps.setString(4, uidMeta.getDisplayName());
+		ps.setString(5, uidMeta.getNotes());
+		ps.setString(6, JSONMapSupport.nokToString(custom));
+		ps.setString(7, uidMeta.getUID());
+		ps.addBatch();
+	}
+	
+	/**
+	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#executeUIDBatches(java.sql.Connection)
 	 */
 	@Override
@@ -518,24 +568,125 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 				executeBatch(uidMetaMetricIndexPs);
 				uidMetaMetricIndexPs.clearBatch();
 			}
+			if(uidMetaMetricUpdatePs!=null) {
+				executeBatch(uidMetaMetricUpdatePs);
+				uidMetaMetricUpdatePs.clearBatch();
+			}
+			
 			if(uidMetaTagVIndexPs!=null) {
 				executeBatch(uidMetaTagVIndexPs);
 				uidMetaTagVIndexPs.clearBatch();
 			}
+			if(uidMetaTagVUpdatePs!=null) {
+				executeBatch(uidMetaTagVUpdatePs);
+				uidMetaTagVUpdatePs.clearBatch();
+			}
+			
 			if(uidMetaTagKIndexPs!=null) {
 				executeBatch(uidMetaTagKIndexPs);
 				uidMetaTagKIndexPs.clearBatch();
+			}
+			if(uidMetaTagKUpdatePs!=null) {
+				executeBatch(uidMetaTagKUpdatePs);
+				uidMetaTagKUpdatePs.clearBatch();
 			}			
+			
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to execute UID Batches", ex);
 		}		
 	}
 	
+	/** A cache of counters counting the number of ops of each type keyed by the optype name */
+	protected final Cache<String, AtomicLong> opCounters = CacheBuilder.newBuilder().initialCapacity(32).build();
 	
+	
+	
+	/**
+	 * Increments the opCounter identified by the passed key
+	 * @param key The op counter key
+	 * @return the new counter value
+	 */
+	protected long incrementOpCounter(String key) {
+		try {
+			return opCounters.get(key, new Callable<AtomicLong>() {
+				public AtomicLong call() {
+					return new AtomicLong(0L);
+				}
+			}).incrementAndGet();
+		} catch (Exception ex) {
+			/* should not happen */
+			throw new RuntimeException("OpCounter Update Failure for [" + key + "]", ex);
+		}
+	}
+	
+	/**
+	 * Returns the count of operations represented by the passed key
+	 * @param key The op key
+	 * @return the number of ops of the indicated type
+	 */
+	protected long getOpCount(String key) {
+		AtomicLong counter = opCounters.getIfPresent(key);
+		return counter==null ? 0 : counter.get();
+	}
 	
 	// ==================================================================================================
 	//  Object Indexing & Processing 
 	// ==================================================================================================
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#processUIDMeta(java.sql.Connection, net.opentsdb.meta.UIDMeta)
+	 */
+	@Override
+	public void processUIDMeta(Connection conn, UIDMeta uidMeta) {
+		try {
+			if(!exists(conn, uidMeta)) {
+				switch(uidMeta.getType()) {
+					case METRIC:							
+						if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());							
+						bindUIDMeta(uidMeta, uidMetaMetricIndexPs);
+						incrementOpCounter(METRIC_INSERT_CNT);
+						break;
+					case TAGK:
+						if(uidMetaTagKIndexPs==null) uidMetaTagKIndexPs = conn.prepareStatement(getUIDMetaTagKIndexSQL());
+						bindUIDMeta(uidMeta, uidMetaTagKIndexPs);
+						incrementOpCounter(TAGK_INSERT_CNT);
+						break;
+					case TAGV:
+						if(uidMetaTagVIndexPs==null) uidMetaTagVIndexPs = conn.prepareStatement(getUIDMetaTagVIndexSQL());
+						bindUIDMeta(uidMeta, uidMetaTagVIndexPs);
+						incrementOpCounter(TAGV_INSERT_CNT);
+						break;
+					default:
+						log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
+						break;
+				}				
+			} else {
+				switch(uidMeta.getType()) {
+					case METRIC:							
+						if(uidMetaMetricUpdatePs==null) uidMetaMetricUpdatePs = conn.prepareStatement(getUIDMetaMetricUpdateSQL());							
+						bindUIDMetaUpdate(uidMeta, uidMetaMetricUpdatePs);
+						incrementOpCounter(METRIC_UPDATE_CNT);
+						break;
+					case TAGK:
+						if(uidMetaTagKUpdatePs==null) uidMetaTagKUpdatePs = conn.prepareStatement(getUIDMetaTagKUpdateSQL());
+						bindUIDMetaUpdate(uidMeta, uidMetaTagKUpdatePs);
+						incrementOpCounter(TAGK_UPDATE_CNT);
+						break;
+					case TAGV:
+						if(uidMetaTagVUpdatePs==null) uidMetaTagVUpdatePs = conn.prepareStatement(getUIDMetaTagVUpdateSQL());
+						bindUIDMetaUpdate(uidMeta, uidMetaTagVUpdatePs);
+						incrementOpCounter(TAGV_UPDATE_CNT);
+						break;
+					default:
+						log.warn("yeow. Unexpected UIDMeta type:{}", uidMeta.getType().name());
+						break;
+				}								
+			}
+		} catch (SQLException sex) {
+			throw new RuntimeException("Failed to process UIDMeta [" + uidMeta + "]", sex);
+		}
+	}
 	
 	/**
 	 * {@inheritDoc}
@@ -919,6 +1070,87 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 		return annotations;		
 	}
 	
+	// ===================================================================================================
+	// Object Exists (INSERT or UPDATE ?)
+	// ===================================================================================================
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.TSMeta)
+	 */
+	@Override
+	public boolean exists(Connection conn, TSMeta tsMeta) {
+		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(TSUID_EXISTS_SQL);
+			ps.setString(1, tsMeta.getTSUID());
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1) > 0;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on TSMeta [" + tsMeta + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.UIDMeta)
+	 */
+	@Override
+	public boolean exists(Connection conn, UIDMeta uidMeta) {
+		if(uidMeta==null) throw new IllegalArgumentException("The passed UIDMeta was null");
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, uidMeta.getType().name()));
+			ps.setString(1, uidMeta.getUID()); 
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1) > 0;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on UIDMeta [" + uidMeta + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+
+	/**
+	 * Determines if the passed annotation is already stored
+	 * @param conn The connection to query on
+	 * @param annotation The annotation to verify
+	 * @return true if the passed annotation is already stored, false otherwise
+	 */
+	public boolean exists(Connection conn, Annotation annotation) {
+		if(annotation==null) throw new IllegalArgumentException("The passed Annotation was null");
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(ANNOTATION_EXISTS_SQL);
+			ps.setTimestamp(1, new Timestamp(utoms(annotation.getStartTime())));
+			if(annotation.getTSUID()==null) {
+				ps.setNull(2, Types.VARCHAR);
+			} else {
+				ps.setString(1, annotation.getTSUID());
+			}
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1) > 0;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on Annotation [" + annotation + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+		
+	}
+	
+	
 	// ========================================================================================
 	//	Search Impl.
 	// ========================================================================================
@@ -1002,63 +1234,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 	// Default Object exists impls.
 	// ======================================================================================================
 	
-	/**
-	 * Determines if the passed UIDMeta has been stored
-	 * @param conn A supplied connection
-	 * @param uidMeta the UIDMeta to test
-	 * @return true if stored, false otherwise
-	 */
-	public boolean stored(Connection conn, UIDMeta uidMeta) {
-		PreparedStatement ps = null;
-		ResultSet rset = null;		
-		try {
-			switch(uidMeta.getType()) {
-				case METRIC:
-					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_METRIC"));
-					break;
-				case TAGK:
-					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_TAGK"));
-					break;
-				case TAGV:
-					ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, "TSD_TAGV"));
-					break;
-				default:
-					throw new RuntimeException("yeow. Unrecognized UIDMeta type [" + uidMeta.getType().name() + "]");			
-			}
-			ps.setString(1, uidMeta.getUID());
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1)>0;
-		} catch (SQLException sex) {
-			throw new RuntimeException("Failed to lookup UIDMeta [" + uidMeta + uidMeta.getName() + "]", sex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
-	}
 	
-	/**
-	 * Determines if the passed TSMeta has been stored
-	 * @param conn A supplied connection
-	 * @param tsMeta the TSMeta to test
-	 * @return true if stored, false otherwise
-	 */
-	public boolean stored(Connection conn, TSMeta tsMeta) {
-		PreparedStatement ps = null;
-		ResultSet rset = null;		
-		try {
-			ps = conn.prepareStatement(TSUID_EXISTS_SQL);
-			ps.setString(1, tsMeta.getTSUID());
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1)>0;
-		} catch (SQLException sex) {
-			throw new RuntimeException("Failed to lookup TSMeta [" + tsMeta  + "]", sex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
-	}
 	
 	/**
 	 * Determines if the passed UIDMeta pair has been stored
@@ -1184,6 +1360,96 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface {
 				
 			}
 		};
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getMetricInsertCount()
+	 */
+	@Override
+	public long getMetricInsertCount() {
+		return getOpCount(METRIC_INSERT_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getMetricUpdateCount()
+	 */
+	@Override
+	public long getMetricUpdateCount() {
+		return getOpCount(METRIC_UPDATE_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagKInsertCount()
+	 */
+	@Override
+	public long getTagKInsertCount() {
+		return getOpCount(TAGK_INSERT_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagKUpdateCount()
+	 */
+	@Override
+	public long getTagKUpdateCount() {
+		return getOpCount(TAGK_UPDATE_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagVInsertCount()
+	 */
+	@Override
+	public long getTagVInsertCount() {
+		return getOpCount(TAGV_INSERT_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagVUpdateCount()
+	 */
+	@Override
+	public long getTagVUpdateCount() {
+		return getOpCount(TAGV_UPDATE_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTSMetaInsertCount()
+	 */
+	@Override
+	public long getTSMetaInsertCount() {
+		return getOpCount(TSMETA_INSERT_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTSMetaUpdateCount()
+	 */
+	@Override
+	public long getTSMetaUpdateCount() {
+		return getOpCount(TSMETA_UPDATE_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getAnnotationInsertCount()
+	 */
+	@Override
+	public long getAnnotationInsertCount() {
+		return getOpCount(ANN_INSERT_CNT);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getAnnotationUpdateCount()
+	 */
+	@Override
+	public long getAnnotationUpdateCount() {
+		return getOpCount(ANN_UPDATE_CNT);
 	}
 	
 

@@ -302,17 +302,44 @@ public class JSONMapSupport {
 	}
 	
 	/**
-	 * Increments the int in the map bound to the passed key by the specified amount
+	 * Increments the int in the map bound to the passed key by the specified amount.
+	 * If the key does not exist, the value is set to the increment.
 	 * @param map The map to update
 	 * @param incr The amount to increment by
 	 * @param key The key that the int is bound to in the map
 	 * @return the updated map JSON source
 	 */
 	public static String increment(Map<String, String> map, int incr, String key) {
-		int value = Integer.parseInt(map.get(nvl("Key", key))) + incr;
-		map.put(key, Integer.toString(value));
+		String svalue = map.get(nvl("Key", key));
+		if(svalue==null) {
+			map.put(key, Integer.toString(incr));
+		} else {
+			int value = Integer.parseInt(svalue) + incr;
+			map.put(key, Integer.toString(value));			
+		}
 		return JSON.serializeToString(map);	
 	}
+	
+	/**
+	 * Increments the int in the map bound to the passed key by the specified amount.
+	 * If the key does not exist, the value is set to the increment.
+	 * @param map The map to update
+	 * @param incr The amount to increment by
+	 * @param key The key that the int is bound to in the map
+	 * @return The new int value bound to the key
+	 */
+	public static int incrementAndGet(Map<String, String> map, int incr, String key) {
+		String svalue = map.get(nvl("Key", key));
+		if(svalue==null) {
+			map.put(key, Integer.toString(incr));
+			return incr;
+		} else {
+			int value = Integer.parseInt(svalue) + incr;
+			map.put(key, Integer.toString(value));
+			return value;
+		}		
+	}
+
 	
 	
 	/**
@@ -448,6 +475,17 @@ public class JSONMapSupport {
 	public static int getInt(String source, String key) {
 		return Integer.parseInt(read(source).get(nvl("Key", key)));
 	}
+	
+	/**
+	 * Increments the int bound to the passed key in the passed map
+	 * @param map The map to update
+	 * @param key The key to which the target int is bound
+	 * @return the int value bound to the key
+	 */
+	public static int getInt(Map<String, String> map, String key) {
+		return Integer.parseInt(nvl("Map", map).get(nvl("Key", key)));
+	}
+	
 	
 	/**
 	 * Retrieves the value bound to the JSON map as a number

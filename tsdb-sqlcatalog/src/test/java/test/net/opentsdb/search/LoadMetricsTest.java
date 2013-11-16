@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.MBeanInfo;
 import javax.management.ObjectName;
 
+import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -59,9 +61,6 @@ import org.junit.Test;
 
 import test.net.opentsdb.search.util.JDBCHelper;
 
-import com.stumbleupon.async.Callback;
-import com.stumbleupon.async.Deferred;
-
 /**
  * <p>Title: LoadMetricsTest</p>
  * <p>Description: Search event handling unit tests using the default in-mem H2 DB and the EventBus async driver.</p> 
@@ -69,8 +68,6 @@ import com.stumbleupon.async.Deferred;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>test.net.opentsdb.search.LoadMetricsTest</code></p>
  */
-//@RunWith(PowerMockRunner.class)
-//@PrepareForTest(TSDB.class) 
 public class LoadMetricsTest extends CatalogBaseTest {
 	
 	/** The JDBCHelper, initialized with a datasource from the handler */
@@ -176,7 +173,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	public LinkedList<UIDMeta> objectNameToUIDMeta(ObjectName on) {
 		LinkedList<UIDMeta> metas = new LinkedList<UIDMeta>();
 		metas.add(newUIDMeta(UniqueIdType.METRIC, METRIC_COUNTER, on.getDomain()));
-		for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+		TreeMap<String, String> props = new TreeMap<String, String>(on.getKeyPropertyList()); 
+		for(Map.Entry<String, String> entry: props.entrySet()) {
 			metas.add(newUIDMeta(UniqueIdType.TAGK, TAGK_COUNTER, entry.getKey()));
 			metas.add(newUIDMeta(UniqueIdType.TAGV, TAGV_COUNTER, entry.getValue()));
 		}
@@ -259,12 +257,12 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	}	
 	
 	/**
-	 * Tests the indexing of a set of UIDMetas.
+	 * Tests the indexing of a set of new UIDMetas.
 	 * @throws Exception thrown on any error
 	 */
 	//@Test(timeout=60000)
 	@Test
-	public void testUIDMetaIndexing() throws Exception {
+	public void testMetaIndexing() throws Exception {
 		TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
 		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN");
 		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
@@ -274,6 +272,12 @@ public class LoadMetricsTest extends CatalogBaseTest {
 //		for(int i = 0; i < 1000; i++) {
 //			ons.add(JMXHelper.objectName("%s:foo=%s,bar=%s,%s=%s", getRandomFragments()));
 //		}
+		/*
+		 * Iterate through all the MBeans in the platform MBeanserver.
+		 * For each, build a TSMeta from the MBean's ObjectName 
+		 * where the domain is the metric name and the properties
+		 * are tagk/tagv pairs. Index each created TSMeta 
+		 */
 		for(ObjectName on: ons) {
 			LinkedList<UIDMeta> uidMetas = objectNameToUIDMeta(on);
 			for(UIDMeta m : uidMetas) {
@@ -300,7 +304,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
 			Thread.currentThread().join();
 		}
-		
+		/*
+		 * Now that we've indexed all the TSMetas, we need to validate
+		 * that each one can be found in the database. 
+		 */		
 		for(ObjectName on: ons) {
 //			log("Testing DB For [%s]", on);
 			String metric = on.getDomain();
@@ -319,6 +326,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE XUID = '" + pairUid + "'");
 				Assert.assertTrue("Unexpected FQN Tag Pair UID RowCount for [" + pairUid + "]", rowCount >= 1);
 			}
+			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE FQN = '" + JMXHelper.getPropSortedObjectName(on) + "'");
+			Assert.assertTrue("Unexpected FQN  RowCount for [" + JMXHelper.getPropSortedObjectName(on) + "]", rowCount == 1);
 		}
 		Object[][] fqns = jdbcHelper.query("SELECT * FROM TSD_FQN");
 		for(Object[] row: fqns) {
@@ -368,7 +377,82 @@ public class LoadMetricsTest extends CatalogBaseTest {
 //					});
 			
 		}
-	}				
+	}		
+	
+	
+	/**
+	 * Tests the update of a set of UIDMetas.
+	 * @throws Exception thrown on any error
+	 */
+	@Test(timeout=60000)
+	public void testMetaUpdates() throws Exception {
+		CatalogDBInterface dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
+		dbInterface.purge();
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN");
+		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
+
+		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
+		Set<TSMeta> createdTSMetas = new HashSet<TSMeta>(ons.size());
+		Set<UIDMeta> createdUIDMetas = new HashSet<UIDMeta>(ons.size()*3);
+		Set<Annotation> createdAnnotations = new HashSet<Annotation>(ons.size());
+		/*
+		 * Iterate through all the MBeans in the platform MBeanserver.
+		 * For each, build a TSMeta from the MBean's ObjectName 
+		 * where the domain is the metric name and the properties
+		 * are tagk/tagv pairs. Index each created TSMeta .
+		 */
+		for(ObjectName on: ons) {
+			LinkedList<UIDMeta> uidMetas = objectNameToUIDMeta(on);
+			for(UIDMeta m : uidMetas) {
+				if(m==null) continue;
+				tsdb.indexUIDMeta(m);
+				createdUIDMetas.add(m);
+			}
+			TSMeta tsMeta = fromUids(uidMetas);
+			tsMeta.setCreated(SystemClock.unixTime());
+			tsdb.indexTSMeta(tsMeta);
+			createdTSMetas.add(tsMeta);
+			Annotation ann = new Annotation();
+			ann.setTSUID(tsMeta.getTSUID());
+			MBeanInfo minfo = JMXHelper.getMBeanInfo(on);
+			ann.setDescription(minfo.getDescription());
+			ann.setNotes(minfo.getClassName());
+			tsdb.indexAnnotation(ann);
+			createdAnnotations.add(ann);
+		} 
+		ElapsedTime et = SystemClock.startClock();
+		 
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
+			Assert.fail("Timed out waiting for Indexing Milestone");
+		} else {
+			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
+		}
+		// Submit updates for each UIDMeta and TSMeta to trigger and update
+		for(UIDMeta uidMeta: createdUIDMetas) {
+			Assert.assertTrue(dbInterface.exists(uidMeta));
+			uidMeta.setNotes(uidMeta.toString());			
+			tsdb.indexUIDMeta(uidMeta);
+		}
+		for(TSMeta tsMeta: createdTSMetas) {
+			Assert.assertTrue(dbInterface.exists(tsMeta));
+			tsMeta.setNotes(tsMeta.toString());
+			tsdb.indexTSMeta(tsMeta);
+		}
+		for(Annotation ann: createdAnnotations) {
+			Assert.assertTrue("Failed to find annotation [" + ann + "]", dbInterface.exists(ann));
+			ann.setNotes(ann.getNotes() + "-UPDATED");
+			tsdb.indexAnnotation(ann);
+		}
+		et = SystemClock.startClock();
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
+			Assert.fail("Timed out waiting for Update Milestone");
+		} else {
+			log("Update Milestone met after [%s] ms.", et.elapsedMs());
+		}
+		
+	}
+		
+	
 
 
 

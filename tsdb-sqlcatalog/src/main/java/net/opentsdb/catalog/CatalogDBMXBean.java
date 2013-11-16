@@ -123,23 +123,39 @@ public interface CatalogDBMXBean {
 	/**
 	 * Returns the URL of the connected database
 	 * @return the URL of the connected database
-	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getJdbcUrl()
 	 */
-	public String getJdbcUrl();
+	public String getURL();
 
 	/**
 	 * Returns the username of the database user
 	 * @return the username of the database user
-	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getUser()
 	 */
-	public String getUser();
+	public String getUserName();
 
 	/**
-	 * Returns the driver name and version
-	 * @return the driver name and version
-	 * @see net.opentsdb.catalog.datasource.CatalogDataSource#getDriverName()
+	 * Returns the driver name 
+	 * @return the driver name 
 	 */
-	public String getDriverName();	
+	public String getDriverName();
+	
+	/**
+	 * Returns the driver version
+	 * @return the driver version
+	 */
+	public String getDriverVersion();	
+	
+	
+	/**
+	 * Retrieves the name of this database product.
+	 * @return the name of this database product
+	 */
+	public String getDatabaseProductName();
+	
+	/**
+	 * Retrieves the version number of this database product.
+	 * @return the version number name of this database product
+	 */
+	public String getDatabaseProductVersion();
 	
 	
 	

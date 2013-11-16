@@ -183,12 +183,27 @@ public interface CatalogDBInterface {
 	public boolean exists(Connection conn, TSMeta tsMeta);
 
 	/**
+	 * Determines if the passed tsmeta is already stored
+	 * @param tsMeta The tsmeta to verify
+	 * @return true if the passed tsmeta is already stored, false otherwise
+	 */
+	public boolean exists(TSMeta tsMeta);
+
+	/**
 	 * Determines if the passed uidmeta is already stored
 	 * @param conn The connection to query on
 	 * @param uidMeta The uidmeta to verify
 	 * @return true if the passed uidmeta is already stored, false otherwise
 	 */
 	public boolean exists(Connection conn, UIDMeta uidMeta);
+	
+	/**
+	 * Determines if the passed uidmeta is already stored
+	 * @param uidMeta The uidmeta to verify
+	 * @return true if the passed uidmeta is already stored, false otherwise
+	 */
+	public boolean exists(UIDMeta uidMeta);
+	
 
 	/**
 	 * Determines if the passed annotation is already stored
@@ -197,6 +212,14 @@ public interface CatalogDBInterface {
 	 * @return true if the passed annotation is already stored, false otherwise
 	 */
 	public boolean exists(Connection conn, Annotation annotation);
+	
+	/**
+	 * Determines if the passed annotation is already stored
+	 * @param annotation The annotation to verify
+	 * @return true if the passed annotation is already stored, false otherwise
+	 */
+	public boolean exists(Annotation annotation);
+	
 
 	// ===================================================================================================
 	// Object Unmarshalling (i.e. ResultSet to collection of Objects)

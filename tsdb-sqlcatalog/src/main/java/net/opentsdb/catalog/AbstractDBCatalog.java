@@ -27,6 +27,7 @@ package net.opentsdb.catalog;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -131,8 +132,23 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected LocalSequenceCache fqnTpSequence = null; // FQN_TP_SEQ
 	/** The sequence for the Annotation PK */
 	protected LocalSequenceCache annSequence = null; // ANN_SEQ
-	/** The sequence for the SyncQueue PK */
-	protected LocalSequenceCache syncQueueSequence = null; // QID_SEQ
+
+	// ========================================================================================
+	//	Some informational database meta-data for the JMX interface
+	// ========================================================================================
+	
+	/** The database JDBC URL */
+	protected String dbUrl = null;
+	/** The database JDBC User Name */
+	protected String dbUser = null;
+	/** The database JDBC Driver name */
+	protected String dbDriverName = null;
+	/** The database JDBC Driver version */
+	protected String dbDriverVersion = null;
+	/** The database product name */
+	protected String dbName = null;
+	/** The database product version */
+	protected String dbVersion = null;
 	
 	
 	// ========================================================================================
@@ -325,6 +341,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
+		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
 		fqnSequence = createLocalSequenceCache(
@@ -338,6 +355,28 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				"ANN_SEQ", dataSource); // ANN_SEQ
 		JMXHelper.registerMBean(this, JMXHelper.objectName("tsd.catalog:service=DBInterface"));
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
+	}
+	
+	/**
+	 * Populates the DB meta-data
+	 */
+	protected void popDbInfo() {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			DatabaseMetaData dmd = conn.getMetaData();
+			dbUrl = dmd.getURL();
+			dbUser = dmd.getUserName();
+			dbDriverName = dmd.getDriverName();
+			dbDriverVersion = dmd.getDriverVersion();
+			dbName = dmd.getDatabaseProductName();
+			dbVersion = dmd.getDatabaseProductVersion();			
+		} catch (Exception ex) {
+			log.warn("Failed to get DB Metadata", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+		
 	}
 	
 	/**
@@ -698,8 +737,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(annotationsPs==null) annotationsPs = conn.prepareStatement(TSD_INSERT_ANNOTATION);
 			long startTime = annotation.getStartTime(); 
 			if(startTime==0) {
-				startTime = SystemClock.time();
-				annotation.setStartTime(mstou(startTime));
+				startTime = SystemClock.unixTime();
+				annotation.setStartTime(utoms(startTime));
 			} else {
 				startTime = utoms(startTime);
 			}
@@ -933,7 +972,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		PreparedStatement ps = null;
 		int rowsDeleted = 0;
 		StringBuilder b = new StringBuilder("\n\t================================\n\tDatabase Purge\n\t================================");
-		
+		fqnSequence.reset();
+		fqnTpSequence.reset();
+		annSequence.reset();		
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
@@ -1096,6 +1137,24 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.TSMeta)
+	 */
+	@Override
+	public boolean exists(TSMeta tsMeta) {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			return exists(conn, tsMeta);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on TSMeta [" + tsMeta + "]", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}		
+	}
+
 
 	/**
 	 * {@inheritDoc}
@@ -1119,6 +1178,42 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.UIDMeta)
+	 */
+	@Override
+	public boolean exists(UIDMeta uidMeta) {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			return exists(conn, uidMeta);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on UIDMeta [" + uidMeta + "]", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}		
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.Annotation)
+	 */
+	@Override
+	public boolean exists(Annotation annotation) {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			return exists(conn, annotation);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to lookup exists on Annotation [" + annotation + "]", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
 
 	/**
 	 * Determines if the passed annotation is already stored
@@ -1136,7 +1231,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(annotation.getTSUID()==null) {
 				ps.setNull(2, Types.VARCHAR);
 			} else {
-				ps.setString(1, annotation.getTSUID());
+				ps.setString(2, annotation.getTSUID());
 			}
 			rset = ps.executeQuery();
 			rset.next();
@@ -1451,32 +1546,55 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public long getAnnotationUpdateCount() {
 		return getOpCount(ANN_UPDATE_CNT);
 	}
+	
 
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBMXBean#getJdbcUrl()
+	 * Returns the URL of the connected database
+	 * @return the URL of the connected database
 	 */
-	@Override
-	public String getJdbcUrl() {
-		return cds.getJdbcUrl();
+	public String getURL() {
+		return dbUrl;
 	}
 
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBMXBean#getUser()
+	 * Returns the username of the database user
+	 * @return the username of the database user
 	 */
-	@Override
-	public String getUser() {
-		return cds.getUser();
+	public String getUserName() {
+		return dbUser;
 	}
 
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBMXBean#getDriverName()
+	 * Returns the driver name 
+	 * @return the driver name 
 	 */
-	@Override
 	public String getDriverName() {
-		return cds.getDriverName();
+		return dbDriverName;
+	}
+	
+	/**
+	 * Returns the driver version
+	 * @return the driver version
+	 */
+	public String getDriverVersion() {
+		return dbDriverVersion;
+	}
+	
+	
+	/**
+	 * Retrieves the name of this database product.
+	 * @return the name of this database product
+	 */
+	public String getDatabaseProductName() {
+		return dbName;
+	}
+	
+	/**
+	 * Retrieves the version number of this database product.
+	 * @return the version number name of this database product
+	 */
+	public String getDatabaseProductVersion() {
+		return dbVersion;
 	}
 	
 

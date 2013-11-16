@@ -26,6 +26,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1290,6 +1291,19 @@ while(m.find()) {
 		return publishClassLoader(getHeliosMBeanServer(), objectName, true, false, urls);
 	}
 	
+	/**
+	 * Returns a string representing the passed ObjectName with the properties sorted
+	 * alphabetically by the property key
+	 * @param on The ObjectName to render
+	 * @return the ObjectName string
+	 */
+	public static String getPropSortedObjectName(ObjectName on) {
+		StringBuilder b = new StringBuilder(on.getDomain()).append(":");
+		for(Map.Entry<String, String> prop : new TreeMap<String, String>(on.getKeyPropertyList()).entrySet()) {
+			b.append(prop.getKey()).append("=").append(prop.getValue()).append(",");
+		}
+		return b.deleteCharAt(b.length()-1).toString();
+	}	
 	
 	
 	

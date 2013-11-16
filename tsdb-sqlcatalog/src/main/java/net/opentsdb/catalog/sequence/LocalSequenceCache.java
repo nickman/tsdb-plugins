@@ -66,6 +66,7 @@ public class LocalSequenceCache {
 	protected final Logger log;
 	
 	
+	
 	/**
 	 * Creates a new LocalSequenceCache
 	 * @param increment The local sequence increment
@@ -82,6 +83,15 @@ public class LocalSequenceCache {
 		log.info("Created LocalSequenceCache [{}]", sequenceName);
 	}
 	
+	/**
+	 * Resets this sequence cache (but not the underlying DB sequence)
+	 */
+	public void reset() {
+		currentValue.set(0);
+		ceiling.set(0);
+		rangeIsFresh.set(false);
+	}
+
 	
 	/**
 	 * Initializes the SQL statement
@@ -109,7 +119,7 @@ public class LocalSequenceCache {
 	 * Refreshes the  sequence range
 	 */
 	protected void refresh() {
-		log.info("Refreshing....");
+		log.info("Refreshing....Current: [{}]", currentValue.get());
 		ElapsedTime et = SystemClock.startClock();
 		Connection conn = null;
 		PreparedStatement ps = null;

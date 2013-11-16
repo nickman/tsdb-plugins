@@ -456,22 +456,21 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Version of UIDMeta was not 2", "2", uidMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_" + uidMeta.getType() + " WHERE XUID = '" + uidMeta.getUID() + "'");
 			Assert.assertEquals("Query lookup by " + uidMeta.getType() + " [" + uidMeta.getUID() + "] was not 1", 1, lookups.length);
-			Assert.assertEquals("Version from DB was not 2", 2, lookups[0][0]);
+			Assert.assertEquals("Version from DB was not 2", 2, ((Number)lookups[0][0]).intValue());
 		}
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertEquals("Version of TSMeta was not 2", "2", tsMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_TSMETA WHERE TSUID = '" + tsMeta.getTSUID() + "'");
 			Assert.assertEquals("Query lookup by TSUID [" + tsMeta.getTSUID() + "] was not 1", 1, lookups.length);
-			Assert.assertEquals("Version of TSD_TSMETA.VERSION was not 2", 2, lookups[0][0]);
+			Assert.assertEquals("Version of TSD_TSMETA.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
 		}
 		for(Annotation ann: createdAnnotations) {
 			Assert.assertEquals("Version of Annotation was not 2", "2", ann.getCustom().get(CatalogDBInterface.VERSION_KEY));
 			long annId = Long.parseLong(ann.getCustom().get(CatalogDBInterface.PK_KEY));
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_ANNOTATION WHERE ANNID = " + annId);
 			Assert.assertEquals("Query lookup for Annotation ANNID [" + annId + "] was not 1", 1, lookups.length);
-			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, lookups[0][0]);
-		}
-		
+			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
+		}		
 	}
 		
 	

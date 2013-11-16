@@ -548,6 +548,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			try { conn.rollback(); } catch (Exception nex) {
 				log.error("Batch update failed and connection failed to rollback !!!", nex);
 			}
+			if(ex instanceof SQLException) {
+				SQLException sex = (SQLException)ex;
+				SQLException sex2 = sex.getNextException();
+				if(sex2!=null) {
+					sex2.printStackTrace(System.err);
+				}
+			}
 			throw new RuntimeException("Batch update failed", ex);
 			// TODO: Custom exception that indicates if rollback succeeded
 		} finally {
@@ -665,6 +672,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			}			
 			
 		} catch (Exception ex) {
+			if(ex instanceof SQLException) {
+				SQLException sex = (SQLException)ex;
+				SQLException sex2 = sex.getNextException();
+				if(sex2!=null) {
+					sex2.printStackTrace(System.err);
+				}
+			}
 			throw new RuntimeException("Failed to execute UID Batches", ex);
 		}		
 	}
@@ -1190,6 +1204,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
+			setConnectionProperty(conn, TSD_CONN_TYPE, SYNC_CONN_FLAG);
 			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TSMETA");
 			conn.commit();
 			b.append("\n").append("TSD_TSMETA:").append(rowsDeleted);

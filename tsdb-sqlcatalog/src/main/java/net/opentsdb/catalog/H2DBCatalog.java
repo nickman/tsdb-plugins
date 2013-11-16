@@ -171,7 +171,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		try {
 			conn = dataSource.getConnection();
 			FullTextLucene.init(conn);
-			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_FQN", null);
+			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TSMETA", null);
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_METRIC", null);
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGK", null);
 			FullTextLucene.createIndex(conn, "PUBLIC", "TSD_TAGV", null);

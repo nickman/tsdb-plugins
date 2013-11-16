@@ -184,9 +184,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/** The SQL for verification of whether a UIDMeta pair has been saved or not */
 	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE XUID = ?";
 	/** The SQL for verification of whether a TSMeta has been saved or not */
-	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = ?";
+	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = ?";
 	/** The SQL for verification of whether an Annotation has been saved or not */
-	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_FQN T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
+	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
 	
 	
 	
@@ -199,8 +199,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public static final String UID_UPDATE_SQL_TEMPLATE = "UPDATE %s SET VERSION = ?, NAME = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, CUSTOM = ? WHERE XUID = ?";
 	
 	
-	/** The SQL to insert a TSMeta TSD_FQN */
-	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_FQN " + 
+	/** The SQL to insert a TSMeta TSD_TSMETA */
+	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_TSMETA " + 
 			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM) " + 
 			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -219,7 +219,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/** The SQL template to delete a UIDMeta */
 	public static final String TSD_DELETE_UID = "DELETE FROM TSD_%s WHERE XUID = ?";
 	/** The SQL template to delete a TSMeta */
-	public static final String TSD_DELETE_TS = "DELETE FROM TSD_FQN WHERE TSUID = ?";
+	public static final String TSD_DELETE_TS = "DELETE FROM TSD_TSMETA WHERE TSUID = ?";
 
 	
 	
@@ -738,12 +738,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			long startTime = annotation.getStartTime(); 
 			if(startTime==0) {
 				startTime = SystemClock.unixTime();
-				annotation.setStartTime(utoms(startTime));
-			} else {
-				startTime = utoms(startTime);
+				annotation.setStartTime(startTime);
 			}
 			annotationsPs.setLong(1, annSequence.next());
-			annotationsPs.setTimestamp(3, new Timestamp(startTime));
+			annotationsPs.setTimestamp(3, new Timestamp(utoms(startTime)));
 			annotationsPs.setString(4, annotation.getDescription());
 			annotationsPs.setString(5, annotation.getNotes());
 			if(annotation.getTSUID()==null) {
@@ -978,9 +976,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
-			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_FQN");
+			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TSMETA");
 			conn.commit();
-			b.append("\n").append("TSD_FQN:").append(rowsDeleted);
+			b.append("\n").append("TSD_TSMETA:").append(rowsDeleted);
 			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TAGPAIR");
 			conn.commit();
 			b.append("\n").append("TSD_TAGPAIR:").append(rowsDeleted);

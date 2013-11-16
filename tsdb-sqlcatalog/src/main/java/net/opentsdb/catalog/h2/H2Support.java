@@ -104,7 +104,7 @@ public class H2Support {
 	public static long fqnId(Connection conn, String tsuid) {
 		if(tsuid==null || tsuid.trim().isEmpty()) return -1;
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT FQNID FROM TSD_FQN WHERE TSUID = ?");
+			PreparedStatement ps = conn.prepareStatement("SELECT FQNID FROM TSD_TSMETA WHERE TSUID = ?");
 			ps.setString(1, tsuid);
 			ResultSet rs = ps.executeQuery();
 			rs.next();

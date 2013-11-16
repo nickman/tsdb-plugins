@@ -264,7 +264,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	@Test
 	public void testMetaIndexing() throws Exception {
 		TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
-		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN");
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
 		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
 
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
@@ -326,10 +326,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 				rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE XUID = '" + pairUid + "'");
 				Assert.assertTrue("Unexpected FQN Tag Pair UID RowCount for [" + pairUid + "]", rowCount >= 1);
 			}
-			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE FQN = '" + JMXHelper.getPropSortedObjectName(on) + "'");
+			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA WHERE FQN = '" + JMXHelper.getPropSortedObjectName(on) + "'");
 			Assert.assertTrue("Unexpected FQN  RowCount for [" + JMXHelper.getPropSortedObjectName(on) + "]", rowCount == 1);
 		}
-		Object[][] fqns = jdbcHelper.query("SELECT * FROM TSD_FQN");
+		Object[][] fqns = jdbcHelper.query("SELECT * FROM TSD_TSMETA");
 		for(Object[] row: fqns) {
 			ObjectName on = JMXHelper.objectName(row[3]);
 			Assert.assertTrue("The ObjectName [" + on + "] was not registered", JMXHelper.isRegistered(on));
@@ -337,10 +337,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		for(TSMeta tsMeta: createdTSMetas) {
 			String tsUid = tsMeta.getTSUID();
 			int tagCount = tsMeta.getTags().size()/2;
-			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = '" + tsUid + "'");
+			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = '" + tsUid + "'");
 			Assert.assertEquals("Unexpected TSUID RowCount for [" + tsUid + "]", 1, rowCount);
 			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE FQNID IN " + 
-					"(SELECT FQNID FROM TSD_FQN WHERE TSUID = '" + tsUid + "')");
+					"(SELECT FQNID FROM TSD_TSMETA WHERE TSUID = '" + tsUid + "')");
 			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", tagCount, rowCount);			
 			tsdb.deleteTSMeta(tsMeta.getTSUID());
 		}
@@ -352,10 +352,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 		for(TSMeta tsMeta: createdTSMetas) {
 			String tsUid = tsMeta.getTSUID();			
-			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN WHERE TSUID = '" + tsUid + "'");
+			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = '" + tsUid + "'");
 			Assert.assertEquals("Unexpected TSUID RowCount for [" + tsUid + "]", 0, rowCount);
 			rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN_TAGPAIR WHERE FQNID IN " + 
-					"(SELECT FQNID FROM TSD_FQN WHERE TSUID = '" + tsUid + "')");
+					"(SELECT FQNID FROM TSD_TSMETA WHERE TSUID = '" + tsUid + "')");
 			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", 0, rowCount);
 			SearchQuery searchQuery = new SearchQuery();
 			searchQuery.setType(SearchType.TSMETA);
@@ -384,11 +384,12 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	 * Tests the update of a set of UIDMetas.
 	 * @throws Exception thrown on any error
 	 */
-	@Test(timeout=60000)
+//	@Test(timeout=60000)
+//	@Test
 	public void testMetaUpdates() throws Exception {
 		CatalogDBInterface dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
 		dbInterface.purge();
-		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_FQN");
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
 		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
 
 		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);

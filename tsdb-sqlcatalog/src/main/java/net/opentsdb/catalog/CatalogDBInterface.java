@@ -71,6 +71,8 @@ public interface CatalogDBInterface {
 	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
 	/** The custom map key to specify the version of the object */
 	public static final String VERSION_KEY = "tsd.sql.version";
+	/** The custom map key to specify the DB pk of the object */
+	public static final String PK_KEY = "tsd.sql.pk";
 	
 	
 	/**

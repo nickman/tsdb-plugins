@@ -118,10 +118,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected PreparedStatement uidMetaTagPairPs = null;
 	/** batched ps for fqn inserts */
 	protected PreparedStatement tsMetaFqnPs = null;
+	/** batched ps for fqn updates */
+	protected PreparedStatement tsMetaFqnUpdatePs = null;
+	
 	/** batched ps for FQN tag pair inserts */
 	protected PreparedStatement uidMetaTagPairFQNPs = null;
 	/** batched ps for annotation inserts */
 	protected PreparedStatement annotationsPs = null;
+	/** batched ps for annotation updates */
+	protected PreparedStatement annotationsUpdatePs = null;   
 
 	// ========================================================================================
 	//	The local sequence managers
@@ -187,11 +192,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = ?";
 	/** The SQL for verification of whether an Annotation has been saved or not */
 	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
+	/** The SQL to retrieve the ANNID for a given annotation */
+	public static final String GET_ANNOTATION_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
 	
 	
 	
 	// ========================================================================================
-	//	Object INSERT SQL
+	//	Object INSERT and UPDATE SQL
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
 	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?)";
@@ -204,10 +211,25 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM) " + 
 			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	/** The SQL to update TSD_TSMETA with a changed TSMeta */
+	public static final String TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA SET " +
+			"VERSION = ?, METRIC_UID = ?, FQN = ?, MAX_VALUE = ?, MIN_VALUE = ?," +
+			"DATA_TYPE = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, UNITS = ?," +
+			"RETENTION = ?, CUSTOM = ?" + 
+			" WHERE FQNID = ?";
+	/** The SQL to get the FQNID from TSD_TSMETA for a given TSMeta TSUID */
+	public static final String GET_FQNID_FOR_TSUID_SQL = "SELECT FQNID FROM TSD_TSMETA WHERE TSUID = ?";
+	
+	
 	/** The SQL to insert the TSMeta UID pairs */
 	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
 	/** The SQL to insert an Annotation */
 	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+	/** The SQL to update an Annotation */
+	public static final String TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
+	
+	
+	
 	/** The SQL to insert a Tag Pair */
 	public static final String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
 
@@ -458,7 +480,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 					break;
 				case TSMETA_INDEX:
 					TSMeta tsMeta = event.tsMeta;
-					if(exists(conn, tsMeta)) continue;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					break;
 				case UIDMETA_DELETE:
@@ -484,6 +505,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				executeBatch(uidMetaTagPairPs);
 				uidMetaTagPairPs.clearBatch();
 			}
+
+			// Execute batch updates for TSMetas
+			if(tsMetaFqnUpdatePs!=null) {
+				executeBatch(tsMetaFqnUpdatePs);
+				tsMetaFqnUpdatePs.clearBatch();				
+			}
+			
 			// Execute batch inserts for TSMetas
 			if(tsMetaFqnPs!=null) {
 				executeBatch(tsMetaFqnPs);
@@ -499,12 +527,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			for(Annotation a: annotations) {
 				processAnnotation(conn, a);
 			}
+			// Execute batch updates for Annotations
+			if(annotationsUpdatePs!=null) {
+				executeBatch(annotationsUpdatePs);
+				annotationsUpdatePs.clearBatch();								
+			}			
 			// Execute batch inserts for Annotations
 			if(annotationsPs!=null) {
 				executeBatch(annotationsPs);
 				annotationsPs.clearBatch();								
 			}
-			
 			conn.commit();
 			log.info(et.printAvg("Indexes", ops));
 			if(latch!=null) {
@@ -548,6 +580,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				ps.getConnection().rollback();
 				throw new SQLException("Batch results had failed result code [" + results[0] + "]");
 			}
+		} else {
+			log.warn("SQL Batch Execution for [{}] returned zero results. Probable programmer error", ps);
 		}
 		//log.info("Processed Batch of Size:{}", results.length);
 	}
@@ -728,19 +762,91 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
+	 * Retrieves the ANNID for the passed annotation
+	 * @param conn The connection to use
+	 * @param annotation The annotation to search for
+	 * @return the ANNID of the passed annotation
+	 */
+	protected long getAnnIdForAnnotation(Connection conn, Annotation annotation) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(GET_ANNOTATION_ID_SQL);
+			ps.setTimestamp(1, new Timestamp(utoms(annotation.getStartTime())));
+			if(annotation.getTSUID()==null) {
+				ps.setNull(2, Types.VARCHAR);
+			} else {
+				ps.setString(2, annotation.getTSUID());
+			}			
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getLong(1);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get ANNID for annotation [" + annotation + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
+		}
+	}
+	
+	/**
+	 * Executes a batched update for the passed modified Annotation
+	 * @param conn The connection to update on
+	 * @param a The changed Annotation
+	 */
+	protected void updateAnnotation(Connection conn, Annotation a) {
+		try {
+			long annId = getAnnIdForAnnotation(conn, a);
+			if(annotationsUpdatePs==null) annotationsUpdatePs = conn.prepareStatement(TSD_UPDATE_ANNOTATION);
+			Map<String, String> custom = a.getCustom();
+			if(custom==null) {
+				custom = new HashMap<String, String>(1);
+			}
+			int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
+			annotationsUpdatePs.setInt(1, version);		
+			annotationsUpdatePs.setTimestamp(2, new Timestamp(utoms(a.getStartTime())));
+			annotationsUpdatePs.setString(3, a.getDescription());
+			annotationsUpdatePs.setString(4, a.getNotes());
+			if(a.getTSUID()==null) {
+				annotationsUpdatePs.setNull(5, Types.BIGINT);
+			} else {
+				annotationsUpdatePs.setLong(5, getFqnIdForTsUid(conn, a.getTSUID()));
+			}
+			if(a.getEndTime()==0) {
+				annotationsUpdatePs.setNull(6, Types.TIMESTAMP);
+			} else {
+				annotationsUpdatePs.setTimestamp(6, new Timestamp(utoms(a.getEndTime())));
+			}
+			annotationsUpdatePs.setString(7, JSONMapSupport.nokToString(custom));
+			annotationsUpdatePs.setLong(8, annId);
+			annotationsUpdatePs.addBatch();
+			// TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, 
+			// NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to update Annotation [" + a + "]", ex);
+		}
+	}	
+	
+	
+	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#processAnnotation(java.sql.Connection, net.opentsdb.meta.Annotation)
 	 */
 	@Override
 	public void processAnnotation(Connection conn, Annotation annotation) {
 		try {
+			if(exists(conn, annotation)) {
+				updateAnnotation(conn, annotation);
+				return;
+			}
 			if(annotationsPs==null) annotationsPs = conn.prepareStatement(TSD_INSERT_ANNOTATION);
 			long startTime = annotation.getStartTime(); 
 			if(startTime==0) {
 				startTime = SystemClock.unixTime();
 				annotation.setStartTime(startTime);
 			}
-			annotationsPs.setLong(1, annSequence.next());
+			long annId = annSequence.next();
+			annotationsPs.setLong(1, annId);
 			annotationsPs.setTimestamp(3, new Timestamp(utoms(startTime)));
 			annotationsPs.setString(4, annotation.getDescription());
 			annotationsPs.setString(5, annotation.getNotes());
@@ -756,8 +862,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				annotationsPs.setNull(7, Types.TIMESTAMP);
 			} else {
 				annotationsPs.setTimestamp(7, new Timestamp(utoms(endTime)));
-			}
+			}			
 			HashMap<String, String> custom = fillInCustom(annotation.getCustom());
+			custom.put(PK_KEY, Long.toString(annId));
 			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
 			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
 			annotation.setCustom(custom);
@@ -778,6 +885,101 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		return false;
 	}
 
+	/**
+	 * Retrieves the FQNID for the passed TSUID
+	 * @param conn The connection to use
+	 * @param tsuid The TSUID to search with
+	 * @return the FQNID
+	 */
+	protected long getFqnIdForTsUid(Connection conn, String tsuid) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement(GET_FQNID_FOR_TSUID_SQL);
+			ps.setString(1, tsuid);
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getLong(1);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get FQNID for tssuid [" + tsuid + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
+		}
+	}
+
+	
+	/**
+	 * Executes a batched update for the passed modified TSMeta
+	 * @param conn The connection to update on
+	 * @param tsMeta The changed TSMeta 
+	 */
+	protected void updateTSMeta(Connection conn, TSMeta tsMeta) {
+		try {
+			long fqnId = getFqnIdForTsUid(conn, tsMeta.getTSUID());
+			if(tsMetaFqnUpdatePs==null) tsMetaFqnUpdatePs = conn.prepareStatement(TSUID_UPDATE_SQL);
+			Map<String, String> custom = tsMeta.getCustom();
+			if(custom==null) {
+				custom = new HashMap<String, String>(1);
+			}
+			int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
+			tsMetaFqnUpdatePs.setInt(1, version);			
+			tsMetaFqnUpdatePs.setString(2, tsMeta.getMetric().getUID());
+			tsMetaFqnUpdatePs.setString(3, getFQN(tsMeta));
+			if(isNaNToNull() && Double.isNaN(tsMeta.getMax())) {
+				tsMetaFqnUpdatePs.setNull(4, Types.DOUBLE);
+			} else {
+				tsMetaFqnUpdatePs.setDouble(4, tsMeta.getMax());
+			}
+			if(isNaNToNull() && Double.isNaN(tsMeta.getMin())) {
+				tsMetaFqnUpdatePs.setNull(5, Types.DOUBLE);
+			} else {
+				tsMetaFqnUpdatePs.setDouble(5, tsMeta.getMin());
+			}
+			tsMetaFqnUpdatePs.setString(6, tsMeta.getDataType());
+			tsMetaFqnUpdatePs.setString(7, tsMeta.getDescription());
+			tsMetaFqnUpdatePs.setString(8, tsMeta.getDisplayName());
+			tsMetaFqnUpdatePs.setString(9, tsMeta.getNotes());
+			tsMetaFqnUpdatePs.setString(10, tsMeta.getUnits());
+			tsMetaFqnUpdatePs.setInt(11, tsMeta.getRetention());
+			tsMetaFqnUpdatePs.setString(12, JSONMapSupport.nokToString(custom));
+			tsMetaFqnUpdatePs.setLong(13, fqnId);
+			tsMetaFqnUpdatePs.addBatch();
+//			TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA " +
+//					"VERSION = ?, METRIC_UID = ?, FQN = ?, MAX_VALUE = ?, MIN_VALUE = ?," +
+//					"DATA_TYPE = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, UNITS = ?" +
+//					"RETENTION = ?, CUSTOM = ?" + 
+//					" WHERE FQNID = ?";			
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to update tsmeta [" + tsMeta + "]", ex);
+		}
+	}
+	
+	/**
+	 * Creates an {@link javax.management.ObjectName} like string representing the 
+	 * fully qualified flat name of the passed TSMeta, where the props are sorted in key alpha order. 
+	 * @param tsMeta The TSMeta to get the FQN for
+	 * @return the flat FQN
+	 */
+	public static String getFQN(TSMeta tsMeta) {
+		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
+		TreeMap<String, String> tags = new TreeMap<String, String>();
+		UIDMeta[] tagPair = new UIDMeta[2];
+		for(UIDMeta meta: tsMeta.getTags()) {
+			if(tagPair[0]==null) {
+				tagPair[0] = meta;
+				continue;
+			} else if(tagPair[1]==null) {
+				tagPair[1] = meta;
+				tags.put(tagPair[0].getName(), tagPair[1].getName());
+				tagPair[0] = null; tagPair[1] = null; 
+			}			
+		}
+		for(Map.Entry<String, String> tag: tags.entrySet()) {
+			fqn.append(tag.getKey()).append("=").append(tag.getValue()).append(",");
+		}		
+		return fqn.deleteCharAt(fqn.length()-1).toString();
+	}
 	
 	/**
 	 * {@inheritDoc}
@@ -785,19 +987,30 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta) {
+		if(exists(conn, tsMeta)) {
+			updateTSMeta(conn, tsMeta);
+			return;
+		} 
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
 		UIDMeta[] tagPair = new UIDMeta[2];
+		TreeMap<String, String> tags = new TreeMap<String, String>();
 		for(UIDMeta meta: tsMeta.getTags()) {
 			if(tagPair[0]==null) {
 				tagPair[0] = meta;
-				fqn.append(meta.getName()).append("=");
 				continue;
 			} else if(tagPair[1]==null) {
 				tagPair[1] = meta;
-				fqn.append(meta.getName()).append(",");
+				// ===========================================================
+				//	This guy saves the tag pairs
+				// ===========================================================
 				processUIDMetaPair(batchUidPairs, conn, tagPair);
+				// ===========================================================
+				tags.put(tagPair[0].getName(), tagPair[1].getName());				
 				tagPair[0] = null; tagPair[1] = null; 
 			}
+		}
+		for(Map.Entry<String, String> tag: tags.entrySet()) {
+			fqn.append(tag.getKey()).append("=").append(tag.getValue()).append(",");
 		}
 		fqn.deleteCharAt(fqn.length()-1);
 		try {
@@ -830,6 +1043,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			tsMetaFqnPs.setString(13, tsMeta.getUnits());
 			tsMetaFqnPs.setInt(14, tsMeta.getRetention());
 			HashMap<String, String> custom = fillInCustom(tsMeta.getCustom());
+			custom.put(PK_KEY, Long.toString(fqnSeq));
 			tsMetaFqnPs.setString(15, JSONMapSupport.nokToString(custom));
 			tsMetaFqnPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
 			tsMeta.setCustom(custom);

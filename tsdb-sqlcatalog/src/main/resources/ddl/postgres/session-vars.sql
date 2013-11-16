@@ -1,3 +1,7 @@
+-- ====================================================================
+-- tsdb-sqlcatalog Session Property API for Postgres
+-- Whitehead, 2013
+-- ====================================================================
 
 CREATE OR REPLACE FUNCTION ensure_session_table_exists()
   RETURNS VARCHAR AS

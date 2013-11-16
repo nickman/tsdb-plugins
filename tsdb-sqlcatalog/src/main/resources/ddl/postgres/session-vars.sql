@@ -76,4 +76,37 @@ ALTER FUNCTION get_env_var(text) SET application_name='tsdb';
 ALTER FUNCTION get_env_var(text)
   OWNER TO tsdb;
   
+CREATE OR REPLACE FUNCTION is_sqprocessor()
+  RETURNS boolean AS
+$BODY$
+BEGIN
+	PERFORM ensure_session_table_exists();
+	IF get_env_var('TSDCONNTYPE')='SYNCPROCESSOR' THEN
+		RETURN true;
+	END IF;
+	RETURN false;
+END;$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION is_sqprocessor() SET application_name='tsdb';
+
+ALTER FUNCTION is_sqprocessor()
+  OWNER TO tsdb;
+
+CREATE OR REPLACE FUNCTION is_eqprocessor()
+  RETURNS boolean AS
+$BODY$
+BEGIN
+	PERFORM ensure_session_table_exists();
+	IF get_env_var('TSDCONNTYPE')='EQPROCESSOR' THEN
+		RETURN true;
+	END IF;
+	RETURN false;
+END;$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION is_eqprocessor() SET application_name='tsdb';
+
+ALTER FUNCTION is_eqprocessor()
+  OWNER TO tsdb;
   

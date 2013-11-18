@@ -97,6 +97,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected PluginContext pluginContext = null;
 	/** The extracted TSDB config properties */
 	protected Properties extracted = null;
+	/** Indicates if the SyncQueue poller is enabled */
+	protected boolean syncQueuePollerEnabled = false;
+	
+	
 
 	// ========================================================================================
 	//	The batched prepared statements
@@ -180,6 +184,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/** The default increment on the Annotation ID Sequence */
 	public static final int DEFAULT_DB_SYNCQ_SEQ_INCR = 50;
 	
+	/** The config property name for the enablement of the Sync Queue polling processor */
+	public static final String DB_SYNCQ_POLLER_ENABLED = "helios.search.catalog.syncq.enabled";
+	/** The default enablement of the Sync Queue polling processor */
+	public static final boolean DEFAULT_DB_SYNCQ_POLLER_ENABLED = true;
 	
 	// ========================================================================================
 	//	Object COUNT and EXISTS SQL
@@ -360,12 +368,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		pluginContext = pc;
 		tsdb = pluginContext.getTsdb();
 		extracted = pluginContext.getExtracted();
+		syncQueuePollerEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_SYNCQ_POLLER_ENABLED, DEFAULT_DB_SYNCQ_POLLER_ENABLED, extracted);  
+		
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
+		
 		fqnSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted), 
 				"FQN_SEQ", dataSource); // FQN_SEQ		

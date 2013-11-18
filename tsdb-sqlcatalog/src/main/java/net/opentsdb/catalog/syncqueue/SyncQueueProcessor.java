@@ -27,6 +27,10 @@ package net.opentsdb.catalog.syncqueue;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -36,13 +40,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.CatalogDBInterface;
+import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractService;
+import com.stumbleupon.async.Callback;
 
 /**
  * <p>Title: SyncQueueProcessor</p>
@@ -60,6 +69,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected final PluginContext pluginContext;
 	/** The catalog datasource */
 	protected final DataSource dataSource;
+	/** The DB interface */
+	protected final CatalogDBInterface dbInterface;
 	/** The tsdb instance to synchronize changes to */
 	protected final TSDB tsdb;
 	/** The sync queue polling period in ms. */
@@ -76,6 +87,12 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	public static final String DB_SYNCQ_POLLER_PERIOD = "helios.search.catalog.syncq.period";
 	/** The default Sync Queue polling period in ms. */
 	public static final long DEFAULT_DB_SYNCQ_POLLER_PERIOD = 5000;
+	
+	/** A set of the UIDMeta type tables */
+	public static final Set<String> UIDMETA_TABLES = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+			"TSD_METRIC", "TSD_TAGK", "TSD_TAGV"
+	)));
+	
 
 	
 	/**
@@ -85,7 +102,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	public SyncQueueProcessor(PluginContext pluginContext) {
 		this.pluginContext = pluginContext;
 		tsdb = pluginContext.getTsdb();
-		dataSource = pluginContext.getDataSource();
+		dataSource = pluginContext.getResource(CatalogDataSource.class.getSimpleName(), DataSource.class);
+		dbInterface = pluginContext.getResource(CatalogDBInterface.class.getSimpleName(), CatalogDBInterface.class);
 	}
 
 
@@ -142,19 +160,24 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		Connection conn = null;
 		PreparedStatement pollPs = null;
 		ResultSet pollRset = null;
+		Object[] row = null;
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
 			pollPs = conn.prepareStatement("SELECT * FROM SYNC_QUEUE ORDER BY OP_TYPE");
 			pollRset = pollPs.executeQuery();
 			while(pollRset.next()) {
-				String opType = pollRset.getString(4);
+				row = new Object[7];
+				for(int i = 0; i < 7; i++) {
+					row[i] = pollRset.getObject(i+1); 
+				}
+				String opType = row[3].toString();
 				if("D".equals(opType)) {
-					 
+					 processDelete(row);
 				} else if("I".equals(opType)) {
-					
+					processInsert(row);
 				} else if("U".equals(opType)) {
-					
+					processUpdate(row);
 				} else {
 					log.warn("yeow. Unrecognized optype in sync-processor queue [{}]", opType);
 				}
@@ -173,5 +196,34 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}
 		log.debug("SyncQueue poll cycle complete");
 	}
+	
+	
 
+	protected void processDelete(Object[] row) {
+		if(UIDMETA_TABLES.contains(row[1])) {
+			UniqueIdType type = UniqueIdType.valueOf(row[1].toString().replace("TSD_", ""));
+			final UIDMeta uidMeta = new UIDMeta(type, (String)row[2]); 
+			uidMeta.delete(tsdb).addCallback(new Callback<Void, UIDMeta>(){
+				/**
+				 * {@inheritDoc}
+				 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+				 */
+				@Override
+				public Void call(UIDMeta arg) throws Exception {
+					// TODO Auto-generated method stub
+					return null;
+				}
+			});
+		}
+	}
+	
+	protected void processInsert(Object[] row) {
+		
+	}
+	
+	protected void processUpdate(Object[] row) {
+		
+	}
+
+	
 }

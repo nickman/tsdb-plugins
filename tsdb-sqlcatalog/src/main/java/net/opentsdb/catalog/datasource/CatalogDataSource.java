@@ -41,7 +41,6 @@ import javassist.LoaderClassPath;
 import javax.sql.DataSource;
 
 import org.helios.tsdb.plugins.service.PluginContext;
-import org.helios.tsdb.plugins.service.PluginContextImpl;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +138,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 //			config.setClassLoader(pc.getSupportClassLoader());
 //			checkDriverClasspath(driver, Thread.currentThread().getContextClassLoader());
 //			checkDriverClasspath(driver, pc.getSupportClassLoader());
-			((PluginContextImpl)pc).setDataSource(connectionPool);
+			pc.setResource(getClass().getSimpleName(), connectionPool);
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
 		}

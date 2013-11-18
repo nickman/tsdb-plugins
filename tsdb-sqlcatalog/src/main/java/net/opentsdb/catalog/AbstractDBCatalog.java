@@ -391,6 +391,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		annSequence = createLocalSequenceCache(
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
+		pc.setResource(CatalogDBInterface.class.getSimpleName(), this);
 		JMXHelper.registerMBean(this, JMXHelper.objectName("tsd.catalog:service=DBInterface"));
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}

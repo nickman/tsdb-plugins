@@ -34,9 +34,20 @@ public interface PluginContext {
 	public ClassLoader getSupportClassLoader();
 	
 	/**
-	 * Returns a reference to the configured catalog datasource
-	 * @return the configured catalog datasource
+	 * Returns a named resource in the context
+	 * @param name The name of the resource
+	 * @param type The type of the resource
+	 * @return The named resource or null if the name was not bound 
 	 */
-	public DataSource getDataSource();
+	public <T> T getResource(String name, Class<?> type);
+
+	/**
+	 * Adds a resource to the named resource map
+	 * @param name The name of the resource
+	 * @param value The resource
+	 */
+	public void setResource(String name, Object value);
+
+	
 
 }

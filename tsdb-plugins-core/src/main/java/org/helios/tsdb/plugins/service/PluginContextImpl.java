@@ -24,7 +24,9 @@
  */
 package org.helios.tsdb.plugins.service;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
@@ -48,8 +50,8 @@ public class PluginContextImpl implements PluginContext {
 	protected final Properties extracted;
 	/** The plugin support classloader */
 	protected final ClassLoader supportClassLoader;
-	/** The catalog datasource */
-	protected DataSource dataSource = null;
+	/** Miscellaneous named resources set for sharing across plugins */
+	protected final Map<String, Object> namedResources = new ConcurrentHashMap<String, Object>();
 	
 	/**
 	 * Creates a new PluginContextImpl
@@ -101,21 +103,23 @@ public class PluginContextImpl implements PluginContext {
 		return supportClassLoader;
 	}
 
+
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.PluginContext#getDataSource()
+	 * @see org.helios.tsdb.plugins.service.PluginContext#getResource(java.lang.String, java.lang.Class)
 	 */
 	@Override
-	public DataSource getDataSource() {
-		return dataSource;
+	public <T> T getResource(String name, Class<?> type) {
+		return (T)namedResources.get(name);
 	}
 
 	/**
-	 * Sets the catalog datasource
-	 * @param dataSource the dataSource to set
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#setResource(java.lang.String, java.lang.Object)
 	 */
-	public void setDataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
+	@Override
+	public void setResource(String name, Object value) {
+		namedResources.put(name, value);
 	}
 	
 	

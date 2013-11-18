@@ -55,6 +55,7 @@ import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.catalog.sequence.LocalSequenceCache;
+import net.opentsdb.catalog.syncqueue.SyncQueueProcessor;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -99,7 +100,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected Properties extracted = null;
 	/** Indicates if the SyncQueue poller is enabled */
 	protected boolean syncQueuePollerEnabled = false;
-	
+	/** The sync queue processor instance */
+	protected SyncQueueProcessor syncQueueProcessor = null;
 	
 
 	// ========================================================================================
@@ -373,6 +375,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
+		if(syncQueuePollerEnabled) {
+			syncQueueProcessor = new SyncQueueProcessor(pc);
+		}
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();

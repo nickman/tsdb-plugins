@@ -26,6 +26,8 @@ package org.helios.tsdb.plugins.service;
 
 import java.util.Properties;
 
+import javax.sql.DataSource;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
 
@@ -46,6 +48,8 @@ public class PluginContextImpl implements PluginContext {
 	protected final Properties extracted;
 	/** The plugin support classloader */
 	protected final ClassLoader supportClassLoader;
+	/** The catalog datasource */
+	protected DataSource dataSource = null;
 	
 	/**
 	 * Creates a new PluginContextImpl
@@ -95,6 +99,23 @@ public class PluginContextImpl implements PluginContext {
 	@Override
 	public ClassLoader getSupportClassLoader() {
 		return supportClassLoader;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#getDataSource()
+	 */
+	@Override
+	public DataSource getDataSource() {
+		return dataSource;
+	}
+
+	/**
+	 * Sets the catalog datasource
+	 * @param dataSource the dataSource to set
+	 */
+	public void setDataSource(DataSource dataSource) {
+		this.dataSource = dataSource;
 	}
 	
 	

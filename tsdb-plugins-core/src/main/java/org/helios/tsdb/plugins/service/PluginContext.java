@@ -2,6 +2,8 @@ package org.helios.tsdb.plugins.service;
 
 import java.util.Properties;
 
+import javax.sql.DataSource;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
 
@@ -30,5 +32,11 @@ public interface PluginContext {
 	 * @return the supportClassLoader
 	 */
 	public ClassLoader getSupportClassLoader();
+	
+	/**
+	 * Returns a reference to the configured catalog datasource
+	 * @return the configured catalog datasource
+	 */
+	public DataSource getDataSource();
 
 }

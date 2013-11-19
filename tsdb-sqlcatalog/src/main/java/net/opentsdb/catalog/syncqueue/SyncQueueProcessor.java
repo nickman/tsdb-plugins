@@ -99,6 +99,13 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	public static final String DB_SYNCQ_POLLER_PERIOD = "helios.search.catalog.syncq.period";
 	/** The default Sync Queue polling period in ms. */
 	public static final long DEFAULT_DB_SYNCQ_POLLER_PERIOD = 5000;
+	/** The SQL to retrieve a TSMeta instance from the DB */
+	public static final String GET_TSMETA_SQL = "SELECT * FROM TSD_TSMETA WHERE FQNID = ?";
+	/** The SQL to retrieve an Annotation instance from the DB */
+	public static final String GET_ANNOTATION_SQL = "SELECT * FROM TSD_ANNOTATION WHERE ANNID = ?";
+	/** The SQL template to retrieve a TSMeta instance from the DB */
+	public static final String GET_UIDMETA_SQL = "SELECT * FROM %s WHERE XUID = ?";
+	
 	
 	/** A set of the UIDMeta type tables */
 	public static final Set<String> UIDMETA_TABLES = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
@@ -161,6 +168,26 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		t.setDaemon(true);
 		return t;
 	}
+	
+	
+	//===================================================================================
+	//	SYNC QUEUE Column Indexes
+	//===================================================================================
+	/** The SyncQueue QID */
+	public static int SQ_QID = 0; 
+	/** The SyncQueue Event Type (TSMeta, TSAnnotation etc.) */
+	public static int SQ_EVENT_TYPE = 1; 
+	/** The PK of the event in its own table */
+	public static int SQ_EVENT_PK = 2;
+	/** The OpType ( Insert, Update, Delete) */
+	public static int SQ_OP_TYPE = 3;
+	/** The timestamp of the event */
+	public static int SQ_EVENT_TIME = 4;
+	/** The timestamp of the last synch failure */
+	public static int SQ_LAST_SYNC_ATTEMPT = 5; 
+	/** The stack trace of the last synch failure */
+	public static int SQ_LAST_SYNC_ERROR = 6;
+	
 
 
 	/**
@@ -174,45 +201,49 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		Connection conn = null;
 		PreparedStatement pollPs = null;
 		ResultSet pollRset = null;
-		Object[] row = null;
 		try {
-			Map<String, Object[]> pendingRows = new TreeMap<String, Object[]>();
+			Map<String, Object[]> pendingSynchs = new TreeMap<String, Object[]>();
+			Map<String, Object[]> pendingDeletes = new TreeMap<String, Object[]>();
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
-			pollPs = conn.prepareStatement("SELECT * FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL ORDER BY OP_TYPE, QID");
+			pollPs = conn.prepareStatement("SELECT * FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL ORDER BY OP_TYPE, EVENT_TIME");
 			pollRset = pollPs.executeQuery();
 			int colsize = pollRset.getMetaData().getColumnCount();
 			while(pollRset.next()) {
-				row = new Object[colsize];
+				Object[] row = new Object[colsize];
 				for(int i = 0; i < colsize; i++) {
 					row[i] = pollRset.getObject(i+1); 
 				}
-				pendingRows.put(row[3].toString() + ":" + row[2], row);
-			}
-			
-			while(pollRset.next()) {
-				row = new Object[7];
-				for(int i = 0; i < 7; i++) {
-					row[i] = pollRset.getObject(i+1); 
-				}
-				String opType = row[3].toString();
-				long QID = (Long)row[0];
-				if("D".equals(opType)) {
-					 synchObject(createDeletionPkMeta(row), false, QID);
-				} else if("I".equals(opType)) {
-					processInsert(row);
-				} else if("U".equals(opType)) {
-					processUpdate(row);
+				if("D".equals(row[SQ_OP_TYPE].toString())) {
+					pendingDeletes.put(row[SQ_EVENT_PK].toString(), row);
 				} else {
-					log.warn("yeow. Unrecognized optype in sync-processor queue [{}]", opType);
-				}
+					pendingSynchs.put(String.format("%s|%s", row[SQ_EVENT_TYPE], row[SQ_EVENT_PK]), row);
+				}				
 			}
+			for(Object[] crow: pendingDeletes.values()) {
+				long QID = (Long)crow[SQ_QID];
+				try {
+					synchObject(createDeletionPkMeta(crow), false, QID);
+					//  clear pending synchs
+					Object[] obsolete = pendingSynchs.remove(String.format("%s|%s", crow[SQ_EVENT_TYPE], crow[SQ_EVENT_PK]));
+					if(obsolete!=null) {
+						deleteSyncQueueEntry((Long)obsolete[SQ_QID]);
+					}
+				} catch (Exception ex) {
+					log.warn("Deletion failed for QID [{}]", QID);
+				}				
+			}
+			pendingDeletes.clear();
+			for(Object[] crow: pendingSynchs.values()) {
+				long QID = (Long)crow[SQ_QID];
+				synchObject(getStorePkMeta(crow), true, QID);
+			}
+			pendingSynchs.clear();
 			pollRset.close(); pollRset = null;
 			pollPs.close(); pollPs = null;
 			conn.commit(); conn.close(); conn = null;
 		} catch (Exception ex) {
 			log.warn("SyncQueueProcessor Poll Cycle Exception", ex);
-			// so do we rollback or what ?
 		} finally {
 			if(pollRset!=null) try { pollRset.close(); } catch (Exception x) {/* No Op */}
 			if(pollPs!=null) try { pollPs.close(); } catch (Exception x) {/* No Op */}
@@ -256,14 +287,12 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}
 	}
 	
-	/** The SQL to retrieve a TSMeta instance from the DB */
-	public static final String GET_TSMETA_SQL = "SELECT * FROM TSD_META WHERE FQNID = ?";
-	/** The SQL to retrieve an Annotation instance from the DB */
-	public static final String GET_ANNOTATION_SQL = "SELECT * FROM TSD_ANNOTATION WHERE ANNID = ?";
 	
-	/** The SQL template to retrieve a TSMeta instance from the DB */
-	public static final String GET_UIDMETA_SQL = "SELECT * FROM %s WHERE XUID = ?";
-	
+	/**
+	 * Retrieves a meta object from the DB
+	 * @param row The SyncQueue row representing the target object to read from the DB 
+	 * @return the read object
+	 */
 	protected Object getStorePkMeta(Object[] row) {
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -272,17 +301,17 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			conn = dataSource.getConnection();
 			if(UIDMETA_TABLES.contains(row[1])) {
 				ps = conn.prepareStatement(String.format(GET_UIDMETA_SQL, row[1]));
-				ps.setString(1, row[2].toString());
+				ps.setString(1, row[SQ_EVENT_PK].toString());
 				rset = ps.executeQuery();
 				return dbInterface.readUIDMetas(rset).iterator().next();
-			} else if("TSD_ANNOTATION".equals(row[1])) {
+			} else if("TSD_TSMETA".equals(row[1])) {
 				ps = conn.prepareStatement(GET_TSMETA_SQL);
-				ps.setLong(1, Long.parseLong(row[2].toString()));
+				ps.setLong(1, Long.parseLong(row[SQ_EVENT_PK].toString()));
 				rset = ps.executeQuery();
 				return dbInterface.readTSMetas(rset).iterator().next();
 			} else if("TSD_ANNOTATION".equals(row[1])) {
 				ps = conn.prepareStatement(GET_ANNOTATION_SQL);
-				ps.setLong(1, Long.parseLong(row[2].toString()));
+				ps.setLong(1, Long.parseLong(row[SQ_EVENT_PK].toString()));
 				rset = ps.executeQuery();
 				return dbInterface.readAnnotations(rset).iterator().next();
 			} else {
@@ -306,17 +335,17 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected Object createDeletionPkMeta(Object[] row) {
 		if(UIDMETA_TABLES.contains(row[1])) {
 			UniqueIdType type = UniqueIdType.valueOf(row[1].toString().replace("TSD_", ""));
-			return new UIDMeta(type, (String)row[2]); 			
+			return new UIDMeta(type, (String)row[SQ_EVENT_PK]); 			
 		} else if("TSD_ANNOTATION".equals(row[1])) {
 			Annotation annotation = new Annotation();
-			String[] frags = row[2].toString().split(":");
+			String[] frags = row[SQ_EVENT_PK].toString().split(":");
 			annotation.setStartTime(TimeUnit.SECONDS.convert(Long.parseLong(frags[0]), TimeUnit.MILLISECONDS));
 			if(!frags[1].isEmpty()) {
 				annotation.setTSUID(frags[1]);
 			}
 			return annotation;
 		} else if("TSD_TSMETA".equals(row[1])) {
-			return new TSMeta(row[2].toString());
+			return new TSMeta(row[SQ_EVENT_PK].toString());
 		} else {
 			log.error("yeow. Unrecognized SyncQueue type [{}]", row[1]);
 			return null;
@@ -359,10 +388,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					log.info("Synched [{}]:[{}]", obj.getClass().getSimpleName(), obj);
 					deleteSyncQueueEntry(syncQueuePk);
 					return true;
-				} else {
-					// Synch failed. Retry next polling period.
-					return false;
 				}
+				// Synch failed. Retry next polling period.
+				return false;
 			}
 		};
 	}

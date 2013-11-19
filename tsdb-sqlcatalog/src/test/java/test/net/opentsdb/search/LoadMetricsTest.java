@@ -481,19 +481,42 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	@BeforeClass
 	public static void mockClasses() {
 		MethodMocker.getInstance().transform(Annotation.class, MockedAnnotation.class);
+		MethodMocker.getInstance().transform(TSMeta.class, MockedSyncOps.class);
+		MethodMocker.getInstance().transform(UIDMeta.class, MockedSyncOps.class);
 	}
 	
 	@AfterClass
 	public static void restoreClasses() {
 		MethodMocker.getInstance().restore(Annotation.class);
+		MethodMocker.getInstance().restore(TSMeta.class);
+		MethodMocker.getInstance().restore(UIDMeta.class);
 	}
 
 	
-	public static class MockedAnnotation {
+	public static class MockedSyncOps {
 		public Deferred<Object> delete(final TSDB tsdb) {
-			log("MOCKED METHOD: Annotation.delete");
+			log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
 			return Deferred.fromResult(null);
 		}
+		
+		public Deferred<Boolean> syncToStorage(TSDB tsdb, boolean overwrite) {
+			log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			return Deferred.fromResult(true);			
+		}
+		
+		
+	}
+	
+	public static class MockedAnnotation {
+		public Deferred<Boolean> syncToStorage(TSDB tsdb, Boolean overwrite) {
+			log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			return Deferred.fromResult(true);			
+		}
+		public Deferred<Object> delete(final TSDB tsdb) {
+			log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			return Deferred.fromResult(null);
+		}
+		
 	}
 		
 	

@@ -27,20 +27,22 @@ package test.net.opentsdb.core;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 import javassist.ByteArrayClassPath;
+import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.LoaderClassPath;
 import javassist.NotFoundException;
+import javassist.bytecode.AnnotationsAttribute;
+import javassist.bytecode.ConstPool;
+import javassist.bytecode.annotation.Annotation;
+import javassist.bytecode.annotation.StringMemberValue;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.utils.Config;
@@ -74,13 +76,11 @@ public class MethodMocker {
 	/** The original byte code of transformed classes keyed by the class internal form name */
 	protected final Cache<String, byte[]> originalByteCode = CacheBuilder.newBuilder()
 			.maximumSize(1000)
-			.weakKeys()
 			.build();
 	
 	/** The transformed byte code of transformed classes keyed by the class internal form name */
 	protected final Cache<String, byte[]> transformedByteCode = CacheBuilder.newBuilder()
 			.maximumSize(1000)
-			.weakKeys()
 			.build();
 	
 	
@@ -116,7 +116,7 @@ public class MethodMocker {
 	 */
 	public boolean isClassMocked(Class<?> clazz) {
 		if(clazz==null) throw new IllegalArgumentException("Passed class was null");
-		return transformedByteCode.getIfPresent(internalForm(clazz))!=null;
+		return clazz.getAnnotation(MockedClass.class)!=null;
 	}
 	
 	/**
@@ -182,9 +182,10 @@ public class MethodMocker {
 			}
 		};
 		try {
-			instrumentation.addTransformer(ctf, true);
+			//instrumentation.addTransformer(ctf, true);
 			instrumentation.retransformClasses(targetClass);
-		} catch (UnmodifiableClassException e) {
+			transformedByteCode.invalidate(internalFormName);
+		} catch (Throwable e) {
 			throw new RuntimeException("Failed to restore class [" + internalFormName + "]", e);
 		} finally {
 			instrumentation.removeTransformer(ctf);
@@ -220,6 +221,7 @@ public class MethodMocker {
 							ClassPool cp = new ClassPool();
 							cp.appendClassPath(new ByteArrayClassPath(binaryName, classfileBuffer));
 							cp.appendClassPath(new LoaderClassPath(mockedClass.getClassLoader()));
+							cp.appendClassPath(new ClassClassPath(MockedClass.class));
 							CtClass targetClazz = cp.get(binaryName);
 							CtClass mockClazz = cp.get(mockedClass.getName());
 //							 
@@ -239,6 +241,14 @@ public class MethodMocker {
 							if(methodCount==0) {
 								throw new RuntimeException("Failed to replace any methods");
 							}
+							ConstPool constpool = targetClazz.getClassFile().getConstPool();
+							AnnotationsAttribute attr = new AnnotationsAttribute(constpool, AnnotationsAttribute.visibleTag);
+							Annotation annot = new Annotation(MockedClass.class.getName(), constpool);
+							StringMemberValue smv = new StringMemberValue(mockedClass.getName(), constpool);
+							annot.addMemberValue("mockProvider", smv);
+							attr.addAnnotation(annot);	
+							targetClazz.getClassFile().addAttribute(attr);
+							
 							byte[] byteCode =  targetClazz.toBytecode();
 							transformedByteCode.put(internalFormClassName, byteCode);
 							return byteCode;
@@ -282,6 +292,8 @@ public class MethodMocker {
 	
 	public static void main(String[] args) {
 		LOG.info("Testing MethodMocker");
+		MockedClass mc = TSDB.class.getAnnotation(MockedClass.class);
+		LOG.info("TSDB Annotated:" + (mc!=null));
 		MethodMocker mocker = getInstance();
 		EmptyTSDB template = new EmptyTSDB() {
 			@Override
@@ -290,6 +302,11 @@ public class MethodMocker {
 			}
 		};
 		mocker.transform(TSDB.class, template.getClass());
+		mc = TSDB.class.getAnnotation(MockedClass.class);
+		LOG.info("TSDB Annotated:" + (mc!=null));
+		if(mc!=null) {
+			LOG.info("TSDB Mock Provider:" + mc.mockProvider());
+		}
 		TSMeta meta = new TSMeta();
 		TSDB tsdb = null;
 		try {
@@ -300,6 +317,9 @@ public class MethodMocker {
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create TSDB", ex);
 		} finally {
+			mocker.restore(TSDB.class);
+			mc = TSDB.class.getAnnotation(MockedClass.class);
+			LOG.info("TSDB Annotated:" + (mc!=null));			
 			if(tsdb!=null) try { tsdb.shutdown(); } catch (Exception ex) {}
 		}
 	}

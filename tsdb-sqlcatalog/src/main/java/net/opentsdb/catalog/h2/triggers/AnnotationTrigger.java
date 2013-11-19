@@ -2,6 +2,7 @@ package net.opentsdb.catalog.h2.triggers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
 import org.helios.tsdb.plugins.util.SystemClock;
@@ -38,7 +39,7 @@ public class AnnotationTrigger extends AbstractSyncQueueTrigger {
 				addSyncQueueEvent(conn, tableName, "I", newRow[0].toString());
 			} else if(newRow==null) {
 				// ======  DELETE  ======
-				addSyncQueueEvent(conn, tableName, "D", oldRow[0].toString());
+				addSyncQueueEvent(conn, tableName, "D", String.format("%s:%s", ((Timestamp)oldRow[2]).getTime(), oldRow[5]==null ? "" : oldRow[5]));
 			} else {
 				// ======  UPDATE  ======
 				if(Arrays.deepEquals(oldRow, newRow)) return;			

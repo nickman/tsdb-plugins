@@ -42,6 +42,7 @@ import javax.management.ObjectName;
 
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
+import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -54,12 +55,16 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import test.net.opentsdb.core.MethodMocker;
 import test.net.opentsdb.search.util.JDBCHelper;
+
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: LoadMetricsTest</p>
@@ -471,6 +476,24 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Query lookup for Annotation ANNID [" + annId + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
 		}		
+	}
+	
+	@BeforeClass
+	public static void mockClasses() {
+		MethodMocker.getInstance().transform(Annotation.class, MockedAnnotation.class);
+	}
+	
+	@AfterClass
+	public static void restoreClasses() {
+		MethodMocker.getInstance().restore(Annotation.class);
+	}
+
+	
+	public static class MockedAnnotation {
+		public Deferred<Object> delete(final TSDB tsdb) {
+			log("MOCKED METHOD: Annotation.delete");
+			return Deferred.fromResult(null);
+		}
 	}
 		
 	

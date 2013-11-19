@@ -375,9 +375,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
-		if(syncQueuePollerEnabled) {
-			syncQueueProcessor = new SyncQueueProcessor(pc);
-		}
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
@@ -392,6 +389,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
 		pc.setResource(CatalogDBInterface.class.getSimpleName(), this);
+		if(syncQueuePollerEnabled) {
+			syncQueueProcessor = new SyncQueueProcessor(pc);
+			syncQueueProcessor.startAndWait();
+		}		
 		JMXHelper.registerMBean(this, JMXHelper.objectName("tsd.catalog:service=DBInterface"));
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}

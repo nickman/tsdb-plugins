@@ -30,6 +30,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -632,9 +633,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		ps.setString(3, uidMeta.getName());
 		long created = uidMeta.getCreated();
 		if(created==0) {
-			created = SystemClock.time();
+			created = SystemClock.unixTime();
 		}
-		ps.setTimestamp(4, new Timestamp(created));
+		ps.setTimestamp(4, new Timestamp(utoms(created)));
 		ps.setString(5, uidMeta.getDescription());
 		ps.setString(6, uidMeta.getDisplayName());
 		ps.setString(7, uidMeta.getNotes());
@@ -1348,12 +1349,30 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<Annotation> annotations = new ArrayList<Annotation>();
 		try {
+			ResultSetMetaData rsmd = rset.getMetaData();
+			boolean hasTsUid = false;
+			String tsUidColName = null;
+			int colCount = rsmd.getColumnCount();
+			for(int i = 0; i < colCount; i++) {
+				if(rsmd.getColumnName(i+1).equalsIgnoreCase("TSUID")) {
+					tsUidColName = rsmd.getColumnName(i+1);
+					hasTsUid = true;
+					break;
+				}
+			}
+			
 			while(rset.next()) {
 				Annotation meta = new Annotation();
 				
 				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
 				meta.setDescription(rset.getString("DESCRIPTION"));
 				meta.setNotes(rset.getString("NOTES"));
+				if(hasTsUid) {
+					meta.setTSUID(rset.getString(tsUidColName));
+				} else {
+					long fqnId = rset.getLong("FQNID");
+					meta.setTSUID(getTSUIDForFQNId(fqnId));
+				}
 				meta.setStartTime(mstou(rset.getTimestamp("START_TIME").getTime()));
 				Timestamp ts = rset.getTimestamp("END_TIME");
 				if(ts!=null) {
@@ -1365,6 +1384,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			throw new RuntimeException("Failed to read Annotations from ResultSet", ex);
 		}
 		return annotations;		
+	}
+	
+	/**
+	 * Returns the TSUID for the passed FQNID
+	 * @param fqnId The FQNID of the TSMeta to get the TSUID for
+	 * @return the TSUID
+	 */
+	public String getTSUIDForFQNId(long fqnId) {
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			conn = dataSource.getConnection();
+			ps = conn.prepareStatement("SELECT TSUID from TSD_TSMETA WHERE FQNID = ?");
+			ps.setLong(1,  fqnId);
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getString(1);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get TSUID for TSMeta [" + fqnId + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+		
 	}
 	
 	// ===================================================================================================

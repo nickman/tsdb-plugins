@@ -495,8 +495,23 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 		// Now the syncqueue has been flushed, loop through the objects again and find their flushed counter-part and compare
 		for(UIDMeta uidMeta: createdUIDMetas) {
-			UIDMeta storedUidMeta = (UIDMeta)modifiedUIDs.get(uidMeta.toString());
+			UIDMeta storedUidMeta = (UIDMeta)modifiedUIDs.remove(uidMeta.toString());
+			Assert.assertNotNull("The syncToStore UIDMeta was null", storedUidMeta);
+			validate(storedUidMeta, uidMeta);
 		}
+		for(TSMeta tsMeta: createdTSMetas) {
+			TSMeta storedTsMeta = (TSMeta)modifiedTSs.remove(tsMeta.toString());
+			Assert.assertNotNull("The syncToStore TSMeta was null", storedTsMeta);
+			validate(storedTsMeta, tsMeta);
+		}
+		log("Modified Annotation Keys:%s", modifiedAnnotations.keySet());
+		for(Annotation annotation: createdAnnotations) {
+			Annotation storedAnnotation = (Annotation)modifiedAnnotations.remove(annotation.toString());
+			Assert.assertNotNull("The syncToStore Annotation was null for key [" + annotation.toString() + "]", storedAnnotation);
+			validate(storedAnnotation, annotation);
+		}
+		
+		
 		// UIDMeta storedUidMeta = modifiedUIDs.get(uidMeta.toString());
 		
 //		/**

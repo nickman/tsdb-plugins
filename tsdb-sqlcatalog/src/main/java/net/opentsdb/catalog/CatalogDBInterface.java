@@ -173,6 +173,11 @@ public interface CatalogDBInterface {
 	 */
 	public void executeUIDBatches(Connection conn);
 	
+	/**
+	 * Manually triggers a SyncQueue flush
+	 */
+	public void triggerSyncQueueFlush();
+	
 	// ===================================================================================================
 	// Object Exists (INSERT or UPDATE ?)
 	// ===================================================================================================

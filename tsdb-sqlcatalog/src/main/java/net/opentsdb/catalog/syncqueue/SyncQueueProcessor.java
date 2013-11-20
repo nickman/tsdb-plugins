@@ -36,6 +36,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
@@ -93,6 +95,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected ScheduledFuture<?> taskHandle = null;
 	/** The thread factory serial number factory */
 	protected final AtomicInteger serial = new AtomicInteger(0);
+	/** Flag indicating that a sync is in progress */
+	protected final AtomicBoolean syncInProgress = new AtomicBoolean(false);
 	
 	
 	/** The config property name for the Sync Queue polling period in ms. */
@@ -106,6 +110,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	/** The SQL template to retrieve a TSMeta instance from the DB */
 	public static final String GET_UIDMETA_SQL = "SELECT * FROM %s WHERE XUID = ?";
 	
+	/** Custom tag to place in a meta custom map to make sure the fake meta is ignored */
+	public static final String IGNORE_TAG_NAME = "syncqueue.processor.ignore";
+
 	
 	/** A set of the UIDMeta type tables */
 	public static final Set<String> UIDMETA_TABLES = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
@@ -134,7 +141,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected void doStart() {
 		log.info("\n\t=========================================\n\tStarting SyncQueueProcessor\n\t=========================================");
 		scheduler = Executors.newScheduledThreadPool(2, this);
-		taskHandle = scheduler.scheduleWithFixedDelay(this, pollingPeriod, pollingPeriod, TimeUnit.MILLISECONDS);
+		taskHandle = scheduler.scheduleWithFixedDelay(this, 1000, pollingPeriod, TimeUnit.MILLISECONDS);
 		log.info("Sync Poller Scheduled for [{}] ms. period", pollingPeriod);
 		notifyStarted();
 		log.info("\n\t=========================================\n\tSyncQueueProcessor Started\n\t=========================================");
@@ -197,7 +204,10 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 */
 	@Override
 	public void run() {
-		log.debug("Starting SyncQueue poll cycle");
+		if(!syncInProgress.compareAndSet(false, true)) {
+			log.debug("Sync already in progress. Ejecting....");
+		}
+		log.info("Starting SyncQueue poll cycle");
 		Connection conn = null;
 		PreparedStatement pollPs = null;
 		ResultSet pollRset = null;
@@ -209,17 +219,22 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			pollPs = conn.prepareStatement("SELECT * FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL ORDER BY OP_TYPE, EVENT_TIME");
 			pollRset = pollPs.executeQuery();
 			int colsize = pollRset.getMetaData().getColumnCount();
+			int rowsRetrieved = 0;
 			while(pollRset.next()) {
+				rowsRetrieved++;
 				Object[] row = new Object[colsize];
 				for(int i = 0; i < colsize; i++) {
 					row[i] = pollRset.getObject(i+1); 
 				}
+				log.trace("Retrieved [{}] Type SyncQueue Item", row[SQ_OP_TYPE].toString());
 				if("D".equals(row[SQ_OP_TYPE].toString())) {
 					pendingDeletes.put(row[SQ_EVENT_PK].toString(), row);
 				} else {
 					pendingSynchs.put(String.format("%s|%s", row[SQ_EVENT_TYPE], row[SQ_EVENT_PK]), row);
 				}				
 			}
+			log.info("Retrieved [{}] SyncQueue Rows", rowsRetrieved);
+			log.info("Processing [{}] SyncQueue Delete Items", pendingDeletes.size());
 			for(Object[] crow: pendingDeletes.values()) {
 				long QID = (Long)crow[SQ_QID];
 				try {
@@ -228,29 +243,37 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					Object[] obsolete = pendingSynchs.remove(String.format("%s|%s", crow[SQ_EVENT_TYPE], crow[SQ_EVENT_PK]));
 					if(obsolete!=null) {
 						deleteSyncQueueEntry((Long)obsolete[SQ_QID]);
+						log.info("Purged Obsolete SyncQueue QID [{}]", obsolete[SQ_QID]);
 					}
+					log.trace("Processed SyncQueue Delete QID [{}]", QID);
 				} catch (Exception ex) {
 					log.warn("Deletion failed for QID [{}]", QID);
 				}				
 			}
 			pendingDeletes.clear();
+			log.info("Processing [{}] SyncQueue Update Items", pendingSynchs.size());
 			for(Object[] crow: pendingSynchs.values()) {
 				long QID = (Long)crow[SQ_QID];
-				synchObject(getStorePkMeta(crow), true, QID);
+				try {
+					synchObject(getStorePkMeta(crow), true, QID);
+				} catch (Throwable t) {
+					log.error("SyncQueue Update Failure", t);
+				}
+				log.trace("Processed SyncQueue Modified QID [{}]", QID);
 			}
 			pendingSynchs.clear();
 			pollRset.close(); pollRset = null;
 			pollPs.close(); pollPs = null;
 			conn.commit(); conn.close(); conn = null;
+			log.debug("SyncQueue poll cycle complete");
 		} catch (Exception ex) {
 			log.warn("SyncQueueProcessor Poll Cycle Exception", ex);
 		} finally {
 			if(pollRset!=null) try { pollRset.close(); } catch (Exception x) {/* No Op */}
 			if(pollPs!=null) try { pollPs.close(); } catch (Exception x) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-			
-		} 
-		log.debug("SyncQueue poll cycle complete");
+			syncInProgress.set(false);
+		} 		
 	}
 	
 	/**
@@ -335,9 +358,12 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected Object createDeletionPkMeta(Object[] row) {
 		if(UIDMETA_TABLES.contains(row[1])) {
 			UniqueIdType type = UniqueIdType.valueOf(row[1].toString().replace("TSD_", ""));
-			return new UIDMeta(type, (String)row[SQ_EVENT_PK]); 			
+			UIDMeta uidMeta = new UIDMeta(type, (String)row[SQ_EVENT_PK]);
+			uidMeta.setCustom(new HashMap<String, String>(Collections.singletonMap(IGNORE_TAG_NAME, "true")));
+			return uidMeta; 			
 		} else if("TSD_ANNOTATION".equals(row[1])) {
 			Annotation annotation = new Annotation();
+			annotation.setCustom(new HashMap<String, String>(Collections.singletonMap(IGNORE_TAG_NAME, "true")));
 			String[] frags = row[SQ_EVENT_PK].toString().split(":");
 			annotation.setStartTime(TimeUnit.SECONDS.convert(Long.parseLong(frags[0]), TimeUnit.MILLISECONDS));
 			if(!frags[1].isEmpty()) {
@@ -345,7 +371,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			}
 			return annotation;
 		} else if("TSD_TSMETA".equals(row[1])) {
-			return new TSMeta(row[SQ_EVENT_PK].toString());
+			TSMeta tsMeta = new TSMeta(row[SQ_EVENT_PK].toString()); 
+			tsMeta.setCustom(new HashMap<String, String>(Collections.singletonMap(IGNORE_TAG_NAME, "true")));
+			return tsMeta;
 		} else {
 			log.error("yeow. Unrecognized SyncQueue type [{}]", row[1]);
 			return null;
@@ -385,7 +413,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			@Override
 			public Boolean call(Boolean success) throws Exception {
 				if(success) {
-					log.info("Synched [{}]:[{}]", obj.getClass().getSimpleName(), obj);
+					log.trace("Synched [{}]:[{}]", obj.getClass().getSimpleName(), obj);
 					deleteSyncQueueEntry(syncQueuePk);
 					return true;
 				}
@@ -454,7 +482,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			ps.setLong(1, pk);
 			int result = ps.executeUpdate();
 			if(result==0) {
-				log.warn("No rows deleted for SyncQueue item [{}]", pk);
+				log.debug("No rows deleted for SyncQueue item [{}]", pk);
 			} else {
 				log.debug("Deleted SyncQueue item [{}]", pk);
 			}

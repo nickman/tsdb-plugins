@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,6 +78,9 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	
 	/** The JDBCHelper, initialized with a datasource from the handler */
 	protected static JDBCHelper jdbcHelper = null;
+	
+	/** The maximum number of sync queue loops when trying to flush the sync queue */
+	public static final int MAX_SYNC_QUEUE_LOOPS = 10;
 	
 	/** The reflective access field for a TSMeta's tags ArrayList (since we don't have direct API access) */
 	protected static final Field tsMetaTagsField;
@@ -462,6 +466,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_" + uidMeta.getType() + " WHERE XUID = '" + uidMeta.getUID() + "'");
 			Assert.assertEquals("Query lookup by " + uidMeta.getType() + " [" + uidMeta.getUID() + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version from DB was not 2", 2, ((Number)lookups[0][0]).intValue());
+			
 		}
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertEquals("Version of TSMeta was not 2", "2", tsMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
@@ -475,14 +480,61 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_ANNOTATION WHERE ANNID = " + annId);
 			Assert.assertEquals("Query lookup for Annotation ANNID [" + annId + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
-		}		
+		}
+		int syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
+		int syncQueueLoops = 0;
+		while(syncQueueSize>0 && syncQueueLoops < MAX_SYNC_QUEUE_LOOPS) {
+			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().triggerSyncQueueFlush();
+			Thread.currentThread().sleep(1000);
+			syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
+		}
+		log("SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
+		log("SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
+		if(syncQueueLoops==MAX_SYNC_QUEUE_LOOPS) {
+			Assert.fail("SyncQueue Loops Exceeded Allowed Flush Loops:" + MAX_SYNC_QUEUE_LOOPS);
+		}
+		// Now the syncqueue has been flushed, loop through the objects again and find their flushed counter-part and compare
+		for(UIDMeta uidMeta: createdUIDMetas) {
+			UIDMeta storedUidMeta = (UIDMeta)modifiedUIDs.get(uidMeta.toString());
+		}
+		// UIDMeta storedUidMeta = modifiedUIDs.get(uidMeta.toString());
+		
+//		/**
+//		 * Asserts the equality of the passed indexable objects
+//		 * @param c the created indexable object
+//		 * @param r the retrieved indexable object
+//		 */
+//		protected void validate(Object c, Object r) {		
+		
+		
+		
+		log("Modified UIDs:%s", modifiedUIDs.size());
+		log("Modified TS:%s", modifiedTSs.size());
+		log("Modified Annotations:%s", modifiedAnnotations.size());
+		log("Deleted UIDs:%s", deletedUIDs.size());
+		log("Deleted TS:%s", deletedTSs.size());
+		log("Deleted Annotations:%s", deletedAnnotations.size());
+
 	}
+	
+	/** A map where the mock UIDMeta.delete op places deleted UIDMetas */
+	public static final Map<String, Object> deletedUIDs = new ConcurrentHashMap<String, Object>();
+	/** A map where the mock UIDMeta.syncToStore op places modified UIDMetas */
+	public static final Map<String, Object> modifiedUIDs = new ConcurrentHashMap<String, Object>();
+	/** A map where the mock TSMeta.delete op places deleted TSMetas */
+	public static final Map<String, Object> deletedTSs = new ConcurrentHashMap<String, Object>();
+	/** A map where the mock TSMeta.syncToStore op places modified TSMetas */
+	public static final Map<String, Object> modifiedTSs = new ConcurrentHashMap<String, Object>();
+	/** A map where the mock Annotation.delete op places deleted Annotations */
+	public static final Map<String, Object> deletedAnnotations = new ConcurrentHashMap<String, Object>();
+	/** A map where the mock Annotation.syncToStore op places updated Annotations */
+	public static final Map<String, Object> modifiedAnnotations = new ConcurrentHashMap<String, Object>();
 	
 	@BeforeClass
 	public static void mockClasses() {
 		MethodMocker.getInstance().transform(Annotation.class, MockedAnnotation.class);
-		MethodMocker.getInstance().transform(TSMeta.class, MockedSyncOps.class);
-		MethodMocker.getInstance().transform(UIDMeta.class, MockedSyncOps.class);
+		MethodMocker.getInstance().transform(TSMeta.class, MockedTSMetaOps.class);
+		MethodMocker.getInstance().transform(UIDMeta.class, MockedUIDMetaOps.class);
 	}
 	
 	@AfterClass
@@ -490,33 +542,55 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		MethodMocker.getInstance().restore(Annotation.class);
 		MethodMocker.getInstance().restore(TSMeta.class);
 		MethodMocker.getInstance().restore(UIDMeta.class);
+		deletedUIDs.clear();
+		modifiedUIDs.clear();
+		deletedTSs.clear();
+		modifiedTSs.clear();
+		deletedAnnotations.clear();
+		modifiedAnnotations.clear();
+		
 	}
 
 	
-	public static class MockedSyncOps {
+	public static class MockedTSMetaOps {
 		public Deferred<Object> delete(final TSDB tsdb) {
-			log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			deletedTSs.put(this.toString(), this);
 			return Deferred.fromResult(null);
 		}
 		
 		public Deferred<Boolean> syncToStorage(TSDB tsdb, boolean overwrite) {
-			log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			//log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			modifiedTSs.put(this.toString(), this);
 			return Deferred.fromResult(true);			
 		}
+	}
+
+	public static class MockedUIDMetaOps {
+		public Deferred<Object> delete(final TSDB tsdb) {
+			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			deletedUIDs.put(this.toString(), this);
+			return Deferred.fromResult(null);
+		}
 		
-		
+		public Deferred<Boolean> syncToStorage(TSDB tsdb, boolean overwrite) {
+			//log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			modifiedUIDs.put(this.toString(), this);
+			return Deferred.fromResult(true);			
+		}
 	}
 	
 	public static class MockedAnnotation {
 		public Deferred<Boolean> syncToStorage(TSDB tsdb, Boolean overwrite) {
-			log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			//log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
+			modifiedAnnotations.put(this.toString(), this);
 			return Deferred.fromResult(true);			
 		}
 		public Deferred<Object> delete(final TSDB tsdb) {
-			log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
+			deletedAnnotations.put(this.toString(), this);
 			return Deferred.fromResult(null);
 		}
-		
 	}
 		
 	

@@ -398,6 +398,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#triggerSyncQueueFlush()
+	 */
+	public void triggerSyncQueueFlush() {
+		if(syncQueuePollerEnabled) {
+			if(syncQueueProcessor==null) throw new RuntimeException("SyncQueue Polling Enabled but syncQueueProcessor is null");
+			syncQueueProcessor.run();
+		}
+	}
+	
+	/**
 	 * Populates the DB meta-data
 	 */
 	protected void popDbInfo() {

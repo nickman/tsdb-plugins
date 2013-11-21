@@ -207,7 +207,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		if(!syncInProgress.compareAndSet(false, true)) {
 			log.debug("Sync already in progress. Ejecting....");
 		}
-		log.info("Starting SyncQueue poll cycle");
+		log.debug("Starting SyncQueue poll cycle");
 		Connection conn = null;
 		PreparedStatement pollPs = null;
 		ResultSet pollRset = null;
@@ -233,8 +233,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					pendingSynchs.put(String.format("%s|%s", row[SQ_EVENT_TYPE], row[SQ_EVENT_PK]), row);
 				}				
 			}
-			log.info("Retrieved [{}] SyncQueue Rows", rowsRetrieved);
-			log.info("Processing [{}] SyncQueue Delete Items", pendingDeletes.size());
+			log.debug("Retrieved [{}] SyncQueue Rows", rowsRetrieved);
+			log.debug("Processing [{}] SyncQueue Delete Items", pendingDeletes.size());
 			for(Object[] crow: pendingDeletes.values()) {
 				long QID = (Long)crow[SQ_QID];
 				try {
@@ -251,7 +251,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				}				
 			}
 			pendingDeletes.clear();
-			log.info("Processing [{}] SyncQueue Update Items", pendingSynchs.size());
+			log.debug("Processing [{}] SyncQueue Update Items", pendingSynchs.size());
 			for(Object[] crow: pendingSynchs.values()) {
 				long QID = (Long)crow[SQ_QID];
 				try {

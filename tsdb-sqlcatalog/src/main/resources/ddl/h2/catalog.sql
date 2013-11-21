@@ -176,8 +176,12 @@ CREATE TRIGGER IF NOT EXISTS TSD_TAGV_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON
 
 CREATE TRIGGER IF NOT EXISTS TSD_FQN_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_TSMETA FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.TSMetaTrigger";
 CREATE TRIGGER IF NOT EXISTS TSD_ANNOTATON_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.AnnotationTrigger";
-
-
+/*
+20K metrics
+10K tagk
+127K tagv
+~25M time series
+*/
 
 
 -- ==============================================================================================
@@ -211,6 +215,8 @@ CREATE ALIAS IF NOT EXISTS JSONINCRINT FOR "net.opentsdb.catalog.h2.json.JSONMap
 
 
 CREATE ALIAS IF NOT EXISTS JMXID FOR "net.opentsdb.catalog.h2.H2Support.getMBeanServerId";
+
+CREATE ALIAS IF NOT EXISTS FQN FOR "net.opentsdb.catalog.h2.H2Support.getMetricNameForFQN";
 
 
 

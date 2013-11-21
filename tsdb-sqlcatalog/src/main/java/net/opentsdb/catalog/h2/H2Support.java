@@ -28,6 +28,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.management.ObjectName;
 
@@ -224,16 +226,21 @@ public class H2Support {
 	 * @return The metric name
 	 */
 	public static String metricUid(Connection conn, String name) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT UID FROM TSD_METRIC WHERE NAME = ?");
+			ps = conn.prepareStatement("SELECT UID FROM TSD_METRIC WHERE NAME = ?");
 			ps.setString(1, name);
-			ResultSet rs = ps.executeQuery();
-			if(rs.next()) {
-				return rs.getString(1);
+			rset = ps.executeQuery();
+			if(rset.next()) {
+				return rset.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -389,5 +396,80 @@ public class H2Support {
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
+	
+	/**
+	 * Builds and returns the fully qualified metric name for the passed TSMeta ID
+	 * @param conn The connection to query on
+	 * @param fqnId The TSMeta pk
+	 * @return the fully qualified name
+	 */
+	public static String getMetricNameForFQN(Connection conn, long fqnId) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			StringBuilder b = new StringBuilder();
+			ps = conn.prepareStatement("SELECT -1, NAME FROM TSD_METRIC M, TSD_TSMETA  T " +  
+					"WHERE T.METRIC_UID = M.XUID AND T.FQNID = ? " + 
+					"UNION ALL " +
+					"SELECT T.PORDER, P.NAME FROM TSD_TAGPAIR P, TSD_FQN_TAGPAIR T, TSD_TSMETA M " +  
+					"WHERE P.XUID= T.XUID AND T.FQNID = M.FQNID AND M.FQNID = ? " +
+					"ORDER BY 1");
+			ps.setLong(1, fqnId);
+			ps.setLong(2, fqnId);
+			rset = ps.executeQuery();
+			while(rset.next()) {
+				b.append(rset.getString(2));
+				if(rset.getInt(1)==-1) {
+					b.append(":");
+				} else {
+					b.append(",");
+				}
+			}
+			rset.close(); ps.close();
+			return b.deleteCharAt(b.length()-1).toString();
+		} catch (SQLException sex) {
+			return null;
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	
+	/**
+	 * Looks up the UID of a TAGV.
+	 * @param conn The DB connection
+	 * @param fqnId The FQNID of the TS_META row to generate an FQN for
+	 * @return The FQN
+	 */
+	public static String buildFQN(Connection conn, long fqnId) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			Set<String> xuids = new LinkedHashSet<String>(8);
+			ps = conn.prepareStatement("SELECT XUID FROM TSD_FQN_TAGPAIR WHERE FQNID = ? ORDER BY PORDER");
+			ps.setLong(1, fqnId);
+			rset = ps.executeQuery();
+			while(rset.next()) {
+				xuids.add(rset.getString(1));
+			}
+			rset.close(); ps.close();
+			
+			return null;
+		} catch (SQLException sex) {
+			return null;
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+//	CREATE TABLE IF NOT EXISTS TSD_FQN_TAGPAIR (
+//			FQN_TP_ID BIGINT NOT NULL COMMENT 'Synthetic primary key of an association between an FQN and a Tag Pair',
+//			FQNID BIGINT NOT NULL COMMENT 'The ID of the parent FQN',
+//			XUID CHAR(12) NOT NULL COMMENT 'The ID of a child tag key/value pair',
+//			PORDER TINYINT NOT NULL COMMENT 'The order of the tags in the FQN',
+//			NODE CHAR(1) NOT NULL COMMENT 'Indicates if this tagpair is a Branch (B) or a Leaf (L)' CHECK NODE IN ('B', 'L')
+	
 	
 }

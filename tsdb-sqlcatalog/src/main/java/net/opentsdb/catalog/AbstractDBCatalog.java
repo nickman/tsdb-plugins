@@ -1159,7 +1159,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			ps = conn.prepareStatement(String.format(TSD_DELETE_UID, uidMeta.getType().name()));
 			ps.setString(1, uidMeta.getUID());
-			ps.executeUpdate();
+			int dcount = ps.executeUpdate();
+			if(dcount!=1) {
+				throw new Exception("Deletion returned update count of [" + dcount + "]");
+			}			
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to delete UID [" + uidMeta.getUID() + "]", ex);
 		} finally {
@@ -1178,7 +1181,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			ps = conn.prepareStatement(TSD_DELETE_TS);
 			ps.setString(1, tsUid);
-			ps.executeUpdate();
+			int dcount = ps.executeUpdate();
+			if(dcount!=1) {
+				throw new Exception("Deletion returned update count of [" + dcount + "]");
+			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to delete TSUID [" + tsUid + "]", ex);
 		} finally {
@@ -1198,7 +1204,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			ps = conn.prepareStatement(TSD_DELETE_ANNOTATION);
 			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(annotation.getStartTime(), TimeUnit.SECONDS)));
 			ps.setString(1, annotation.getTSUID());
-			ps.executeUpdate();
+			int dcount = ps.executeUpdate();
+			if(dcount!=1) {
+				throw new Exception("Deletion returned update count of [" + dcount + "]");
+			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to delete Annotation [" + annotation + "]", ex);
 		} finally {

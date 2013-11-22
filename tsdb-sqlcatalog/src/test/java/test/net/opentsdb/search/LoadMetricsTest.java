@@ -438,28 +438,38 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
 		}
 		// Submit updates for each UIDMeta and TSMeta to trigger and update
+		int cnt = 0;
+
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			Assert.assertTrue(dbInterface.exists(uidMeta));
 			uidMeta.setNotes(uidMeta.toString());			
 			tsdb.indexUIDMeta(uidMeta);
+			cnt++;
 		}
+		log("Updated [%s] UIDMetas", cnt);
+		cnt=0;
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertTrue(dbInterface.exists(tsMeta));
 			tsMeta.setNotes(tsMeta.toString());
 			tsdb.indexTSMeta(tsMeta);
+			cnt++;
 		}
+		log("Updated [%s] TSMetas", cnt);
+		cnt=0;
 		for(Annotation ann: createdAnnotations) {
 			Assert.assertTrue("Failed to find annotation [" + ann + "]", dbInterface.exists(ann));
 			ann.setNotes(ann.getNotes() + "-UPDATED");
 			tsdb.indexAnnotation(ann);
+			cnt++;
 		}
+		log("Updated [%s] Annotations", cnt);		
 		et = SystemClock.startClock();
 		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.SECONDS)) {
 			Assert.fail("Timed out waiting for Update Milestone");
 		} else {
 			log("Update Milestone met after [%s] ms.", et.elapsedMs());
 		}
-		// Validate that all versions are 2
+		// Validate that all versions are 2 and the syncToStore mock object equals the original object
 		Object[][] lookups = null;
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			Assert.assertEquals("Version of UIDMeta was not 2", "2", uidMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
@@ -481,18 +491,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Query lookup for Annotation ANNID [" + annId + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
 		}
-		int syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
-		int syncQueueLoops = 0;
-		while(syncQueueSize>0 && syncQueueLoops < MAX_SYNC_QUEUE_LOOPS) {
-			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().triggerSyncQueueFlush();
-			Thread.currentThread().sleep(1000);
-			syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
-		}
-		log("SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
-		log("SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
-		if(syncQueueLoops==MAX_SYNC_QUEUE_LOOPS) {
-			Assert.fail("SyncQueue Loops Exceeded Allowed Flush Loops:" + MAX_SYNC_QUEUE_LOOPS);
-		}
+		// Flush the sync queue
+		flushSyncQueue("Post Update");
 		// Now the syncqueue has been flushed, loop through the objects again and find their flushed counter-part and compare
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			UIDMeta storedUidMeta = (UIDMeta)modifiedUIDs.remove(uidMeta.toString());
@@ -504,24 +504,57 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertNotNull("The syncToStore TSMeta was null", storedTsMeta);
 			validate(storedTsMeta, tsMeta);
 		}
-		log("Modified Annotation Keys:%s", modifiedAnnotations.keySet());
 		for(Annotation annotation: createdAnnotations) {
 			Annotation storedAnnotation = (Annotation)modifiedAnnotations.remove(annotation.toString());
 			Assert.assertNotNull("The syncToStore Annotation was null for key [" + annotation.toString() + "]", storedAnnotation);
 			validate(storedAnnotation, annotation);
 		}
+		// Loop through the objects again and issue delete ops.
+		cnt = 0;
+		for(Annotation annotation: createdAnnotations) {
+			tsdb.deleteAnnotation(annotation);
+			cnt++;			
+		}
+		log("Deleted [%s] Annotations", cnt);
+		cnt = 0;
+		for(TSMeta tsMeta: createdTSMetas) {
+			tsdb.deleteTSMeta(tsMeta.getTSUID());
+			cnt++;
+		}
+		log("Deleted [%s] TSMetas", cnt);
+		cnt = 0;		
+		for(UIDMeta uidMeta: createdUIDMetas) {
+			tsdb.deleteUIDMeta(uidMeta);
+			cnt++;
+		}
+		log("Deleted [%s] UIDMetas", cnt);
+		log("Deleted UIDs:%s", deletedUIDs.size());
+		log("Deleted TS:%s", deletedTSs.size());
+		log("Deleted Annotations:%s", deletedAnnotations.size());
 		
-		
-		// UIDMeta storedUidMeta = modifiedUIDs.get(uidMeta.toString());
-		
-//		/**
-//		 * Asserts the equality of the passed indexable objects
-//		 * @param c the created indexable object
-//		 * @param r the retrieved indexable object
-//		 */
-//		protected void validate(Object c, Object r) {		
-		
-		
+		// Manually trigger the syncqueue processor and wait for the queue to be cleared
+		flushSyncQueue("Post Delete");
+		// Validate that each of the deleted items are stored in the mock delete maps
+		for(Annotation annotation: createdAnnotations) {
+			Annotation deletedAnnotation = (Annotation)deletedAnnotations.remove(annotation.toString());
+			Assert.assertNotNull("The deleted Annotation was null for key [" + annotation.toString() + "]", deletedAnnotation);
+			validate(deletedAnnotation, annotation);
+		}
+		Assert.assertEquals("The DB Annotation Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_ANNOTATION"));
+		for(TSMeta tsMeta: createdTSMetas) {
+			TSMeta deletedTsMeta = (TSMeta)deletedTSs.remove(tsMeta.toString());
+			Assert.assertNotNull("The deleted TSMeta was null", deletedTsMeta);
+			validate(deletedTsMeta, tsMeta);
+		}
+		Assert.assertEquals("The DB TSMeta Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA"));
+		for(UIDMeta uidMeta: createdUIDMetas) {
+			UIDMeta deletedUidMeta = (UIDMeta)deletedUIDs.remove(uidMeta.toString());
+			Assert.assertNotNull("The deleted UIDMeta was null", deletedUidMeta);
+			validate(deletedUidMeta, uidMeta);
+		}
+		Assert.assertEquals("The DB TAGK Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGK"));
+		Assert.assertEquals("The DB TAGV Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGV"));
+		Assert.assertEquals("The DB METRIC Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_METRIC"));
 		
 		log("Modified UIDs:%s", modifiedUIDs.size());
 		log("Modified TS:%s", modifiedTSs.size());
@@ -530,6 +563,32 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		log("Deleted TS:%s", deletedTSs.size());
 		log("Deleted Annotations:%s", deletedAnnotations.size());
 
+	}
+	
+	/**
+	 * Flushes the sync queue and waits for the queue to be cleared
+	 * @param testPhase The name of the test phase we're flushing after
+	 * @throws Exception thrown on any error
+	 */
+	protected void flushSyncQueue(String testPhase) throws Exception {
+		log("PENDING:" + testPhase + " SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
+		log("PENDING:" + testPhase + " SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
+		
+		ElapsedTime et = SystemClock.startClock();
+		int syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
+		int syncQueueLoops = 0;
+		while(syncQueueSize>0 && syncQueueLoops < MAX_SYNC_QUEUE_LOOPS) {
+			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().triggerSyncQueueFlush();
+			Thread.sleep(1000);
+			syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
+			syncQueueLoops++;
+		}
+		log(testPhase + " SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
+		log(testPhase + " SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
+		if(syncQueueLoops==MAX_SYNC_QUEUE_LOOPS) {
+			Assert.fail("SyncQueue Loops Exceeded Allowed Flush Loops in test phase [" + testPhase + "]:" + MAX_SYNC_QUEUE_LOOPS);
+		}
+		log("SyncQueue flushed for [%s] in [%s] ms. and [%s] wait loops", testPhase, et.elapsedMs(), syncQueueLoops);
 	}
 	
 	/** A map where the mock UIDMeta.delete op places deleted UIDMetas */

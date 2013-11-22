@@ -211,6 +211,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		Connection conn = null;
 		PreparedStatement pollPs = null;
 		ResultSet pollRset = null;
+		int synchsCompleted = 0, deletesCompleted = 0;
 		try {
 			Map<String, Object[]> pendingSynchs = new TreeMap<String, Object[]>();
 			Map<String, Object[]> pendingDeletes = new TreeMap<String, Object[]>();
@@ -246,6 +247,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 						log.info("Purged Obsolete SyncQueue QID [{}]", obsolete[SQ_QID]);
 					}
 					log.trace("Processed SyncQueue Delete QID [{}]", QID);
+					deletesCompleted++;
 				} catch (Exception ex) {
 					log.warn("Deletion failed for QID [{}]", QID);
 				}				
@@ -260,12 +262,14 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					log.error("SyncQueue Update Failure", t);
 				}
 				log.trace("Processed SyncQueue Modified QID [{}]", QID);
+				synchsCompleted++;
 			}
 			pendingSynchs.clear();
 			pollRset.close(); pollRset = null;
 			pollPs.close(); pollPs = null;
 			conn.commit(); conn.close(); conn = null;
 			log.debug("SyncQueue poll cycle complete");
+			log.info("SyncQueue Loop: Deletes:[{}]  Synchs:[{}]", deletesCompleted, synchsCompleted);
 		} catch (Exception ex) {
 			log.warn("SyncQueueProcessor Poll Cycle Exception", ex);
 		} finally {

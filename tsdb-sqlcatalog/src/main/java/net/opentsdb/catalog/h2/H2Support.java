@@ -437,25 +437,35 @@ public class H2Support {
 	
 	
 	/**
-	 * Looks up the UID of a TAGV.
+	 * Builds the name for a tagpair xuid
 	 * @param conn The DB connection
-	 * @param fqnId The FQNID of the TS_META row to generate an FQN for
-	 * @return The FQN
+	 * @param xuid The pk for the tag pair
+	 * @return The built name
 	 */
-	public static String buildFQN(Connection conn, long fqnId) {
+	public static String getNameForTagPair(Connection conn, String xuid) {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
 		try {
-			Set<String> xuids = new LinkedHashSet<String>(8);
-			ps = conn.prepareStatement("SELECT XUID FROM TSD_FQN_TAGPAIR WHERE FQNID = ? ORDER BY PORDER");
-			ps.setLong(1, fqnId);
+			StringBuilder b = new StringBuilder();
+			ps = conn.prepareStatement(
+					"SELECT 0, K.NAME FROM TSD_TAGPAIR T, TSD_TAGK K WHERE K.XUID = T.TAGK AND T.XUID = ? " + 
+					"UNION ALL " + 
+					"SELECT 1, V.NAME FROM TSD_TAGPAIR T, TSD_TAGV V WHERE V.XUID = T.TAGV AND T.XUID = ? " +
+					"ORDER BY 1"					
+			);
+			ps.setMaxRows(2);
+			ps.setString(1, xuid);
+			ps.setString(2, xuid);
 			rset = ps.executeQuery();
 			while(rset.next()) {
-				xuids.add(rset.getString(1));
+				b.append(rset.getString(2));
+				if(rset.getInt(1)==0) {
+					b.append("=");
+				}
 			}
 			rset.close(); ps.close();
 			
-			return null;
+			return b.toString();
 		} catch (SQLException sex) {
 			return null;
 		} finally {
@@ -464,12 +474,33 @@ public class H2Support {
 		}
 	}
 	
+	
+	
 //	CREATE TABLE IF NOT EXISTS TSD_FQN_TAGPAIR (
 //			FQN_TP_ID BIGINT NOT NULL COMMENT 'Synthetic primary key of an association between an FQN and a Tag Pair',
 //			FQNID BIGINT NOT NULL COMMENT 'The ID of the parent FQN',
 //			XUID CHAR(12) NOT NULL COMMENT 'The ID of a child tag key/value pair',
 //			PORDER TINYINT NOT NULL COMMENT 'The order of the tags in the FQN',
 //			NODE CHAR(1) NOT NULL COMMENT 'Indicates if this tagpair is a Branch (B) or a Leaf (L)' CHECK NODE IN ('B', 'L')
+	
+//	CREATE TABLE IF NOT EXISTS TSD_TAGPAIR (
+//			XUID CHAR(12) NOT NULL COMMENT 'The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs.',
+//			TAGK CHAR(6) NOT NULL COMMENT 'The pair tag key' REFERENCES TSD_TAGK(XUID),
+//			TAGV CHAR(6) NOT NULL COMMENT 'The pair tag value' REFERENCES TSD_TAGV(XUID),
+//			NAME  VARCHAR2(120) NOT NULL COMMENT 'The tag pair name expressed as T=V'
+//		); COMMENT ON TABLE TSD_TAGPAIR IS 'Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta';
+	
+//	CREATE TABLE IF NOT EXISTS TSD_TAGV (
+//		    XUID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
+//		    VERSION INT NOT NULL COMMENT 'The version of this instance',
+//		    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
+//		    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+//		    DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
+//		    DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag value',
+//		    NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag value',
+//		    CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this tag value'    
+//		); COMMENT ON TABLE TSD_TAGV IS 'Table storing distinct time-series tag values';
+	
 	
 	
 }

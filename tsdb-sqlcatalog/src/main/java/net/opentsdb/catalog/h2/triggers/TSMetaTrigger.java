@@ -70,7 +70,7 @@ public class TSMetaTrigger extends AbstractSyncQueueTrigger {
 					incrementVersion(newRow);
 					incrementVersion(14, newRow);
 				}
-				addSyncQueueEvent(conn, tableName, "U", newRow[0].toString());			
+				addSyncQueueEvent(conn, tableName, "U", newRow[0].toString());	
 			}
 		} finally {
 			elapsedTimes.insert(et.elapsed());

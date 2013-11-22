@@ -31,6 +31,8 @@ import java.util.Collections;
 
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import static net.opentsdb.catalog.CatalogDBInterface.*;
+
 
 /**
  * <p>Title: UIDMetaTrigger</p>
@@ -71,7 +73,7 @@ public class UIDMetaTrigger extends AbstractSyncQueueTrigger {
 					incrementVersion(newRow);
 					incrementVersion(7, newRow);
 				}
-				addSyncQueueEvent(conn, tableName, "U", newRow[0].toString());			
+				addSyncQueueEvent(conn, tableName, "U", newRow[0].toString());
 			}
 		} finally {
 			elapsedTimes.insert(et.elapsed());

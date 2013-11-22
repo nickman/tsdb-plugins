@@ -26,6 +26,9 @@ package net.opentsdb.catalog.h2.triggers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -167,6 +170,45 @@ public abstract class AbstractTrigger implements Trigger, AbstractTriggerMBean {
 		log.info("Initialized Trigger [" + getClass().getSimpleName() + "]  Type [" + TriggerOp.getEnabledStatesName(type) + "]");
 		
 	}
+	
+	/**
+	 * Sets the passed user defined variable in the passed connection's session
+	 * @param conn The connection to set the vars in
+	 * @param key The variable key
+	 * @param value The variable value
+	 */
+	protected void setUserDefinedVar(Connection conn, String key, Object value) {
+		setUserDefinedVars(conn, Collections.singletonMap(key, value));
+	}
+	
+	
+	/**
+	 * Sets the passed user defined variables in the passed connection's session
+	 * @param conn The connection to set the vars in
+	 * @param userDefinedVars A map of variables to set
+	 */
+	protected void setUserDefinedVars(Connection conn, Map<String, Object> userDefinedVars) {
+		if(userDefinedVars==null) throw new IllegalArgumentException("User Vars was null");
+		Statement st = null;
+		try {
+			st = conn.createStatement();
+			String format = null;
+			for(Map.Entry<String, Object> entry:  userDefinedVars.entrySet()) {
+				if(entry.getValue() instanceof CharSequence) {
+					format =  "SET @%s = '%s';";
+				} else {
+					format =  "SET @%s = %s;";
+				}
+				st.execute(String.format(format, entry.getKey(), entry.getValue()));
+				log.debug("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
+			}						
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set user defined vars [" + userDefinedVars + "]", ex);
+		} finally {
+			if(st!=null) try { st.close(); } catch (Exception x) { /* No Op */ }
+		}
+	}
+	
 	
 	/**
 	 * Returns this trigger's JMX {@link ObjectName}

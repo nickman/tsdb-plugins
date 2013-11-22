@@ -65,6 +65,7 @@ import net.opentsdb.search.SearchQuery;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 
+import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -1201,6 +1202,21 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public void deleteAnnotation(Connection conn, Annotation annotation) {		
 		PreparedStatement ps = null;		
 		try {
+			String pk = annotation.getCustom().get(PK_KEY);
+			if(pk!=null) {
+				try {
+					long annId = Long.parseLong(pk);
+					ps = conn.prepareStatement("DELETE FROM TSD_ANNOTATION WHERE ANNID = ?");
+					ps.setLong(1, annId);
+					int dcount = ps.executeUpdate();
+					if(dcount!=1) {
+						throw new Exception("Deletion returned update count of [" + dcount + "]");
+					}					
+					return;
+				} catch (Exception ex) {/* No Op */} finally {
+					if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+				}
+			}
 			ps = conn.prepareStatement(TSD_DELETE_ANNOTATION);
 			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(annotation.getStartTime(), TimeUnit.SECONDS)));
 			ps.setString(1, annotation.getTSUID());

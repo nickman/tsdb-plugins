@@ -269,7 +269,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			pollPs.close(); pollPs = null;
 			conn.commit(); conn.close(); conn = null;
 			log.debug("SyncQueue poll cycle complete");
-			log.info("SyncQueue Loop: Deletes:[{}]  Synchs:[{}]", deletesCompleted, synchsCompleted);
+			log.debug("SyncQueue Loop: Deletes:[{}]  Synchs:[{}]", deletesCompleted, synchsCompleted);
 		} catch (Exception ex) {
 			log.warn("SyncQueueProcessor Poll Cycle Exception", ex);
 		} finally {

@@ -304,12 +304,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			ann.setNotes(minfo.getClassName());
 			tsdb.indexAnnotation(ann);
 		} 
-		ElapsedTime et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
-			Assert.fail("Timed out waiting for Indexing Milestone");
-		} else {
-			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
-		}
+		waitForProcessingQueue("testMetaIndexing/Indexing", 30000, TimeUnit.MILLISECONDS);
 		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
 			Thread.currentThread().join();
 		}
@@ -353,12 +348,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Unexpected TagPair RowCount for [" + tsUid + "]", tagCount, rowCount);			
 			tsdb.deleteTSMeta(tsMeta.getTSUID());
 		}
-		et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
-			Assert.fail("Timed out waiting for TSUID Deletes Milestone");
-		} else {
-			log("TSUID Deletes Milestone met after [%s] ms.", et.elapsedMs());
-		}
+		waitForProcessingQueue("testMetaIndexing/TSUID Deletes", 30000, TimeUnit.MILLISECONDS);
 		for(TSMeta tsMeta: createdTSMetas) {
 			String tsUid = tsMeta.getTSUID();			
 			int rowCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = '" + tsUid + "'");
@@ -429,14 +419,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			ann.setNotes(minfo.getClassName());
 			tsdb.indexAnnotation(ann);
 			createdAnnotations.add(ann);
-		} 
-		ElapsedTime et = SystemClock.startClock();
-		 
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.MILLISECONDS)) {
-			Assert.fail("Timed out waiting for Indexing Milestone");
-		} else {
-			log("Indexing Milestone met after [%s] ms.", et.elapsedMs());
 		}
+		waitForProcessingQueue("testMetaUpdates/Indexing", 30000, TimeUnit.MILLISECONDS);
 		// Submit updates for each UIDMeta and TSMeta to trigger and update
 		int cnt = 0;
 
@@ -463,12 +447,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			cnt++;
 		}
 		log("Updated [%s] Annotations", cnt);		
-		et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(30000, TimeUnit.SECONDS)) {
-			Assert.fail("Timed out waiting for Update Milestone");
-		} else {
-			log("Update Milestone met after [%s] ms.", et.elapsedMs());
-		}
+		waitForProcessingQueue("testMetaUpdates/Updates", 30000, TimeUnit.MILLISECONDS);
 		// Validate that all versions are 2 and the syncToStore mock object equals the original object
 		Object[][] lookups = null;
 		for(UIDMeta uidMeta: createdUIDMetas) {
@@ -522,12 +501,14 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			cnt++;
 		}
 		log("Deleted [%s] TSMetas", cnt);
+		waitForProcessingQueue("testMetaUpdates/TSMeta Deletes", 30000, TimeUnit.MILLISECONDS);
 		cnt = 0;		
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			tsdb.deleteUIDMeta(uidMeta);
 			cnt++;
 		}
-		log("Deleted [%s] UIDMetas", cnt);
+//		log("Deleted [%s] UIDMetas", cnt);
+//		waitForProcessingQueue("testMetaUpdates/UIDMeta Deletes", 30000, TimeUnit.MILLISECONDS);
 		log("Deleted UIDs:%s", deletedUIDs.size());
 		log("Deleted TS:%s", deletedTSs.size());
 		log("Deleted Annotations:%s", deletedAnnotations.size());
@@ -589,6 +570,22 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.fail("SyncQueue Loops Exceeded Allowed Flush Loops in test phase [" + testPhase + "]:" + MAX_SYNC_QUEUE_LOOPS);
 		}
 		log("SyncQueue flushed for [%s] in [%s] ms. and [%s] wait loops", testPhase, et.elapsedMs(), syncQueueLoops);
+	}
+	
+	/**
+	 * Waits for the event processing queue to complete processing on whatever has been submitted to this point.
+	 * @param testPhase The name of the test phase
+	 * @param timeout The time period to wait for the processing to complete
+	 * @param unit the unit of the timeout
+	 */
+	protected void waitForProcessingQueue(String testPhase, long timeout, TimeUnit unit) {
+		ElapsedTime et = SystemClock.startClock();
+		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(timeout, unit)) {
+			Assert.fail("Timed out waiting for [" + testPhase + "] Milestone");
+		} else {
+			log("[%s] Milestone met after [%s] ms.", testPhase, et.elapsedMs());
+		}
+		
 	}
 	
 	/** A map where the mock UIDMeta.delete op places deleted UIDMetas */

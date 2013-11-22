@@ -278,12 +278,15 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	 */
 	@Override
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
-		if(!EVENT_ORDERING.containsKey(event.eventType)) return;
+		if(!EVENT_ORDERING.containsKey(event.eventType)) {
+			log.warn("No event type ordering entry. Not processing Event [{}]", event);
+			return;
+		}
 		if(TSDBEventType.SEARCH==event.eventType) {
 			if(!searchEnabled) return;
 			executeQuery(event.searchQuery, event.deferred);
 		} else {
-			processingQueue.add(event.asSearchEvent());			
+			processingQueue.add(event.asSearchEvent());
 		}
 	}
 	
@@ -303,7 +306,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 				conn.setAutoCommit(false);
 				while(true) {
 					Set<TSDBSearchEvent> events = new LinkedHashSet<TSDBSearchEvent>(batchSize);
-					events.add(processingQueue.take());
+					TSDBSearchEvent ex = processingQueue.take();
+					events.add(ex);
 					final long ts = System.currentTimeMillis() + 2000;
 					do {
 						TSDBSearchEvent ev = processingQueue.poll(200, TimeUnit.MILLISECONDS);
@@ -313,6 +317,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 					} while(events.size()<batchSize && ts>System.currentTimeMillis());
 					log.debug("Processing Batch of [{}] Events", events.size());
 					dbInterface.processEvents(conn, events);
+					events.clear();
 				}
 			} catch (InterruptedException iex) {
 				Thread.interrupted();

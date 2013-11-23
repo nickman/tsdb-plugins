@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
+import net.opentsdb.catalog.h2.H2Support;
+
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 
@@ -39,7 +41,7 @@ public class AnnotationTrigger extends AbstractSyncQueueTrigger {
 				addSyncQueueEvent(conn, tableName, "I", newRow[0].toString());
 			} else if(newRow==null) {
 				// ======  DELETE  ======
-				addSyncQueueEvent(conn, tableName, "D", String.format("%s:%s", ((Timestamp)oldRow[2]).getTime(), oldRow[5]==null ? "" : oldRow[5]));
+				addSyncQueueEvent(conn, tableName, "D", String.format("%s:%s", ((Timestamp)oldRow[2]).getTime(), oldRow[5]==null ? "" : H2Support.tsuid(conn, (Long)oldRow[5])));
 			} else {
 				// ======  UPDATE  ======
 				if(Arrays.deepEquals(oldRow, newRow)) return;			

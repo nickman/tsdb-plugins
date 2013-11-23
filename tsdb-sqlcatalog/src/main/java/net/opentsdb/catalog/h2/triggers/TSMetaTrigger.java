@@ -62,7 +62,7 @@ public class TSMetaTrigger extends AbstractSyncQueueTrigger {
 				addSyncQueueEvent(conn, tableName, "I", newRow[0].toString());
 			} else if(newRow==null) {
 				// ======  DELETE  ======
-				addSyncQueueEvent(conn, tableName, "D", oldRow[0].toString());
+				addSyncQueueEvent(conn, tableName, "D", oldRow[4].toString());
 			} else {
 				// ======  UPDATE  ======
 				if(Arrays.deepEquals(oldRow, newRow)) return;			

@@ -53,6 +53,7 @@ import javax.sql.DataSource;
 
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
+import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -353,6 +354,23 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}				
 	}
 	
+	/**
+	 * Returns the TSUID for the passed FQN ID
+	 * @param fqnId The pk of a TSMeta
+	 * @return the TSUID
+	 */
+	protected String getTSUID(long fqnId) {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			return H2Support.tsuid(conn, fqnId); 
+		} catch (Exception ex) {
+			log.warn("Failed to get TSDUID for FQNID [{}]", fqnId, ex);
+			return null;
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
 	
 	/**
 	 * Recreates a pk only TSDB meta object from the passed SyncQueue row
@@ -371,6 +389,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			String[] frags = row[SQ_EVENT_PK].toString().split(":");
 			annotation.setStartTime(TimeUnit.SECONDS.convert(Long.parseLong(frags[0]), TimeUnit.MILLISECONDS));
 			if(!frags[1].isEmpty()) {
+				//String tsuid = getTSUID(Long.parseLong(frags[1]));
 				annotation.setTSUID(frags[1]);
 			}
 			return annotation;

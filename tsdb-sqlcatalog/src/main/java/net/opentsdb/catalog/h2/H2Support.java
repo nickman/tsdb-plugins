@@ -28,8 +28,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.ObjectName;
 
@@ -105,16 +106,48 @@ public class H2Support {
 	 */
 	public static long fqnId(Connection conn, String tsuid) {
 		if(tsuid==null || tsuid.trim().isEmpty()) return -1;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT FQNID FROM TSD_TSMETA WHERE TSUID = ?");
+			ps = conn.prepareStatement("SELECT FQNID FROM TSD_TSMETA WHERE TSUID = ?");
 			ps.setString(1, tsuid);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			rs.next();
 			return rs.getLong(1);
 		} catch (Exception ex) {
-			throw new RuntimeException("Failed to find FQNID for TSUID [" + tsuid + "]", ex);
+			//throw new RuntimeException("Failed to find FQNID for TSUID [" + tsuid + "]", ex);
+			return -1L;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
+	
+	/**
+	 * Returns the TSUID of the TSMeta with the passed FQNID
+	 * @param conn The DB connection
+	 * @param fqnId The FQNID of the TSMeta to get the tsuid for
+	 * @return the TSUID of the TSMeta or null if one was not found
+	 */
+	public static String tsuid(Connection conn, long fqnId) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = conn.prepareStatement("SELECT TSUID FROM TSD_TSMETA WHERE FQNID = ?");
+			ps.setLong(1, fqnId);
+			rs = ps.executeQuery();
+			if(rs.next()) {
+				return rs.getString(1);
+			} else {
+				return null;
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to find TSUID for FQNID [" + fqnId + "]", ex);			
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}	
 	
 	/**
 	 * Looks up the name of a TAGV
@@ -123,16 +156,21 @@ public class H2Support {
 	 * @return The TAGV name
 	 */
 	public static String tagvName(Connection conn, String uid) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;		
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGV WHERE UID = ?");
+			ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGV WHERE XUID = ?");
 			ps.setString(1, uid);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if(rs.next()) {
 				return rs.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 
@@ -143,16 +181,21 @@ public class H2Support {
 	 * @return The TAGV name
 	 */
 	public static String tagvUid(Connection conn, String name) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;				
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT UID FROM TSD_TAGV WHERE NAME = ?");
+			ps = conn.prepareStatement("SELECT XUID FROM TSD_TAGV WHERE NAME = ?");
 			ps.setString(1, name);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if(rs.next()) {
 				return rs.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -163,16 +206,21 @@ public class H2Support {
 	 * @return The TAGK name
 	 */
 	public static String tagkName(Connection conn, String uid) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;						
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGK WHERE UID = ?");
+			ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGK WHERE XUID = ?");
 			ps.setString(1, uid);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if(rs.next()) {
 				return rs.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -185,16 +233,21 @@ public class H2Support {
 	 * @return The TAGK name
 	 */
 	public static String tagkUid(Connection conn, String name) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;								
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT UID FROM TSD_TAGK WHERE NAME = ?");
+			ps = conn.prepareStatement("SELECT XUID FROM TSD_TAGK WHERE NAME = ?");
 			ps.setString(1, name);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if(rs.next()) {
 				return rs.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -206,16 +259,21 @@ public class H2Support {
 	 * @return The METRIC name
 	 */
 	public static String metricName(Connection conn, String uid) {
+		PreparedStatement ps = null;
+		ResultSet rs = null;										
 		try {
-			PreparedStatement ps = conn.prepareStatement("SELECT NAME FROM TSD_METRIC WHERE UID = ?");
+			ps = conn.prepareStatement("SELECT NAME FROM TSD_METRIC WHERE XUID = ?");
 			ps.setString(1, uid);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if(rs.next()) {
 				return rs.getString(1);
 			}
 			return null;
 		} catch (SQLException sex) {
 			return null;
+		} finally {
+			if(rs!=null) try { rs.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 
@@ -229,11 +287,43 @@ public class H2Support {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
 		try {
-			ps = conn.prepareStatement("SELECT UID FROM TSD_METRIC WHERE NAME = ?");
+			ps = conn.prepareStatement("SELECT XUID FROM TSD_METRIC WHERE NAME = ?");
 			ps.setString(1, name);
 			rset = ps.executeQuery();
 			if(rset.next()) {
 				return rset.getString(1);
+			}
+			return null;
+		} catch (SQLException sex) {
+			return null;
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	
+	/**
+	 * Looks up the ANNID of an Annotation
+	 * @param conn The DB connection
+	 * @param startTime The annotation start time in unix time 
+	 * @param tsuid The optional TSUID of the associated TSMeta
+	 * @return The annotation's ANNID
+	 */
+	public static Long annotationId(Connection conn, long startTime, String tsuid) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			ps = conn.prepareStatement("SELECT ANNID FROM ANNOTATION WHERE START_TIME = ? AND (FQNID IS NULL OR FQNID = ?");
+			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(startTime, TimeUnit.SECONDS)));
+			if(tsuid==null) {
+				ps.setNull(2, Types.BIGINT);
+			} else {
+				ps.setLong(2, fqnId(conn, tsuid));
+			}
+			rset = ps.executeQuery();
+			if(rset.next()) {
+				return rset.getLong(1);
 			}
 			return null;
 		} catch (SQLException sex) {

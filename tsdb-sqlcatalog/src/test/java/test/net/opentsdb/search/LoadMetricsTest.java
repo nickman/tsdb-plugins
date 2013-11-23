@@ -484,7 +484,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			validate(storedTsMeta, tsMeta);
 		}
 		for(Annotation annotation: createdAnnotations) {
-			Annotation storedAnnotation = (Annotation)modifiedAnnotations.remove(annotation.toString());
+			Annotation storedAnnotation = (Annotation)modifiedAnnotations.remove(getDeletedKey(annotation));
 			Assert.assertNotNull("The syncToStore Annotation was null for key [" + annotation.toString() + "]", storedAnnotation);
 			validate(storedAnnotation, annotation);
 		}
@@ -507,8 +507,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			tsdb.deleteUIDMeta(uidMeta);
 			cnt++;
 		}
-//		log("Deleted [%s] UIDMetas", cnt);
-//		waitForProcessingQueue("testMetaUpdates/UIDMeta Deletes", 30000, TimeUnit.MILLISECONDS);
+		log("Deleted [%s] UIDMetas", cnt);
+		waitForProcessingQueue("testMetaUpdates/UIDMeta Deletes", 30000, TimeUnit.MILLISECONDS);
 		log("Deleted UIDs:%s", deletedUIDs.size());
 		log("Deleted TS:%s", deletedTSs.size());
 		log("Deleted Annotations:%s", deletedAnnotations.size());
@@ -517,22 +517,27 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		flushSyncQueue("Post Delete");
 		// Validate that each of the deleted items are stored in the mock delete maps
 		for(Annotation annotation: createdAnnotations) {
-			Annotation deletedAnnotation = (Annotation)deletedAnnotations.remove(annotation.toString());
+			Annotation deletedAnnotation = (Annotation)deletedAnnotations.remove(getDeletedKey(annotation));
 			Assert.assertNotNull("The deleted Annotation was null for key [" + annotation.toString() + "]", deletedAnnotation);
-			validate(deletedAnnotation, annotation);
+			//validate(deletedAnnotation, annotation);
 		}
 		Assert.assertEquals("The DB Annotation Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_ANNOTATION"));
 		for(TSMeta tsMeta: createdTSMetas) {
-			TSMeta deletedTsMeta = (TSMeta)deletedTSs.remove(tsMeta.toString());
-			Assert.assertNotNull("The deleted TSMeta was null", deletedTsMeta);
-			validate(deletedTsMeta, tsMeta);
+			TSMeta deletedTsMeta = (TSMeta)deletedTSs.remove(getDeletedKey(tsMeta));
+			Assert.assertNotNull("The deleted TSMeta [" + getDeletedKey(tsMeta) + "] was null", deletedTsMeta);
+			//validate(deletedTsMeta, tsMeta);
 		}
 		Assert.assertEquals("The DB TSMeta Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA"));
+		log("Deleted UIDMeta Keys %s", deletedUIDs.keySet());
+		Set<String> uidDeleteKeys = new HashSet<String>();
 		for(UIDMeta uidMeta: createdUIDMetas) {
-			UIDMeta deletedUidMeta = (UIDMeta)deletedUIDs.remove(uidMeta.toString());
-			Assert.assertNotNull("The deleted UIDMeta was null", deletedUidMeta);
-			validate(deletedUidMeta, uidMeta);
+			UIDMeta deletedUidMeta = (UIDMeta)deletedUIDs.get(getDeletedKey(uidMeta));
+			Assert.assertNotNull("The deleted UIDMeta [" + getDeletedKey(uidMeta) + "] was null", deletedUidMeta);
+			uidDeleteKeys.add(getDeletedKey(uidMeta));
+			//validate(deletedUidMeta, uidMeta);
 		}
+		for(String s: uidDeleteKeys) deletedUIDs.remove(s);
+		
 		Assert.assertEquals("The DB TAGK Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGK"));
 		Assert.assertEquals("The DB TAGV Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TAGV"));
 		Assert.assertEquals("The DB METRIC Count was not zero", 0, jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_METRIC"));
@@ -626,7 +631,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	public static class MockedTSMetaOps {
 		public Deferred<Object> delete(final TSDB tsdb) {
 			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
-			deletedTSs.put(this.toString(), this);
+			deletedTSs.put(getDeletedKey(this), this);
 			return Deferred.fromResult(null);
 		}
 		
@@ -640,7 +645,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	public static class MockedUIDMetaOps {
 		public Deferred<Object> delete(final TSDB tsdb) {
 			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
-			deletedUIDs.put(this.toString(), this);
+			deletedUIDs.put(getDeletedKey(this), this);
 			return Deferred.fromResult(null);
 		}
 		
@@ -654,17 +659,30 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	public static class MockedAnnotation {
 		public Deferred<Boolean> syncToStorage(TSDB tsdb, Boolean overwrite) {
 			//log("MOCKED METHOD: %s.syncToStorage", getClass().getSimpleName());
-			modifiedAnnotations.put(this.toString(), this);
+			modifiedAnnotations.put(getDeletedKey(this), this);
 			return Deferred.fromResult(true);			
 		}
 		public Deferred<Object> delete(final TSDB tsdb) {
 			//log("MOCKED METHOD: %s.delete", getClass().getSimpleName());
-			deletedAnnotations.put(this.toString(), this);
+			deletedAnnotations.put(getDeletedKey(this), this);
 			return Deferred.fromResult(null);
 		}
 	}
 		
 	
+	public static String getDeletedKey(Object x) {
+		if(x instanceof Annotation) {
+			Annotation ann = (Annotation)x;
+			String tsuid = ann.getTSUID();
+			return String.format("%s-%s", ann.getStartTime(), tsuid==null ? "null" : tsuid);
+		} else if(x instanceof UIDMeta) {
+			return "UIDMeta-" + ((UIDMeta)x).getUID();
+		} else if(x instanceof TSMeta) {
+			return "TSMeta-" + ((TSMeta)x).getTSUID();
+		} else {
+			return x.getClass().getName() + "-" + x.toString(); 
+		}
+	}
 
 
 

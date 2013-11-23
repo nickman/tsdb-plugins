@@ -249,9 +249,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//	Object DELETE SQL
 	// ========================================================================================
 	/** The SQL to delete an Annotation */
-	public static final String TSD_DELETE_ANNOTATION = "DELETE FROM TSD_ANNOTATION WHERE START_TIME = ? AND (TSUID = ? OR TSUID IS NULL)";
+	public static final String TSD_DELETE_ANNOTATION = "DELETE FROM TSD_ANNOTATION WHERE START_TIME = ? AND (FQNID = ? OR FQNID IS NULL)";
 	/** The SQL template to delete a UIDMeta */
 	public static final String TSD_DELETE_UID = "DELETE FROM TSD_%s WHERE XUID = ?";
+	/** The SQL template to delete a TAGK or TAGV UIDMeta TagPair Parent */
+	public static final String TSD_DELETE_UID_PARENT = "DELETE FROM TSD_TAGPAIR WHERE %s = ?";
+	
 	/** The SQL template to delete a TSMeta */
 	public static final String TSD_DELETE_TS = "DELETE FROM TSD_TSMETA WHERE TSUID = ?";
 
@@ -1150,7 +1153,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	// ==================================================================================================
 	
 	/**
-	 * Deletes a UIDMeta
+	 * Deletes a UIDMeta.
+	 * Note that this deletes the parent tag-pair.
 	 * @param conn The connection to use
 	 * @param uidMeta The UIDMeta to delete
 	 */
@@ -1158,6 +1162,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public void deleteUIDMeta(Connection conn, UIDMeta uidMeta) {		
 		PreparedStatement ps = null;		
 		try {
+			if(uidMeta.getType()==UniqueIdType.TAGK || uidMeta.getType()==UniqueIdType.TAGV) {
+				// try deleting the parent tag pair. if this fails, bail out quietly
+				try {
+					ps = conn.prepareStatement(String.format(TSD_DELETE_UID_PARENT, uidMeta.getType().name()));
+					ps.setString(1, uidMeta.getUID());
+					ps.executeUpdate();
+				} catch (Exception ex) {
+					log.info("Failed to delete tagpair parent for [{}]", uidMeta);
+					return;					
+				} finally {
+					if (ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+				}
+			}
 			ps = conn.prepareStatement(String.format(TSD_DELETE_UID, uidMeta.getType().name()));
 			ps.setString(1, uidMeta.getUID());
 			int dcount = ps.executeUpdate();
@@ -1213,13 +1230,26 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 						throw new Exception("Deletion returned update count of [" + dcount + "]");
 					}					
 					return;
-				} catch (Exception ex) {/* No Op */} finally {
+				} catch (Exception ex) {
+					/* No Op */
+					ex.printStackTrace(System.err);
+					} finally {
 					if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 				}
 			}
 			ps = conn.prepareStatement(TSD_DELETE_ANNOTATION);
 			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(annotation.getStartTime(), TimeUnit.SECONDS)));
-			ps.setString(1, annotation.getTSUID());
+			
+			if(annotation.getTSUID()==null) {
+				ps.setNull(2, Types.BIGINT);
+			} else {
+				long fqnId = H2Support.fqnId(conn, annotation.getTSUID());
+				if(fqnId==-1) {
+					ps.setNull(2, Types.BIGINT);
+				} else {
+					ps.setLong(2, H2Support.fqnId(conn, annotation.getTSUID()));
+				}
+			}
 			int dcount = ps.executeUpdate();
 			if(dcount!=1) {
 				throw new Exception("Deletion returned update count of [" + dcount + "]");

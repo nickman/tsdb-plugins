@@ -47,6 +47,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 
 import org.h2.fulltext.FullTextLucene;
 import org.h2.tools.Server;
@@ -311,30 +312,72 @@ public class H2DBCatalog extends AbstractDBCatalog {
     public ResultSet executeSearch(Connection conn, SearchQuery query, final Set<Closeable> closeables) {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
-		Statement st = null;
+		PreparedStatement itemPs = null;
+		ResultSet itemRset = null;
+		String sqlQuery = null;
+		String sqlItemQuery = null;
+		String[] tableBinds = null;
 		try {
-	    	ps = conn.prepareStatement("SELECT * FROM FTL_SEARCH_DATA(?, ?, ?)");
+			switch(query.getType()) {
+			case TSMETA:
+			case TSMETA_SUMMARY:
+			case TSUIDS:
+				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?";
+				sqlItemQuery = "SELECT * FROM TSD_TSMETA WHERE FQNID = ?";
+				tableBinds = new String[]{"TSD_TSMETA"};
+				break;
+			case ANNOTATION:
+				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?";
+				sqlItemQuery = "SELECT * FROM TSD_ANNOTATION WHERE ANNID = ?";
+				tableBinds = new String[]{"TSD_ANNOTATION"};
+				break;
+			case UIDMETA:
+				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = IN (?,?,?)";
+				tableBinds = new String[]{"TSD_TAGK, TSD_TAGV, TSD_METRIC"};				
+				break;
+			default:
+				break;
+				
+			}
+			
+	    	ps = conn.prepareStatement(sqlQuery);
 			ps.setString(1, query.getQuery());
 			ps.setInt(2, query.getLimit());
 			ps.setInt(3, query.getStartIndex());
+			int bind = 4;
+			for(String tableBind: tableBinds) {
+				ps.setString(bind, tableBind);
+				bind++;
+			}
 			rset = ps.executeQuery();
-			String dataSQL = union(rset);    		
-			rset.close(); rset = null;
-			ps.close(); ps = null;			
-			if(!dataSQL.isEmpty()) {
-	    		st = conn.createStatement();	    		
-	    		closeables.add(close(st));
-	    		rset = st.executeQuery(dataSQL);
-	    		closeables.add(close(rset));	    						
-			}			
+			
+			// SCHEMA  	TABLE  	COLUMNS  	KEYS  	SCORE  
+			while(rset.next()) {
+				
+			}
 			return rset;
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to execute search on query [" + query + "]", sex);
 		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(itemRset!=null) try { itemRset.close(); } catch (Exception x) {/* No Op */}
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			if(itemPs!=null) try { itemPs.close(); } catch (Exception x) {/* No Op */}
 		}
     	
     }
+    
+    
+//    return SearchType.TSMETA;
+//  } else if (type.toLowerCase().equals("tsmeta_summary")) {
+//    return SearchType.TSMETA_SUMMARY;
+//  } else if (type.toLowerCase().equals("tsuids")) {
+//    return SearchType.TSUIDS;
+//  } else if (type.toLowerCase().equals("uidmeta")) {
+//    return SearchType.UIDMETA;
+//  } else if (type.toLowerCase().equals("annotation")) {
+//    return SearchType.ANNOTATION;
+    
     
     
 

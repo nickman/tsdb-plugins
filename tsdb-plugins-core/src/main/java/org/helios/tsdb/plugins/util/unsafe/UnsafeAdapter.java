@@ -6,7 +6,6 @@ package org.helios.tsdb.plugins.util.unsafe;
 import gnu.trove.map.hash.TLongLongHashMap;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.ProtectionDomain;
 import java.util.HashSet;

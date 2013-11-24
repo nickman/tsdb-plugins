@@ -1940,5 +1940,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		return dbVersion;
 	}
 	
+	
+	public int getMetricCount();
+	
+	/**
+	 * Returns the current number of UIDMeta tag keys
+	 * @return the current number of UIDMeta tag keys
+	 */
+	public int getTagKCount();
+	
+	/**
+	 * Returns the current number of UIDMeta tag values
+	 * @return the current number of UIDMeta tag values
+	 */
+	public int getTagVCount();
+	
+	/**
+	 * Returns the current number of TSMeta time series 
+	 * @return the current number of TSMeta time series
+	 */
+	public int getTSMetaCount();
+	
+	/**
+	 * Returns the current number of annotations 
+	 * @return the current number of annotations
+	 */
+	public int getAnnotationCount();
+	
 
 }

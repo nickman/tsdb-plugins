@@ -61,6 +61,39 @@ public interface CatalogDBMXBean {
 	
 	
 	/**
+	 * Returns the current number of UIDMeta metrics
+	 * @return the current number of UIDMeta metrics
+	 */
+	public int getMetricCount();
+	
+	/**
+	 * Returns the current number of UIDMeta tag keys
+	 * @return the current number of UIDMeta tag keys
+	 */
+	public int getTagKCount();
+	
+	/**
+	 * Returns the current number of UIDMeta tag values
+	 * @return the current number of UIDMeta tag values
+	 */
+	public int getTagVCount();
+	
+	/**
+	 * Returns the current number of TSMeta time series 
+	 * @return the current number of TSMeta time series
+	 */
+	public int getTSMetaCount();
+	
+	/**
+	 * Returns the current number of annotations 
+	 * @return the current number of annotations
+	 */
+	public int getAnnotationCount();
+	
+	
+	
+	
+	/**
 	 * Returns the cummlative number of metric name inserts
 	 * @return the cummlative number of metric name inserts
 	 */

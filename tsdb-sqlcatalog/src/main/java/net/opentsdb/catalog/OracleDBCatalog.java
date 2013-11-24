@@ -24,11 +24,10 @@
  */
 package net.opentsdb.catalog;
 
-import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Set;
+import java.util.List;
 
 import net.opentsdb.search.SearchQuery;
 
@@ -110,15 +109,18 @@ public class OracleDBCatalog extends AbstractDBCatalog {
 			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
 			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
 		}
-	}	
+	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.AbstractDBCatalog#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery, java.util.Set)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery)
 	 */
 	@Override
-	public ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables) {
+	public List<?> executeSearch(Connection conn, SearchQuery query) {
+		// TODO Auto-generated method stub
 		return null;
-	}
+	}	
+
+
 
 }

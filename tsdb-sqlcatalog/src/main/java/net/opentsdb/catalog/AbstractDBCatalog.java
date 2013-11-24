@@ -1606,14 +1606,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//	Search Impl.
 	// ========================================================================================
 	
-
-	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery, java.util.Set)
-	 */
-	@Override
-	public abstract ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables);
 	
+	
+
+//	/**
+//	 * {@inheritDoc}
+//	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery, java.util.Set)
+//	 */
+//	@Override
+//	public abstract ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables);
+//	
    /**
      * Executes a search query and returns the deferred for the results
      * @param query The query to execute
@@ -1623,43 +1625,29 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     @Override
 	public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
     	final ElapsedTime et = SystemClock.startClock();
-    	final Set<Closeable> closeables = new HashSet<Closeable>();
+    	
     	Connection conn = null;
-    	ResultSet rset = null;
     	try {
     		conn = dataSource.getConnection();
-    		rset = executeSearch(conn, query, closeables);
+    		List<?> matches = executeSearch(conn, query);
+    		query.setTotalResults(matches.size());
 	    	switch(query.getType()) {
 				case ANNOTATION:
-					List<Annotation> annResults = readAnnotations(rset);
-					query.setTotalResults(annResults.size());
-					query.setResults(new ArrayList<Object>(annResults));
-					break;
 				case UIDMETA:
-					List<UIDMeta> uidResults = readUIDMetas(rset);
-					query.setTotalResults(uidResults.size());
-					query.setResults(new ArrayList<Object>(uidResults));					
-					break;					
-				case TSMETA:
-					List<TSMeta> tsResults = readTSMetas(rset);
-					query.setTotalResults(tsResults.size());
-					query.setResults(new ArrayList<Object>(tsResults));					
+				case TSMETA:					
+					query.setResults((List<Object>) matches);
 					break;
 				case TSUIDS:
-					tsResults = readTSMetas(rset);
-					query.setTotalResults(tsResults.size());
-					List<Object> tsuids = new ArrayList<Object>(tsResults.size());
-					for(TSMeta tsmeta: tsResults) {
-						tsuids.add(tsmeta.getTSUID());
+					List<Object> tsuids = new ArrayList<Object>(matches.size());
+					for(Object meta: matches) {
+						tsuids.add(((TSMeta)meta).getTSUID());
 					}
 					query.setResults(tsuids);
 					break;
 				case TSMETA_SUMMARY:
-					tsResults = readTSMetas(rset);
-					query.setTotalResults(tsResults.size());
-					List<Object> tsummary = new ArrayList<Object>(tsResults.size());
-					for(TSMeta tsmeta: tsResults) {
-						tsummary.add(summarize(tsmeta));
+					List<Object> tsummary = new ArrayList<Object>(matches.size());
+					for(Object meta: matches) {
+						tsummary.add(summarize((TSMeta)meta));
 					}
 					query.setResults(tsummary);
 					break;
@@ -1672,7 +1660,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     		log.error("Failed to execute SearchQuery [{}]", query, ex);
     		result.callback(ex);
     	} finally {
-    		if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
     		if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
     	}
     	return result;

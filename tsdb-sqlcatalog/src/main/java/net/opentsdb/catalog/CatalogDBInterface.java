@@ -366,15 +366,23 @@ public interface CatalogDBInterface {
 	//	Search Impl.
 	// ========================================================================================
 	
+//	/**
+//	 * Executes the passed search query and returns a result set of the rows that will be used to read the objects to be returned.
+//	 * If the returned result set is null, it will be assumed the matches were zero
+//	 * @param conn The connection to search on
+//	 * @param query The search query to execute
+//	 * @param closeables A set for the impl to put closeables into so the caller can close them when complete
+//	 * @return A result set of the rows that will be used to read the objects to be returned.
+//	 */
+//	public ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables);
+	
 	/**
-	 * Executes the passed search query and returns a result set of the rows that will be used to read the objects to be returned.
-	 * If the returned result set is null, it will be assumed the matches were zero
+	 * Executes a text search on the passed connection using the passed search query as search parameters 
 	 * @param conn The connection to search on
-	 * @param query The search query to execute
-	 * @param closeables A set for the impl to put closeables into so the caller can close them when complete
-	 * @return A result set of the rows that will be used to read the objects to be returned.
+	 * @param query The query parameters
+	 * @return a list of matching objects
 	 */
-	public ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables);
+	public List<?> executeSearch(Connection conn, SearchQuery query);
 
 	/**
 	 * Executes a search query against this catalog

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -199,27 +200,31 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	 */
 	public UIDMeta newUIDMeta(UniqueIdType type, AtomicInteger ctr, String uname) {
 		UIDMeta meta = null;
+		long unixTime = SystemClock.unixTime();
 		switch(type) {
 			case METRIC:
-				meta = createdMetricNames.get(uname);
+				meta = createdMetricNames.get(uname);				
 				if(meta==null) {
 					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);
 					createdMetricNames.put(uname, meta);
 				}
+				meta.setCreated(unixTime);
 				return meta;
 			case TAGK:
 				meta = createdTagKeys.get(uname);
-				if(meta==null) {
+				if(meta==null) {					
 					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);
 					createdTagKeys.put(uname, meta);
 				}
+				meta.setCreated(unixTime);
 				return meta;
 			case TAGV:
 				meta = createdTagValues.get(uname);
 				if(meta==null) {
-					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);
+					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);					
 					createdTagValues.put(uname, meta);
 				}
+				meta.setCreated(unixTime);
 				return meta;
 			default:
 				throw new RuntimeException("yeow. Unrecognized type [" + type + "]");							
@@ -548,8 +553,107 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		log("Deleted UIDs:%s", deletedUIDs.size());
 		log("Deleted TS:%s", deletedTSs.size());
 		log("Deleted Annotations:%s", deletedAnnotations.size());
-
 	}
+	
+	/**
+	 * Tests the meta search facilities
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testTextSearch() throws Exception {
+		CatalogDBInterface dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
+		dbInterface.purge();
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
+		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
+
+		Set<ObjectName> ons = ManagementFactory.getPlatformMBeanServer().queryNames(null, null);
+		Set<TSMeta> createdTSMetas = new HashSet<TSMeta>(ons.size());
+		Set<UIDMeta> createdUIDMetas = new HashSet<UIDMeta>(ons.size()*3);
+		Set<Annotation> createdAnnotations = new HashSet<Annotation>(ons.size());
+		/*
+		 * Iterate through all the MBeans in the platform MBeanserver.
+		 * For each, build a TSMeta from the MBean's ObjectName 
+		 * where the domain is the metric name and the properties
+		 * are tagk/tagv pairs. Index each created TSMeta .
+		 */
+		for(ObjectName on: ons) {
+			LinkedList<UIDMeta> uidMetas = objectNameToUIDMeta(on);
+			for(UIDMeta m : uidMetas) {
+				if(m==null) continue;
+				tsdb.indexUIDMeta(m);
+				createdUIDMetas.add(m);
+			}
+			TSMeta tsMeta = fromUids(uidMetas);
+			tsMeta.setCreated(SystemClock.unixTime());
+			tsdb.indexTSMeta(tsMeta);
+			createdTSMetas.add(tsMeta);
+			Annotation ann = new Annotation();
+			ann.setTSUID(tsMeta.getTSUID());
+			ann.setStartTime(SystemClock.unixTime());
+			MBeanInfo minfo = JMXHelper.getMBeanInfo(on);		
+			ann.setDescription(minfo.getDescription());
+			ann.setNotes(minfo.getClassName());
+			tsdb.indexAnnotation(ann);
+			createdAnnotations.add(ann);
+		}
+		waitForProcessingQueue("testSearchMetaUpdates/Indexing", 30000, TimeUnit.MILLISECONDS);
+		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
+			Thread.currentThread().join();
+		}	
+		// =============================================================================
+		// Now match each known object name using the search api
+		
+		for(ObjectName on: ons) {
+			// ===============================================
+			// Search on ObjectName.DomainName
+			// ===============================================
+			List<Object> results = tsdb.executeSearch(
+					new SearchQueryBuilder()
+					.setType(SearchType.UIDMETA)
+					.setQuery(on.getDomain()).get())
+			.join().getResults();
+			Assert.assertEquals("Unexpected number of search results", 1, results.size());
+			for(Object result: results) {
+				Assert.assertEquals("The result type was unexpected" , UIDMeta.class, result.getClass());
+				UIDMeta uidMeta = (UIDMeta)result;
+				Assert.assertEquals("The UIDMeta value was unexpected", on.getDomain(), uidMeta.getName());
+			}
+			// ===============================================
+			// Search on ObjectName.Properties.Keys
+			// ===============================================
+			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+				results = tsdb.executeSearch(
+						new SearchQueryBuilder()
+						.setType(SearchType.UIDMETA)
+						.setQuery(entry.getKey()).get())
+				.join().getResults();
+				Assert.assertEquals("Unexpected number of search results", 1, results.size());
+				for(Object result: results) {
+					Assert.assertEquals("The result type was unexpected" , UIDMeta.class, result.getClass());
+					UIDMeta uidMeta = (UIDMeta)result;
+					Assert.assertEquals("The UIDMeta value was unexpected", entry.getKey(), uidMeta.getName());
+				}
+			}
+			// ===============================================
+			// Search on ObjectName.Properties.Values
+			// Commenting for now. The H2 lucene search engine
+			// is a bit unpredictable.
+			// ===============================================
+//			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+//				results = tsdb.executeSearch(
+//						new SearchQueryBuilder()
+//						.setType(SearchType.UIDMETA)
+//						.exact(true)
+//						.setQuery(entry.getValue()).get())
+//				.join().getResults();
+//				for(Object result: results) {
+//					Assert.assertEquals("The result type was unexpected" , UIDMeta.class, result.getClass());
+//					UIDMeta uidMeta = (UIDMeta)result;
+//					Assert.assertEquals("The UIDMeta value was unexpected", entry.getValue(), uidMeta.getName());
+//				}
+//			}
+		}
+	}	
 	
 	/**
 	 * Flushes the sync queue and waits for the queue to be cleared

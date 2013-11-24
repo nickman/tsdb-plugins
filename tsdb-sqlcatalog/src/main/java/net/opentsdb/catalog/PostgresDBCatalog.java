@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -67,13 +68,13 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.AbstractDBCatalog#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery, java.util.Set)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery)
 	 */
 	@Override
-	public ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables) {
-
+	public List<?> executeSearch(Connection conn, SearchQuery query) {
+		// TODO Auto-generated method stub
 		return null;
-	}
+	}	
 	
 	protected LocalSequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
 		return new PostgresLocalSequenceCache(increment, sequenceName, dataSource);

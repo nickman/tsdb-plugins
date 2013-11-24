@@ -24,6 +24,11 @@
  */
 package test.net.opentsdb.search;
 
+import java.util.List;
+
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
+
 import org.helios.tsdb.plugins.test.BaseTest;
 
 import test.net.opentsdb.core.EmptyTSDB;
@@ -77,6 +82,78 @@ public class CatalogBaseTest extends BaseTest {
 	
 
 	public static class FakeSyncToStore extends EmptyTSDB {
+		
+	}
+	
+	public static class SearchQueryBuilder  {
+		private final SearchQuery sq = new SearchQuery();
+		private boolean exact = false;
+		
+		public SearchQuery get() {
+			if(exact) {
+				if(!sq.getQuery().startsWith("\"")) {
+					sq.setQuery("\"" + sq.getQuery());
+				}
+				if(!sq.getQuery().endsWith("\"")) {
+					sq.setQuery(sq.getQuery() + "\"");
+				}				
+			}
+			return sq;
+		}
+
+		/**
+		 * @param type
+		 * @see net.opentsdb.search.SearchQuery#setType(net.opentsdb.search.SearchQuery.SearchType)
+		 */
+		public SearchQueryBuilder setType(SearchType type) {
+			sq.setType(type);
+			return this;
+		}
+		
+		public SearchQueryBuilder exact(boolean exact) {
+			this.exact = exact;
+			return this;
+		}
+
+		/**
+		 * @param query
+		 * @see net.opentsdb.search.SearchQuery#setQuery(java.lang.String)
+		 */
+		public SearchQueryBuilder setQuery(String query) {
+			if(query.indexOf(' ')!=-1) {
+				sq.setQuery("\"" + query + "\"");
+			} else {
+				sq.setQuery(query);
+			}			
+			return this;			
+		}
+
+		/**
+		 * @param limit
+		 * @see net.opentsdb.search.SearchQuery#setLimit(int)
+		 */
+		public SearchQueryBuilder setLimit(int limit) {
+			sq.setLimit(limit);
+			return this;
+		}
+
+		/**
+		 * @param start_index
+		 * @see net.opentsdb.search.SearchQuery#setStartIndex(int)
+		 */
+		public SearchQueryBuilder setStartIndex(int start_index) {
+			sq.setStartIndex(start_index);
+			return this;
+		}
+
+
+		/**
+		 * @return
+		 * @see java.lang.Object#toString()
+		 */
+		public String toString() {
+			return sq.toString();
+		}
 		
 	}
 

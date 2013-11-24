@@ -37,6 +37,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +48,6 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
-import net.opentsdb.search.SearchQuery.SearchType;
 
 import org.h2.fulltext.FullTextLucene;
 import org.h2.tools.Server;
@@ -219,189 +219,76 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		}
 	}
 	
-	
-	
-   /**
-     * Executes a search query and returns the deferred for the results
-     * @param query The query to execute
-     * @param result The deferred to write the query results into
-     * @return the deferred results
-     */
-    public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
-    	final ElapsedTime et = SystemClock.startClock();
-    	Connection conn = null;
-    	PreparedStatement ps = null;
-    	Statement st = null;
-    	ResultSet rset = null;
-    	
-    	try {
-    		conn = dataSource.getConnection();
-    		ps = conn.prepareStatement("SELECT * FROM FTL_SEARCH(?, ?, ?)");
-    		// query.getQuery(), query.getLimit(), query.getStartIndex()
-    		ps.setString(1, query.getQuery());
-    		ps.setInt(2, query.getLimit());
-    		ps.setInt(3, query.getStartIndex());
-    		rset = ps.executeQuery();
-    		String dataSQL = union(rset);    		
-    		rset.close(); rset = null;
-    		ps.close(); ps = null;
-    		
-    		if(dataSQL.isEmpty()) {
-				query.setTotalResults(0);
-				query.setResults(Collections.emptyList());
-    		} else {
-	    		st = conn.createStatement();
-	    		rset = st.executeQuery(dataSQL);	    		
-		    	switch(query.getType()) {
-					case ANNOTATION:
-						List<Annotation> annResults = readAnnotations(rset);
-						query.setTotalResults(annResults.size());
-						query.setResults(new ArrayList<Object>(annResults));
-						break;
-					case UIDMETA:
-						List<UIDMeta> uidResults = readUIDMetas(rset);
-						query.setTotalResults(uidResults.size());
-						query.setResults(new ArrayList<Object>(uidResults));					
-						break;					
-					case TSMETA:
-						List<TSMeta> tsResults = readTSMetas(rset);
-						query.setTotalResults(tsResults.size());
-						query.setResults(new ArrayList<Object>(tsResults));					
-						break;
-					case TSUIDS:
-						tsResults = readTSMetas(rset);
-						query.setTotalResults(tsResults.size());
-						List<Object> tsuids = new ArrayList<Object>(tsResults.size());
-						for(TSMeta tsmeta: tsResults) {
-							tsuids.add(tsmeta.getTSUID());
-						}
-						query.setResults(tsuids);
-						break;
-					case TSMETA_SUMMARY:
-						tsResults = readTSMetas(rset);
-						query.setTotalResults(tsResults.size());
-						List<Object> tsummary = new ArrayList<Object>(tsResults.size());
-						for(TSMeta tsmeta: tsResults) {
-							tsummary.add(summarize(tsmeta));
-						}
-						query.setResults(tsummary);
-						break;
-					default:
-						throw new RuntimeException("yeow. Unrecognized Query Type [" + query.getType() + "]");
-		    	}
-    		}
-	    	query.setTime(et.elapsedMs());
-	    	result.callback(query);
-    	} catch (Exception ex) {
-    		log.error("Failed to execute SearchQuery [{}]", query, ex);
-    		result.callback(ex);
-    	} finally {
-    		if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-    		if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}
-    		if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-    		if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-    	}
-    	return result;
-    }
     
     /**
      * {@inheritDoc}
-     * @see net.opentsdb.catalog.AbstractDBCatalog#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery, java.util.Set)
+     * @see net.opentsdb.catalog.CatalogDBInterface#executeSearch(java.sql.Connection, net.opentsdb.search.SearchQuery)
      */
-    @Override
-    public ResultSet executeSearch(Connection conn, SearchQuery query, final Set<Closeable> closeables) {
+	@Override
+    public List<?> executeSearch(Connection conn, SearchQuery query) {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
-		PreparedStatement itemPs = null;
-		ResultSet itemRset = null;
-		String sqlQuery = null;
-		String sqlItemQuery = null;
-		String[] tableBinds = null;
 		try {
 			switch(query.getType()) {
 			case TSMETA:
 			case TSMETA_SUMMARY:
 			case TSUIDS:
-				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?";
-				sqlItemQuery = "SELECT * FROM TSD_TSMETA WHERE FQNID = ?";
-				tableBinds = new String[]{"TSD_TSMETA"};
-				break;
+				ps = conn.prepareStatement("SELECT * FROM TSD_TSMETA T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.FQNID = F.KEYS[0]");
+				ps.setString(1, query.getQuery());
+				ps.setInt(2, query.getLimit());
+				ps.setInt(3, query.getStartIndex());
+				ps.setString(4, "TSD_TSMETA");
+				rset = ps.executeQuery();
+				return readTSMetas(rset);				
 			case ANNOTATION:
-				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?";
-				sqlItemQuery = "SELECT * FROM TSD_ANNOTATION WHERE ANNID = ?";
-				tableBinds = new String[]{"TSD_ANNOTATION"};
-				break;
+				ps = conn.prepareStatement("SELECT * FROM TSD_ANNOTATION T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.ANNID = F.KEYS[0]");
+				ps.setString(1, query.getQuery());
+				ps.setInt(2, query.getLimit());
+				ps.setInt(3, query.getStartIndex());
+				ps.setString(4, "TSD_ANNOTATION");
+				rset = ps.executeQuery();
+				return readAnnotations(rset);				
 			case UIDMETA:
-				sqlQuery = "SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = IN (?,?,?)";
-				tableBinds = new String[]{"TSD_TAGK, TSD_TAGV, TSD_METRIC"};				
-				break;
+				List<UIDMeta> matches = new ArrayList<UIDMeta>();
+				ps = conn.prepareStatement("SELECT * FROM TSD_TAGK T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
+				ps.setString(1, query.getQuery());
+				ps.setInt(2, query.getLimit());
+				ps.setInt(3, query.getStartIndex());
+				ps.setString(4, "TSD_TAGK");
+				rset = ps.executeQuery();
+				matches.addAll(readUIDMetas(rset));
+				rset.close(); ps.close();
+
+				ps = conn.prepareStatement("SELECT * FROM TSD_TAGV T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
+				ps.setString(1, query.getQuery());
+				ps.setInt(2, query.getLimit());
+				ps.setInt(3, query.getStartIndex());
+				ps.setString(4, "TSD_TAGV");
+				rset = ps.executeQuery();
+				matches.addAll(readUIDMetas(rset));
+				rset.close(); ps.close();
+
+				ps = conn.prepareStatement("SELECT * FROM TSD_METRIC T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
+				ps.setString(1, query.getQuery());
+				ps.setInt(2, query.getLimit());
+				ps.setInt(3, query.getStartIndex());
+				ps.setString(4, "TSD_METRIC");
+				rset = ps.executeQuery();
+				matches.addAll(readUIDMetas(rset));
+				rset.close(); ps.close();
+				
+				return matches;				
 			default:
-				break;
-				
+				throw new RuntimeException("yeow. Unrecognized type [" + query.getType() + "]");				
 			}
-			
-	    	ps = conn.prepareStatement(sqlQuery);
-			ps.setString(1, query.getQuery());
-			ps.setInt(2, query.getLimit());
-			ps.setInt(3, query.getStartIndex());
-			int bind = 4;
-			for(String tableBind: tableBinds) {
-				ps.setString(bind, tableBind);
-				bind++;
-			}
-			rset = ps.executeQuery();
-			
-			// SCHEMA  	TABLE  	COLUMNS  	KEYS  	SCORE  
-			while(rset.next()) {
-				
-			}
-			return rset;
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to execute search on query [" + query + "]", sex);
 		} finally {
 			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(itemRset!=null) try { itemRset.close(); } catch (Exception x) {/* No Op */}
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-			if(itemPs!=null) try { itemPs.close(); } catch (Exception x) {/* No Op */}
 		}
-    	
     }
     
-    
-//    return SearchType.TSMETA;
-//  } else if (type.toLowerCase().equals("tsmeta_summary")) {
-//    return SearchType.TSMETA_SUMMARY;
-//  } else if (type.toLowerCase().equals("tsuids")) {
-//    return SearchType.TSUIDS;
-//  } else if (type.toLowerCase().equals("uidmeta")) {
-//    return SearchType.UIDMETA;
-//  } else if (type.toLowerCase().equals("annotation")) {
-//    return SearchType.ANNOTATION;
-    
-    
-    
-
-    
-    /**
-     * Generates the UNION SQL to retrieve the actual records matched via the lucene text query
-     * @param rset The lucene text query result set 
-     * @return The SQL to execute to retrieve the actual rows
-     * @throws SQLException thrown on any SQL error
-     */
-    protected String union(ResultSet rset) throws SQLException {
-    	StringBuilder b = new StringBuilder();    	
-    	int cnt = 0;
-    	while(rset.next()) {
-    		b.append(SELECT_ALL).append(rset.getString(1)).append(UNION_CLAUSE);
-    		cnt++;
-    	}
-    	if(cnt>0) {
-    		int bl = b.length();
-    		b.delete(bl-UNION_LENGTH, bl);
-    	}
-    	return b.toString();
-    }
-	
 	
 	
 	/**

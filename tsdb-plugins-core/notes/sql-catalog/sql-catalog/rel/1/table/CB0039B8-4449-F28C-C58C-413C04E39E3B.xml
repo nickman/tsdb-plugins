@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Table" id="CB0039B8-4449-F28C-C58C-413C04E39E3B" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="true" entitytype="" splittedTableID="" allow_type_substitution="true" minVolumes="0" expectedVolumes="0" maxVolumes="9999999" growthPercent="0" growthType="Year" normalForm="Third" adequatelyNormalized="NO" abbreviation="" oid_is_pk="false" use_default_color="true" background_color="null" foreground_color="null">
+		<name>TSD_TAGK</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:57</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<properties>
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+			<parameter name="property.comment.rdbms" value="Table storing distinct time-series tag keys" />
+			<parameter name="schema" value="TSDB" />
+		</properties>
+		<include_in_ddl value="false" />
+		<beforeDrop value="" />
+		<beforeCreate value="" />
+		<beforeAlter value="" />
+		<afterCreate value="" />
+		<afterAlter value="" />
+		<endOfScript value="" />
+		<spatial_table value="false" />
+		<oid_pk_columns />
+		<engineering should="true" />
+		<des_obj_version version="1.0" />
+		<fonts>
+			<font_object>
+				<parameter name="fo_type" value="Title" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="1" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Column" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Datatype" />
+				<parameter name="font_color" value="-16744448" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="PK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="FK Element" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="UK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Not Null" />
+				<parameter name="font_color" value="-65536" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Key" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+		</fonts>
+		<documents />
+		<parties />
+		<changerequests />
+		<measurements />
+		<contained>
+			<object type="Column" id="19DDA35D-A043-18A6-A23C-6F9447810F45" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>XUID</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The tag key UID as a hex encoded string" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="fixed" size="6 BYTE" typename="CHAR" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="CHAR" oid="LOGDT025" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="4E817AE8-957D-04CB-B0F1-0FD65F126C12" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>VERSION</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The version of this instance" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="packed" precision="" scale="" typename="NUMBER" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="NUMERIC" oid="LOGDT019" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="2B08DD32-AD41-D26F-27A0-9B4D094A47ED" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>NAME</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="60 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="8BE1450F-D2F8-F672-4633-1F28413C70DC" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>CREATED</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The timestamp of the creation of the UID" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="packed" precision="6" scale="" typename="TIMESTAMP" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="Timestamp" oid="LOGDT015" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="F07432A3-1D49-CCC2-7560-007B4B9D7DD8" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>DESCRIPTION</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="An optional description for this tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="120 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="43389204-DC2E-E106-CE39-A2CF9BE5926C" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>DISPLAY_NAME</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="An optional display name for this tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="60 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="AFE48768-E556-6968-3603-1C91BBB3FDFD" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>NOTES</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="Optional notes for this tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="120 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="785C9E93-F443-F419-41CD-B28E33A2559D" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>CUSTOM</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="An optional map of key/value pairs encoded in JSON for this tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="120 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</contained>
+		<key>
+			<object type="Index" id="5C99DEFC-AB5F-EFDB-6A76-AB11188A8D8E" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Unique Plain Index">
+				<name>TSD_TAGK_AK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">2B08DD32-AD41-D26F-27A0-9B4D094A47ED</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="7070AB34-8939-A87F-9263-AE5BB5167349" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="true" indexstate="Primary Constraint">
+				<name>TSD_TAGK_PK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">19DDA35D-A043-18A6-A23C-6F9447810F45</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</key>
+	</object>
+</metadatadoc>

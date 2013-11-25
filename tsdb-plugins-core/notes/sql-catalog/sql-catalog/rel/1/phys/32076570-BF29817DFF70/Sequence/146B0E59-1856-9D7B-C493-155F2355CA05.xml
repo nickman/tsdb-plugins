@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Sequence" id="146B0E59-1856-9D7B-C493-155F2355CA05">
+		<name>ANN_SEQ</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:59</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:59</timestamp>
+		</alter>
+		<properties>
+			<parameter name="object.property.auto.Cache" value="20" />
+			<parameter name="object.property.auto.Cycle" value="NO" />
+			<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+			<parameter name="object.property.auto.IncrementBy" value="20" />
+			<parameter name="object.property.auto.LongName" value="TSDB.ANN_SEQ" />
+			<parameter name="object.property.auto.MarkedGenerate" value="true" />
+			<parameter name="object.property.auto.MaxValue" value="9999999999999999999999999999" />
+			<parameter name="object.property.auto.MinValue" value="1" />
+			<parameter name="object.property.auto.Name" value="ANN_SEQ" />
+			<parameter name="object.property.auto.NameHasQuotes" value="false" />
+			<parameter name="object.property.auto.NoCache" value="NO" />
+			<parameter name="object.property.auto.Order" value="NO" />
+			<parameter name="object.property.auto.RawObject" value="false" />
+			<parameter name="object.property.auto.StartWith" value="" />
+			<parameter name="object.property.auto.User" value="F34059C1-A33E-F1BD-C75A-91C1FF037BC9" />
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+		</properties>
+	</object>
+</metadatadoc>

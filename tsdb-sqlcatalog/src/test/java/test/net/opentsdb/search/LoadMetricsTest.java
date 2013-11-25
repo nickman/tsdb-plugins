@@ -618,40 +618,6 @@ public class LoadMetricsTest extends CatalogBaseTest {
 				UIDMeta uidMeta = (UIDMeta)result;
 				Assert.assertEquals("The UIDMeta value was unexpected", on.getDomain(), uidMeta.getName());
 			}
-			// ===============================================
-			// Search on ObjectName.Properties.Keys
-			// ===============================================
-			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
-				results = tsdb.executeSearch(
-						new SearchQueryBuilder()
-						.setType(SearchType.UIDMETA)
-						.setQuery(entry.getKey()).get())
-				.join().getResults();
-				Assert.assertEquals("Unexpected number of search results", 1, results.size());
-				for(Object result: results) {
-					Assert.assertEquals("The result type was unexpected" , UIDMeta.class, result.getClass());
-					UIDMeta uidMeta = (UIDMeta)result;
-					Assert.assertEquals("The UIDMeta value was unexpected", entry.getKey(), uidMeta.getName());
-				}
-			}
-			// ===============================================
-			// Search on ObjectName.Properties.Values
-			// Commenting for now. The H2 lucene search engine
-			// is a bit unpredictable.
-			// ===============================================
-//			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
-//				results = tsdb.executeSearch(
-//						new SearchQueryBuilder()
-//						.setType(SearchType.UIDMETA)
-//						.exact(true)
-//						.setQuery(entry.getValue()).get())
-//				.join().getResults();
-//				for(Object result: results) {
-//					Assert.assertEquals("The result type was unexpected" , UIDMeta.class, result.getClass());
-//					UIDMeta uidMeta = (UIDMeta)result;
-//					Assert.assertEquals("The UIDMeta value was unexpected", entry.getValue(), uidMeta.getName());
-//				}
-//			}
 		}
 	}	
 	
@@ -788,6 +754,24 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 	}
 
-
+	/**
+	 * Executes a volume load
+	 * @throws Exception thrown on any error
+	 */
+	@Test
+	public void testVolumeLoad() throws Exception {
+		CatalogDBInterface dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
+		dbInterface.purge();
+		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
+		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
+		
+		
+		
+		waitForProcessingQueue("testVolumeMetaUpdates/Indexing", 300000, TimeUnit.MILLISECONDS);
+		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
+			Thread.currentThread().join();
+		}	
+		
+	}
 
 }

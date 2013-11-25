@@ -62,10 +62,12 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
+import net.opentsdb.utils.JSON;
+import net.opentsdb.utils.JSONException;
 
-import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -75,6 +77,9 @@ import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.stumbleupon.async.Deferred;
@@ -1616,6 +1621,59 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 //	@Override
 //	public abstract ResultSet executeSearch(Connection conn, SearchQuery query, Set<Closeable> closeables);
 //	
+	
+	public String search(String type, String query, int limit, int startIndex) {
+		SearchType searchType = null;
+		try {
+			searchType = SearchType.valueOf(type.trim().toUpperCase());
+		} catch (Exception x) {
+			throw new RuntimeException("Invalid Search Type [" + type + "]");
+		}
+		if(limit<0) throw new RuntimeException("Invalid Limit [" + limit + "]");
+		if(startIndex<0) throw new RuntimeException("Invalid Start Index [" + startIndex + "]");
+		SearchQuery searchQuery = new SearchQuery();
+		searchQuery.setLimit(limit);
+		searchQuery.setStartIndex(startIndex);
+		searchQuery.setType(searchType);
+		searchQuery.setQuery(query);
+		
+		try {
+			Deferred<SearchQuery> d = new Deferred<SearchQuery>();
+			executeQuery(searchQuery, d);
+			d.joinUninterruptibly(30000);
+			return serializeToString(searchQuery);
+		} catch (Exception ex) {
+			Throwable cause = ex.getCause();
+			throw new RuntimeException("DBInterface error executing search:" + ex + "\n:" + cause);
+		}	
+	}
+	
+	protected static final ObjectMapper jsonMapper = new ObjectMapper();
+	
+	static {
+		jsonMapper.enable(SerializationFeature.INDENT_OUTPUT);
+	}
+	 
+
+	
+	  /**
+	   * Serializes the given object to a JSON string
+	   * @param object The object to serialize
+	   * @return A JSON formatted string
+	   * @throws IllegalArgumentException if the object was null
+	   * @throws JSONException if the object could not be serialized
+	   */
+	  public static final String serializeToString(final Object object) {
+	    if (object == null)
+	      throw new IllegalArgumentException("Object was null");
+	    try {
+	      return jsonMapper.writeValueAsString(object);
+	    } catch (JsonProcessingException e) {
+	      throw new JSONException(e);
+	    }
+	  }	
+	
+	
    /**
      * Executes a search query and returns the deferred for the results
      * @param query The query to execute

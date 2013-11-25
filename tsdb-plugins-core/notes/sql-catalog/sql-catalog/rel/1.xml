@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<design version="2.0" id="45321627-5759-6904-855E-8927A5F4A251" defaultRDBMSSite="32076570-2523-435C-2E92-BF29817DFF70">
+	<ref>
+		<objectid role="contains" type="Table" oid="10EF2AEE-B687-4D8F-0291-F0514989D699" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="3C3F754B-6105-C233-2AB1-A720DDEF1F67" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="88A3FC9C-B938-4069-A109-EC7EC5B9B4BB" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="98D6CAF4-B711-1172-55E5-EE303BB2789D" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="38A5CA3D-18A5-44EC-3698-619E209C9CE3" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="CB0039B8-4449-F28C-C58C-413C04E39E3B" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="42530105-4DCB-E49F-B97F-CFE39C45E8C0" marked_generate="true" />
+		<objectid role="contains" type="Table" oid="F1D557DE-E34B-9E0B-EB00-4702ECC62B44" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="0C3C7C90-9870-15C4-87C1-3BEA9563F58D" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="C90B8296-8018-8E8D-EEF8-300E705E00C4" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="6CE98757-537C-ACD0-68BA-EF3DAA5BEA8F" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="10BFC19B-A820-C451-16DE-A2D59D7D5949" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="8FF07B2B-436E-12F1-EC2E-8304EFB50E19" marked_generate="true" />
+		<objectid role="contains" type="FKIndexAssociation" oid="BAA59C54-BEC5-B156-A26F-5F814D4CEEA8" marked_generate="true" />
+	</ref>
+	<type_substitutions />
+	<marked_generate_for_indexes>
+		<objectid oid="6D2737FC-F1B6-2BA8-D82F-EE63348EC838" marked_generate="true" />
+		<objectid oid="26F0AA93-BE9F-2B1C-CB3F-8585A8B58E24" marked_generate="true" />
+		<objectid oid="A88F67BF-6AB7-B401-06D2-FFC30ECADB2F" marked_generate="true" />
+		<objectid oid="19C681BD-CA06-31B2-6561-74FC2CD0D88C" marked_generate="true" />
+		<objectid oid="5EE0EEAB-18CB-8EF5-CBA4-9D58863768EF" marked_generate="true" />
+		<objectid oid="526C0B65-1022-DAB8-FBE3-CFCFBB7D08EE" marked_generate="true" />
+		<objectid oid="4BBA5368-598C-7DE0-F568-2867A7025C5B" marked_generate="true" />
+		<objectid oid="1576C6BD-623E-D5D9-9802-6B098790BBBD" marked_generate="true" />
+		<objectid oid="0CCFAC66-C217-1513-C200-637B3FAD0EE8" marked_generate="true" />
+		<objectid oid="B225F28D-E1DC-17F5-9794-A64A1E04213B" marked_generate="true" />
+		<objectid oid="5C99DEFC-AB5F-EFDB-6A76-AB11188A8D8E" marked_generate="true" />
+		<objectid oid="7070AB34-8939-A87F-9263-AE5BB5167349" marked_generate="true" />
+		<objectid oid="79E529A5-802D-6482-337B-63ACAA865FAA" marked_generate="true" />
+		<objectid oid="5F62976F-5826-D7DE-3D43-E3B0C3B64F11" marked_generate="true" />
+		<objectid oid="6F346D31-A917-B300-728A-8C5B7E85F65E" marked_generate="true" />
+		<objectid oid="42EBF21C-E81F-F31F-C37B-B920EF392B53" marked_generate="true" />
+		<objectid oid="B73EFF2E-B862-560B-9341-00601D035CEF" marked_generate="true" />
+		<objectid oid="5175165C-8470-1679-FE2F-78DB03A1CB6D" marked_generate="true" />
+		<objectid oid="A73B12A7-72C0-22E7-FAFD-4710D40D28A2" marked_generate="true" />
+		<objectid oid="2D9F25A5-C45A-0FBD-61A8-C774F48F2829" marked_generate="true" />
+		<objectid oid="8CBDC071-E45A-E644-EFE6-9D7A13642FC8" marked_generate="true" />
+		<objectid oid="5229362B-7468-E03A-04EF-95AC6C01AD40" marked_generate="true" />
+		<objectid oid="A1C98588-6E92-1BF0-A63B-0EB91B683663" marked_generate="true" />
+		<objectid oid="6AF975E8-7043-A2B0-3198-807E4A852540" marked_generate="true" />
+		<objectid oid="8DF4BA24-F0C3-A1A2-0016-E9A46526D652" marked_generate="true" />
+	</marked_generate_for_indexes>
+	<ext_sub_views_collection>
+		<sub_view subview_name="Relational_1" id="62EE4BE8-AD1B-43B3-0D53-7BB4B9E152A6" sv_type="main_view" visible="true" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" />
+	</ext_sub_views_collection>
+	<documents />
+	<parties />
+	<naming_options>
+		<naming_option class_name="oracle.dbtools.crest.model.design.relational.Table" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+		<naming_option class_name="oracle.dbtools.crest.model.design.relational.Column" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+		<naming_option class_name="oracle.dbtools.crest.model.design.relational.TableView" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+		<naming_option class_name="oracle.dbtools.crest.model.design.constraint.TableLevelConstraint" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+		<naming_option class_name="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+		<naming_option class_name="oracle.dbtools.crest.model.design.relational.Index" max_name_length="30" case_type="2" valid_characters="" all_valid="true" />
+	</naming_options>
+</design>

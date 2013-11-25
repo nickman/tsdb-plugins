@@ -1,0 +1,788 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Table" id="3C3F754B-6105-C233-2AB1-A720DDEF1F67">
+		<name>TSD_ANNOTATION</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:57</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<properties>
+			<parameter name="object.property.auto.BackupOption" value="Rename" />
+			<parameter name="object.property.auto.Cache" value="NO" />
+			<parameter name="object.property.auto.Cluster" value="NO_OBJECT" />
+			<parameter name="object.property.auto.ClusterColumns" value="" />
+			<parameter name="object.property.auto.CommentChanged" value="false" />
+			<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+			<parameter name="object.property.auto.DataSegmentCompression" value="NO" />
+			<parameter name="object.property.auto.Degree" value="" />
+			<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+			<parameter name="object.property.auto.DropEnabled" value="false" />
+			<parameter name="object.property.auto.GeneratePK" value="true" />
+			<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+			<parameter name="object.property.auto.IOTMappingTable" value="NO" />
+			<parameter name="object.property.auto.IotCompress" value="0" />
+			<parameter name="object.property.auto.IotIncluding" value="NO_OBJECT" />
+			<parameter name="object.property.auto.IotOverflowSegment" value="NO_OBJECT" />
+			<parameter name="object.property.auto.IotPctThreshold" value="1" />
+			<parameter name="object.property.auto.Logging" value="YES" />
+			<parameter name="object.property.auto.LongName" value="TSDB.TSD_ANNOTATION" />
+			<parameter name="object.property.auto.MarkedGenerate" value="true" />
+			<parameter name="object.property.auto.Monitoring" value="YES" />
+			<parameter name="object.property.auto.Name" value="TSD_ANNOTATION" />
+			<parameter name="object.property.auto.NameChanged" value="false" />
+			<parameter name="object.property.auto.NameHasQuotes" value="false" />
+			<parameter name="object.property.auto.ObjectID" value="3C3F754B-6105-C233-2AB1-A720DDEF1F67" />
+			<parameter name="object.property.auto.OidIndexName" value="" />
+			<parameter name="object.property.auto.OidIndexSegment" value="NO_OBJECT" />
+			<parameter name="object.property.auto.Organization" value="HEAP" />
+			<parameter name="object.property.auto.PKName" value="TSD_ANNOTATION_PK" />
+			<parameter name="object.property.auto.Parallel" value="NO" />
+			<parameter name="object.property.auto.PartitionList" value="NO_OBJECT" />
+			<parameter name="object.property.auto.Partitioned" value="NO" />
+			<parameter name="object.property.auto.ParttitionedRowMovement" value="DISABLE" />
+			<parameter name="object.property.auto.RawObject" value="false" />
+			<parameter name="object.property.auto.RestoreOption" value="Restore" />
+			<parameter name="object.property.auto.Segment" value="647A2BED-06F5-FB42-A002-7C64BB055943" />
+			<parameter name="object.property.auto.Snapshot" value="NO_OBJECT" />
+			<parameter name="object.property.auto.SuplementalLogColumns" value="" />
+			<parameter name="object.property.auto.SuplementalLogConditions" value="ON UPDATE" />
+			<parameter name="object.property.auto.SuplementalLogGroupName" value="" />
+			<parameter name="object.property.auto.TableSpace" value="397459DC-13D4-E0F1-4D95-D0BD4C2E5094" />
+			<parameter name="object.property.auto.TempPreserveRows" value="YES" />
+			<parameter name="object.property.auto.Temporary" value="NO" />
+			<parameter name="object.property.auto.User" value="F34059C1-A33E-F1BD-C75A-91C1FF037BC9" />
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+		</properties>
+	</object>
+	<columns>
+		<Column type="Column" id="5E7FA87E-9720-A8E5-4DB6-80F7633299F4">
+			<name>ANNID</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.ANNID" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="ANNID" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="5E7FA87E-9720-A8E5-4DB6-80F7633299F4" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="8194433B-4645-B152-70BC-26508EBACB2D">
+			<name>VERSION</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.VERSION" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="VERSION" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="8194433B-4645-B152-70BC-26508EBACB2D" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="065C2A4F-2983-9D9E-461F-C232E0C20DB2">
+			<name>START_TIME</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.START_TIME" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="START_TIME" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="065C2A4F-2983-9D9E-461F-C232E0C20DB2" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="D4DA8562-227F-AFE5-8D82-CA182964876F">
+			<name>DESCRIPTION</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.DESCRIPTION" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="DESCRIPTION" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="D4DA8562-227F-AFE5-8D82-CA182964876F" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="0AF83D7B-5B62-5AE2-BD93-EBEBD6F8C523">
+			<name>NOTES</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.NOTES" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="NOTES" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="0AF83D7B-5B62-5AE2-BD93-EBEBD6F8C523" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="E0AA99C0-1563-4F2C-D181-FD75189B4A13">
+			<name>FQNID</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.FQNID" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="FQNID" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="E0AA99C0-1563-4F2C-D181-FD75189B4A13" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="D18ACF04-1296-4C5F-AB2C-99B5D6712041">
+			<name>END_TIME</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.END_TIME" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="END_TIME" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="D18ACF04-1296-4C5F-AB2C-99B5D6712041" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+		<Column type="Column" id="613B8BCA-5E81-A8D9-1F3E-25FA975F1283">
+			<name>CUSTOM</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:57</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.AdditionalNTS" value="" />
+				<parameter name="object.property.auto.Cache" value="CACHE" />
+				<parameter name="object.property.auto.Chunk" value="0" />
+				<parameter name="object.property.auto.ColumnExpression" value="" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.DefaultValue" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.ElementType" value="" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.ExpressionChanged" value="false" />
+				<parameter name="object.property.auto.Freepools" value="0" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LobSegmentName" value="" />
+				<parameter name="object.property.auto.LobSegname" value="" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION.CUSTOM" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="CUSTOM" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NncDeferrable" value="NO" />
+				<parameter name="object.property.auto.NncEnable" value="YES" />
+				<parameter name="object.property.auto.NncExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NncInitially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.NncName" value="" />
+				<parameter name="object.property.auto.NncRely" value="NO" />
+				<parameter name="object.property.auto.NncValidate" value="YES" />
+				<parameter name="object.property.auto.NotNullConstraintOracle" value="NO_OBJECT" />
+				<parameter name="object.property.auto.NtReturn" value="" />
+				<parameter name="object.property.auto.NtStorageTable" value="" />
+				<parameter name="object.property.auto.ObjectID" value="613B8BCA-5E81-A8D9-1F3E-25FA975F1283" />
+				<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+				<parameter name="object.property.auto.PCTVersion" value="0" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+				<parameter name="object.property.auto.SCFreeLists" value="1" />
+				<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+				<parameter name="object.property.auto.SCInitialExtent" value="0" />
+				<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+				<parameter name="object.property.auto.SCMinExtents" value="1" />
+				<parameter name="object.property.auto.SCNextExtent" value="0" />
+				<parameter name="object.property.auto.SCPctIncrease" value="0" />
+				<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+				<parameter name="object.property.auto.StoreAs" value="CLOB" />
+				<parameter name="object.property.auto.SubstStructuredType" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Subtitutable" value="" />
+				<parameter name="object.property.auto.Tablespace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="object.property.auto.WithRowId" value="NO" />
+				<parameter name="object.property.auto.XmlSchemaElement" value="" />
+				<parameter name="object.property.auto.XmlSchemaUrl" value="" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Column>
+	</columns>
+	<keys_and_indexes>
+		<PrimaryKey type="PrimaryKey" id="26F0AA93-BE9F-2B1C-CB3F-8585A8B58E24">
+			<name>TSD_ANNOTATION_PK</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.Clustered" value="false" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.ComputeStatistics" value="NO" />
+				<parameter name="object.property.auto.CreateIndexStatement" value="" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.IndexGlobalPL" value="NO_OBJECT" />
+				<parameter name="object.property.auto.IndexSegment" value="NO_OBJECT" />
+				<parameter name="object.property.auto.IndexSort" value="NO" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.Logging" value="NO" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION_PK" />
+				<parameter name="object.property.auto.MarkGenerateIfFK" value="true" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="TSD_ANNOTATION_PK" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.ObjectID" value="26F0AA93-BE9F-2B1C-CB3F-8585A8B58E24" />
+				<parameter name="object.property.auto.Partitioned" value="false" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.TableSpace" value="NO_OBJECT" />
+				<parameter name="object.property.auto.UsingIndex" value="NO" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</PrimaryKey>
+		<Index type="Index" id="A88F67BF-6AB7-B401-06D2-FFC30ECADB2F">
+			<name>TSD_ANNOTATION_AK</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.BatchSize" value="1000" />
+				<parameter name="object.property.auto.BitmapIndex" value="false" />
+				<parameter name="object.property.auto.Clustered" value="false" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.Compress" value="0" />
+				<parameter name="object.property.auto.ComputeStatistics" value="NO" />
+				<parameter name="object.property.auto.Degree" value="" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.HashSubPartitionsTableSpaces" value="" />
+				<parameter name="object.property.auto.IndexDomainParameters" value="null" />
+				<parameter name="object.property.auto.IndexGlobalPartitionsList" value="NO_OBJECT" />
+				<parameter name="object.property.auto.IndexPartitioned" value="NON_PARTITIONED" />
+				<parameter name="object.property.auto.IndexType" value="null" />
+				<parameter name="object.property.auto.Logging" value="YES" />
+				<parameter name="object.property.auto.LongName" value="TSDB.TSD_ANNOTATION_AK" />
+				<parameter name="object.property.auto.MarkGenerateIfFK" value="true" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="TSD_ANNOTATION_AK" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.NonLeaf" value="NO" />
+				<parameter name="object.property.auto.ObjectID" value="A88F67BF-6AB7-B401-06D2-FFC30ECADB2F" />
+				<parameter name="object.property.auto.Online" value="NO" />
+				<parameter name="object.property.auto.Parallel" value="NO" />
+				<parameter name="object.property.auto.Partitioned" value="false" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.Segment" value="96556D4F-40CB-ADA4-644D-3D3EE5C07386" />
+				<parameter name="object.property.auto.SortedRows" value="NO" />
+				<parameter name="object.property.auto.TableSpace" value="397459DC-13D4-E0F1-4D95-D0BD4C2E5094" />
+				<parameter name="object.property.auto.User" value="F34059C1-A33E-F1BD-C75A-91C1FF037BC9" />
+				<parameter name="object.property.auto.WorkTablespace" value="NO_OBJECT" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</Index>
+		<ForeignKey type="ForeignKey" id="2D9F25A5-C45A-0FBD-61A8-C774F48F2829">
+			<name>TSD_ANNOTATION_FQNID_FK</name>
+			<comment></comment>
+			<notes></notes>
+			<alter type="created">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<alter type="changed">
+				<user>nwhitehe</user>
+				<timestamp>2013-11-12 12:47:58</timestamp>
+			</alter>
+			<properties>
+				<parameter name="object.property.auto.Clustered" value="false" />
+				<parameter name="object.property.auto.CommentChanged" value="false" />
+				<parameter name="object.property.auto.CommentInRDBMSChanged" value="false" />
+				<parameter name="object.property.auto.Deferrable" value="NO" />
+				<parameter name="object.property.auto.DeletedInPhysicalDesign" value="false" />
+				<parameter name="object.property.auto.DropEnabled" value="false" />
+				<parameter name="object.property.auto.Enable" value="YES" />
+				<parameter name="object.property.auto.ExceptionsTable" value="NO_OBJECT" />
+				<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+				<parameter name="object.property.auto.Initially" value="IMMEDIATE" />
+				<parameter name="object.property.auto.LongName" value="TSD_ANNOTATION_FQNID_FK" />
+				<parameter name="object.property.auto.MarkGenerateIfFK" value="true" />
+				<parameter name="object.property.auto.MarkedGenerate" value="true" />
+				<parameter name="object.property.auto.Name" value="TSD_ANNOTATION_FQNID_FK" />
+				<parameter name="object.property.auto.NameChanged" value="false" />
+				<parameter name="object.property.auto.NameHasQuotes" value="false" />
+				<parameter name="object.property.auto.ObjectID" value="2D9F25A5-C45A-0FBD-61A8-C774F48F2829" />
+				<parameter name="object.property.auto.OnDelete" value="CASCADE" />
+				<parameter name="object.property.auto.Partitioned" value="false" />
+				<parameter name="object.property.auto.RawObject" value="false" />
+				<parameter name="object.property.auto.Rely" value="NO" />
+				<parameter name="object.property.auto.Validate" value="YES" />
+				<parameter name="design.owner" value="sql-catalog" />
+				<parameter name="object.existsinrepository" value="true" />
+			</properties>
+		</ForeignKey>
+	</keys_and_indexes>
+	<storage_objects />
+</metadatadoc>

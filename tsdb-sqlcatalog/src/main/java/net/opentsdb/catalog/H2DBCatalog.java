@@ -228,6 +228,8 @@ public class H2DBCatalog extends AbstractDBCatalog {
     public List<?> executeSearch(Connection conn, SearchQuery query) {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
+		List<?> results = null;
+		ElapsedTime et = SystemClock.startClock();
 		try {
 			switch(query.getType()) {
 			case TSMETA:
@@ -238,8 +240,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setInt(2, query.getLimit());
 				ps.setInt(3, query.getStartIndex());
 				ps.setString(4, "TSD_TSMETA");
-				rset = ps.executeQuery();
-				return readTSMetas(rset);				
+				rset = ps.executeQuery();				
+				results =  readTSMetas(rset);	
+				break;
 			case ANNOTATION:
 				ps = conn.prepareStatement("SELECT * FROM TSD_ANNOTATION T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.ANNID = F.KEYS[0]");
 				ps.setString(1, query.getQuery());
@@ -247,7 +250,8 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setInt(3, query.getStartIndex());
 				ps.setString(4, "TSD_ANNOTATION");
 				rset = ps.executeQuery();
-				return readAnnotations(rset);				
+				results = readAnnotations(rset);
+				break;
 			case UIDMETA:
 				List<UIDMeta> matches = new ArrayList<UIDMeta>();
 				ps = conn.prepareStatement("SELECT * FROM TSD_TAGK T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
@@ -275,12 +279,14 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setString(4, "TSD_METRIC");
 				rset = ps.executeQuery();
 				matches.addAll(readUIDMetas(rset));
-				rset.close(); ps.close();
-				
-				return matches;				
+				rset.close(); ps.close();				
+				results = matches;				
 			default:
 				throw new RuntimeException("yeow. Unrecognized type [" + query.getType() + "]");				
 			}
+			query.setTime(et.elapsedMs());
+			query.setResults((List<Object>) results);
+			return results;
 		} catch (SQLException sex) {
 			throw new RuntimeException("Failed to execute search on query [" + query + "]", sex);
 		} finally {

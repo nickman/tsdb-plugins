@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="FKIndexAssociation" id="C90B8296-8018-8E8D-EEF8-300E705E00C4" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="true" tableid="88A3FC9C-B938-4069-A109-EC7EC5B9B4BB" reftableid="38A5CA3D-18A5-44EC-3698-619E209C9CE3" references="B225F28D-E1DC-17F5-9794-A64A1E04213B" localindexid="8CBDC071-E45A-E644-EFE6-9D7A13642FC8" delrule="NO ACTION" mandatory="true" transferable="true" use_default_color="true" background_color="null" foreground_color="null">
+		<name>TSD_FQN_METRIC_FK</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<properties>
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+		</properties>
+		<engineering should="true" />
+		<des_obj_version version="1.0" />
+		<documents />
+		<parties />
+		<changerequests />
+		<measurements />
+	</object>
+</metadatadoc>

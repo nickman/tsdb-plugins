@@ -190,6 +190,16 @@ public interface CatalogDBMXBean {
 	 */
 	public String getDatabaseProductVersion();
 	
+	/**
+	 * Executes an OpenTSDB SearchQuery and returns the results in JSON form
+	 * @param type The SearchQuery type expressed in the name of the {@link net.opentsdb.search.SearchQuery.SearchType} enum member.
+	 * @param query The query expression
+	 * @param limit Sets the limit to the number of results
+	 * @param startIndex The index of the results to start returning at
+	 * @return the JSON representation of the search results
+	 */
+	public String search(String type, String query, int limit, int startIndex);
+	
 	
 	
 

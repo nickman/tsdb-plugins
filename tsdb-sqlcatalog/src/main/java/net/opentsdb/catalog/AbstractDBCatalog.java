@@ -1941,31 +1941,75 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	
-	public int getMetricCount();
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getMetricCount()
+	 */
+	@Override
+	public int getMetricCount() {
+		return getCount("TSD_METRIC");
+	}
 	
 	/**
-	 * Returns the current number of UIDMeta tag keys
-	 * @return the current number of UIDMeta tag keys
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagKCount()
 	 */
-	public int getTagKCount();
+	@Override
+	public int getTagKCount() {
+		return getCount("TSD_TAGK");
+	}
 	
 	/**
-	 * Returns the current number of UIDMeta tag values
-	 * @return the current number of UIDMeta tag values
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTagVCount()
 	 */
-	public int getTagVCount();
+	@Override
+	public int getTagVCount() {
+		return getCount("TSD_TAGV");
+	}
 	
 	/**
-	 * Returns the current number of TSMeta time series 
-	 * @return the current number of TSMeta time series
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getTSMetaCount()
 	 */
-	public int getTSMetaCount();
+	@Override
+	public int getTSMetaCount() {
+		return getCount("TSD_TSMETA");
+	}
 	
 	/**
-	 * Returns the current number of annotations 
-	 * @return the current number of annotations
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getAnnotationCount()
 	 */
-	public int getAnnotationCount();
+	@Override
+	public int getAnnotationCount() {
+		return getCount("TSD_ANNOTATION");
+	}
+	
+	/**
+	 * Returns the count from the passed table name
+	 * @param tName The name of the table to get a count for
+	 * @return the count
+	 */
+	protected int getCount(String tName) {
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		try {
+			conn = dataSource.getConnection();
+			ps = conn.prepareStatement("SELECT COUNT(*) FROM " + tName);
+			rset = ps.executeQuery();
+			rset.next();
+			return rset.getInt(1);
+		} catch (Exception ex) {
+			log.error("Failed to get count for [" + tName + "]", ex);
+			return -1;
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
 	
 
 }

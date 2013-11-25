@@ -42,9 +42,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.opentsdb.core.TSDB;
-import net.opentsdb.meta.Annotation;
-import net.opentsdb.meta.TSMeta;
-import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.stats.StatsCollector;
@@ -63,6 +60,7 @@ import org.helios.tsdb.plugins.shell.RpcService;
 import org.helios.tsdb.plugins.shell.Search;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
+import org.helios.tsdb.plugins.util.jmx.jmxmp.JMXMPConnectionServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -231,6 +229,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				scheduleHandle = scheduler.scheduleWithFixedDelay(this, 15, 15, TimeUnit.SECONDS);
 				log.info("Started Stats Collector Scheduling");
 			}
+			new JMXMPConnectionServer(config).start();
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);

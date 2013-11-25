@@ -159,6 +159,17 @@ public class Constants {
 	public static final String DEFAULT_RING_BUFFER_WAIT_STRAT_ARGS = "";
 	
 	
+	// ===========================================================================================	
+	//		JMXMP JMXConnectorServer Config
+	// ===========================================================================================
+	/** The config property name for the port number the JMXMP listener will listen on. -1 will disable. */
+	public static final String JMXMP_PORT = "helios.jmxmp.listen.port";
+	/** The default JMXMP listener port */
+	public static final int DEFAULT_JMXMP_PORT = 4243;
+	/** The config property name for the interface the JMXMP listener will bind to */
+	public static final String JMXMP_INTERFACE = "helios.jmxmp.listen.iface";
+	/** The default JMXMP listener port */
+	public static final String DEFAULT_JMXMP_INTERFACE = "0.0.0.0";
 	
 	
 	

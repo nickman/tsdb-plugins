@@ -27,6 +27,7 @@ package test.net.opentsdb.search;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -754,24 +755,5 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 	}
 
-	/**
-	 * Executes a volume load
-	 * @throws Exception thrown on any error
-	 */
-	@Test
-	public void testVolumeLoad() throws Exception {
-		CatalogDBInterface dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
-		dbInterface.purge();
-		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
-		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
-		
-		
-		
-		waitForProcessingQueue("testVolumeMetaUpdates/Indexing", 300000, TimeUnit.MILLISECONDS);
-		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
-			Thread.currentThread().join();
-		}	
-		
-	}
 
 }

@@ -364,7 +364,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 					format =  "SET @%s = %s;";
 				}
 				st.execute(String.format(format, entry.getKey(), entry.getValue()));
-				log.info("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
+				log.debug("Set UDV [{}]=[{}]", entry.getKey(), entry.getValue());
 			}						
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to set user defined vars [" + userDefinedVars + "]", ex);

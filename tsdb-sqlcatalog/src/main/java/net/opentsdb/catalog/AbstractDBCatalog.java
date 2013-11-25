@@ -494,6 +494,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public void processEvents(Connection conn, Set<TSDBSearchEvent> events) {		
 		int ops = 0;
+		setConnectionProperty(conn, TSD_CONN_TYPE, SYNC_CONN_FLAG);
 		ElapsedTime et = SystemClock.startClock();
 		Set<String> batchedUids = new HashSet<String>(events.size());
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
@@ -607,6 +608,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
 			if(annotationsPs!=null) try { annotationsPs.close(); annotationsPs = null;} catch (Exception x) {/* No Op */}
+			setConnectionProperty(conn, TSD_CONN_TYPE, "");
 		}
 	}
 	

@@ -107,7 +107,7 @@ public class LocalSequenceCache {
 	public long next() {
 		long next = -1;
 		for(;;) {
-			if(rangeIsFresh.compareAndSet(true, (next = currentValue.incrementAndGet())<=ceiling.get())) {
+			if(rangeIsFresh.compareAndSet(true, (next = currentValue.incrementAndGet())<ceiling.get())) {
 				return next;
 			}
 			rangeIsFresh.set(false);

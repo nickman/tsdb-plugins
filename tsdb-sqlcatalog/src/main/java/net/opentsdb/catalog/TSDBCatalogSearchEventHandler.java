@@ -32,9 +32,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -185,8 +185,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		queueSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_PROC_QUEUE_SIZE, DEFAULT_DB_PROC_QUEUE_SIZE, extracted);
 		timeout = ConfigurationHelper.getLongSystemThenEnvProperty(DB_PROC_QUEUE_TIMEOUT, DEFAULT_DB_PROC_QUEUE_TIMEOUT, extracted);
 		String initerClassName = ConfigurationHelper.getSystemThenEnvProperty(DB_JDBC_INITER, DEFAULT_DB_JDBC_INITER, extracted);
-		//processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
-		processingQueue = new ArrayBlockingQueue<TSDBSearchEvent>(queueSize, false);
+		processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
+		//processingQueue = new ArrayBlockingQueue<TSDBSearchEvent>(queueSize, false);
 		dbInterface = loadDB(initerClassName);
 		dataSource = dbInterface.getDataSource();
 		log.info("Acquired DataSource");	

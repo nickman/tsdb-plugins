@@ -48,11 +48,8 @@ public class MXBeanMapper {
     public MXBeanMapper(Class<?> originalType) {
         InterfaceClassLoader loader =
                 new InterfaceClassLoader(originalType.getClassLoader());
-        XMethod getter = new XMethod("getX", new Class<?>[0], originalType);
-        XMethod setter = new XMethod("setX", new Class<?>[] {originalType},
-                                     void.class);
         Class<?> mxbeanInterface =
-            loader.findOrBuildInterface("X", new XMethod[] {getter, setter});
+            loader.findOrBuildInterface("X", originalType);
 
         handler = new MXBeanInvocationHandler();
         mxbean = makeMXBean(mxbeanInterface, handler);

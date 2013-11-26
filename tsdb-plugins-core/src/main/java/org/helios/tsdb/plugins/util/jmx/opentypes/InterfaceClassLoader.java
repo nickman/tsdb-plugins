@@ -42,7 +42,6 @@ public class InterfaceClassLoader extends ClassLoader {
         c = findLoadedClass(name);
         if (c != null)
             return c;
-        byte[] classBytes = InterfaceBuilder.buildInterface(name, methods);
-        return defineClass(name, classBytes, 0, classBytes.length);
+        return InterfaceBuilder.buildInterface(name, implClazz);
     }
 }

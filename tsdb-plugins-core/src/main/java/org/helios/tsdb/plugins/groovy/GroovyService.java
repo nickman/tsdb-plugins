@@ -99,7 +99,9 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		try { 
 			JMXHelper.getHeliosMBeanServer().registerMBean(this, objectName); 
 			log.info("\n\t============================================\n\tRegistered [" + objectName + "]\n\t============================================\n");
-		} catch (Exception ex) {/* No Op */}
+		} catch (Exception ex) {
+			log.warn("Failed to register GroovyService Management Interface", ex);
+		}
 	}
 	
 	
@@ -283,11 +285,7 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		return invoke(name, methodName, args);
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.groovy.GroovyServiceMXBean#invoke(java.lang.String, java.lang.String)
-	 */
-	@Override
+
 	public Object invoke(String name, String methodName) {
 		return invoke(name, methodName, EMPTY_OBJ_ARR);
 	}
@@ -506,11 +504,6 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		return run(name, null, null, args);
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.groovy.GroovyServiceMXBean#runScript(java.lang.String)
-	 */
-	@Override
 	public Object runScript(String name) {
 		return run(name, EMPTY_OBJ_ARR);
 	}

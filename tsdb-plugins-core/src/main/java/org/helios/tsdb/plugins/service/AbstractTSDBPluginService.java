@@ -50,6 +50,7 @@ import net.opentsdb.tsd.RpcPlugin;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
+import org.helios.tsdb.plugins.groovy.GroovyService;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.handlers.IPublishEventHandler;
 import org.helios.tsdb.plugins.handlers.ISearchEventHandler;
@@ -85,6 +86,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	protected final Properties config;
 	/** The plugin service context */
 	protected PluginContext pluginContext = null;
+	
+	/** The groovy service */
+	protected GroovyService groovyService = null;
 	
 	/** The plugin support classloader */
 	protected ClassLoader supportClassLoader = null;
@@ -230,6 +234,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				log.info("Started Stats Collector Scheduling");
 			}
 			new JMXMPConnectionServer(config).start();
+			groovyService = new GroovyService();
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);

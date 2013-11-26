@@ -244,7 +244,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	 * Executes stats collection 
 	 */
 	public void run() {
-		log.info("Collecting...");
+		log.debug("Collecting...");
 		StatsCollectorImpl collector = new StatsCollectorImpl(tsdb, true);
 		try {			
 			tsdb.collectStats(collector);
@@ -263,7 +263,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				handler.collectStats(collector);
 			}
 			collector.restore();
-			log.info("Collect done.");
+			log.debug("Collect done.");
 		} catch (Exception ex) {
 			log.error("Stats Collection Exception", ex);
 		}

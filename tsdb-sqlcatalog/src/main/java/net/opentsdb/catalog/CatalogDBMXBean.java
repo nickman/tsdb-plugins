@@ -24,6 +24,8 @@
  */
 package net.opentsdb.catalog;
 
+import java.util.Map;
+
 import javax.management.MXBean;
 
 /**
@@ -200,7 +202,12 @@ public interface CatalogDBMXBean {
 	 */
 	public String search(String type, String query, int limit, int startIndex);
 	
-	public int metaSync() throws Exception;
+	/**
+	 * A cleanup operation that flushes all meta objects from the store to the search plugin
+	 * @return A map of the counts of each type flushed keyed by the type name
+	 * @throws Exception throw on any error
+	 */
+	public Map<String, Integer> synchronizeFromStore() throws Exception;
 	
 	
 	

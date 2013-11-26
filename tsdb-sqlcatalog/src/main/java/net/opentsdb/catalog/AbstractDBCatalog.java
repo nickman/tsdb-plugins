@@ -26,6 +26,8 @@ package net.opentsdb.catalog;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -48,6 +50,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -68,6 +71,9 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSONException;
 
+import org.hbase.async.Bytes;
+import org.hbase.async.GetRequest;
+import org.hbase.async.KeyValue;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -2096,5 +2102,129 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}
 	}
 	
+	
+	/** The metasync class */
+	private static final Class<?> METASYNC_CLASS;
+	/** The metasync ctor */
+	private static final Constructor<?> METASYNC_CTOR;
+	
+	static {
+		try {
+			METASYNC_CLASS = Class.forName("net.opentsdb.tools.MetaSync");
+			METASYNC_CTOR = METASYNC_CLASS.getDeclaredConstructor(TSDB.class, long.class, double.class, Set.class, 
+					ConcurrentHashMap.class,
+					ConcurrentHashMap.class,
+					ConcurrentHashMap.class,
+					int.class
+					);
+			METASYNC_CTOR.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	} 
 
+	  /**
+	   * Runs through the entire data table and creates TSMeta objects for unique
+	   * timeseries and/or updates {@code created} timestamps
+	   * The process is as follows:
+	   * <ul><li>Fetch the max number of Metric UIDs as we'll use those to match
+	   * on the data rows</li>
+	   * <li>Split the # of UIDs amongst worker threads</li>
+	   * <li>Setup a scanner in each thread for the range it will be working on and
+	   * start iterating</li>
+	   * <li>Fetch the TSUID from the row key</li>
+	   * <li>For each unprocessed TSUID:
+	   * <ul><li>Check if the metric UID mapping is present, if not, log an error
+	   * and continue</li>
+	   * <li>See if the meta for the metric UID exists, if not, create it</li>
+	   * <li>See if the row timestamp is less than the metric UID meta's created
+	   * time. This means we have a record of the UID being used earlier than the
+	   * meta data indicates. Update it.</li>
+	   * <li>Repeat the previous three steps for each of the TAGK and TAGV tags</li>
+	   * <li>Check to see if meta data exists for the timeseries</li>
+	   * <li>If not, create the counter column if it's missing, and create the meta
+	   * column</li>
+	   * <li>If it did exist, check the {@code created} timestamp and if the row's 
+	   * time is less, update the meta data</li></ul></li>
+	   * <li>Continue on to the next unprocessed timeseries data row</li></ul>
+	   * <b>Note:</b> Updates or new entries will also be sent to the search plugin
+	   * if configured.
+	   * @param tsdb The tsdb to use for processing, including a search plugin
+	   * @return 0 if completed successfully, something else if it dies
+	   */
+	  public int metaSync() throws Exception {
+	    final long start_time = System.currentTimeMillis() / 1000;
+	    final long max_id = getMaxMetricID(tsdb);
+	    
+	    // now figure out how many IDs to divy up between the workers
+	    final int workers = Runtime.getRuntime().availableProcessors() * 2;
+	    final double quotient = (double)max_id / (double)workers;
+	    final Set<Integer> processed_tsuids = 
+	      Collections.synchronizedSet(new HashSet<Integer>());
+	    final ConcurrentHashMap<String, Long> metric_uids = 
+	      new ConcurrentHashMap<String, Long>();
+	    final ConcurrentHashMap<String, Long> tagk_uids = 
+	      new ConcurrentHashMap<String, Long>();
+	    final ConcurrentHashMap<String, Long> tagv_uids = 
+	      new ConcurrentHashMap<String, Long>();
+	    
+	    long index = 1;
+	    
+	    log.info("Max metric ID is [" + max_id + "]");
+	    log.info("Spooling up [" + workers + "] worker threads");
+	    final Thread[] threads = new Thread[workers];
+	    for (int i = 0; i < workers; i++) {	      
+	      threads[i] = (Thread)METASYNC_CTOR.newInstance(tsdb, index, quotient, processed_tsuids, metric_uids, tagk_uids, tagv_uids, i);
+	      threads[i].setName("MetaSync # " + i);
+	      threads[i].start();
+	      index += quotient;
+	      if (index < max_id) {
+	        index++;
+	      }
+	    }
+	    
+	    // wait till we're all done
+	    for (int i = 0; i < workers; i++) {
+	      threads[i].join();
+	      log.info("[" + i + "] Finished");
+	    }
+	    
+	    // make sure buffered data is flushed to storage before exiting
+	    tsdb.flush().joinUninterruptibly();
+	    
+	    final long duration = (System.currentTimeMillis() / 1000) - start_time;
+	    log.info("Completed meta data synchronization in [" + 
+	        duration + "] seconds");
+	    return 0;
+	  }
+
+	  public static final Charset CHARSET = Charset.forName("ISO-8859-1");
+	  
+	  /**
+	   * Returns the max metric ID from the UID table
+	   * @param tsdb The TSDB to use for data access
+	   * @return The max metric ID as an integer value
+	   */
+	  private long getMaxMetricID(final TSDB tsdb) {		
+	    // first up, we need the max metric ID so we can split up the data table
+	    // amongst threads.
+	    final GetRequest get = new GetRequest(tsdb.uidTable(), new byte[] { 0 });
+	    get.family("id".getBytes(CHARSET));
+	    get.qualifier("metrics".getBytes(CHARSET));
+	    ArrayList<KeyValue> row;
+	    try {
+	      row = tsdb.getClient().get(get).joinUninterruptibly();
+	      if (row == null || row.isEmpty()) {
+	        throw new IllegalStateException("No data in the metric max UID cell");
+	      }
+	      final byte[] id_bytes = row.get(0).value();
+	      if (id_bytes.length != 8) {
+	        throw new IllegalStateException("Invalid metric max UID, wrong # of bytes");
+	      }
+	      return Bytes.getLong(id_bytes);
+	    } catch (Exception e) {
+	      throw new RuntimeException("Shouldn't be here", e);
+	    }
+	  }	  
+	
 }

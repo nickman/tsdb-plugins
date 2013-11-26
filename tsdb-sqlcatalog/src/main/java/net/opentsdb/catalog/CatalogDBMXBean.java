@@ -200,6 +200,8 @@ public interface CatalogDBMXBean {
 	 */
 	public String search(String type, String query, int limit, int startIndex);
 	
+	public int metaSync() throws Exception;
+	
 	
 	
 

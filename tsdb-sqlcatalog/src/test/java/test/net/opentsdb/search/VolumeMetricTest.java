@@ -26,6 +26,7 @@ package test.net.opentsdb.search;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -93,6 +94,7 @@ public class VolumeMetricTest extends LoadMetricsTest {
 		Set<String> tagKeys = new HashSet<String>(KCOUNT);
 		Set<String> tagValues = new HashSet<String>(VCOUNT);
 		Set<String> fqns = new HashSet<String>(TCOUNT);
+		Set<String> tsuids = new HashSet<String>(TCOUNT);
 		ElapsedTime et = SystemClock.startClock();
 		
 		log("Generating Syntehtic Metrics");
@@ -135,23 +137,46 @@ public class VolumeMetricTest extends LoadMetricsTest {
 		System.gc();
 		log("Populated Raw Data in [%s] ms.", et.elapsedMs());
 		int cnt = 0;
-		for(String s: fqns) {
+		for(Iterator<String> fqnIter = fqns.iterator(); fqnIter.hasNext();) { 
+			String s = fqnIter.next();
+			fqnIter.remove();
 			try {
 				ObjectName on = new ObjectName(s);
 				TSMeta meta = new TSMeta();
 				LinkedList<UIDMeta> uidMetas =  objectNameToUIDMeta(on);
 				for(UIDMeta m : uidMetas) {
 					if(m==null) continue;
-					tsdb.indexUIDMeta(m);
+					switch(m.getType()) {
+					case METRIC:
+						if(metrics.add(m.getName())) {
+							tsdb.indexUIDMeta(m);
+						}
+						break;
+					case TAGK:
+						if(tagKeys.add(m.getName())) {
+							tsdb.indexUIDMeta(m);
+						}
+						break;
+					case TAGV:
+						if(tagValues.add(m.getName())) {
+							tsdb.indexUIDMeta(m);
+						}
+						break;
+					default:
+						break;
+					
+					}
 				}
 				meta = fromUids(uidMetas);
-				tsdb.indexTSMeta(meta);
+				if(tsuids.add(meta.getTSUID())) {
+					tsdb.indexTSMeta(meta);
+				}
 				cnt++;
 				if(cnt%10000==0) {
 					waitForProcessingQueue("testVolumeMetaUpdates/Indexing [" + cnt + "]", 300000, TimeUnit.MILLISECONDS);
 				}
 				if(cnt%100000==0) {
-					log("==========================> Indexed [%s] TSMetas", cnt);
+					log("\n\n\n==========================> Indexed [%s] TSMetas\n\n", cnt);
 				}
 			} catch (Exception ex) {
 				/* No Op */

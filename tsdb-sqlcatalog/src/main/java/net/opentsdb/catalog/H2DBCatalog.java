@@ -280,7 +280,8 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				rset = ps.executeQuery();
 				matches.addAll(readUIDMetas(rset));
 				rset.close(); ps.close();				
-				results = matches;				
+				results = matches;	
+				break;
 			default:
 				throw new RuntimeException("yeow. Unrecognized type [" + query.getType() + "]");				
 			}

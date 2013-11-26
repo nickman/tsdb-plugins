@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,6 @@ import net.opentsdb.search.SearchQuery;
 import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
-import net.opentsdb.utils.JSON;
 import net.opentsdb.utils.JSONException;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
@@ -1393,6 +1393,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				meta.setMin(rset.getDouble("MIN_VALUE"));
 				meta.setRetention(rset.getInt("RETENTION"));
 				meta.setUnits(rset.getString("UNITS"));
+				Map<String, String> custom = meta.getCustom();
+				if(custom==null) {
+					custom = new HashMap<String, String>(3);
+					custom.put(PK_KEY, rset.getString("FQNID"));
+				}
+				custom.put(TSMETA_METRIC_KEY, rset.getString("METRIC_UID"));
 				tsMetas.add(meta);
 			}
 		} catch (Exception ex) {
@@ -1805,25 +1811,44 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
      * @param meta The meta to summarize
      * @return the summary map
      */
-    public static Map<String, Object> summarize(TSMeta meta) {
-    	final HashMap<String, Object> map = 
-    			new HashMap<String, Object>(3);
-    	map.put("tsuid", meta.getTSUID());
-    	map.put("metric", meta.getMetric().getName());
-    	final HashMap<String, String> tags = 
-    			new HashMap<String, String>(meta.getTags().size() / 2);
-    	int idx = 0;
-    	String name = "";
-    	for (final UIDMeta uid : meta.getTags()) {
-    		if (idx % 2 == 0) {
-    			name = uid.getName();
-    		} else {
-    			tags.put(name, uid.getName());
-    		}
-    		idx++;
+    public Map<String, Object> summarize(TSMeta meta) {
+    	Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rset = null;    	
+    	try {
+	    	conn = dataSource.getConnection();
+	    	
+	    	
+    		final HashMap<String, Object> map = 
+	    			new HashMap<String, Object>(3);
+	    	map.put("tsuid", meta.getTSUID());
+	    	ps = conn.prepareStatement("SELECT NAME FROM TSD_METRIC WHERE XUID = ?");
+	    	ps.setString(1, meta.getCustom().remove(TSMETA_METRIC_KEY));
+	    	rset = ps.executeQuery();
+	    	if(rset.next()) {
+	    		map.put("metric", rset.getString(1));
+	    	}
+	    	rset.close();
+	    	ps.close();
+	    	ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER");
+	    	ps.setLong(1, Long.parseLong(meta.getCustom().get(PK_KEY)));
+	    	rset = ps.executeQuery();
+	    	final Map<String, String> tags = 
+	    			new LinkedHashMap<String, String>();
+
+	    	while(rset.next()) {
+	    		String[] pair = rset.getString(1).split("=");
+	    		tags.put(pair[0], pair[1]);	    		
+	    	}
+	    	map.put("tags", tags);
+	    	return map;
+    	} catch (Exception ex) {
+    		throw new RuntimeException("Failed to summarize TSMeta list", ex);
+    	} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}    		
     	}
-    	map.put("tags", tags);
-    	return map;
     }
     
 	/**

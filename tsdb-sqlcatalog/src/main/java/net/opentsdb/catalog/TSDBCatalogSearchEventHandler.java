@@ -32,8 +32,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -102,7 +103,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	/** The configured DB initer */
 	protected CatalogDBInterface dbInterface = null;
 	/** The processing queue for catalog processed events */
-	protected PriorityBlockingQueue<TSDBSearchEvent> processingQueue;	
+	protected BlockingQueue<TSDBSearchEvent> processingQueue;	
 	/** The connection pool */
 	protected DataSource dataSource = null;
 	/** The queue processing thread */
@@ -184,7 +185,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		queueSize = ConfigurationHelper.getIntSystemThenEnvProperty(DB_PROC_QUEUE_SIZE, DEFAULT_DB_PROC_QUEUE_SIZE, extracted);
 		timeout = ConfigurationHelper.getLongSystemThenEnvProperty(DB_PROC_QUEUE_TIMEOUT, DEFAULT_DB_PROC_QUEUE_TIMEOUT, extracted);
 		String initerClassName = ConfigurationHelper.getSystemThenEnvProperty(DB_JDBC_INITER, DEFAULT_DB_JDBC_INITER, extracted);
-		processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
+		//processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
+		processingQueue = new ArrayBlockingQueue<TSDBSearchEvent>(queueSize, false);
 		dbInterface = loadDB(initerClassName);
 		dataSource = dbInterface.getDataSource();
 		log.info("Acquired DataSource");	
@@ -286,7 +288,10 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 			if(!searchEnabled) return;
 			executeQuery(event.searchQuery, event.deferred);
 		} else {
-			processingQueue.add(event.asSearchEvent());
+			if(!processingQueue.offer(event.asSearchEvent(), 500, TimeUnit.MILLISECONDS)) {
+				log.warn("Time out trying to enqueue event [{}]", event.asSearchEvent());
+			}
+			//processingQueue.add(event.asSearchEvent());
 		}
 	}
 	

@@ -73,7 +73,8 @@ public interface CatalogDBInterface {
 	public static final String VERSION_KEY = "tsd.sql.version";
 	/** The custom map key to specify the DB pk of the object */
 	public static final String PK_KEY = "tsd.sql.pk";
-	
+	/** The custom map key to specify the TSD_METRIC pk of a TSMeta object */
+	public static final String TSMETA_METRIC_KEY = "tr.mxuid";
 	
 	
 	/**

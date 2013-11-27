@@ -28,16 +28,19 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import net.opentsdb.core.Const;
 import net.opentsdb.core.TSDB;
-
-
-
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.uid.UniqueId;
 
 import org.hbase.async.Bytes;
 import org.hbase.async.GetRequest;
 import org.hbase.async.KeyValue;
+import org.hbase.async.Scanner;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +71,12 @@ public class MetaSynchronizer {
 	
 	/** The number of segments to divide the work up into */
 	public static final int SEGMENT_COUNT = 10;
+	
+	/** A cache of already seen UIDs */
+	protected final Set<String> seenUids = new HashSet<String>();
+	/** A cache of already seen TSUIDs */
+	protected final Set<String> seenTSUids = new HashSet<String>();
+	
 	/**
 	 * Creates a new MetaSynchronizer
 	 * @param tsdb The TSDB instance to synchronize against
@@ -81,13 +90,12 @@ public class MetaSynchronizer {
 	
 	/**
 	 * Runs the meta synchronization
-	 * @return the meta objects processed counts keyed by the meta object names.
+	 * @return the number of TSMeta objects processed
 	 */
-	public Map<String, Integer> process() {
-		final Map<String, Integer> results = new HashMap<String, Integer>(5);
-		final int[] counts = new int[5];
-		final long[][] segments = new long[10][2];
-		for(int i = 0; i < 10; i++) {
+	public long process() {
+		long tsMetaCount = 0;
+		final long[][] segments = new long[SEGMENT_COUNT][2];
+		for(int i = 0; i < SEGMENT_COUNT; i++) {
 			segments[i][0] = -1L;
 			segments[i][1] = -1L;
 		}
@@ -95,10 +103,10 @@ public class MetaSynchronizer {
 		if(max_id < 10) {
 			segmentSize = 1; 
 		} else {
-			segmentSize = (int)(max_id/10);
+			segmentSize = (int)(max_id/SEGMENT_COUNT);
 		}
 		long start = 0, end = segmentSize;
-		for(int i = 0; i < 10; i++) {
+		for(int i = 0; i < SEGMENT_COUNT; i++) {
 			segments[i][0] = start;
 			segments[i][1] = end;
 			if(end>=max_id) break;
@@ -106,8 +114,42 @@ public class MetaSynchronizer {
 			end = start + segmentSize;		
 			if(end>max_id) end = max_id;
 		}
-	    log.info("Segments: [{}]", Arrays.deepToString(segments) );
-	    return results;
+		short metric_width = TSDB.metrics_width();
+	    log.info("MetaSync Segments: [{}]", Arrays.deepToString(segments) );
+	    Scanner scanner = null;
+	    for(int i = 0; i < SEGMENT_COUNT; i++) {
+	    	try {
+	    		scanner = tsdb.getClient().newScanner(tsdb.dataTable());
+	    		byte[] start_row =  Arrays.copyOfRange(Bytes.fromLong(0L), 8 - metric_width, 8);
+	    		byte[] end_row =    Arrays.copyOfRange(Bytes.fromLong(max_id), 8 - metric_width, 8);
+	    		scanner.setStartKey(start_row);
+	    		scanner.setStopKey(end_row);
+	    		scanner.setFamily("t".getBytes(Charset.forName("ISO-8859-1")));
+	    		ArrayList<ArrayList<KeyValue>> scanResult = scanner.nextRows().joinUninterruptibly(15000);
+	    		int size = scanResult.size();
+	    		log.info("Processing Segment [{}] with [{}] KeyValues", i, size);
+	    		for(ArrayList<KeyValue> kv: scanResult) {
+	    		    byte[] tsuid = UniqueId.getTSUIDFromKey(kv.get(0).key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);    
+	    		    String tsuid_string = UniqueId.uidToString(tsuid);
+	    		    if(seenTSUids.add(tsuid_string)) {
+	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
+	    		    	tsdb.indexTSMeta(tsMeta);
+	    		    	tsMetaCount++;
+	    		    }
+	    		}
+	    		scanner.close();
+	    		scanner = null;
+	    		log.info("Completed Segment [{}] with [{}] KeyValues", i, size);
+	    	} catch (Exception e) {
+				log.error("Failed to process scan", e);
+				break;
+			} finally {
+	    		seenUids.clear();
+	    		seenTSUids.clear();
+	    		if(scanner!=null) try { scanner.close(); } catch (Exception x) {/* No Op */}
+	    	}
+	    }
+	    return tsMetaCount;
 	}
 	
 	

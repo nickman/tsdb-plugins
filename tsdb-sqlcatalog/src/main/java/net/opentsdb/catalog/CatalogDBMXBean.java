@@ -204,10 +204,10 @@ public interface CatalogDBMXBean {
 	
 	/**
 	 * A cleanup operation that flushes all meta objects from the store to the search plugin
-	 * @return A map of the counts of each type flushed keyed by the type name
+	 * @return The number of TSMetas written
 	 * @throws Exception throw on any error
 	 */
-	public Map<String, Integer> synchronizeFromStore() throws Exception;
+	public long synchronizeFromStore() throws Exception;
 	
 	
 	

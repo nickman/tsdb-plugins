@@ -70,6 +70,7 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSONException;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.meta.MetaSynchronizer;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
@@ -2131,9 +2132,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBMXBean#synchronizeFromStore()
 	 */
 	@Override
-	public Map<String, Integer> synchronizeFromStore() throws Exception {
-		
-		return null;
+	public long synchronizeFromStore() throws Exception {
+		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
+		return ms.process();
 	}
 	
 }

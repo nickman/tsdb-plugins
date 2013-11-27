@@ -26,8 +26,6 @@ package net.opentsdb.catalog;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -50,7 +48,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -71,9 +68,6 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSONException;
 
-import org.hbase.async.Bytes;
-import org.hbase.async.GetRequest;
-import org.hbase.async.KeyValue;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -146,6 +140,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected PreparedStatement annotationsPs = null;
 	/** batched ps for annotation updates */
 	protected PreparedStatement annotationsUpdatePs = null;   
+	
+	
+	/** The number of batched TSMeta inserts */
+	protected int batchedtsMetaInserts = 0;
 
 	// ========================================================================================
 	//	The local sequence managers
@@ -559,9 +557,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			}
 			
 			// Execute batch inserts for TSMetas
+			log.info("Executing [{}] Batched TSMeta Inserts", batchedtsMetaInserts);
 			if(tsMetaFqnPs!=null) {
 				executeBatch(tsMetaFqnPs);
 				tsMetaFqnPs.clearBatch();				
+				batchedtsMetaInserts = 0;
 			}
 			// Execute batch inserts for FQN TAG Pairs
 			if(uidMetaTagPairFQNPs!=null) {
@@ -1109,6 +1109,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			tsMetaFqnPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
 			tsMeta.setCustom(custom);
 			tsMetaFqnPs.addBatch();
+			batchedtsMetaInserts++;
 			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL); 
 			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
 			int pairCount = tsMeta.getTags().size()/2;

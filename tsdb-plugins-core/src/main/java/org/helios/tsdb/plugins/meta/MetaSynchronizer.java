@@ -62,7 +62,7 @@ public class MetaSynchronizer {
 	/** The TSDB instance to synchronize against */
 	protected final TSDB tsdb;
     /** The start time */
-    protected final long start_time = SystemClock.unixTime();
+    protected long start_time = -1;
     /** The max metric ID from the UID table */
     protected final long max_id;
 	
@@ -93,6 +93,7 @@ public class MetaSynchronizer {
 	 * @return the number of TSMeta objects processed
 	 */
 	public long process() {
+		start_time = SystemClock.unixTime();
 		long tsMetaCount = 0;
 		final long[][] segments = new long[SEGMENT_COUNT][2];
 		for(int i = 0; i < SEGMENT_COUNT; i++) {
@@ -118,10 +119,11 @@ public class MetaSynchronizer {
 	    log.info("MetaSync Segments: [{}]", Arrays.deepToString(segments) );
 	    Scanner scanner = null;
 	    for(int i = 0; i < SEGMENT_COUNT; i++) {
+	    	if(segments[i][0]<0 || segments[i][1]<0) continue;
 	    	try {
 	    		scanner = tsdb.getClient().newScanner(tsdb.dataTable());
-	    		byte[] start_row =  Arrays.copyOfRange(Bytes.fromLong(0L), 8 - metric_width, 8);
-	    		byte[] end_row =    Arrays.copyOfRange(Bytes.fromLong(max_id), 8 - metric_width, 8);
+	    		byte[] start_row =  Arrays.copyOfRange(Bytes.fromLong(segments[i][0]), 8 - metric_width, 8);
+	    		byte[] end_row =    Arrays.copyOfRange(Bytes.fromLong(segments[i][1]), 8 - metric_width, 8);
 	    		scanner.setStartKey(start_row);
 	    		scanner.setStopKey(end_row);
 	    		scanner.setFamily("t".getBytes(Charset.forName("ISO-8859-1")));
@@ -149,6 +151,8 @@ public class MetaSynchronizer {
 	    		if(scanner!=null) try { scanner.close(); } catch (Exception x) {/* No Op */}
 	    	}
 	    }
+	    long elapsed = SystemClock.unixTime()-start_time;
+	    log.info("Reindexed [{}] TSMetas in [{}] seconds", tsMetaCount , elapsed);
 	    return tsMetaCount;
 	}
 	

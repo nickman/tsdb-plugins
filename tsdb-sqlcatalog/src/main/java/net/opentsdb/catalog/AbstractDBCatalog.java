@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -491,6 +492,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//  Event Processing
 	// ==================================================================================================
 	
+	/** Keeps track of batched UIDs for the duration of processEvents. */
+	protected final Set<String> batchedUids = new HashSet<String>(1024);
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#processEvents(java.sql.Connection, java.util.Set)
@@ -500,7 +504,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		int ops = 0;
 		setConnectionProperty(conn, TSD_CONN_TYPE, SYNC_CONN_FLAG);
 		ElapsedTime et = SystemClock.startClock();
-		Set<String> batchedUids = new HashSet<String>(events.size());
+		
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
 		Set<Annotation> annotations = new HashSet<Annotation>();
 		BatchMileStone latch = null;
@@ -615,6 +619,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
 			if(annotationsPs!=null) try { annotationsPs.close(); annotationsPs = null;} catch (Exception x) {/* No Op */}
 			setConnectionProperty(conn, TSD_CONN_TYPE, "");
+			batchedUids.clear();
 		}
 	}
 	
@@ -1043,6 +1048,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
+	 * Preprocesses the UIDMetas in a new TSMeta incase they were missed before now
+	 * @param conn The connection to process on
+	 * @param uidMetas The UIDMetas to process
+	 */
+	protected void preProcessUIDMeta(Connection conn, Collection<UIDMeta> uidMetas) {
+		for(UIDMeta uidMeta: uidMetas) {
+			if(!batchedUids.contains(uidMeta.toString())) {
+				processUIDMeta(conn, uidMeta);
+				batchedUids.add(uidMeta.toString());
+			}
+		}
+	}
+	
+	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#processTSMeta(java.util.Set, java.sql.Connection, net.opentsdb.meta.TSMeta)
 	 */
@@ -1052,6 +1071,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			updateTSMeta(conn, tsMeta);
 			return;
 		} 
+		Collection<UIDMeta> uidMetas = new ArrayList<UIDMeta>(tsMeta.getTags());
+		uidMetas.add(tsMeta.getMetric());
+		preProcessUIDMeta(conn, uidMetas);
+		
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
 		UIDMeta[] tagPair = new UIDMeta[2];
 		TreeMap<String, String> tags = new TreeMap<String, String>();

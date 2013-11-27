@@ -234,7 +234,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				log.info("Started Stats Collector Scheduling");
 			}
 			new JMXMPConnectionServer(config).start();
-			groovyService = new GroovyService();
+			groovyService = new GroovyService(pluginContext);
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {
 			forceShutdown(ex);

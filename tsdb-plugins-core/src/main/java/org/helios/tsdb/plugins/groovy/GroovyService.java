@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -30,9 +31,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
+import net.opentsdb.core.TSDB;
+
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.JMXHelper;
+import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.URLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +56,12 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 	/** The instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
-	
+	/** The plugin context */
+	protected final PluginContext pluginContext;
+	/** The TSDB instance */
+	protected final TSDB tsdb;
+	/** The TSDB provided and extracted configuration */
+	protected final Properties config;
 	/** Thread pool for asynch tasks */
 	protected ThreadPoolExecutor threadPool;
 	/** Scheduler for scheduled tasks */	
@@ -85,8 +95,12 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 	
 	/**
 	 * Creates a new GroovyService
+	 * @param pluginContext The shared plugin context
 	 */
-	public GroovyService() {
+	public GroovyService(PluginContext pluginContext) {
+		this.pluginContext = pluginContext;
+		this.tsdb = pluginContext.getTsdb();
+		this.config = pluginContext.getExtracted();
 		objectName = JMXHelper.objectName(getClass().getPackage().getName() + ":service=" + getClass().getSimpleName());
 		compilerConfigurationObjectName = JMXHelper.objectName(objectName.toString() + ",type=CompilerConfiguration");
 		imports.add("import org.helios.apmrouter.groovy.annotations.*");
@@ -518,6 +532,12 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		if(beans.isEmpty()) {
 			synchronized(beans) {
 				if(beans.isEmpty()) {
+					beans.put("jmxserver", JMXHelper.getHeliosMBeanServer());
+					beans.put("jmxhelper", JMXHelper.class);
+					beans.put("tsdb", tsdb);
+					beans.put("pluginContext", pluginContext);
+					beans.put("sysclock", SystemClock.class);
+					
 //					for(String beanName: applicationContext.getBeanDefinitionNames()) {
 //						Object bean = applicationContext.getBean(beanName);
 //						if(bean==null) continue;

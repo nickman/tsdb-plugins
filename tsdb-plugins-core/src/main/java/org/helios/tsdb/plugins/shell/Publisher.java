@@ -42,6 +42,7 @@ import com.stumbleupon.async.Deferred;
 /**
  * <p>Title: Publisher</p>
  * <p>Description: A passthrough {@link RTPublisher} that delegates to the @link TSDBEventpluginService} asynch multiplexer.</p> 
+ * <p>Activated with the tsdb config property <b><code>tsd.rtpublisher.plugins</code></b> and <b><code>tsd.rtpublisher.enable</code></b> must be true</p>
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.shell.Publisher</code></p>

@@ -44,6 +44,7 @@ import com.stumbleupon.async.Deferred;
 /**
  * <p>Title: Search</p>
  * <p>Description: A passthrough {@link SearchPlugin} that delegates to the @link TSDBEventDispatcher} asynch multiplexer.</p> 
+ * <p>Activated with the tsdb config property <b><code>tsd.search.plugins</code></b> and <b><code>tsd.search.enable</code></b> must be true</p>
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.shell.Search</code></p>

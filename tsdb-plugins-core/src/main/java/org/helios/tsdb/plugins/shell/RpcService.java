@@ -26,10 +26,15 @@ package org.helios.tsdb.plugins.shell;
 
 import java.util.List;
 
+import net.opentsdb.core.TSDB;
+import net.opentsdb.search.SearchQuery;
+import net.opentsdb.stats.StatsCollector;
+import net.opentsdb.tsd.RpcPlugin;
+import net.opentsdb.utils.Config;
+
 import org.hbase.async.HBaseException;
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
-import org.helios.tsdb.plugins.event.TSDBEventDispatcher;
 import org.helios.tsdb.plugins.service.ITSDBPluginService;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.slf4j.Logger;
@@ -37,15 +42,10 @@ import org.slf4j.LoggerFactory;
 
 import com.stumbleupon.async.Deferred;
 
-import net.opentsdb.core.TSDB;
-import net.opentsdb.search.SearchQuery;
-import net.opentsdb.stats.StatsCollector;
-import net.opentsdb.tsd.RpcPlugin;
-import net.opentsdb.utils.Config;
-
 /**
  * <p>Title: RpcService</p>
- * <p>Description: The primary {@link RpcPlugin} implementation which provides some built in RPC services
+ * <p>Description: The primary {@link RpcPlugin} implementation which provides some built in RPC services.</p>
+ * <p>Activated with the tsdb config property <b><code>tsd.rpc.plugins</code></b></p>
  * and can load additional RPC event handlers.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)

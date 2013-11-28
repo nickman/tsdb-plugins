@@ -9,11 +9,11 @@
     </encoder>
   </appender>
 
-  <logger name="net" level="debug"/>
+  <logger name="net" level="info"/>
   <logger name="org.apache.zookeeper" level="info"/>
   <logger name="org.hbase.async" level="info"/>
   <logger name="com.stumbleupon.async" level="info"/>
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

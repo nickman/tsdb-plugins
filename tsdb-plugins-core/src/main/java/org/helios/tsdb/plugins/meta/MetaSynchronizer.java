@@ -27,9 +27,7 @@ package org.helios.tsdb.plugins.meta;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import net.opentsdb.core.Const;
@@ -101,6 +99,7 @@ public class MetaSynchronizer {
 			segments[i][1] = -1L;
 		}
 		int segmentSize = -1;
+		log.info("MAX ID:{}", max_id);
 		if(max_id < 10) {
 			segmentSize = 1; 
 		} else {
@@ -110,10 +109,17 @@ public class MetaSynchronizer {
 		for(int i = 0; i < SEGMENT_COUNT; i++) {
 			segments[i][0] = start;
 			segments[i][1] = end;
+			if(i==SEGMENT_COUNT-1) {
+				segments[i][0]--;
+			}
+			
 			if(end>=max_id) break;
+			
 			start += segmentSize + 1;
 			end = start + segmentSize;		
-			if(end>max_id) end = max_id;
+			if(end>max_id) {
+				end = max_id;
+			}
 		}
 		short metric_width = TSDB.metrics_width();
 	    log.info("MetaSync Segments: [{}]", Arrays.deepToString(segments) );
@@ -128,6 +134,10 @@ public class MetaSynchronizer {
 	    		scanner.setStopKey(end_row);
 	    		scanner.setFamily("t".getBytes(Charset.forName("ISO-8859-1")));
 	    		ArrayList<ArrayList<KeyValue>> scanResult = scanner.nextRows().joinUninterruptibly(15000);
+	    		if(scanResult==null) {
+	    			log.warn("ScanResult for segment [{}] for segments between [{}] and [{}] was null", i, segments[i][0], segments[i][1]);
+	    			continue;
+	    		}
 	    		int size = scanResult.size();
 	    		log.info("Processing Segment [{}] with [{}] KeyValues", i, size);
 	    		for(ArrayList<KeyValue> kv: scanResult) {

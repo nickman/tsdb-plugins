@@ -141,14 +141,14 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 	 */
 	@Override
 	public void collectStats(StatsCollector statsCollector) {
-		log.info("Collecting JVM Stats.....");
+		log.debug("Collecting JVM Stats.....");
 		ElapsedTime et = SystemClock.startClock();
 		try {
 			statsCollector.addHostTag(true);
 			statsCollector.addExtraTag("app", "tsdb");
 			statsCollector.addExtraTag("component", "JVM");
 			collect(statsCollector);
-			log.info("Collected JVM Stats in {}", et.elapsedStrMs());
+			log.debug("Collected JVM Stats in {}", et.elapsedStrMs());
 		} catch (Exception ex) {
 			log.error("Failed to collect stats", ex);			
 		} finally {

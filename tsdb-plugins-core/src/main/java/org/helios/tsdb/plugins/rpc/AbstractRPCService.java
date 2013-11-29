@@ -25,13 +25,17 @@
 package org.helios.tsdb.plugins.rpc;
 
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.stats.StatsCollector;
 
+import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractService;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * <p>Title: AbstractRPCService</p>
@@ -41,13 +45,19 @@ import com.google.common.util.concurrent.AbstractService;
  * <p><code>org.helios.tsdb.plugins.rpc.AbstractRPCService</code></p>
  */
 
-public abstract class AbstractRPCService extends AbstractService implements IRPCService {
+public abstract class AbstractRPCService  implements IRPCService {
+	/** The RPC service shared executor */
+	protected static volatile AsyncDispatcherExecutor rpcExecutor = null;
+	/** The initialization lock for the rpc executor */
+	protected static final Object lock = new Object();
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The parent TSDB instance */
 	protected final TSDB tsdb;
 	/** The extracted configuration */
 	protected final Properties config;
+	/** The delegate abstract service */
+	protected final AbstractService abstractService;
 	
 	/**
 	 * Creates a new AbstractRPCService
@@ -57,13 +67,30 @@ public abstract class AbstractRPCService extends AbstractService implements IRPC
 	public AbstractRPCService(TSDB tsdb, Properties config) {
 		this.tsdb = tsdb;
 		this.config = config;
+		if(rpcExecutor==null) {
+			synchronized(lock) {
+				if(rpcExecutor==null) {
+					rpcExecutor = new AsyncDispatcherExecutor("RPCService", config);
+				}
+			}
+		}
+		final AbstractRPCService thisAbstractService = this;
+		abstractService = new AbstractService(){
+			@Override
+			protected void doStart() {
+				thisAbstractService.doStart();				
+			}
+			@Override
+			protected void doStop() {
+				thisAbstractService.doStop();
+			}
+		};
 	}
 
+
 	/**
-	 * {@inheritDoc}
-	 * @see com.google.common.util.concurrent.AbstractService#doStart()
+	 * The service start hook
 	 */
-	@Override
 	protected void doStart() {
 		log.info("\n\t======================================\n\tStarting RPC Service [{}]\n\t======================================\n", getClass().getSimpleName());
 		startImpl();
@@ -73,13 +100,13 @@ public abstract class AbstractRPCService extends AbstractService implements IRPC
 	/**
 	 * The concrete RPC service impl start
 	 */
-	protected abstract void startImpl();
+	protected void startImpl() {
+		/* Re-implement me */
+	}
 
 	/**
-	 * {@inheritDoc}
-	 * @see com.google.common.util.concurrent.AbstractService#doStop()
+	 * The service stop hook
 	 */
-	@Override
 	protected void doStop() {
 		log.info("\n\t======================================\n\tStopping RPC Service [{}]\n\t======================================\n", getClass().getSimpleName());
 		stopImpl();
@@ -89,6 +116,97 @@ public abstract class AbstractRPCService extends AbstractService implements IRPC
 	/**
 	 * The concrete RPC service impl stop
 	 */
-	protected abstract void stopImpl();
+	protected void stopImpl() {
+		/* Re-implement me */
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.rpc.IRPCService#collectStats(net.opentsdb.stats.StatsCollector)
+	 */
+	@Override
+	public void collectStats(StatsCollector collector) {
+		/* Re-implement me */
+	}
+
+	/**
+	 * Starts the service and waits for the started state to be acquired
+	 * @return The service state
+	 * @see com.google.common.util.concurrent.AbstractService#startAndWait()
+	 */
+	public State startAndWait() {
+		return abstractService.startAndWait();
+	}
+
+	/**
+	 * Stops the service and waits for the stopped state to be acquired
+	 * @return The service state
+	 * @see com.google.common.util.concurrent.AbstractService#stopAndWait()
+	 */
+	public State stopAndWait() {
+		return abstractService.stopAndWait();
+	}
+
+	/**
+	 * Returns a string rendering of this service's state
+	 * @return a string rendering of this object
+	 * @see com.google.common.util.concurrent.AbstractService#toString()
+	 */
+	public String toString() {
+		return abstractService.toString();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.Service#start()
+	 */
+	@Override
+	public ListenableFuture<State> start() {
+		return abstractService.start();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.Service#isRunning()
+	 */
+	@Override
+	public boolean isRunning() {
+		return abstractService.isRunning();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.Service#state()
+	 */
+	@Override
+	public State state() {
+		return abstractService.state();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.Service#stop()
+	 */
+	@Override
+	public ListenableFuture<State> stop() {
+		return abstractService.stop();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see com.google.common.util.concurrent.Service#addListener(com.google.common.util.concurrent.Service.Listener, java.util.concurrent.Executor)
+	 */
+	@Override
+	public void addListener(Listener listener, Executor executor) {
+		abstractService.addListener(listener, executor);
+	}
+	
+	/**
+	 * Adds a listener using the rpc executor
+	 * @param listener The listener to add
+	 */
+	public void addListener(Listener listener) {
+		abstractService.addListener(listener, rpcExecutor);
+	}
 	
 }

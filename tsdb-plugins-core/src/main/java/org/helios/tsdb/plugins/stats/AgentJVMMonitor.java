@@ -70,10 +70,6 @@ import org.slf4j.LoggerFactory;
  */
 
 public class AgentJVMMonitor extends AbstractRPCService   {
-	/** Singleton instance */
-	private static volatile AgentJVMMonitor instance = null;
-	/** Singleton instance ctor lock */
-	private static final Object lock = new Object();
 	/** The ThreadMXBean */
 	private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 	/** The ClassLoaderMXBean */
@@ -583,20 +579,4 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 		return (int)perc;
 	}
 
-	@Override
-	protected void startImpl() {
-		//log.info("\n\t=================================\n\tStarting AgentJVMMonitor\n\t=================================");
-		notifyStarted();
-	}
-
-	@Override
-	protected void stopImpl() {
-		//log.info("\n\t=================================\n\tStopping AgentJVMMonitor\n\t=================================");
-		notifyStopped();
-	}
-
-
-
-	
-	
 }

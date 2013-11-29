@@ -73,5 +73,6 @@ return null;
 
 /*
 update TSD_TAGK set description = 'The category of the value defined by the associated metric name' where name = 'kind'
+UPDATE TSD_TSMETA  SET DESCRIPTION = 'The metric UID cache hit count' where fqnid = 1
 
 */

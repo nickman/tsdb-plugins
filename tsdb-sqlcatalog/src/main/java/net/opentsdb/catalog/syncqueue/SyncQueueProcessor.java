@@ -271,7 +271,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			conn.commit(); conn.close(); conn = null;
 			log.debug("SyncQueue poll cycle complete");
 			log.debug("SyncQueue Loop: Deletes:[{}]  Synchs:[{}]", deletesCompleted, synchsCompleted);
-		} catch (Exception ex) {
+		} catch (Exception ex) {			
 			log.warn("SyncQueueProcessor Poll Cycle Exception", ex);
 		} finally {
 			if(pollRset!=null) try { pollRset.close(); } catch (Exception x) {/* No Op */}
@@ -291,11 +291,29 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		try {
 			if(update) {
 				if(obj instanceof UIDMeta) {
-					((UIDMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk));
+					((UIDMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk)).addErrback(new Callback<Boolean, Exception>(){
+						@Override
+						public Boolean call(Exception ex) throws Exception {
+							log.error("Failed to sync UIDMeta [{}]", obj, ex);
+							return false;
+						}
+					});
 				} else if(obj instanceof TSMeta) {
-					((TSMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk));
+					((TSMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk)).addErrback(new Callback<Boolean, Exception>(){
+						@Override
+						public Boolean call(Exception ex) throws Exception {
+							log.error("Failed to sync TSMeta [{}]", obj, ex);
+							return false;
+						}
+					});
 				} else if(obj instanceof Annotation) {
-					((Annotation)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk));
+					((Annotation)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk)).addErrback(new Callback<Boolean, Exception>(){
+						@Override
+						public Boolean call(Exception ex) throws Exception {
+							log.error("Failed to sync Annotation [{}]", obj, ex);
+							return false;
+						}
+					});
 				} else {
 					log.warn("Unsupported Type for OpenTSDB Synch Update:{}", obj.getClass().getName());
 				}
@@ -311,6 +329,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				}				
 			}
 		} catch (Exception ex) {
+			log.warn("Failed to sync to TSDB store", ex);
 			handleSyncQueueException(syncQueuePk, ex);
 		}
 	}

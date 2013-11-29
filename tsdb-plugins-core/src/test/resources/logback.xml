@@ -9,6 +9,9 @@
     </encoder>
   </appender>
 
+
+	
+  <logger name="net.opentsdb.catalog.syncqueue" level="debug"/>
   <logger name="net" level="info"/>
   <logger name="org.apache.zookeeper" level="info"/>
   <logger name="org.hbase.async" level="info"/>

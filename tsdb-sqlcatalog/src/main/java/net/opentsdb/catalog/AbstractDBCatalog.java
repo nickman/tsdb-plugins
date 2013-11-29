@@ -518,23 +518,28 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				}
 				ops++;
 				switch(event.eventType) {
-				case ANNOTATION_DELETE:
+				case ANNOTATION_DELETE:		
+					if(shouldIgnore(event.annotation)) continue;
 					deleteAnnotation(conn, event.annotation);
 					break;
 				case ANNOTATION_INDEX:
+					if(shouldIgnore(event.annotation)) continue;
 					annotations.add(event.annotation);
 					break;
-				case TSMETA_DELETE:
+				case TSMETA_DELETE:					
 					deleteTSMeta(conn, event.tsuid);
 					break;
 				case TSMETA_INDEX:
+					if(shouldIgnore(event.tsMeta)) continue;
 					TSMeta tsMeta = event.tsMeta;
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					break;
 				case UIDMETA_DELETE:
+					if(shouldIgnore(event.uidMeta)) continue;
 					deleteUIDMeta(conn, event.uidMeta);
 					break;
 				case UIDMETA_INDEX:		
+					if(shouldIgnore(event.uidMeta)) continue;
 					if(!batchedUids.contains(event.uidMeta.toString())) {
 						processUIDMeta(conn, event.uidMeta);
 						batchedUids.add(event.uidMeta.toString());
@@ -644,6 +649,31 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			log.warn("SQL Batch Execution for [{}] returned zero results. Probable programmer error", ps);
 		}
 		//log.info("Processed Batch of Size:{}", results.length);
+	}
+	
+	/**
+	 * Examines the custom map of the passed object if it is an Annotation, UIDMeta or TSMeta.
+	 * If null or not one of those classes, returns true.
+	 * If the class matches, returns true if the instances custom map contains the {@link SyncQueueProcessor.IGNORE_TAG_NAME} tag set to true.
+	 * Otherwise returns false.
+	 * @param custom The object to test for an ignore tag
+	 * @return true to ignore, false otherwise
+	 */
+	protected boolean shouldIgnore(Object custom) {
+		if(custom==null) return true;
+		Map<String, String> cmap = null;
+		if(custom instanceof Annotation) {
+			cmap = ((Annotation)custom).getCustom();
+		} else if(custom instanceof UIDMeta) {
+			cmap = ((UIDMeta)custom).getCustom();
+		} if(custom instanceof TSMeta) {
+			cmap = ((TSMeta)custom).getCustom();
+		} else {
+			return true;
+		}
+		if(cmap==null) return false;
+		String enabled = cmap.get(SyncQueueProcessor.IGNORE_TAG_NAME);
+		return ("true".equalsIgnoreCase(enabled));
 	}
 	
 	/**

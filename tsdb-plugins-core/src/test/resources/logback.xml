@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <!--<jmxConfigurator/>-->
+  <jmxConfigurator/>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>
@@ -9,6 +9,9 @@
     </encoder>
   </appender>
 
+
+	
+  <logger name="net.opentsdb.catalog.syncqueue" level="debug"/>
   <logger name="net" level="info"/>
   <logger name="org.apache.zookeeper" level="info"/>
   <logger name="org.hbase.async" level="info"/>

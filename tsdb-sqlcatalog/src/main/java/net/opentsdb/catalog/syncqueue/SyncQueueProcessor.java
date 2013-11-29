@@ -291,7 +291,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		try {
 			if(update) {
 				if(obj instanceof UIDMeta) {
-					((UIDMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk));
+					Boolean complete = ((UIDMeta)obj).syncToStorage(tsdb, true).join(1000);
+					log.debug("Update of [{}] Complete:{}", obj, complete);
+					//.addBoth(storeCallback(obj, syncQueuePk));					
 				} else if(obj instanceof TSMeta) {
 					((TSMeta)obj).syncToStorage(tsdb, true).addCallback(storeCallback(obj, syncQueuePk));
 				} else if(obj instanceof Annotation) {
@@ -311,6 +313,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				}				
 			}
 		} catch (Exception ex) {
+			log.error("Sync Op Failed", ex);
 			handleSyncQueueException(syncQueuePk, ex);
 		}
 	}

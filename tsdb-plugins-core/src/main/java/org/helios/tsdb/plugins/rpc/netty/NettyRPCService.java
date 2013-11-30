@@ -24,10 +24,12 @@
  */
 package org.helios.tsdb.plugins.rpc.netty;
 
+import java.net.InetSocketAddress;
 import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.tsd.PipelineFactory;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
@@ -51,7 +53,10 @@ public class NettyRPCService extends AbstractRPCService {
 	protected ServerBootstrap serverBootstrap = null;
 	/** The nio channel factory */
 	protected NioServerSocketChannelFactory nioServerChannelFactory = null;
-	
+	/** The bound IP socket address */
+	protected InetSocketAddress ipSocketAddress = null;
+	/** The pipeline factory */
+	protected PipelineFactory pipelineFactory = null;
 	
 	/**
 	 * Creates a new NettyRPCService

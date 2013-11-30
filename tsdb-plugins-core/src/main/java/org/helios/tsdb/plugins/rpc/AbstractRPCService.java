@@ -78,11 +78,18 @@ public abstract class AbstractRPCService  implements IRPCService {
 		abstractService = new AbstractService(){
 			@Override
 			protected void doStart() {
-				thisAbstractService.doStart();				
+				try {
+					thisAbstractService.doStart();
+					notifyStarted();
+				} catch (Exception ex) {
+					log.error("Failed to start RPC Service", ex);
+					notifyFailed(ex);
+				}								
 			}
 			@Override
 			protected void doStop() {
 				thisAbstractService.doStop();
+				notifyStopped();
 			}
 		};
 	}

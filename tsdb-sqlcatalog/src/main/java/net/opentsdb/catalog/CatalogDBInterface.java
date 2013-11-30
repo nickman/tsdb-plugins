@@ -398,4 +398,11 @@ public interface CatalogDBInterface {
 	 */
 	public void purge();
 	
+	/**
+	 * A cleanup operation that flushes all meta objects from the store to the search plugin
+	 * @return The number of TSMetas written
+	 * @throws Exception throw on any error
+	 */
+	public long synchronizeFromStore() throws Exception;	
+	
 }

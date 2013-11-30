@@ -305,6 +305,36 @@ public class StringHelper {
 			b.delete(0, delimeter.length());
 		}
 		return b.reverse().toString();
+	}
+	
+	/**
+	 * Formats the stack trace of the passed throwable and generates a formatted string.
+	 * @param t The throwable
+	 * @return A string representing the stack trace.
+	 */
+	public static String formatStackTrace(Throwable t) {
+		if(t==null) return "";
+		StackTraceElement[] stacks = t.getStackTrace();
+		StringBuilder b = new StringBuilder(stacks.length * 50);
+		for(StackTraceElement ste: stacks) {
+			b.append("\n\t").append(ste.toString());
+		}
+		return b.toString();
+	}
+	
+	/**
+	 * Formats the stack trace of the passed thread and generates a formatted string.
+	 * @param t The thread
+	 * @return A string representing the stack trace of the passed thread
+	 */
+	public static String formatStackTrace(Thread t) {
+		if(t==null) return "";
+		StackTraceElement[] stacks = t.getStackTrace();
+		StringBuilder b = new StringBuilder(stacks.length * 50);
+		for(StackTraceElement ste: stacks) {
+			b.append("\n\t").append(ste.toString());
+		}
+		return b.toString();
 	}	
 
 }

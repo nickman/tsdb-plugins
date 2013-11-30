@@ -195,6 +195,18 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		queueProcessorThread.start();
 		log.info("\n\t==================================\n\tStarted TSDBCatalogQueueProcessor\n\t==================================");
 		latch.countDown();
+		boolean autoSync = ConfigurationHelper.getBooleanSystemThenEnvProperty("sqlCatalog.autoSyncOnStart", false);
+		log.info("AutoSync On Start:{}", autoSync);
+		if(autoSync) {
+			try {
+				Thread.sleep(500);
+				long synched = dbInterface.synchronizeFromStore();
+				log.info("\n\t*****************\n\tAutoSynced [{}] TSMetas\n\t*****************\n", synched);
+			} catch (Exception e) {
+				log.error("Failed to autosync", e);
+			}
+		}
+		
 	}
 	
 	/**
@@ -208,8 +220,10 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 			queueProcessorThread.interrupt();
 			queueProcessorThread = null;
 		}
-		dbInterface.shutdown();
-		dbInterface = null;
+		if(dbInterface!=null) {
+			dbInterface.shutdown();
+			dbInterface = null;
+		}
 		super.shutdown();
 	}
 	

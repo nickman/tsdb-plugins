@@ -90,6 +90,9 @@ public abstract class AbstractSyncQueueTrigger extends AbstractTrigger {
 			ps.setString(2, pk);
 			ps.setString(3, opType);
 			ps.executeUpdate();
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+			throw new RuntimeException(ex);
 		} finally {
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 		}

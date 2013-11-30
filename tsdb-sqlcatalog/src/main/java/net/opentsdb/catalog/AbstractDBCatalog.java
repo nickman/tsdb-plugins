@@ -408,8 +408,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		if(syncQueuePollerEnabled) {
 			syncQueueProcessor = new SyncQueueProcessor(pc);
 			syncQueueProcessor.startAndWait();
-		}		
-		JMXHelper.registerMBean(this, JMXHelper.objectName("tsd.catalog:service=DBInterface"));
+		}				
+		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
@@ -2165,6 +2165,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public long synchronizeFromStore() throws Exception {
 		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
 		return ms.process();
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBMXBean#getPluginPath()
+	 */
+	@Override
+	public String getPluginPath() {
+		try {
+			return getClass().getProtectionDomain().getCodeSource().getLocation().toString();
+		} catch (Exception ex) {
+			return "Not Available";
+		}
 	}
 	
 }

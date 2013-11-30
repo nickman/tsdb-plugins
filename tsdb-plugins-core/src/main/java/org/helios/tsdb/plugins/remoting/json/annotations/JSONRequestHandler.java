@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.remoting.json;
+package org.helios.tsdb.plugins.remoting.json.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -31,15 +31,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * <p>Title: JSONRequestService</p>
- * <p>Description: Marker annotation indicating that the annotated class or package contains {@link JSONRequestHandler} annotated methods</p> 
+ * <p>Title: JSONRequestHandler</p>
+ * <p>Description: Annotates a named JSON data service method</p>
+ * <p>Annotated methods must implement the signature defined in {@literal JSONDataService#processRequest(org.json.JSONObject, org.jboss.netty.channel.Channel)}.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequestService</code></p>
+ * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequestHandler</code></p>
  */
-@Target({ElementType.TYPE, ElementType.PACKAGE})
+@Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface JSONRequestService {
+public @interface JSONRequestHandler {
+	/**
+	 * The name of the request handler which maps to the <b><code>op name</code></b> of a {@link JSONRequest}
+	 */
+	public String name();
 
 }

@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
 	OP_TYPE CHAR(1) NOT NULL
 		COMMENT 'The SQL Operation type that triggered this sync operation'
 		CHECK OP_TYPE IN ('I', 'D', 'U'), 	
+	TIMEOUTS INT NOT NULL DEFAULT 0 COMMENT 'The number of timeouts that have occured applying this sync',
 	EVENT_TIME TIMESTAMP AS NOW() NOT NULL COMMENT 'The timestamp when the sync event occured',
 	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
 	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'

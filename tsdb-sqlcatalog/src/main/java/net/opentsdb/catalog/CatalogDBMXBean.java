@@ -209,6 +209,12 @@ public interface CatalogDBMXBean {
 	 */
 	public long synchronizeFromStore() throws Exception;
 	
+	/**
+	 * Returns the code source path for this plugin (i.e. where it was loaded from)
+	 * @return the code source path for this plugin
+	 */
+	public String getPluginPath();
+	
 	
 	
 

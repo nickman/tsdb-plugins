@@ -3,15 +3,23 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.helios.tsdb.plugins.util.StringHelper;
 import org.jboss.netty.channel.Channel;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ContainerNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * <p>Title: JSONRequest</p>
@@ -20,24 +28,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><b><code>org.helios.tsdb.plugins.remoting.json.JSONRequest</code></b>
  */
-public class JSONRequest {
+public class JSONRequest {	
 	/** the type code of the request */
+	@JsonProperty("t")
 	public final String tCode;
 	/** The client supplied request ID */
-	public final long rid;
+	@JsonProperty("rid")
+	public final long requestId;
 	/** The client supplied in regards to request ID */
-	public final long rerid;
-	
+	@JsonProperty("rerid")
+	public final long inReferenceToRequestId;	
 	/** The requested service name */
+	@JsonProperty("svc")
 	public final String serviceName;
 	/** The requested op name */
+	@JsonProperty("op")
 	public final String opName;
+	@JsonIgnore
 	/** The channel that the request came in on. May sometimes be null */
 	public final Channel channel;
 	/** The original request, in case there is other stuff in there that the data service needs */
 	protected final JsonNode request;
 	
 	/** The arguments supplied to the op */
+	@JsonProperty("args")
 	public final Map<Object, Object> arguments = new TreeMap<Object, Object>();
 	
 	
@@ -64,7 +78,10 @@ public class JSONRequest {
 		/** The operation name */
 		op(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(op.name()); return (T) (n==null ? null : n.asText()); }}),
 		/** The service name */
-		svc(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(svc.name()); return (T) (n==null ? null : n.asText()); }});
+		svc(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(svc.name()); return (T) (n==null ? null : n.asText()); }}),
+		/** The request arguments */
+		args(mapFieldReader);
+		
 		
 		private JSONMsgStdKey(FieldReader fieldReader) {			
 			this.fieldReader = fieldReader; 
@@ -81,16 +98,55 @@ public class JSONRequest {
 		
 	}
 	
+	/**
+	 * <p>Title: FieldReader</p>
+	 * <p>Description: Typed json field reader</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequest.FieldReader</code></p>
+	 */
 	public static interface FieldReader {
 		public <T> T get(JsonNode jsonNode);
 	}
+	
+	/** The empty args map */
+	private static final Map<Object, Object> EMPTY_MAP = Collections.unmodifiableMap(new HashMap<Object, Object>(0));
+	/** The args field reader */
+	private static FieldReader mapFieldReader = new FieldReader() {		
+		@Override
+		public <T> T get(JsonNode jsonNode) {
+			if(jsonNode==null) return (T)EMPTY_MAP;
+			if(jsonNode instanceof ContainerNode) {
+				return (T)EMPTY_MAP;
+			}
+			Map<Object, Object> argsMap = new LinkedHashMap<Object, Object>();
+			if(jsonNode instanceof ArrayNode) {
+				ArrayNode an = (ArrayNode)jsonNode;
+				for(int i = 0; i < an.size(); i++) {
+					argsMap.put(i, an.get(i));
+				}
+				argsMap.put("__", an);
+				argsMap.put("_size", an.size());
+				
+			} else if(jsonNode instanceof ObjectNode) {
+				ObjectNode on = (ObjectNode)jsonNode;
+				Iterator<Map.Entry<String,JsonNode>> fiter = on.fields();
+				while(fiter.hasNext()) {
+					Map.Entry<String,JsonNode> entry = fiter.next();
+					argsMap.put(entry.getKey(), entry.getValue());
+				}
+				argsMap.put("__", on);
+			}
+			return (T)argsMap;
+		}
+	};
 	
 	/**
 	 * Creates a new JSONRequest
 	 * @param channel The channel that the request came in on. Ignored if null 
 	 * @param tCode the type code of the request
-	 * @param rid The client supplied request ID
-	 * @param rerid The client supplied in regards to request ID
+	 * @param requestId The client supplied request ID
+	 * @param inReferenceToRequestId The client supplied in regards to request ID
 	 * @param serviceName The service name requested
 	 * @param opName The op name requested
 	 * @param request The original request
@@ -127,8 +183,8 @@ public class JSONRequest {
 	 * Creates a new JSONRequest
 	 * @param channel The channel that the request came in on. Ignored if null 
 	 * @param tCode the type code of the request
-	 * @param rid The client supplied request ID
-	 * @param rerid The client supplied in regards to request ID
+	 * @param requestId The client supplied request ID
+	 * @param inReferenceToRequestId The client supplied in regards to request ID
 	 * @param serviceName The service name requested
 	 * @param opName The op name requested
 	 * @param request The original request
@@ -136,11 +192,31 @@ public class JSONRequest {
 	protected JSONRequest(Channel channel, String tCode, long rid, long rerid, String serviceName, String opName, JsonNode request) {
 		this.channel = channel;
 		this.tCode = tCode;
-		this.rid = rid;
-		this.rerid = rerid;
+		this.requestId = rid;
+		this.inReferenceToRequestId = rerid;
 		this.serviceName = serviceName;
 		this.opName = opName;
 		this.request = request;
+		arguments.putAll((Map<? extends Object, ? extends Object>) JSONMsgStdKey.args.get(request));
+	}
+	
+	public static void main(String[] args) {
+		JSONRequest jr = JSONRequest.builder()
+			.setOpName("foo")
+			.setServiceName("fooService")
+			.setRid(129)
+			.setTypeCode("fooOp")
+			.build();
+		try {
+			String json = jsonMapper.writeValueAsString(jr);
+			log(json);
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
+	}
+	
+	public static void log(Object msg) {
+		System.out.println(msg);
 	}
 	
 	/**
@@ -159,7 +235,7 @@ public class JSONRequest {
 	 * @return an error {@link JSONResponse} for this request
 	 */
 	public JSONResponse error(CharSequence message, Throwable t) {
-		JSONResponse response = new JSONResponse(rid, JSONResponse.RESP_TYPE_ERR);
+		JSONResponse response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_ERR);
 		Map<String, String> map = new HashMap<String, String>(t==null ? 1 : 2);
 		map.put("err", message.toString());
 		if(t!=null) {
@@ -175,7 +251,7 @@ public class JSONRequest {
 	 * @return a {@link JSONResponse} for this request
 	 */
 	public JSONResponse response() {
-		return new JSONResponse(rid, JSONResponse.RESP_TYPE_RESP);
+		return new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP);
 	}
 	
 	/**
@@ -184,7 +260,7 @@ public class JSONRequest {
 	 * @return a subscription send {@link JSONResponse} for the subscription issued by this request
 	 */
 	public JSONResponse subResponse(String subKey) {
-		return new JSONSubConfirm(rid, JSONResponse.RESP_TYPE_SUB, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB, subKey);
 	}
 	
 	/**
@@ -193,25 +269,27 @@ public class JSONRequest {
 	 * @return a subscription confirmation {@link JSONResponse} for the subscription initiation started by this request
 	 */
 	public JSONResponse subConfirm(String subKey) {
-		return new JSONSubConfirm(rid, JSONResponse.RESP_TYPE_SUB_STARTED, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STARTED, subKey);
 	}	
 	
 	/**
-	 * Returns a subscription cancellation {@link JsonResponse} for the cancelled subscription.
+	 * Returns a subscription cancellation {@link JSONResponse} for the cancelled subscription.
 	 * @param subKey The unique subscription identifier
-	 * @return a subscription cancellation {@link JsonResponse} for the cancelled subscription.
+	 * @return a subscription cancellation {@link JSONResponse} for the cancelled subscription.
 	 */
 	public JSONResponse subCancel(String subKey) {
-		return new JSONSubConfirm(rid, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey);
 	}	
 	
 	/**
 	 * Adds an op argument to the map
 	 * @param key The argument key (if the args was an array, this is the sequence, if it was a map, this is the key)
 	 * @param value The argument value
+	 * @return this request
 	 */
-	public void addArg(Object key, Object value) {
+	public JSONRequest addArg(Object key, Object value) {
 		arguments.put(key, value);
+		return this;
 	}
 	
 	/**
@@ -222,19 +300,6 @@ public class JSONRequest {
 	 */
 	public <T> T getArgument(String key,  T defaultValue) {
 		Object value = arguments.get(key);
-		if(Map.class.isAssignableFrom(defaultValue.getClass()) && value instanceof JSONObject) {
-			JSONObject jsonMap = (JSONObject)value;
-			Map<String, Object> map = new HashMap<String, Object>();
-			try {
-				for(String mapKey: JSONObject.getNames(jsonMap)) {
-					map.put(mapKey, jsonMap.get(mapKey));
-				}
-			} catch (JSONException ex) {
-				throw new RuntimeException(ex);
-			}
-			return (T)map;
-		}
-			
 		
 		if(value==null || !defaultValue.getClass().isInstance(value)) {
 			return defaultValue;
@@ -290,8 +355,8 @@ public class JSONRequest {
 	@Override
 	public String toString() {
 		return String
-				.format("JSONRequest [\\n\\ttCode:%s, rid:%s, serviceName:%s, opName:%s, request:%s, arguments:%s]",
-						tCode, rid, serviceName, opName, request, arguments);
+				.format("JSONRequest [\\n\\ttCode:%s, requestId:%s, serviceName:%s, opName:%s, request:%s, arguments:%s]",
+						tCode, requestId, serviceName, opName, request, arguments);
 	}
 	
 	
@@ -347,7 +412,7 @@ public class JSONRequest {
 		}
 		/**
 		 * Sets the request id
-		 * @param rid the rid to set
+		 * @param requestId the requestId to set
 		 * @return this builder
 		 */
 		public Builder setRid(long rid) {
@@ -356,7 +421,7 @@ public class JSONRequest {
 		}
 		/**
 		 * Sets the in reference to request id
-		 * @param rerid the rerid to set
+		 * @param inReferenceToRequestId the inReferenceToRequestId to set
 		 * @return this builder
 		 */
 		public Builder setRerid(long rerid) {

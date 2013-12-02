@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JSONResponse implements ChannelBufferizable {
 	/** The client provided request ID that this response is being sent for */
-	@JsonProperty("rerid")
+	@JsonProperty("inReferenceToRequestId")
 	protected final long reRequestId;
 	/** The response type */
 	@JsonProperty("t")
@@ -116,6 +116,11 @@ public class JSONResponse implements ChannelBufferizable {
 		return reRequestId;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.json.ChannelBufferizable#toChannelBuffer()
+	 */
+	@Override
 	public ChannelBuffer toChannelBuffer() {
 		try {
 			return ChannelBuffers.wrappedBuffer(jsonMapper.writeValueAsBytes(this));
@@ -124,6 +129,18 @@ public class JSONResponse implements ChannelBufferizable {
 		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.json.ChannelBufferizable#write(org.jboss.netty.buffer.ChannelBuffer)
+	 */
+	@Override
+	public void write(ChannelBuffer buffer) {
+		try {
+			buffer.writeBytes(jsonMapper.writeValueAsBytes(this));
+		} catch (JsonProcessingException ex) {
+			throw new RuntimeException("Failed to write object as JSON bytes", ex);
+		}		
+	}
 
 
 	/**

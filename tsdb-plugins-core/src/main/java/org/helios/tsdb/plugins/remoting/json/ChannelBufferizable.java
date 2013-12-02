@@ -19,4 +19,10 @@ public interface ChannelBufferizable {
 	 * @return a ChannelBuffer with this marshalled object
 	 */
 	public ChannelBuffer toChannelBuffer();
+	
+	/**
+	 * Writes this object into the passed channel buffer
+	 * @param buffer The channel buffer to write to
+	 */
+	public void write(ChannelBuffer buffer);
 }

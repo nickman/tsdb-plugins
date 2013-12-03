@@ -46,5 +46,9 @@ public @interface JSONRequestHandler {
 	 * The name of the request handler which maps to the <b><code>op name</code></b> of a {@link JSONRequest}
 	 */
 	public String name();
+	/**
+	 * A description of the operation
+	 */
+	public String description() default "A JSON Request Operation";	
 
 }

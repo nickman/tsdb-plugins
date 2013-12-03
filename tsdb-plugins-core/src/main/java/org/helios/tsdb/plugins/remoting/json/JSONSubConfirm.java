@@ -3,6 +3,8 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import org.jboss.netty.channel.Channel;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -24,9 +26,10 @@ public class JSONSubConfirm extends JSONResponse {
 	 * @param reRequestId The client provided request ID that this response is being sent for
 	 * @param type The type flag. Currently "err" for an error message, "resp" for a response, "sub" for subcription event
 	 * @param subKey The subscription key that uniquely identified the subscription from the client's perspective
+	 * @param channel The channel the sub-confirm will be written to
 	 */
-	public JSONSubConfirm(long reRequestId, String type, String subKey) {
-		super(reRequestId, type);
+	public JSONSubConfirm(long reRequestId, String type, String subKey, Channel channel) {
+		super(reRequestId, type, channel);
 		this.subKey = subKey;
 	}
 

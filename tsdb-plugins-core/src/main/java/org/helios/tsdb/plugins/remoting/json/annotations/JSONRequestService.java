@@ -26,6 +26,7 @@ package org.helios.tsdb.plugins.remoting.json.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -40,10 +41,15 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Inherited
 public @interface JSONRequestService {
 	/**
 	 * The name of the request service which maps to the <b><code>service name</code></b> of a {@link JSONRequest}
 	 */
 	public String name();
+	/**
+	 * A description of the request service
+	 */
+	public String description() default "A JSON Request Service";
 
 }

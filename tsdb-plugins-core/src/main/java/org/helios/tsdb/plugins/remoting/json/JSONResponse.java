@@ -45,6 +45,10 @@ public class JSONResponse implements ChannelBufferizable {
 	@JsonProperty("op")
 	protected String opCode = null;
 	
+	/** The channel that the request came in on. May sometimes be null */
+	public final Channel channel;
+	
+	
 	/** The shared json mapper */
 	private static final ObjectMapper jsonMapper = new ObjectMapper();	
 	
@@ -67,7 +71,7 @@ public class JSONResponse implements ChannelBufferizable {
 	 */
 	@Override
 	public JSONResponse clone() {
-		return new JSONResponse(reRequestId, type);
+		return new JSONResponse(reRequestId, type, channel);
 	}
 	
 	/**
@@ -76,18 +80,20 @@ public class JSONResponse implements ChannelBufferizable {
 	 * @return an updated type clone of this response
 	 */
 	public JSONResponse clone(String type) {
-		return new JSONResponse(reRequestId, type);
+		return new JSONResponse(reRequestId, type, channel);
 	}
 	
 	/**
 	 * Creates a new JSONResponse
 	 * @param reRequestId The client provided request ID that this response is being sent for
 	 * @param type The type flag. Currently "err" for an error message, "resp" for a response, "sub" for subcription event
+	 * @param channel The channel this response will be written to 
 	 */
-	public JSONResponse(long reRequestId, String type) {
+	public JSONResponse(long reRequestId, String type, Channel channel) {
 		super();
 		this.reRequestId = reRequestId;
 		this.type = type;
+		this.channel = channel;
 	}
 	
 	/**
@@ -204,6 +210,12 @@ public class JSONResponse implements ChannelBufferizable {
 		return send(null, channels);
 	}
 	
-	
+	/**
+	 * Sends this response to the default channel
+	 * @return the channel future for the send
+	 */
+	public ChannelFuture[] send() {
+		return send(channel);
+	}
 	
 }

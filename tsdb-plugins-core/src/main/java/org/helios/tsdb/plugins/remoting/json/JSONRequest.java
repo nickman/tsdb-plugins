@@ -235,7 +235,7 @@ public class JSONRequest {
 	 * @return an error {@link JSONResponse} for this request
 	 */
 	public JSONResponse error(CharSequence message, Throwable t) {
-		JSONResponse response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_ERR);
+		JSONResponse response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_ERR, channel);
 		Map<String, String> map = new HashMap<String, String>(t==null ? 1 : 2);
 		map.put("err", message.toString());
 		if(t!=null) {
@@ -251,7 +251,7 @@ public class JSONRequest {
 	 * @return a {@link JSONResponse} for this request
 	 */
 	public JSONResponse response() {
-		return new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP);
+		return new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP, channel);
 	}
 	
 	/**
@@ -260,7 +260,7 @@ public class JSONRequest {
 	 * @return a subscription send {@link JSONResponse} for the subscription issued by this request
 	 */
 	public JSONResponse subResponse(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB, subKey, channel);
 	}
 	
 	/**
@@ -269,7 +269,7 @@ public class JSONRequest {
 	 * @return a subscription confirmation {@link JSONResponse} for the subscription initiation started by this request
 	 */
 	public JSONResponse subConfirm(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STARTED, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STARTED, subKey, channel);
 	}	
 	
 	/**
@@ -278,7 +278,7 @@ public class JSONRequest {
 	 * @return a subscription cancellation {@link JSONResponse} for the cancelled subscription.
 	 */
 	public JSONResponse subCancel(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey);
+		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey, channel);
 	}	
 	
 	/**

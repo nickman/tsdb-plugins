@@ -24,12 +24,22 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtConstructor;
+import javassist.CtField;
+import javassist.CtMethod;
+import javassist.CtNewConstructor;
+import javassist.CtNewMethod;
+import javassist.Modifier;
 
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
@@ -47,33 +57,121 @@ import org.slf4j.LoggerFactory;
 public class JSONRequestHandlerInvokerFactory {
 	/** Static class logger */
 	protected static final Logger LOG = LoggerFactory.getLogger(JSONRequestHandlerInvokerFactory.class);
+	/** Cache of created invoker maps keyed by target class */
+	protected static final Map<Class<?>, Map<String, Map<String, AbstractJSONRequestHandlerInvoker>>> invokerCache = new ConcurrentHashMap<Class<?>, Map<String, Map<String, AbstractJSONRequestHandlerInvoker>>>();
 
 	/**
 	 * Creates a map of concrete json request handler invokers keyed by <b><code>&lt;service-name&gt;/&lt;op-name&gt;</code></b>.
 	 * @param handlerInstance The request handler instance to generate invokers for
 	 * @return the map of generated invokers
 	 */
-	public static Map<String, JSONRequestHandlerInvoker> createInvokers(Object handlerInstance) {
+	public static Map<String, Map<String, AbstractJSONRequestHandlerInvoker>> createInvokers(Object handlerInstance) {
 		if(handlerInstance==null) throw new IllegalArgumentException("The passed handlerInstance was null");
-		Map<String, JSONRequestHandlerInvoker> invokerMap = new HashMap<String, JSONRequestHandlerInvoker>();
-		LOG.info("Generating Invokers for [{}]", handlerInstance.getClass().getName());
-		final String invokerServiceKey;
-		JSONRequestService svc = handlerInstance.getClass().getAnnotation(JSONRequestService.class);
-		if(svc==null) {
-			invokerServiceKey = "";
-		} else {
-			invokerServiceKey  = svc.name();
+		Map<String, AbstractJSONRequestHandlerInvoker> subInvokerMap = new HashMap<String, AbstractJSONRequestHandlerInvoker>();
+		Map<String, Map<String, AbstractJSONRequestHandlerInvoker>> invokerMap = invokerCache.get(handlerInstance.getClass());
+		if(invokerMap!=null) {
+			LOG.info("Found Cached Invokers for [{}]", handlerInstance.getClass().getName());
+			return invokerMap;
 		}
-		//JSONRequestHandler handler = handlerInstance.getClass().getAnnotation(JSONRequestHandler.class);
+		invokerMap = new HashMap<String, Map<String, AbstractJSONRequestHandlerInvoker>>(1);
+		
+		LOG.info("Generating Invokers for [{}]", handlerInstance.getClass().getName());
+		JSONRequestService svc = handlerInstance.getClass().getAnnotation(JSONRequestService.class);
+		final String invokerServiceKey = svc.name();
+		final String invokerServiceDescription = svc.description();
+		
+		invokerMap.put(invokerServiceKey, subInvokerMap);
 		
 		ClassPool cp = new ClassPool();
 		cp.appendClassPath(new ClassClassPath(handlerInstance.getClass()));
-		cp.appendClassPath(new ClassClassPath(JSONRequestHandler.class));
-		CtClass invokerClass = cp.makeClass(handlerInstance.getClass().getName() + "." + invokerServiceKey + "ServiceInvoker"); 
-		invokerClass.addInterface(cp.get(JSONRequestHandlerInvoker.class.getName()));
+		cp.appendClassPath(new ClassClassPath(AbstractJSONRequestHandlerInvoker.class));
+		cp.importPackage(handlerInstance.getClass().getPackage().getName());
 		
+		try {
+			final CtClass jsonRequestCtClass = cp.get(JSONRequest.class.getName());
+			final CtClass parent = cp.get(AbstractJSONRequestHandlerInvoker.class.getName());
+			CtClass targetClass = cp.get(handlerInstance.getClass().getName());
+			Collection<Method> methods = getTargetMethods(handlerInstance.getClass());
+			for(Method m: methods) {
+				final JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
+				final String opName = jsonHandler.name();
+				final String opDescription = jsonHandler.description();
+				
+				int targetMethodHashCode = m.toGenericString().hashCode(); 
+				final String className = String.format("%s-%s%s-%s-%s", 
+						handlerInstance.getClass().getName(), invokerServiceKey, opName, "ServiceInvoker", targetMethodHashCode);
+				
+				final CtClass invokerClass = cp.makeClass(className, parent);
+				CtField ctf = new CtField(targetClass, "typedTarget", invokerClass);
+				ctf.setModifiers(ctf.getModifiers() | Modifier.FINAL);
+				invokerClass.addField(ctf);
+				CtConstructor invokerCtor = CtNewConstructor.copy(parent.getConstructors()[0], invokerClass, null);
+				invokerCtor.setBody("{ super($$); typedTarget = (" + handlerInstance.getClass().getName() + ")$1; }");
+				invokerClass.addConstructor(invokerCtor);
+				CtMethod invokerMethod = CtNewMethod.copy(parent.getDeclaredMethod("doInvoke", new CtClass[] {jsonRequestCtClass}), invokerClass, null); 
+						
+				invokerMethod.setBody("{this.typedTarget." + m.getName() + "($1);}");
+				invokerMethod.setModifiers(invokerMethod.getModifiers() & ~Modifier.ABSTRACT);
+				invokerClass.addMethod(invokerMethod);
+				Class<?> clazz = invokerClass.toClass();
+				Constructor<?> ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class);
+				AbstractJSONRequestHandlerInvoker invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription);
+				subInvokerMap.put(opName, invokerInstance);				
+			}
+			invokerCache.put(handlerInstance.getClass(), invokerMap);
+			return invokerMap;
+		} catch (Exception ex) {
+			LOG.error("Failed to create RequestHandlerInvoker for [{}]", handlerInstance.getClass().getName(), ex);
+			throw new RuntimeException("Failed to create RequestHandlerInvoker [" + handlerInstance.getClass().getName() + "]", ex);
+		}
 		
-		return invokerMap;
+	}
+	
+	
+	public static void main(String[] args) {
+		createInvokers(new FooService());
+		createInvokers(new FooService());
+	}
+	
+	@JSONRequestService(name="foo")
+	public static class FooService {
+		@JSONRequestHandler(name="bar")
+		public void bar(JSONRequest request) {
+			
+		}
+	}
+	
+	/**
+	 * Finds and returns the valid target {@link JSONRequestHandler} annotated methods in the passed class.
+	 * @param clazz the class to inspect
+	 * @return a collection of valid json request methods
+	 */
+	public static Collection<Method> getTargetMethods(Class<?> clazz) {
+		Map<String, Method> mappedMethods = new HashMap<String, Method>();
+		for(Method m: clazz.getMethods()) {
+			JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
+			if(jsonHandler!=null) {
+				Class<?>[] paramTypes = m.getParameterTypes();
+				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
+					continue;
+				}
+				mappedMethods.put(m.getName(), m);
+			}
+		}
+		for(Method m: clazz.getDeclaredMethods()) {
+			JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
+			if(jsonHandler!=null) {
+				Class<?>[] paramTypes = m.getParameterTypes();
+				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
+					continue;
+				}
+				mappedMethods.put(m.getName(), m);
+			}			
+		}
+		return mappedMethods.values();
+		
 	}
 	
 	private JSONRequestHandlerInvokerFactory() {

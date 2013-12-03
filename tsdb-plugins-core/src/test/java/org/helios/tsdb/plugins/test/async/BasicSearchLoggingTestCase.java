@@ -68,7 +68,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	//@Test(timeout=5000)
 	@Test
 	public void testIndexAnnotationDelivery() throws Exception {
-		createSearchShellJar();
+		createServiceJar();
 		TSDB tsdb = newTSDB("BasicSearchConfig");
 		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
 		int eventCount = 1000;
@@ -97,7 +97,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	@Test(timeout=5000)
 	//@Test
 	public void testDisruptorIndexAnnotationDelivery() throws Exception {
-		createSearchShellJar();
+		createServiceJar();
 		TSDB tsdb = newTSDB("BasicSearchDisruptorConfig");
 		BlockingQueue<Object> events = QueuedResultSearchEventHandler.getInstance().getResultQueue();
 		int eventCount = 1000;
@@ -127,7 +127,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	 */
 	@Test(timeout=5000)	
 	public void testDataPointDelivery() throws Exception {
-		createPublishShellJar();
+		createServiceJar();
 		TSDB tsdb = newTSDB("BasicPublishConfig");
 		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
 		Assert.assertNotNull("Published Event Queue Was Null", events);
@@ -163,7 +163,7 @@ public class BasicSearchLoggingTestCase extends BaseTest {
 	//@Test(timeout=5000)
 	@Test
 	public void testDisruptorDataPointDelivery() throws Exception {
-		createPublishShellJar();
+		createServiceJar();
 		TSDB tsdb = newTSDB("BasicPublishDispruptorConfig");
 		BlockingQueue<Object> events = QueuedResultPublishEventHandler.getInstance().getResultQueue();
 		Assert.assertNotNull("Published Event Queue Was Null", events);

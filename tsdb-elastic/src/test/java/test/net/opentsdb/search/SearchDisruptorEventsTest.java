@@ -62,7 +62,7 @@ public class SearchDisruptorEventsTest extends ParameterizedSearchTest {
 	@BeforeClass
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();
 		ElasticSearchEventHandler.waitForStart();
 		client = ElasticSearchEventHandler.getClient();

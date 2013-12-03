@@ -53,7 +53,7 @@ public class DisruptorLoadMetricsTest extends LoadMetricsTest {
 	@BeforeClass
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();
 		TSDBCatalogSearchEventHandler.waitForStart();
 		jdbcHelper = new JDBCHelper(TSDBCatalogSearchEventHandler.getInstance().getDataSource());

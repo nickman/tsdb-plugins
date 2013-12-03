@@ -157,6 +157,18 @@ public class Constants {
 	public static final String RING_BUFFER_WAIT_STRAT_ARGS = "helios.events.async.disruptor.waitstrat.args";
 	/** The optional wait strategy class ctor parameters */
 	public static final String DEFAULT_RING_BUFFER_WAIT_STRAT_ARGS = "";
+
+	// ===========================================================================================	
+	//		Netty Unified Protocol Server Config
+	// ===========================================================================================
+	/** The config property name for the port number the Netty listener will listen on. -1 will disable. */
+	public static final String NETTY_REMOTING_PORT = "helios.netty.listen.port";
+	/** The default JMXMP listener port */
+	public static final int DEFAULT_NETTY_REMOTING_PORT = 4243;
+	/** The config property name for the interface the Netty service listener will bind to */
+	public static final String NETTY_REMOTING_INTERFACE = "helios.netty.listen.iface";
+	/** The default JMXMP listener port */
+	public static final String DEFAULT_NETTY_REMOTING_INTERFACE = "0.0.0.0";
 	
 	
 	// ===========================================================================================	
@@ -165,7 +177,7 @@ public class Constants {
 	/** The config property name for the port number the JMXMP listener will listen on. -1 will disable. */
 	public static final String JMXMP_PORT = "helios.jmxmp.listen.port";
 	/** The default JMXMP listener port */
-	public static final int DEFAULT_JMXMP_PORT = 4243;
+	public static final int DEFAULT_JMXMP_PORT = 4245;
 	/** The config property name for the interface the JMXMP listener will bind to */
 	public static final String JMXMP_INTERFACE = "helios.jmxmp.listen.iface";
 	/** The default JMXMP listener port */

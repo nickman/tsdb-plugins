@@ -255,7 +255,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	/**
 	 * Configures the TSDB for all tests in this class.
 	 */
-	protected static void configureTSDB() {
+	protected static void configureTSDB() {		
 		tsdb = newTSDB("CatalogSearchConfig");
 	}
 	
@@ -265,7 +265,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	@BeforeClass
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();
 		TSDBCatalogSearchEventHandler.waitForStart();
 		jdbcHelper = new JDBCHelper(TSDBCatalogSearchEventHandler.getInstance().getDataSource());

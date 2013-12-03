@@ -29,12 +29,17 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import net.opentsdb.core.TSDB;
-import net.opentsdb.tsd.PipelineFactory;
 
+import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
+import org.helios.tsdb.plugins.rpc.netty.pipeline.RemotingPipelineFactory;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>Title: NettyRPCService</p>
@@ -55,8 +60,8 @@ public class NettyRPCService extends AbstractRPCService {
 	protected NioServerSocketChannelFactory nioServerChannelFactory = null;
 	/** The bound IP socket address */
 	protected InetSocketAddress ipSocketAddress = null;
-	/** The pipeline factory */
-	protected PipelineFactory pipelineFactory = null;
+	/** The channel pipeline factory */
+	protected ChannelPipelineFactory pipelineFactory = null;
 	
 	/**
 	 * Creates a new NettyRPCService
@@ -65,6 +70,14 @@ public class NettyRPCService extends AbstractRPCService {
 	 */
 	public NettyRPCService(TSDB tsdb, Properties config) {
 		super(tsdb, config);
+		int port = ConfigurationHelper.getIntSystemThenEnvProperty(Constants.NETTY_REMOTING_PORT, Constants.DEFAULT_NETTY_REMOTING_PORT, config);
+		String iface = ConfigurationHelper.getSystemThenEnvProperty(Constants.NETTY_REMOTING_INTERFACE, Constants.DEFAULT_NETTY_REMOTING_INTERFACE, config);
+		if(port!=-1) {
+			ipSocketAddress = new InetSocketAddress(iface, port);
+			log.info("NettyRPCService Created.");
+		} else {
+			log.info("NettyRPCService Disabled.");
+		}
 	}
 	
 	
@@ -75,9 +88,17 @@ public class NettyRPCService extends AbstractRPCService {
 	 */
 	@Override
 	protected void startImpl() {
+		if(ipSocketAddress==null) {
+			log.info("NettyRPCService Disabled.");
+		}
 		bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
 		workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
-		
+		nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
+		pipelineFactory = RemotingPipelineFactory.getInstance();
+		serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
+		serverBootstrap.setPipelineFactory(pipelineFactory);
+		serverBootstrap.bind(ipSocketAddress);
+		log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
 	}
 	
 	/**
@@ -87,8 +108,7 @@ public class NettyRPCService extends AbstractRPCService {
 	 */
 	@Override
 	protected void stopImpl() {
-		workerPool.shutdownNow();
-		bossPool.shutdownNow();
+		serverBootstrap.releaseExternalResources();
 	}
 
 }

@@ -222,7 +222,7 @@ public class BaseTest {
 		try {
 			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);
-			tsdb.initializePlugins(false);
+			tsdb.initializePlugins(true);
 			return tsdb;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to get test TSDB [" + configName + "]", e);
@@ -411,24 +411,29 @@ public class BaseTest {
 		}
 	}
 	
+	public static void createServiceJar() {
+		createSearchShellJar(); createPublishShellJar(); createRPCShellJar();
+	}
+	
+	
 	/**
 	 * Creates a search plugin jar for the {@link Search} shell plugin
 	 */
-	public static void createSearchShellJar() {
+	private static void createSearchShellJar() {
 		createPluginJar(Search.class);
 	}
 	
 	/**
 	 * Creates a search plugin jar for the {@link Publisher} shell plugin
 	 */
-	public static void createPublishShellJar() {
+	private static void createPublishShellJar() {
 		createPluginJar(Publisher.class);
 	}
 	
 	/**
 	 * Creates an RPC plugin jar for the {@link RpcService} shell plugin
 	 */
-	public static void createRPCShellJar() {
+	private static void createRPCShellJar() {
 		createPluginJar(RpcService.class);
 	}
 	

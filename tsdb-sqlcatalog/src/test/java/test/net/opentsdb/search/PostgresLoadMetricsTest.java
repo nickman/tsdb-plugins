@@ -55,7 +55,7 @@ public class PostgresLoadMetricsTest extends LoadMetricsTest {
 	public static void initialize() {
 		org.junit.Assume.assumeTrue(postgresAvailable("PostgresCatalogSearchConfig"));
 		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();		
 		TSDBCatalogSearchEventHandler.waitForStart();
 		jdbcHelper = new JDBCHelper(TSDBCatalogSearchEventHandler.getInstance().getDataSource());

@@ -56,7 +56,7 @@ public class DisruptorOracleLoadMetricsTest extends LoadMetricsTest {
 	public static void initialize() {
 		org.junit.Assume.assumeTrue(oracleAvailable("OracleCatalogSearchDisruptorConfig"));
 		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();
 		TSDBCatalogSearchEventHandler.waitForStart();
 		jdbcHelper = new JDBCHelper(TSDBCatalogSearchEventHandler.getInstance().getDataSource());

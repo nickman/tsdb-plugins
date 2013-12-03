@@ -65,7 +65,7 @@ public class SpringContainerTestCase extends BaseTest {
 	@Test(timeout=5000)
 	//@Test
 	public void testIndexAnnotationDelivery() throws Exception {
-		createSearchShellJar();
+		createServiceJar();
 //		try {
 			TSDB tsdb = newTSDB("SpringSearchConfig");
 			GenericApplicationContext appCtx = SpringContainerService.getInstance().getAppContext();
@@ -104,7 +104,7 @@ public class SpringContainerTestCase extends BaseTest {
 	//@Test(timeout=5000)
 	@Test
 	public void testDataPointDelivery() throws Exception {
-		createPublishShellJar();
+		createServiceJar();
 		TSDB tsdb = newTSDB("SpringPublishConfig");
 		GenericApplicationContext appCtx = SpringContainerService.getInstance().getAppContext();
 		QueuedResultSearchEventHandler handler = appCtx.getBean("EventHandler", QueuedResultSearchEventHandler.class);

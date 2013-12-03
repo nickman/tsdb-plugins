@@ -124,7 +124,7 @@ public class ParameterizedSearchTest extends ESBaseTest {
 	@BeforeClass
 	public static void initialize() {
 		tearDownTSDBAfterTest = false;
-		createSearchShellJar();
+		createServiceJar();
 		configureTSDB();
 		ElasticSearchEventHandler.waitForStart();
 		client = ElasticSearchEventHandler.getClient();

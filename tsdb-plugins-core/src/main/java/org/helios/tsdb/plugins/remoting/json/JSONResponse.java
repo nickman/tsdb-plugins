@@ -30,7 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JSONResponse implements ChannelBufferizable {
 	/** The client provided request ID that this response is being sent for */
-	@JsonProperty("inReferenceToRequestId")
+	@JsonProperty("rerid")
 	protected final long reRequestId;
 	/** The response type */
 	@JsonProperty("t")
@@ -189,6 +189,7 @@ public class JSONResponse implements ChannelBufferizable {
 	public ChannelFuture[] send(ChannelFutureListener listener, Channel...channels) {		
 		if(channels!=null && channels.length>0) {
 			Set<ChannelFuture> futures = new HashSet<ChannelFuture>(channels.length);
+			opCode = "ok";
 			TextWebSocketFrame frame = new TextWebSocketFrame(this.toChannelBuffer());
 			for(Channel channel: channels) {
 				if(channel!=null && channel.isWritable()) {

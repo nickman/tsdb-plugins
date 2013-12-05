@@ -30,10 +30,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices;
+import org.helios.tsdb.plugins.remoting.json.services.TSDBJSONService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -79,6 +79,7 @@ public class JSONRequestRouter {
 	private JSONRequestRouter() {
 		registerJSONService(this);
 		registerJSONService(new SystemJSONServices());
+		registerJSONService(new TSDBJSONService());
 		
 	}
 	

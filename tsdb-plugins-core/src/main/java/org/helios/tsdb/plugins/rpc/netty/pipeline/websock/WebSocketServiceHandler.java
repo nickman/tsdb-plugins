@@ -59,7 +59,6 @@ import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import org.jboss.netty.util.CharsetUtil;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +109,7 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 		}
 		if((message instanceof ChannelBufferizable)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
-		} else if((message instanceof JSONResponse) || (message instanceof JSONObject) || (message instanceof CharSequence)) {				
+		} else if((message instanceof JSONResponse) || (message instanceof CharSequence)) {				
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));					
 		} else {
             ctx.sendUpstream(e);

@@ -682,6 +682,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		MethodMocker.getInstance().transform(Annotation.class, MockedAnnotation.class);
 		MethodMocker.getInstance().transform(TSMeta.class, MockedTSMetaOps.class);
 		MethodMocker.getInstance().transform(UIDMeta.class, MockedUIDMetaOps.class);
+		MethodMocker.getInstance().transform(TSDB.class, MockedTSDB.class);
 	}
 	
 	@AfterClass
@@ -698,6 +699,19 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		
 	}
 
+	public static class MockedTSDB {
+		public Deferred<Object> addPoint(final String metric, final long timestamp, final double value, final Map<String, String> tags) {			
+			return Deferred.fromResult(null);
+		}
+		public Deferred<Object> addPoint(final String metric, final long timestamp, final long value, final Map<String, String> tags) {			
+			return Deferred.fromResult(null);
+		}
+		public Deferred<Object> addPoint(final String metric, final long timestamp, final float value, final Map<String, String> tags) {			
+			return Deferred.fromResult(null);
+		}
+		
+		
+	}
 	
 	public static class MockedTSMetaOps {
 		public Deferred<Object> delete(final TSDB tsdb) {

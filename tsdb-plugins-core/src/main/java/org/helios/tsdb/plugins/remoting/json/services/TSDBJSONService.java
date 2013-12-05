@@ -104,8 +104,13 @@ public class TSDBJSONService {
 			}
 			final boolean sendConfirm;
 			if(request.getRequest().get("noc")!=null) {
+				
 				JsonNode tNode = request.getRequest().get("noc");
-				sendConfirm = !(tNode.toString().trim().equalsIgnoreCase("true"));
+				if(tNode.isBoolean()) {
+					sendConfirm = !tNode.asBoolean();
+				} else {
+					sendConfirm = true;
+				}
 			} else {
 				sendConfirm = true;
 			}

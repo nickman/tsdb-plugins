@@ -71,7 +71,7 @@ public abstract class AbstractJSONRequestHandlerInvoker  {
 		ElapsedTime et = SystemClock.startClock();
 		try {
 			doInvoke(jsonRequest);
-			long elapsed = et.elapsed();
+			long elpsd = et.elapsed();
 		} catch (Exception ex) {
 			
 			throw new RuntimeException("Failed to invoke JSON Service [" + serviceName + "/" + opName + "]", ex);

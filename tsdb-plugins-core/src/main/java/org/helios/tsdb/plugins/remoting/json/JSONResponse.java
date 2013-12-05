@@ -15,6 +15,7 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +47,7 @@ public class JSONResponse implements ChannelBufferizable {
 	protected String opCode = null;
 	
 	/** The channel that the request came in on. May sometimes be null */
+	@JsonIgnore
 	public final Channel channel;
 	
 	

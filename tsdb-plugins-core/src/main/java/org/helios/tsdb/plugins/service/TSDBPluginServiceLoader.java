@@ -68,6 +68,7 @@ public class TSDBPluginServiceLoader {
 	protected final ClassLoader supportClassLoader;
 	/** The plugin context */
 	protected final PluginContext pluginContext;
+
 	/** Static class logger */
 	private static final Logger LOG = LoggerFactory.getLogger(TSDBPluginServiceLoader.class);
 	
@@ -108,6 +109,7 @@ public class TSDBPluginServiceLoader {
 			}
 		}
 		instance.pluginService.addPluginInstance(plugin);
+		plugin.setPluginContext(instance.pluginContext);
 		return instance.pluginService;
 	}
 	
@@ -228,6 +230,13 @@ public class TSDBPluginServiceLoader {
 		return tsdb;
 	}
 	
+	/**
+	 * Returns the plugin context
+	 * @return the plugin context
+	 */
+	public PluginContext getPluginContext() {
+		return pluginContext;
+	}
 	
 
 

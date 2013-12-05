@@ -35,6 +35,7 @@ import net.opentsdb.stats.StatsCollector;
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
 import org.helios.tsdb.plugins.service.ITSDBPluginService;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,9 @@ public class Search extends SearchPlugin implements Plugin {
 	protected TSDB tsdb = null;
 	/** The event pluginService delegate */
 	protected ITSDBPluginService pluginService;
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
+
 	
 
 	/**
@@ -192,5 +196,15 @@ public class Search extends SearchPlugin implements Plugin {
 	public String version() {
 		return Constants.PLUGIN_VERSION;
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#setPluginContext(org.helios.tsdb.plugins.service.PluginContext)
+	 */
+	@Override
+	public void setPluginContext(PluginContext ctx) {
+		pluginContext = ctx;
+	}
+	
 
 }

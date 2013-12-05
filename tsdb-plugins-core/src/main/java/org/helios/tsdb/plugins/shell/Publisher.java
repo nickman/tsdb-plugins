@@ -33,6 +33,7 @@ import net.opentsdb.tsd.RTPublisher;
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
 import org.helios.tsdb.plugins.service.ITSDBPluginService;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,8 @@ public class Publisher extends RTPublisher implements Plugin {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The event pluginService delegate */
 	protected ITSDBPluginService pluginService;
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
 	
 	
 	
@@ -134,6 +137,15 @@ public class Publisher extends RTPublisher implements Plugin {
 		} finally {
 			pluginService = null;
 		}		
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#setPluginContext(org.helios.tsdb.plugins.service.PluginContext)
+	 */
+	@Override
+	public void setPluginContext(PluginContext ctx) {
+		pluginContext = ctx;
 	}
 
 }

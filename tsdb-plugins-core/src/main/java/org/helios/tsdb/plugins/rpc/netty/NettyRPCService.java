@@ -80,6 +80,14 @@ public class NettyRPCService extends AbstractRPCService {
 		}
 	}
 	
+	/**
+	 * TSDB accessor for RPC services not directly hooked in to the lifecycle injections
+	 * @return the parent TSDB instance
+	 */
+	public TSDB getTSDB() {
+		return tsdb;
+	}
+	
 	
 	/**
 	 * <p>Starts the NettyRPCService and related sub-services</p>

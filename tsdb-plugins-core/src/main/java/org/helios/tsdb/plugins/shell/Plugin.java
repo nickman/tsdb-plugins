@@ -28,6 +28,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.event.PluginType;
+import org.helios.tsdb.plugins.service.PluginContext;
 
 /**
  * <p>Title: Plugin</p>
@@ -64,5 +65,11 @@ public interface Plugin {
 	 * @return the plugin version
 	 */
 	public String version();
+	
+	/**
+	 * Handles a callback from the TSDBPluginServiceLoader supplying the plugin context
+	 * @param ctx the plugin context
+	 */
+	public void setPluginContext(PluginContext ctx);
 	
 }

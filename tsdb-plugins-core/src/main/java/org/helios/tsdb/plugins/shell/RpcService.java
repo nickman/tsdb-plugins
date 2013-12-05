@@ -36,6 +36,7 @@ import org.hbase.async.HBaseException;
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.PluginType;
 import org.helios.tsdb.plugins.service.ITSDBPluginService;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,9 @@ public class RpcService extends RpcPlugin implements Plugin {
 	protected ITSDBPluginService pluginService;
 	/** The core TSDB instance */
 	protected TSDB tsdb;
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
+	
 
 	/**
 	 * Creates a new RpcService
@@ -240,4 +244,14 @@ public class RpcService extends RpcPlugin implements Plugin {
 			throw new RuntimeException("Error in TSDB Shutdown Request", e);
 		}
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#setPluginContext(org.helios.tsdb.plugins.service.PluginContext)
+	 */
+	@Override
+	public void setPluginContext(PluginContext ctx) {
+		pluginContext = ctx;
+	}
+	
 }

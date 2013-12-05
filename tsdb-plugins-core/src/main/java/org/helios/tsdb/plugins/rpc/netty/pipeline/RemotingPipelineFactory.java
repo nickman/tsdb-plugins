@@ -27,6 +27,8 @@ package org.helios.tsdb.plugins.rpc.netty.pipeline;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.handler.logging.LoggingHandler;
+import org.jboss.netty.logging.InternalLogLevel;
 
 /**
  * <p>Title: RemotingPipelineFactory</p>
@@ -41,6 +43,8 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory {
 	protected static volatile RemotingPipelineFactory instance = null;
 	/** The singleton instance ctor lock */
 	protected static final Object lock = new Object();
+	
+	protected final LoggingHandler logger = new LoggingHandler(getClass(), InternalLogLevel.INFO, true);
 	
 	/** The protocol detection handler */
 	protected final ProtocolSwitch protocolSwitch = new ProtocolSwitch();
@@ -75,6 +79,7 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory {
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
+		pipeline.addLast("logger", logger);
 		pipeline.addLast("protocolSwitch", protocolSwitch);
 		return pipeline;
 	}

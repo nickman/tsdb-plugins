@@ -28,6 +28,7 @@ import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.helios.tsdb.plugins.rpc.netty.pipeline.http.HttpProtocolInitiator;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferFactory;
 import org.jboss.netty.buffer.DirectChannelBufferFactory;
@@ -107,6 +108,7 @@ public class ProtocolSwitch implements ChannelUpstreamHandler {
 	 * Creates a new ProtocolSwitch
 	 */
 	protected ProtocolSwitch() {
+		registerProtocolInitiator(new HttpProtocolInitiator());
 	}
 
 	/**
@@ -153,7 +155,7 @@ public class ProtocolSwitch implements ChannelUpstreamHandler {
 		final int bytesAvailable = cb.readableBytes();
 		
 		for(ProtocolInitiator pi : initiators.values()) {
-			if(pi.requiredBytes() < bytesAvailable) {
+			if(pi.requiredBytes() > bytesAvailable) {
 				sufficientBytes = false;
 			} else {
 				if(pi.match(cb)) {

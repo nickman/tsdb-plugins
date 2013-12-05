@@ -74,7 +74,7 @@ public class HttpRequestRouter implements ChannelUpstreamHandler {
 	protected ConcurrentHashMap<String, HttpRequestHandler> uriWildcardRoutes = new ConcurrentHashMap<String, HttpRequestHandler>();
 	
 	/** The websocket handler to be inserted into the pipeline if a request comes in with a URI suffix of {@link #WS_URI_SUFFIX} */
-	protected WebSocketServiceHandler webSocketHandler = null;
+	protected WebSocketServiceHandler webSocketHandler = new WebSocketServiceHandler();
     /** Default page URI */
     public static final String DEFAULT_URI = "index.html";
     /** Root URI */
@@ -192,6 +192,7 @@ public class HttpRequestRouter implements ChannelUpstreamHandler {
 		}
 		if(uri.endsWith(WS_URI_SUFFIX)) {
 			ctx.getPipeline().addLast("websocket", webSocketHandler);
+			log.info("Added WebSocketHandler to Pipeline for channel [{}]", e.getChannel().getId());
 			ctx.sendUpstream(e);
 			return;
 		}

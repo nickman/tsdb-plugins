@@ -24,12 +24,12 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequestRouter</code></p>
  */
-@JSONRequestService(name="JSONRequestRouter", description="The main JSON request routing service")
+@JSONRequestService(name="router", description="The main JSON request routing service")
 public class JSONRequestRouter {
 	/** The singleton instance */
 	protected static volatile JSONRequestRouter instance = null;
@@ -54,8 +54,8 @@ public class JSONRequestRouter {
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The invoker map */
 	protected final ConcurrentHashMap<String, Map<String, AbstractJSONRequestHandlerInvoker>> invokerMap = new ConcurrentHashMap<String, Map<String, AbstractJSONRequestHandlerInvoker>>();
-	/** The json mapper */
-	private static final ObjectMapper jsonMapper = new ObjectMapper();
+	/** The json node factory */
+	private final JsonNodeFactory nodeFactory = JsonNodeFactory.instance; 
 	
 	
 	/**
@@ -78,6 +78,8 @@ public class JSONRequestRouter {
 	 */
 	private JSONRequestRouter() {
 		registerJSONService(this);
+		registerJSONService(new SystemJSONServices());
+		
 	}
 	
 	/**
@@ -113,24 +115,27 @@ public class JSONRequestRouter {
 	/**
 	 * Writes a JSON catalog of the available services
 	 * @param jsonRequest The json request
+	 * <p>Note: payload for test:<b><code>{"t":"req", "rid":1, "svc":"router", "op":"services"}</code></b></p>
 	 */
 	@JSONRequestHandler(name="services", description="Returns a catalog of available JSON services")
 	public void services(JSONRequest jsonRequest) {
-		Map<ObjectNode, Map<String, String>> serviceMap = new HashMap<ObjectNode, Map<String, String>>();
+		ObjectNode servicesMap = nodeFactory.objectNode();
+		ObjectNode serviceMap = nodeFactory.objectNode();
+		servicesMap.put("services", serviceMap);
 		for(Map.Entry<String, Map<String, AbstractJSONRequestHandlerInvoker>> entry: invokerMap.entrySet()) {
 			Map<String, AbstractJSONRequestHandlerInvoker> opInvokerMap = entry.getValue();
 			if(opInvokerMap.isEmpty()) continue;
-			ObjectNode key = JsonNodeFactory.instance.objectNode();
-			key.put("svc", entry.getKey());
-			key.put("desc", opInvokerMap.values().iterator().next().getServiceDescription());
-			Map<String, String> opMap = new HashMap<String, String>(opInvokerMap.size());
+			ObjectNode svcMap = nodeFactory.objectNode();
+			serviceMap.put(entry.getKey(), svcMap);
+			svcMap.put("desc", opInvokerMap.values().iterator().next().getServiceDescription());			
+			ObjectNode opMap = nodeFactory.objectNode();
+			svcMap.put("ops", opMap);
 			for(AbstractJSONRequestHandlerInvoker invoker: opInvokerMap.values()) {
 				opMap.put(invoker.getOpName(), invoker.getOpDescription());
-			}
-			serviceMap.put(key, opMap);
+			}			
 		}
-		try {
-			jsonRequest.response().setContent(jsonMapper.writeValueAsBytes(serviceMap)).send();
+		try {			
+			jsonRequest.response().setContent(servicesMap).send();
 		} catch (Exception ex) {
 			log.error("Failed to write service catalog", ex);
 			jsonRequest.error("Failed to write service catalog", ex).send();

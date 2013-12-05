@@ -50,6 +50,8 @@ public class JSONRequest {
 	/** The original request, in case there is other stuff in there that the data service needs */
 	protected final JsonNode request;
 	
+
+
 	/** The arguments supplied to the op */
 	@JsonProperty("args")
 	public final Map<Object, Object> arguments = new TreeMap<Object, Object>();
@@ -116,7 +118,7 @@ public class JSONRequest {
 		@Override
 		public <T> T get(JsonNode jsonNode) {
 			if(jsonNode==null) return (T)EMPTY_MAP;
-			if(jsonNode instanceof ContainerNode) {
+			if(!(jsonNode instanceof ContainerNode)) {
 				return (T)EMPTY_MAP;
 			}
 			Map<Object, Object> argsMap = new LinkedHashMap<Object, Object>();
@@ -197,7 +199,7 @@ public class JSONRequest {
 		this.serviceName = serviceName;
 		this.opName = opName;
 		this.request = request;
-		arguments.putAll((Map<? extends Object, ? extends Object>) JSONMsgStdKey.args.get(request));
+		arguments.putAll((Map<? extends Object, ? extends Object>) JSONMsgStdKey.args.get(request.get("args")));
 	}
 	
 	public static void main(String[] args) {
@@ -331,6 +333,15 @@ public class JSONRequest {
 		}
 		return (T)value;
 	}
+	
+	/**
+	 * Returns the original parsed request
+	 * @return the request
+	 */
+	public JsonNode getRequest() {
+		return request;
+	}
+	
 	
 	
 	/**

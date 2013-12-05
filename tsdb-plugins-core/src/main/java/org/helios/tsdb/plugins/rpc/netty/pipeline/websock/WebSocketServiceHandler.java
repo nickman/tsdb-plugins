@@ -30,8 +30,6 @@ import static org.jboss.netty.handler.codec.http.HttpMethod.GET;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
-import java.util.Collections;
-
 import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
@@ -65,6 +63,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -89,6 +88,7 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 	 * Creates a new WebSocketServiceHandler
 	 */
 	public WebSocketServiceHandler() {
+		marshaller.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 	}
 
 	/**
@@ -97,6 +97,32 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 	 */
 	@Override
 	public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+		Channel channel = e.getChannel();
+		if(!channel.isOpen()) return;
+		if(!(e instanceof MessageEvent)) {
+            ctx.sendDownstream(e);
+            return;
+        }
+		Object message = ((MessageEvent)e).getMessage();
+		if((message instanceof HttpResponse) || (message instanceof WebSocketFrame)) {
+			ctx.sendDownstream(e);
+			return;
+		}
+		if((message instanceof ChannelBufferizable)) {
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
+		} else if((message instanceof JSONResponse) || (message instanceof JSONObject) || (message instanceof CharSequence)) {				
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));					
+		} else {
+            ctx.sendUpstream(e);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.jboss.netty.channel.ChannelUpstreamHandler#handleUpstream(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelEvent)
+	 */
+	@Override
+	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
 		if(e instanceof MessageEvent) {
 			Object message = ((MessageEvent)e).getMessage();
 			if (message instanceof HttpRequest) {
@@ -106,29 +132,7 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 			}
 		} else {
 			ctx.sendUpstream(e);
-		}		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.jboss.netty.channel.ChannelUpstreamHandler#handleUpstream(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelEvent)
-	 */
-	@Override
-	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-		Channel channel = e.getChannel();
-		if(!channel.isOpen()) return;
-		if(!(e instanceof MessageEvent)) {
-            ctx.sendDownstream(e);
-            return;
-        }
-		Object message = ((MessageEvent)e).getMessage();
-		if((message instanceof ChannelBufferizable)) {
-			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
-		} else if((message instanceof JSONResponse) || (message instanceof JSONObject) || (message instanceof CharSequence)) {				
-			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));					
-		} else {
-            ctx.sendDownstream(e);
-		}
+		}			
 	}
 	
 	/**
@@ -199,14 +203,15 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
         	ctx.sendUpstream(me);
         	return;
         }
+        final Channel channel = me.getChannel();
         // Handshake
         WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req), null, false);
         WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
         if (handshaker == null) {
-            wsFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel());
+            wsFactory.sendUnsupportedWebSocketVersionResponse(channel);
         } else {
-        	wsHandShaker.set(ctx.getChannel(), handshaker);
-        	ChannelFuture cf = handshaker.handshake(ctx.getChannel(), req); 
+        	wsHandShaker.set(channel, handshaker);
+        	ChannelFuture cf = handshaker.handshake(channel, req); 
             cf.addListener(WebSocketServerHandshaker.HANDSHAKE_LISTENER);
             cf.addListener(new ChannelFutureListener() {
 				@Override
@@ -221,7 +226,8 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 //								((InetSocketAddress)wsChannel.getRemoteAddress()).getAddress().getCanonicalHostName(), 
 //								"WebSock[" + wsChannel.getId() + "]"
 //						);
-						wsChannel.write(new JSONObject(Collections.singletonMap("sessionid", wsChannel.getId())));
+						//wsChannel.write(new JSONObject(Collections.singletonMap("sessionid", wsChannel.getId())));
+						wsChannel.write(String.format("{\"sessionid\":%s}", wsChannel.getId()));
 						//wsChannel.getPipeline().remove(DefaultChannelHandler.NAME);
 					}
 				}

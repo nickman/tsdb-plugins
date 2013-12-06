@@ -20,6 +20,7 @@ import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.StatsRpc;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
@@ -251,13 +252,14 @@ public class TSDBJSONService {
 	public void stats2(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "api/stats");
-			request.response().writeHeader(false);
+			JSONResponse response = request.response(); 
+			response.writeHeader(false);
 			InvocationChannel ichannel = new InvocationChannel(); 
 			httpRpcExec.invoke(statsRpc, tsdb, httpQueryCtor.newInstance(tsdb, httpRequest, ichannel));
 			HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
 			ChannelBuffer content = resp.getContent();
 			resp.getContent().readBytes(request.response().getChannelOutputStream(), content.readableBytes());
-			request.response().closeGenerator();
+			response.closeGenerator();
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats2", ex);
 			request.error("Failed to invoke stats2", ex);

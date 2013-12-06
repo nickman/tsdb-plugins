@@ -64,7 +64,12 @@ public class JSONResponse implements ChannelBufferizable {
 	
 	/** The json generator for streaming content */
 	@JsonIgnore
-	private volatile JsonGenerator jsonGen = null; 
+	private volatile JsonGenerator jsonGen = null;
+	
+	/** Indicates if the json generator was opened as a map (true) or an array (false) */
+	@JsonIgnore
+	private boolean openedAsMap = true;
+	
 
 	/** The buffer factory for this service  TODO: Make this configurable */
 	@JsonIgnore
@@ -168,16 +173,20 @@ public class JSONResponse implements ChannelBufferizable {
 	 * should be written using the returned generator, followed by a call to closeGenerator.
 	 * @return the created generator.
 	 */
-	public JsonGenerator writeHeader() {
+	public JsonGenerator writeHeader(boolean map) {
 		if(jsonGen!=null) throw new RuntimeException("The json generator has already been set");
 		try {
+			openedAsMap = map;
 			jsonGen = JSON.getFactory().createGenerator(getChannelOutputStream());
 			jsonGen.writeStartObject();
 			jsonGen.writeNumberField("id", id);
 			jsonGen.writeNumberField("rerid", reRequestId);
 			jsonGen.writeStringField("t", type);
-			jsonGen.writeArrayFieldStart("msg");
-			
+			if(openedAsMap) {
+				jsonGen.writeObjectFieldStart("msg");
+			} else {
+				jsonGen.writeArrayFieldStart("msg");
+			}
 			return jsonGen;
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create JsonGenerator", ex);
@@ -190,7 +199,11 @@ public class JSONResponse implements ChannelBufferizable {
 	public void closeGenerator() {
 		if(jsonGen==null || jsonGen.isClosed()) throw new RuntimeException("The json generator is null or has already been closed");
 		try {
-			jsonGen.writeEndArray();
+			if(openedAsMap) {
+				jsonGen.writeEndObject();
+			} else {
+				jsonGen.writeEndArray();
+			}
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();

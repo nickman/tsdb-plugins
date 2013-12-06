@@ -3,11 +3,12 @@
  */
 package org.helios.tsdb.plugins.remoting.json.services;
 
-import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.TreeMap;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
-import net.opentsdb.utils.JSON;
+import net.opentsdb.tsd.StatsRpc;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -25,6 +26,10 @@ import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpMethod;
+import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,29 +57,60 @@ public class TSDBJSONService {
 	protected final TSDB tsdb;
 	/** The plugin context */
 	protected final PluginContext pluginContext;
+	/** A map of http rpcs which we can piggy-back on */
+	protected final Map<String, Object> http_commands = new HashMap<String, Object>(11);
+	
+//	  interface HttpRpc {
+//
+//		  /**
+//		   * Executes this RPC.
+//		   * @param tsdb The TSDB to use.
+//		   * @param query The HTTP query to execute.
+//		   */
+//		  void execute(TSDB tsdb, HttpQuery query) throws IOException;		  
+//
+//	  }		
 	
 	/** The connection manager collect stats method */
 	protected static final Method connMgrCollectStats;
 	/** The RPC Handler collect stats method */
 	protected static final Method rpcMgrCollectStats;
+	/** The HttpRpc exec method */
+	protected static final Method httpRpcExec;
+	/** The HttpQuery constructor */
+	protected static final Constructor<?> httpQueryCtor;
 	
 	static {
 		Method cmgr = null;
 		Method rhand = null;
+		Method hexec = null;
+		Constructor<?> mctor = null; 
+		
 		try {
 			cmgr = Class.forName("net.opentsdb.tsd.ConnectionManager", true, TSDB.class.getClassLoader()).getDeclaredMethod("collectStats", StatsCollector.class);
 			cmgr.setAccessible(true);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from ConnectionManager", ex);
 		}
-		try {
+		try {			
 			rhand = Class.forName("net.opentsdb.tsd.RpcHandler", true, TSDB.class.getClassLoader()).getDeclaredMethod("collectStats", StatsCollector.class);
 			rhand.setAccessible(true);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from RpcHandler", ex);
 		}
+		try {
+			Class<?> httpQueryClazz = Class.forName("net.opentsdb.tsd.HttpQuery", true, TSDB.class.getClassLoader());
+			mctor = httpQueryClazz.getDeclaredConstructor(TSDB.class, HttpRequest.class, Channel.class);
+			mctor.setAccessible(true);
+			hexec = Class.forName("net.opentsdb.tsd.HttpRpc", true, TSDB.class.getClassLoader()).getDeclaredMethod("execute", TSDB.class, httpQueryClazz);
+			hexec.setAccessible(true);
+		} catch (Exception ex) {
+			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get execute method from HttpQuery", ex);
+		}
+		httpQueryCtor = mctor;
 		connMgrCollectStats = cmgr;
 		rpcMgrCollectStats = rhand;
+		httpRpcExec = hexec;
 	}
 	
 	
@@ -217,15 +253,38 @@ public class TSDBJSONService {
 		}
 	}
 	
+	protected final StatsRpc statsRpc = new StatsRpc();
+	
+	@JSONRequestHandler(name="stats2", description="Collects TSDB wide stats and returns them in JSON format to the caller")
+	public void stats2(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "api/stats");
+			request.response().writeHeader(false);
+			httpRpcExec.invoke(statsRpc, tsdb, httpQueryCtor.newInstance(tsdb, httpRequest, request.response().channel));
+			request.response().closeGenerator();
+		} catch (Exception ex) {
+			log.error("Failed to invoke stats2", ex);
+			request.error("Failed to invoke stats2", ex);
+		}
+	}
+	
+//	protected static final Method httpRpcExec;               -->  execute(final TSDB tsdb, final HttpQuery query)
+//	protected static final Constructor<?> httpQueryCtor;	 --> HttpQuery(final TSDB tsdb, final HttpRequest request, final Channel chan) 	
+	
+	
 	/**
 	 * Collects TSDB wide stats and returns them in JSON format to the caller
 	 * @param request The JSON request
+	 * <p>JSON request to invoke:
+	 * <pre>
+	 * 		{"t":"req", "rid":1, "svc":"tsdb", "op":"stats" }
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="stats", description="Collects TSDB wide stats and returns them in JSON format to the caller")
 	public void stats(JSONRequest request) {
 		    final boolean canonical = tsdb.getConfig().getBoolean("tsd.stats.canonical");
 		    
-		    final JsonGenerator jsonGen = request.response().writeHeader();
+		    final JsonGenerator jsonGen = request.response().writeHeader(false);
 		    final JSONCollector collector = new JSONCollector("tsd", jsonGen);
 		    doCollectStats(tsdb, collector, canonical);
 		    try {
@@ -331,8 +390,7 @@ public class TSDBJSONService {
 				  throw new RuntimeException("Failed to record stat", ex);
 			  }
 		  }
-		  
+	  }
 
-	  }	
 
 }

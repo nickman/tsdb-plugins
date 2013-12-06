@@ -3,11 +3,18 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.opentsdb.utils.JSON;
+
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferFactory;
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.buffer.DirectChannelBufferFactory;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -17,6 +24,7 @@ import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -49,6 +57,19 @@ public class JSONResponse implements ChannelBufferizable {
 	/** The channel that the request came in on. May sometimes be null */
 	@JsonIgnore
 	public final Channel channel;
+	
+	/** The channel output stream used in lieu of content */
+	@JsonIgnore
+	private volatile ChannelBufferOutputStream channelOutputStream = null;
+	
+	/** The json generator for streaming content */
+	@JsonIgnore
+	private volatile JsonGenerator jsonGen = null; 
+
+	/** The buffer factory for this service  TODO: Make this configurable */
+	@JsonIgnore
+	private static final ChannelBufferFactory bufferFactory = new DirectChannelBufferFactory();
+	
 	
 	
 	/** The shared json mapper */
@@ -99,6 +120,28 @@ public class JSONResponse implements ChannelBufferizable {
 	}
 	
 	/**
+	 * Returns an OutputStream that writes directly to a channel buffer which will be flushed to the channel on send
+	 * @return a channel buffer OutputStream 
+	 */
+	public OutputStream getChannelOutputStream() {
+		if(content!=null) {
+			throw new RuntimeException("Cannot start OutputStream. Content already set");
+		}
+		if(channelOutputStream==null) {
+			channelOutputStream = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(8096, bufferFactory)) {
+				final ChannelBuffer buf = this.buffer();
+				@Override
+				public void close() throws IOException {
+					super.flush();					
+					super.close();
+					channel.write(buf);
+				}
+			};
+		}
+		return channelOutputStream;
+	}
+	
+	/**
 	 * Returns the content payload
 	 * @return the content
 	 */
@@ -112,8 +155,49 @@ public class JSONResponse implements ChannelBufferizable {
 	 * @return this json response
 	 */
 	public JSONResponse setContent(Object content) {
+		if(channelOutputStream!=null) {
+			throw new RuntimeException("Cannot set content. OutputStream already set");
+		}
 		this.content = content;
 		return this;
+	}
+	
+	/**
+	 * Initiates a streaming content delivery to the caller. A new JsonFactory is created and the header of 
+	 * the response message is written, up to an including the msg object start. The remaining content
+	 * should be written using the returned generator, followed by a call to closeGenerator.
+	 * @return the created generator.
+	 */
+	public JsonGenerator writeHeader() {
+		if(jsonGen!=null) throw new RuntimeException("The json generator has already been set");
+		try {
+			jsonGen = JSON.getFactory().createGenerator(getChannelOutputStream());
+			jsonGen.writeStartObject();
+			jsonGen.writeNumberField("id", id);
+			jsonGen.writeNumberField("rerid", reRequestId);
+			jsonGen.writeStringField("t", type);
+			jsonGen.writeArrayFieldStart("msg");
+			
+			return jsonGen;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to create JsonGenerator", ex);
+		}
+	}
+	
+	/**
+	 * Closes the open json generator and writes the content back to the caller.
+	 */
+	public void closeGenerator() {
+		if(jsonGen==null || jsonGen.isClosed()) throw new RuntimeException("The json generator is null or has already been closed");
+		try {
+			jsonGen.writeEndArray();
+			jsonGen.writeEndObject();
+			jsonGen.close();
+			channelOutputStream.close();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to close JsonGenerator", ex);
+		}
+		
 	}
 
 	/**
@@ -131,8 +215,12 @@ public class JSONResponse implements ChannelBufferizable {
 	@Override
 	public ChannelBuffer toChannelBuffer() {
 		try {
+			if(channelOutputStream!=null) {
+				channelOutputStream.flush();
+				return channelOutputStream.buffer();
+			}
 			return ChannelBuffers.wrappedBuffer(jsonMapper.writeValueAsBytes(this));
-		} catch (JsonProcessingException ex) {
+		} catch (Exception ex) {
 			throw new RuntimeException("Failed to write object as JSON bytes", ex);
 		}
 	}

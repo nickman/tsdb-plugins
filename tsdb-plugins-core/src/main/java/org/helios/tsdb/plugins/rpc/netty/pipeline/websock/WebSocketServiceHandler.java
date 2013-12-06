@@ -34,6 +34,7 @@ import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
@@ -107,7 +108,9 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 			ctx.sendDownstream(e);
 			return;
 		}
-		if((message instanceof ChannelBufferizable)) {
+		if((message instanceof ChannelBuffer)) {
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame((ChannelBuffer)message), channel.getRemoteAddress()));
+		} else if((message instanceof ChannelBufferizable)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
 		} else if((message instanceof JSONResponse) || (message instanceof CharSequence)) {				
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));					

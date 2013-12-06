@@ -3,6 +3,8 @@
  */
 package org.helios.tsdb.plugins.remoting.json.services;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -13,6 +15,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.stats.StatsCollector;
+import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -20,9 +24,11 @@ import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.SystemClock;
+import org.jboss.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -46,6 +52,30 @@ public class TSDBJSONService {
 	protected final TSDB tsdb;
 	/** The plugin context */
 	protected final PluginContext pluginContext;
+	
+	/** The connection manager collect stats method */
+	protected static final Method connMgrCollectStats;
+	/** The RPC Handler collect stats method */
+	protected static final Method rpcMgrCollectStats;
+	
+	static {
+		Method cmgr = null;
+		Method rhand = null;
+		try {
+			cmgr = Class.forName("net.opentsdb.tsd.CollectionManager").getDeclaredMethod("collectStats", StatsCollector.class);
+			cmgr.setAccessible(true);
+		} catch (Exception ex) {
+			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from ConnectionManager", ex);
+		}
+		try {
+			rhand = Class.forName("net.opentsdb.tsd.RpcHandler").getDeclaredMethod("collectStats", StatsCollector.class);
+			rhand.setAccessible(true);
+		} catch (Exception ex) {
+			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from RpcHandler", ex);
+		}
+		connMgrCollectStats = cmgr;
+		rpcMgrCollectStats = rhand;
+	}
 	
 	
 	/**
@@ -102,6 +132,7 @@ public class TSDBJSONService {
 	 * 		</li>
 	 * </ul></p>
 	 * TODO: Handle errors and return error messages to caller.
+	 * TODO: Implement hierarchical json tree of points for a smaller and more normalized payload
 	 */
 	@JSONRequestHandler(name="points", description="Submits an array of datapoints to the TSDB")
 	public void addPoint(final JSONRequest request) {
@@ -185,5 +216,123 @@ public class TSDBJSONService {
 			request.error("Failed to add points", ex).send();
 		}
 	}
+	
+	/**
+	 * Collects TSDB wide stats and returns them in JSON format to the caller
+	 * @param request The JSON request
+	 */
+	@JSONRequestHandler(name="stats", description="Collects TSDB wide stats and returns them in JSON format to the caller")
+	public void stats(JSONRequest request) {
+		    final boolean canonical = tsdb.getConfig().getBoolean("tsd.stats.canonical");
+		    
+		    final JsonGenerator jsonGen = request.response().writeHeader();
+		    final JSONCollector collector = new JSONCollector("tsd", jsonGen);
+		    doCollectStats(tsdb, collector, canonical);
+		    try {
+				jsonGen.close();
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to close JSON Generator", ex);
+			}
+	  }
+	  
+	  /**
+	   * Helper to record the statistics for the current TSD
+	   * @param tsdb The TSDB to use for fetching stats
+	   * @param collector The collector class to call for emitting stats
+	   */
+	  private void doCollectStats(final TSDB tsdb, final StatsCollector collector, final boolean canonical) {
+		
+	    collector.addHostTag(canonical);
+	    try {
+	    	connMgrCollectStats.invoke(null, collector);
+	    } catch (Exception ex) {
+	    	log.error("Failed to collect from ConnectionManager", ex);
+	    }
+	    try {
+	    	rpcMgrCollectStats.invoke(null, collector);
+	    } catch (Exception ex) {
+	    	log.error("Failed to collect from RPCHandlder", ex);
+	    }
+	    tsdb.collectStats(collector);
+	  }	  
+
+	  /**
+	 * <p>Title: JSONCollector</p>
+	 * <p>Description: A stats collector implementation that writes each received stat to the calling channel in JSON format.</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.tsdb.plugins.remoting.json.services.TSDBJSONService.JSONCollector</code></p>
+	 */
+	class JSONCollector extends StatsCollector {
+		  /** The json generator to write to */
+		final JsonGenerator jsonGen;
+
+		  /**
+		   * Default constructor
+		   * @param prefix The prefix to prepend to all statistics
+		   * @param jsonGen The json generator to write to
+		   */
+		  public JSONCollector(final String prefix, JsonGenerator jsonGen) {
+			  super(prefix);
+			  this.jsonGen = jsonGen;
+		  }
+		  
+		/**
+		 * Splits a tag pair. Assumes a correct passed value.
+		 * @param tagPair A tag ({@code name=value}) to splt
+		 * @return an array containing the key and value
+		 */
+		private String[] splitTag(String tagPair) {
+			  int index = tagPair.indexOf('=');
+			  return new String[] {tagPair.substring(0, index), tagPair.substring(index+1)};
+		  }
+		  
+		  /**
+		   * Records a data point.
+		   * @param name The name of the metric.
+		   * @param value The current value for that metric.
+		   * @param xtratag An extra tag ({@code name=value}) to add to this
+		   * data point (ignored if {@code null}).
+		   * @throws IllegalArgumentException if {@code xtratag != null} and it
+		   * doesn't follow the {@code name=value} format.
+		   */
+		  public void record(final String name,long value, String xtratag) {
+			  try {
+			  
+				jsonGen.writeStartObject(); 
+				jsonGen.writeStringField("m", prefix + "." + name);
+				jsonGen.writeNumberField("ts", System.currentTimeMillis() / 1000);
+				jsonGen.writeNumberField("v", value);
+				jsonGen.writeObjectFieldStart("tags");
+	
+				if (xtratag != null) {
+					if (xtratag.indexOf('=') != xtratag.lastIndexOf('=')) {
+						throw new IllegalArgumentException("invalid xtratag: " + xtratag
+								+ " (multiple '=' signs), name=" + name + ", value=" + value);
+					} else if (xtratag.indexOf('=') < 0) {
+						throw new IllegalArgumentException("invalid xtratag: " + xtratag
+								+ " (missing '=' signs), name=" + name + ", value=" + value);
+					}
+					String[] pair = splitTag(xtratag.trim());
+					jsonGen.writeStringField(pair[0], pair[1]);
+				}
+	
+			    if (extratags != null) {
+			      for (final Map.Entry<String, String> entry : extratags.entrySet()) {
+			    	  jsonGen.writeStringField(entry.getKey(), entry.getValue());
+			      }
+				}
+				
+				
+				jsonGen.writeEndObject(); // closing tags
+				jsonGen.writeEndObject(); // closing stat
+				
+			  } catch (Exception ex) {
+				  throw new RuntimeException("Failed to record stat", ex);
+			  }
+		  }
+		  
+
+	  }	
 
 }

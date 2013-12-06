@@ -5,6 +5,7 @@ package org.helios.tsdb.plugins.remoting.json.services;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -258,7 +259,8 @@ public class TSDBJSONService {
 			httpRpcExec.invoke(statsRpc, tsdb, httpQueryCtor.newInstance(tsdb, httpRequest, ichannel));
 			HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
 			ChannelBuffer content = resp.getContent();
-			resp.getContent().readBytes(request.response().getChannelOutputStream(), content.readableBytes());
+			request.response().getChannelOutputStream().write(content.toString(Charset.defaultCharset()).getBytes());
+			//resp.getContent().readBytes(request.response().getChannelOutputStream(), content.readableBytes());
 			response.closeGenerator();
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats2", ex);

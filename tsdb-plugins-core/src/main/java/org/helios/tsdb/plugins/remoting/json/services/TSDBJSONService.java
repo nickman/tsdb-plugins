@@ -25,10 +25,12 @@ import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.SystemClock;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,16 +62,6 @@ public class TSDBJSONService {
 	/** A map of http rpcs which we can piggy-back on */
 	protected final Map<String, Object> http_commands = new HashMap<String, Object>(11);
 	
-//	  interface HttpRpc {
-//
-//		  /**
-//		   * Executes this RPC.
-//		   * @param tsdb The TSDB to use.
-//		   * @param query The HTTP query to execute.
-//		   */
-//		  void execute(TSDB tsdb, HttpQuery query) throws IOException;		  
-//
-//	  }		
 	
 	/** The connection manager collect stats method */
 	protected static final Method connMgrCollectStats;
@@ -260,7 +252,11 @@ public class TSDBJSONService {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "api/stats");
 			request.response().writeHeader(false);
-			httpRpcExec.invoke(statsRpc, tsdb, httpQueryCtor.newInstance(tsdb, httpRequest, request.response().channel));
+			InvocationChannel ichannel = new InvocationChannel(); 
+			httpRpcExec.invoke(statsRpc, tsdb, httpQueryCtor.newInstance(tsdb, httpRequest, ichannel));
+			HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
+			ChannelBuffer content = resp.getContent();
+			resp.getContent().readBytes(request.response().getChannelOutputStream(), content.readableBytes());
 			request.response().closeGenerator();
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats2", ex);

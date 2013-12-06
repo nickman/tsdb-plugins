@@ -195,9 +195,10 @@ public class JSONResponse implements ChannelBufferizable {
 	
 	/**
 	 * Closes the open json generator and writes the content back to the caller.
+	 * @return this JSONResponse
 	 */
-	public void closeGenerator() {
-		if(jsonGen==null || jsonGen.isClosed()) throw new RuntimeException("The json generator is null or has already been closed");
+	public JSONResponse closeGenerator() {
+		if(jsonGen==null || jsonGen.isClosed()) throw new RuntimeException("The json generator " + (jsonGen==null ? "is null" : "has already been closed"));
 		try {
 			if(openedAsMap) {
 				jsonGen.writeEndObject();
@@ -207,6 +208,7 @@ public class JSONResponse implements ChannelBufferizable {
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();
+			return this;
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to close JsonGenerator", ex);
 		}

@@ -62,13 +62,13 @@ public class TSDBJSONService {
 		Method cmgr = null;
 		Method rhand = null;
 		try {
-			cmgr = Class.forName("net.opentsdb.tsd.CollectionManager").getDeclaredMethod("collectStats", StatsCollector.class);
+			cmgr = Class.forName("net.opentsdb.tsd.ConnectionManager", true, TSDB.class.getClassLoader()).getDeclaredMethod("collectStats", StatsCollector.class);
 			cmgr.setAccessible(true);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from ConnectionManager", ex);
 		}
 		try {
-			rhand = Class.forName("net.opentsdb.tsd.RpcHandler").getDeclaredMethod("collectStats", StatsCollector.class);
+			rhand = Class.forName("net.opentsdb.tsd.RpcHandler", true, TSDB.class.getClassLoader()).getDeclaredMethod("collectStats", StatsCollector.class);
 			rhand.setAccessible(true);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger(TSDBJSONService.class).error("Failed to get CollectStats method from RpcHandler", ex);

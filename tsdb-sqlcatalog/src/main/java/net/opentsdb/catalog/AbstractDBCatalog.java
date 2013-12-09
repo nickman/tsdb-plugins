@@ -474,6 +474,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public void shutdown() {
 		log.info("\n\t================================================\n\tStopping TSDB Catalog DB\n\tName:{}\n\t================================================", cds.getConfig().getJdbcUrl());
+		if(syncQueueProcessor!=null && syncQueueProcessor.isRunning()) {
+			syncQueueProcessor.stopAndWait();
+			syncQueueProcessor = null;
+		}
 		doShutdown();
 		if(cds!=null) {
 			cds.shutdown();

@@ -135,11 +135,15 @@ public class JSONResponse implements ChannelBufferizable {
 		if(channelOutputStream==null) {
 			channelOutputStream = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(8096, bufferFactory)) {
 				final ChannelBuffer buf = this.buffer();
+				boolean closed = false;
 				@Override
 				public void close() throws IOException {
-					super.flush();					
-					super.close();
-					channel.write(buf);
+					if(!closed) {
+						closed = true;
+						super.flush();					
+						super.close();
+						channel.write(buf);
+					}
 				}
 			};
 		}

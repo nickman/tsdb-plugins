@@ -6,6 +6,7 @@ package org.helios.tsdb.plugins.util.unsafe;
 import gnu.trove.map.hash.TLongLongHashMap;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.ProtectionDomain;
 import java.util.HashSet;
@@ -249,17 +250,17 @@ public class UnsafeAdapter {
             int copyMemCount = 0;
             int setMemCount = 0;
 //            log("\n\t=======================================================\n\tUnsafe Method Analysis\n\t=======================================================");
-//            for(Method method: Unsafe.class.getDeclaredMethods()) {
-//            	if("copyMemory".equals(method.getName())) {
-//            		copyMemCount++;
+            for(Method method: Unsafe.class.getDeclaredMethods()) {
+            	if("copyMemory".equals(method.getName())) {
+            		copyMemCount++;
 //            		log(method.toGenericString());
-//            		
-//            	}
-//            	if("setMemory".equals(method.getName())) {
-//            		setMemCount++;
+            		
+            	}
+            	if("setMemory".equals(method.getName())) {
+            		setMemCount++;
 //            		log(method.toGenericString());
-//            	}
-//            }
+            	}
+            }
 //            log("\n\t=======================================================\n");
             FIVE_COPY = copyMemCount>1;
             FOUR_SET = setMemCount>1;

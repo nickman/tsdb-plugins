@@ -82,7 +82,7 @@ public abstract class AbstractJSONRequestHandlerInvoker  {
 	 * The byte-code generated json request invoker
 	 * @param jsonRequest the request to invoke
 	 */
-	protected abstract void doInvoke(JSONRequest jsonRequest);
+	public abstract void doInvoke(JSONRequest jsonRequest);
 
 	/**
 	 * Returns the target service name

@@ -184,15 +184,6 @@ public class TSDBJSONService {
 			ObjectReader reader = jsonMapper.reader();
 			JsonNode contentNode = reader.readTree(cbis);
 			cbis.close();
-			
-			String cType = resp.getHeader("Content-Type");
-			if(cType!=null) {
-				if(cType.startsWith("text")) {
-					
-				} else {
-					
-				}
-			}
 			if(asMap) {
 				ObjectNode on = (ObjectNode)contentNode;
 				Iterator<Map.Entry<String, JsonNode>> nodeIter = on.fields();
@@ -519,6 +510,12 @@ public class TSDBJSONService {
 	}
 	
 	
+	/**
+	 * Flattens a json query node into a string matching the subquery format
+	 * @param tsuid true if a tsuid based subquery, false if metric based
+	 * @param qNodes The array of nodes to format
+	 * @return a sub query string
+	 */
 	public String flattenQueries(boolean tsuid, ArrayNode qNodes) {
 		if(qNodes==null) return "";
 		StringBuilder b = new StringBuilder();
@@ -536,6 +533,20 @@ public class TSDBJSONService {
 		
 		return b.deleteCharAt(b.length()-1).toString();
 	}
+	
+	/**
+	 * Executes the named groovy script passed in the JSONRequest.
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="groovy", description="Executes the named groovy script passed in the JSONRequest")
+	public void groovy(JSONRequest request) {
+		try {
+		} catch (Exception ex) {
+			log.error("Failed to invoke groovy", ex);
+			request.error("Failed to invoke groovy", ex);
+		}
+	}
+	
 	
 	/**
 	 * Extracts the named value from the passed node

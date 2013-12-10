@@ -101,6 +101,7 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		this.pluginContext = pluginContext;
 		this.tsdb = pluginContext.getTsdb();
 		this.config = pluginContext.getExtracted();
+		pluginContext.setResource("groovy-service", this);
 		objectName = JMXHelper.objectName(getClass().getPackage().getName() + ":service=" + getClass().getSimpleName());
 		compilerConfigurationObjectName = JMXHelper.objectName(objectName.toString() + ",type=CompilerConfiguration");
 		imports.add("import org.helios.apmrouter.groovy.annotations.*");

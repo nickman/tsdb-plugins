@@ -98,15 +98,21 @@ public class NettyRPCService extends AbstractRPCService {
 	protected void startImpl() {
 		if(ipSocketAddress==null) {
 			log.info("NettyRPCService Disabled.");
+			return;
 		}
-		bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
-		workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
-		nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
-		pipelineFactory = RemotingPipelineFactory.getInstance();
-		serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
-		serverBootstrap.setPipelineFactory(pipelineFactory);
-		serverBootstrap.bind(ipSocketAddress);
-		log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
+		try {
+			bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
+			workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
+			nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
+			pipelineFactory = RemotingPipelineFactory.getInstance();
+			serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
+			serverBootstrap.setPipelineFactory(pipelineFactory);
+			serverBootstrap.bind(ipSocketAddress);
+			log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
+		} catch (Exception ex) {
+			log.error("Failed to start NettyRPCService", ex);
+			throw new RuntimeException("Failed to start NettyRPCService", ex);
+		}
 	}
 	
 	/**

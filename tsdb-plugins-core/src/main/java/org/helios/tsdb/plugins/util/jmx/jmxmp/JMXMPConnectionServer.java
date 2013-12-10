@@ -91,6 +91,14 @@ public class JMXMPConnectionServer extends AbstractService {
 			log.info("Service URL:[{}]", serviceUrl);
 			server = JMXConnectorServerFactory.newJMXConnectorServer(serviceUrl, null, JMXHelper.getHeliosMBeanServer());
 			JMXHelper.registerMBean(server, JMXMP_SERVER_OBJECT_NAME);
+			final JMXMPConnectionServer _this = this;
+			Thread shutdown = new Thread("JMXServerShutdownHook") {
+				public void run() {
+					_this.stop();
+				}
+			};
+			shutdown.setDaemon(true);
+			Runtime.getRuntime().addShutdownHook(shutdown);
 			server.start();
 		} catch (Exception ex) {
 			log.error("Failed to start JMXMP Connector Server", ex);

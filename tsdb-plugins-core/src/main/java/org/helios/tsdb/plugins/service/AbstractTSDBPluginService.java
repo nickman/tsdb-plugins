@@ -103,6 +103,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	/** Indicates if publish is enabled AND the configured search plugin is shell.Publish */
 	protected boolean publishEnabled = false;
 	
+	/** The jmx server */
+	protected JMXMPConnectionServer jmxServer = null; 
+	
 	/** A set of registered publish event handlers */
 	protected final Set<IPublishEventHandler> publishHandlers = new CopyOnWriteArraySet<IPublishEventHandler>();
 	/** A set of registered search event handlers */
@@ -202,6 +205,9 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		rpcServices.clear();
 		plugins.clear();
 		log.info("All RPCServices stopped");
+		if(jmxServer!=null && jmxServer.isRunning()) {
+			jmxServer.stop();
+		}
 		doPostShutdown();
 		log.info("\n\t====================================\n\tStopped PluginService [{}]\n\t====================================", getClass().getSimpleName());
 		shutdownDeferred.callback(true);
@@ -233,7 +239,8 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				scheduleHandle = scheduler.scheduleWithFixedDelay(this, 15, 15, TimeUnit.SECONDS);
 				log.info("Started Stats Collector Scheduling");
 			}
-			new JMXMPConnectionServer(config).start();
+			jmxServer = new JMXMPConnectionServer(config);			
+			jmxServer.start();
 			groovyService = new GroovyService(pluginContext);
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 		} catch (Exception ex) {

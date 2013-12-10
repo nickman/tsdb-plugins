@@ -25,6 +25,8 @@
 package org.helios.tsdb.plugins.remoting.json.services;
 
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,7 @@ import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.FileRegion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +65,23 @@ public class InvocationChannel implements Channel {
 	@Override
 	public ChannelFuture write(Object message) {
 		if(message!=null) {
-			channelWrites.add(message);
+			if(message instanceof FileRegion) {
+				try {
+					Pipe pipe = Pipe.open();
+					FileRegion fr = (FileRegion)message;
+					
+					long bytesToRead = fr.getCount();
+					fr.transferTo(pipe.sink(), 0L);
+					byte[] content = new byte[(int)bytesToRead];
+					pipe.source().read(ByteBuffer.wrap(content));
+					channelWrites.add(content);
+				} catch (Exception ex) {
+					log.error("Failed to read content from pipe", ex);
+					channelWrites.add(ex);
+				}
+			} else {
+				channelWrites.add(message);
+			}
 			log.info("Received Channel Write [{}]  type:[{}]", message, message.getClass().getName());
 		}
 		

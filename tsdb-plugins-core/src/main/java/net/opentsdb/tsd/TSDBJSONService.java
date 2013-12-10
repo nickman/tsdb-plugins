@@ -26,11 +26,17 @@ package net.opentsdb.tsd;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.nio.charset.Charset;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import net.opentsdb.core.TSDB;
 
@@ -41,8 +47,10 @@ import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.InvocationChannel;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
+import org.helios.tsdb.plugins.util.SystemClock;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.codec.base64.Base64;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
 import org.jboss.netty.handler.codec.http.HttpMethod;
@@ -59,6 +67,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stumbleupon.async.Callback;
 
 /**
  * <p>Title: TSDBJSONService</p>
@@ -117,12 +126,12 @@ public class TSDBJSONService {
 	
 	/**
 	 * Handles a prepared WebSocket API invocation to retrieve a static file
-	 * @param asMap true if the JSON reponse is a map, false if it is an array
 	 * @param request The prepared HTTP request so we can piggy-back on the existing RpcHandler services.
 	 * @param response The JSONResponse to write back to
 	 * @throws IOException thrown on IO errors
 	 */
 	protected void invokeForFile(HttpRequest request, JSONResponse response) throws IOException {
+		@SuppressWarnings("resource")
 		JsonGenerator generator = response.writeHeader(true);
 		
 		InvocationChannel ichannel = new InvocationChannel();
@@ -130,19 +139,21 @@ public class TSDBJSONService {
 		HttpQuery query = new HttpQuery(tsdb, request, ichannel);
 		String baseRoute = query.getQueryBaseRoute();
 		http_commands.get(baseRoute).execute(tsdb, query);
-		HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
+		HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);
+		byte[] regionBytes = (byte[])ichannel.getWrites().get(1);
+		
 		List<Map.Entry<String, String>> responseHeaders = resp.getHeaders();
 		for(Map.Entry<String, String> entry: responseHeaders) {
 			generator.writeStringField(entry.getKey(), entry.getValue());
-			log.info("Reponse Header: [{}] : [{}]", entry.getKey(), entry.getValue());
+			//log.info("Reponse Header: [{}] : [{}]", entry.getKey(), entry.getValue());
 		}
-		ChannelBuffer content = resp.getContent();
+		
 		String cType = resp.getHeader("Content-Type");
 		if(cType!=null) {
 			if(cType.startsWith("text")) {
-				generator.writeStringField("content", content.toString(Charset.defaultCharset()));
+				generator.writeStringField("content", new String(regionBytes));
 			} else {
-				ChannelBuffer b64 = Base64.encode(content);
+				ChannelBuffer b64 = Base64.encode(ChannelBuffers.wrappedBuffer(regionBytes));
 				byte[] bytes = new byte[b64.readableBytes()];
 				b64.readBytes(bytes);
 				generator.writeBinaryField("content", bytes);
@@ -160,41 +171,45 @@ public class TSDBJSONService {
 	 * @throws IOException thrown on IO errors
 	 */
 	protected void invoke(boolean asMap, HttpRequest request, JSONResponse response) throws IOException {
-		@SuppressWarnings("resource")
-		JsonGenerator generator = response.writeHeader(asMap);
-		InvocationChannel ichannel = new InvocationChannel();
-		HttpQuery query = new HttpQuery(tsdb, request, ichannel);
-		String baseRoute = query.getQueryBaseRoute();
-		http_commands.get(baseRoute).execute(tsdb, query);
-		HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
-		ChannelBuffer content = resp.getContent();
-		ChannelBufferInputStream cbis =  new ChannelBufferInputStream(content);
-		ObjectReader reader = jsonMapper.reader();
-		JsonNode contentNode = reader.readTree(cbis);
-		cbis.close();
-		
-		String cType = resp.getHeader("Content-Type");
-		if(cType!=null) {
-			if(cType.startsWith("text")) {
-				
+		try {
+			@SuppressWarnings("resource")
+			JsonGenerator generator = response.writeHeader(asMap);
+			InvocationChannel ichannel = new InvocationChannel();
+			HttpQuery query = new HttpQuery(tsdb, request, ichannel);
+			String baseRoute = query.getQueryBaseRoute();
+			http_commands.get(baseRoute).execute(tsdb, query);
+			HttpResponse resp = (HttpResponse)ichannel.getWrites().get(0);			
+			ChannelBuffer content = resp.getContent();
+			ChannelBufferInputStream cbis =  new ChannelBufferInputStream(content);
+			ObjectReader reader = jsonMapper.reader();
+			JsonNode contentNode = reader.readTree(cbis);
+			cbis.close();
+			
+			String cType = resp.getHeader("Content-Type");
+			if(cType!=null) {
+				if(cType.startsWith("text")) {
+					
+				} else {
+					
+				}
+			}
+			if(asMap) {
+				ObjectNode on = (ObjectNode)contentNode;
+				Iterator<Map.Entry<String, JsonNode>> nodeIter = on.fields();
+				while(nodeIter.hasNext()) {
+					Map.Entry<String, JsonNode> node = nodeIter.next();
+					generator.writeObjectField(node.getKey(), node.getValue());
+				}
 			} else {
-				
+				ArrayNode an = (ArrayNode)contentNode;
+				for(int i = 0; i < an.size(); i++) {
+					generator.writeObject(an.get(i));
+				}			
 			}
+			response.closeGenerator();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
 		}
-		if(asMap) {
-			ObjectNode on = (ObjectNode)contentNode;
-			Iterator<Map.Entry<String, JsonNode>> nodeIter = on.fields();
-			while(nodeIter.hasNext()) {
-				Map.Entry<String, JsonNode> node = nodeIter.next();
-				generator.writeObjectField(node.getKey(), node.getValue());
-			}
-		} else {
-			ArrayNode an = (ArrayNode)contentNode;
-			for(int i = 0; i < an.size(); i++) {
-				generator.writeObject(an.get(i));
-			}			
-		}
-		response.closeGenerator();
 		
 	}
 	
@@ -249,6 +264,297 @@ public class TSDBJSONService {
 			request.error("Failed to invoke s/file", ex);
 		}
 	}
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/version.html">/s</a> OpenTSDB version info API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="dropcaches", description="Drops all OpenTSDB server caches")
+	public void dropcaches(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/dropcaches?json=true");
+			invoke(true, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke dropcaches", ex);
+			request.error("Failed to invoke dropcaches", ex);
+		}
+	}
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/logs.html">/s</a> logs API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="logs", description="Returns JSOINized OpenTSDB log file entries")
+	public void logs(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/logs?json=true");
+			invoke(true, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke logs", ex);
+			request.error("Failed to invoke logs", ex);
+		}
+	}
+	
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/dropcaches.html">/s</a> drop caches API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="version", description="Retrieves the OpenTSDB version info")
+	public void version(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/version?json=true");
+			invoke(true, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke version", ex);
+			request.error("Failed to invoke version", ex);
+		}
+	}
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/dropcaches.html">/s</a> aggregators API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="aggregators", description="Retrieves the OpenTSDB available aggregator names")
+	public void aggregators(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/aggregators?json=true");
+			invoke(false, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke aggregators", ex);
+			request.error("Failed to invoke aggregators", ex);
+		}
+	}
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/config.html">/s</a> config API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="config", description="Retrieves the OpenTSDB configuration")
+	public void config(JSONRequest request) {
+		try {
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/config?json=true");
+			invoke(true, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke config", ex);
+			request.error("Failed to invoke config", ex);
+		}
+	}
+	
+	/** The recognized numeric type codes (F=float, L=long, D=double) in uppercase  */
+	public static final Set<String> ALLOWED_N_TYPES = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList("F", "L", "D")));
+	
+	/**
+	 * Writes out the system properties as JSON to the caller
+	 * @param request the request
+	 * <p>This is a simple example of a JavaScript invocation of this service over websockets:
+	 * <pre>
+	 * var c = '{"t":"req", "rid":1, "svc":"tsdb", "op":"points", "points":[{"m":"sys.cpu", "v":"32", "tags": {"host":"webserver1"}}, {"m":"sys.cpu", "v":"19","tags": {"host":"webserver2"}}]}';
+	 * ws.send(c);
+	 * </pre></p>
+	 * <p>The above example uses default timestamping meaning that the timestamp submitted to the TSDB is taken as
+	 * the current time at the point that the request is received and then used for all submitted points.</p>.
+	 * <p>Alternatively, the timestamp can be specified as the request level and then used for each submitted point:
+	 * <pre>
+	 * var b = '{"t":"req", "rid":1, "svc":"tsdb", "op":"points", "ts":"' + Math.round(new Date().getTime()/1000) + '", "points":[{"m":"sys.cpu", "v":"32", "tags": {"host":"webserver1"}}, {"m":"sys.cpu", "v":"19","tags": {"host":"webserver2"}}]}';
+	 * ws.send(b);
+	 * </pre></p>
+	 * <p>Lastly, the timestamp can be specified for each point:
+	 * <pre>
+	 * var a = '{"t":"req", "rid":1, "svc":"tsdb", "op":"points", "points":[{"m":"sys.cpu", "ts":"' + Math.round(new Date().getTime()/1000) + '", "v":"32", "tags": {"host":"webserver1"}}, {"m":"sys.cpu", "ts":"' + Math.round(new Date().getTime()/1000) + '","v":"19","tags": {"host":"webserver2"}}]}';
+	 * ws.send(a);
+	 * </pre></p>
+	 * <p>If a point timestamp is specified, it will override the request specified timestamp. If neither a point or a request timestamp
+	 * is specified, the default timestamp will be used. The submitted points can interlace specified and non-specified timestamps.</p>
+	 * <p>The numeric type of the point value (keyed with the json key <b><code>"v"</code></b>) will be interpreted as a <b><code>long</code></b>
+	 * by default. This can be overriden by specifiying a numeric type with the json key <b><code>"nt"</code></b> specified at the point level. 
+	 * The numeric types recognized are specified in {@link #ALLOWED_N_TYPES}.</p>.
+	 * <p>A completion message will be returned to the caller for each submitted point as the TSDB callback is received. This can be replaced
+	 * with a single callback indicating to the caller that the request was received 
+	 * using a no-confirm at the request level as follows: <b><code>"noc":true</code></b>.</p>
+	 * <p>The responses sent back to the caller with the above examples would appear as follows: (leading timestamp and "received:" generated by <a href="https://chrome.google.com/webstore/detail/old-websocket-terminal/cpopfplgicdljhakjpdochbbiodlgaoc?hl=en">Old WebSocketTerminal</a><ul>
+	 * 		<li><b>Without a noc or noc=false</b>
+	 * 		<pre>
+	 * 			09:31:26	received:	{"id":189215650,"rerid":1,"t":"resp","msg":"sys.cpu:{host=webserver1}[L]t(Thu Dec 05 09:31:26 EST 2013)","op":"ok"}
+	 * 			09:31:26	received:	{"id":276912657,"rerid":1,"t":"resp","msg":"sys.cpu:{host=webserver2}[L]t(Thu Dec 05 09:31:26 EST 2013)","op":"ok"} 
+	 * 		</pre>
+	 * 		</li>
+	 * 		<li><b>With noc=true</b>
+	 * 		<pre>
+	 * 			09:33:44	received:	{"id":599311176,"rerid":1,"t":"resp","msg":{"points":2},"op":"ok"}
+	 * 		</pre>
+	 * 		</li>
+	 * </ul></p>
+	 * TODO: Handle errors and return error messages to caller.
+	 * TODO: Implement hierarchical json tree of points for a smaller and more normalized payload
+	 */
+	@JSONRequestHandler(name="points", description="Submits an array of datapoints to the TSDB")
+	public void addPoint(final JSONRequest request) {
+		if(request==null) throw new IllegalArgumentException("The passed request was null");
+		final long defaultTimestamp = SystemClock.unixTime();
+		try {
+			long requestTimestamp = defaultTimestamp;
+			if(request.getRequest().get("ts")!=null) {
+				JsonNode tNode = request.getRequest().get("ts");
+				if(tNode.isLong()) {
+					requestTimestamp = tNode.asLong();
+				}
+			}
+			final boolean sendConfirm;
+			if(request.getRequest().get("noc")!=null) {
+				
+				JsonNode tNode = request.getRequest().get("noc");
+				if(tNode.isBoolean()) {
+					sendConfirm = !tNode.asBoolean();
+				} else {
+					sendConfirm = true;
+				}
+			} else {
+				sendConfirm = true;
+			}
+			ArrayNode pointsArr = (ArrayNode)request.getRequest().get("points");
+			int pointsProcessed = 0;
+			for(int i = 0; i < pointsArr.size(); i++) {
+				ObjectNode point = (ObjectNode)pointsArr.get(i);
+				String metric = point.get("m").asText();
+				long pointTimestamp = requestTimestamp;
+				JsonNode tNode = point.get("ts");
+				if(tNode!=null && tNode.isLong()) {
+					pointTimestamp = tNode.asLong();
+				}
+				ObjectNode tagNode = (ObjectNode)point.get("tags");
+				Map<String, String> tags = new TreeMap<String, String>();
+				Iterator<String> titer = tagNode.fieldNames();
+				while(titer.hasNext()) {
+					String key = titer.next();
+					tags.put(key, tagNode.get(key).asText());
+				}
+				String numericType = null;
+				JsonNode numericTypeNode = point.get("nt");
+				if(numericTypeNode==null) {
+					numericType = "L";
+				} else {
+					numericType = numericTypeNode.asText().trim().toUpperCase();
+					if(!ALLOWED_N_TYPES.contains(numericType)) {
+						throw new Exception("Unrecognized numeric type code [" + numericType + "]");
+					}
+				}
+				final String metricName = String.format("%s:%s[%s]t(%s)", metric, tags.toString(), numericType, new Date(pointTimestamp*1000));
+				final Callback<Object, Object> completionCallback = new Callback<Object, Object>() {
+					@Override
+					public Object call(Object arg) throws Exception {							
+						if(sendConfirm) {
+							request.response().setContent(metricName).send();
+						}
+						return null;
+					}					
+				};
+				if("L".equals(numericType)) {
+					tsdb.addPoint(metric, pointTimestamp, point.get("v").asLong(), tags).addCallback(completionCallback);
+					pointsProcessed++;
+				} else if("F".equals(numericType)) {
+					float f = (float)point.get("v").asDouble();
+					tsdb.addPoint(metric, pointTimestamp, f, tags).addCallback(completionCallback);
+					pointsProcessed++;
+				} else if("D".equals(numericType)) {
+					tsdb.addPoint(metric, pointTimestamp, point.get("v").asDouble(), tags).addCallback(completionCallback);
+					pointsProcessed++;
+				}
+				log.debug("Submitted meric [{}]", metricName);
+			}
+			if(!sendConfirm) {
+				request.response().setContent(nodeFactory.objectNode().set("points", nodeFactory.numberNode(pointsProcessed))).send();
+			}
+		} catch (Exception ex) {
+			log.error("Failed to add points", ex);
+			request.error("Failed to add points", ex).send();
+		}
+	}
+	
+	/**
+	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/query.html">api/query</a> API call
+	 * @param request The JSONRequest
+	 */
+	@JSONRequestHandler(name="query", description="Collects TSDB wide stats and returns them in JSON format to the caller")
+	public void query(JSONRequest request) {
+		try {
+			
+			Map<Object, Object> args = request.arguments;
+			// Required Fields
+			String startTime = arg(args, "start", null, true).toString();
+			
+			// Psuedo Required Fields
+			ArrayNode mqueries = (ArrayNode)arg(args, "m", null, false);
+			ArrayNode tqueries = (ArrayNode)arg(args, "tsuids", null, false);
+			if(mqueries==null && tqueries==null) {
+				throw new Exception("No parameter provided for 'm' or 'tsuids'");
+			}
+			ArrayNode queries = mqueries==null ? tqueries : mqueries;
+			String flatQueries = flattenQueries(tqueries!=null, queries);
+			
+			
+			// Optional Fields
+			String endTime = arg(args, "end", SystemClock.unixTime(), false).toString();
+			boolean noAnnotations = arg(args, "no_annotations", true, false).toString().equalsIgnoreCase("true");
+			boolean globalAnnotations = arg(args, "global_annotations", false, false).toString().equalsIgnoreCase("true");
+			boolean msResolution = arg(args, "ms", false, false).toString().equalsIgnoreCase("true");
+			boolean showTSUIDs = arg(args, "show_tsuids", false, false).toString().equalsIgnoreCase("true");
+			
+			StringBuilder uri = new StringBuilder("json=true");
+			uri.append("&start=").append(startTime);
+			uri.append("&m=").append(flatQueries);
+			uri.append("&no_annotations=").append(noAnnotations);
+			uri.append("&end=").append(endTime);
+			uri.append("&no_annotations=").append(globalAnnotations);
+			uri.append("&ms=").append(msResolution);
+			uri.append("&show_tsuids=").append(showTSUIDs);
+			
+			//HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/query?" + URLEncoder.encode(uri.toString(), "UTF8"));
+			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/query?" + uri.toString());
+			invoke(false, httpRequest, request.response());
+		} catch (Exception ex) {
+			log.error("Failed to invoke stats", ex);
+			request.error("Failed to invoke stats", ex);
+		}
+	}
+	
+	
+	public String flattenQueries(boolean tsuid, ArrayNode qNodes) {
+		if(qNodes==null) return "";
+		StringBuilder b = new StringBuilder();
+		for(JsonNode qNode: qNodes) {
+			ObjectNode on = (ObjectNode)qNode;
+			b.append(on.get("a").asText()).append(":");
+			ObjectNode rateOptions = (ObjectNode)on.get("rate");
+			if(rateOptions!=null) {
+				
+			}
+			b.append(on.get("m").asText()).append(":");
+			
+		}
+		
+		
+		return b.deleteCharAt(b.length()-1).toString();
+	}
+	
+	/**
+	 * Extracts the named value from the passed node
+	 * @param node The node to extract from
+	 * @param name The name of the value to extract
+	 * @param defaultValue The default value 
+	 * @param required true if required
+	 * @return the value
+	 */
+	protected Object arg(Map<Object, Object> node, String name, Object defaultValue, boolean required) {
+		Object v = node.get(name);
+		if(v==null) {
+			if(!required) return defaultValue;
+			else throw new RuntimeException("Request was missing required attribute [" + name + "]");
+		}
+		return v;
+	}
+	
+	
 	
 	/**
 	 * Loads and indexes an instance of the named HttpRpc class

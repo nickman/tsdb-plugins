@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
+import javax.script.Bindings;
 
 import net.opentsdb.core.TSDB;
 
@@ -303,6 +304,22 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 
 	public Object invoke(String name, String methodName) {
 		return invoke(name, methodName, EMPTY_OBJ_ARR);
+	}
+	
+	/**
+	 * Runs the named compiled script 
+	 * @param scriptName The name of the script to run
+	 * @param args The arguments passed to the script invocation bound as a property named <b><code>args</code></b>.
+	 * @return The return value from the script invocation
+	 */
+	public Object invokeScript(String scriptName, Object...args) {
+		if(scriptName==null || scriptName.trim().isEmpty()) throw new IllegalArgumentException("ScriptName was null or empty");
+		Script script = this.compiledScripts.get(scriptName);
+		if(script==null) throw new RuntimeException("No Script found for ScriptName [" + scriptName + "]");
+		Binding binds = getBindings();
+		binds.setProperty("args", args);
+		script.setBinding(binds);
+		return script.run();
 	}
 	
 	

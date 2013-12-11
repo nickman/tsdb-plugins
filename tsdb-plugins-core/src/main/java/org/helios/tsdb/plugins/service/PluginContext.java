@@ -7,6 +7,13 @@ import javax.sql.DataSource;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
 
+/**
+ * <p>Title: PluginContext</p>
+ * <p>Description: Defines the shared context used to share objects between plugin services</p> 
+ * <p>Company: Helios Development Group LLC</p>
+ * @author Whitehead (nwhitehead AT heliosdev DOT org)
+ * <p><code>org.helios.tsdb.plugins.service.PluginContext</code></p>
+ */
 public interface PluginContext {
 
 	/**
@@ -48,6 +55,26 @@ public interface PluginContext {
 	 */
 	public void setResource(String name, Object value);
 
+	/**
+	 * Registers a resource listener. If a matching resource is already registered, 
+	 * the listener will be invoked immediately.
+	 * @param listener The listener to register
+	 */
+	public void addResourceListener(IPluginContextResourceListener listener);
 	
+	/**
+	 * Registers a resource listener. If a matching resource is already registered, 
+	 * the listener will be invoked immediately.
+	 * @param listener The listener to register
+	 * @param filter A filter to restrict the resources that trigger a callback on the passed listener
+	 */
+	public void addResourceListener(IPluginContextResourceListener listener, IPluginContextResourceFilter filter);
+
+	/**
+	 * Removes a registered resource listener
+	 * @param listener The listener to remove
+	 */
+	public void removeResourceListener(IPluginContextResourceListener listener);
+
 
 }

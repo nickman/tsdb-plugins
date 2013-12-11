@@ -33,5 +33,10 @@ package org.helios.tsdb.plugins.service;
  */
 
 public interface IPluginContextResourceListener {
-	
+	/**
+	 * Callback from the plugin context when a resource is registered with the plugin context
+	 * @param name The name under which the resource was registered
+	 * @param resource The resource that was registered
+	 */
+	public void onResourceRegistered(String name, Object resource);
 }

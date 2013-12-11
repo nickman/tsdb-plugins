@@ -24,11 +24,12 @@
  */
 package org.helios.tsdb.plugins.service;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.sql.DataSource;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
@@ -52,6 +53,8 @@ public class PluginContextImpl implements PluginContext {
 	protected final ClassLoader supportClassLoader;
 	/** Miscellaneous named resources set for sharing across plugins */
 	protected final Map<String, Object> namedResources = new ConcurrentHashMap<String, Object>();
+	/** The registered resource listeners */
+	protected final Set<IPluginContextResourceListener> listeners = new CopyOnWriteArraySet<IPluginContextResourceListener>();
 	
 	/**
 	 * Creates a new PluginContextImpl
@@ -119,9 +122,71 @@ public class PluginContextImpl implements PluginContext {
 	 */
 	@Override
 	public void setResource(String name, Object value) {
+		if(name==null) throw new IllegalArgumentException("The passed name was null");
+		if(value==null) throw new IllegalArgumentException("The passed value was null");
 		namedResources.put(name, value);
+		for(IPluginContextResourceListener listener: listeners) {
+			listener.onResourceRegistered(name, value);
+		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#addResourceListener(org.helios.tsdb.plugins.service.IPluginContextResourceListener, org.helios.tsdb.plugins.service.IPluginContextResourceFilter)
+	 */
+	@Override
+	public void addResourceListener(final IPluginContextResourceListener listener, final IPluginContextResourceFilter filter) {
+		if(listener!=null) {
+			IPluginContextResourceListener _listener = filter==null ? listener : new IPluginContextResourceListener() {
+				@Override
+				public void onResourceRegistered(String name, Object resource) {
+					if(filter.include(name, resource)) {
+						listener.onResourceRegistered(name, resource);
+					}						
+				}
+				@Override
+				public boolean equals(Object obj) {						
+					return listener.equals(obj);
+				}
+				@Override
+				public int hashCode() {
+					return listener.hashCode();
+				}
+			}; 			
+			for(Map.Entry<String, Object> entry: namedResources.entrySet()) {
+				_listener.onResourceRegistered(entry.getKey(), entry.getValue());
+			}
+			listeners.add(_listener);
+		}		
+	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#addResourceListener(org.helios.tsdb.plugins.service.IPluginContextResourceListener)
+	 */
+	@Override
+	public void addResourceListener(IPluginContextResourceListener listener) {
+		addResourceListener(listener, null);
+	}
+	
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#removeResourceListener(org.helios.tsdb.plugins.service.IPluginContextResourceListener)
+	 */
+	@Override
+	public void removeResourceListener(IPluginContextResourceListener listener) {
+		if(listener!=null) {
+			if(!listeners.remove(listener)) {
+				for(Iterator<IPluginContextResourceListener> iter = listeners.iterator(); iter.hasNext();) {
+					IPluginContextResourceListener _listener = iter.next();
+					if(_listener.equals(listener) && _listener.hashCode()==listener.hashCode()) {
+						iter.remove();
+						break;
+					}
+				}
+			}
+		}
+	}
 
 }

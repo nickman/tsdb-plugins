@@ -26,7 +26,6 @@ package net.opentsdb.tsd;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -40,11 +39,13 @@ import java.util.TreeMap;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.groovy.GroovyService;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.InvocationChannel;
+import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.SystemClock;
@@ -77,7 +78,7 @@ import com.stumbleupon.async.Callback;
  * <p><code>net.opentsdb.tsd.TSDBJSONService</code></p>
  */
 @JSONRequestService(name="tsdb", description="TSDB JSON Remoting Services")
-public class TSDBJSONService {
+public class TSDBJSONService implements IPluginContextResourceListener {
 	/** The json node factory */
 	private final JsonNodeFactory nodeFactory = JsonNodeFactory.instance; 
 	/** The jackson object mapper */
@@ -91,7 +92,8 @@ public class TSDBJSONService {
 	protected final PluginContext pluginContext;
 	/** A map of http rpcs which we can piggy-back on */
 	protected final Map<String, HttpRpc> http_commands = new HashMap<String, HttpRpc>(11);
-
+	/** The groovy service instance */
+	protected GroovyService groovyService = null;
 	/**
 	 * Creates a new TSDBJSONService
 	 */
@@ -99,6 +101,7 @@ public class TSDBJSONService {
 		
 		tsdb = TSDBPluginServiceLoader.getLoaderInstance().getTSDB();
 		pluginContext = TSDBPluginServiceLoader.getLoaderInstance().getPluginContext();		
+		pluginContext.addResourceListener(this);
 		RpcHandler rpcHandler = new RpcHandler(tsdb);
 		loadInstanceOf("net.opentsdb.tsd.RpcHandler$DieDieDie", "diediedie", rpcHandler);
 		final StaticFileRpc staticfile = new StaticFileRpc();
@@ -221,7 +224,7 @@ public class TSDBJSONService {
 			t.start();			
 		} catch (Exception ex) {
 			log.error("Failed to invoke die", ex);
-			request.error("Failed to invoke die", ex);
+			request.error("Failed to invoke die", ex).send();
 		}
 	}
 	
@@ -236,7 +239,7 @@ public class TSDBJSONService {
 			invoke(false, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats", ex);
-			request.error("Failed to invoke stats", ex);
+			request.error("Failed to invoke stats", ex).send();
 		}
 	}
 	
@@ -252,7 +255,7 @@ public class TSDBJSONService {
 			invokeForFile(httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke s/file", ex);
-			request.error("Failed to invoke s/file", ex);
+			request.error("Failed to invoke s/file", ex).send();
 		}
 	}
 	
@@ -267,7 +270,7 @@ public class TSDBJSONService {
 			invoke(true, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke dropcaches", ex);
-			request.error("Failed to invoke dropcaches", ex);
+			request.error("Failed to invoke dropcaches", ex).send();
 		}
 	}
 	
@@ -282,7 +285,7 @@ public class TSDBJSONService {
 			invoke(true, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke logs", ex);
-			request.error("Failed to invoke logs", ex);
+			request.error("Failed to invoke logs", ex).send();
 		}
 	}
 	
@@ -298,7 +301,7 @@ public class TSDBJSONService {
 			invoke(true, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke version", ex);
-			request.error("Failed to invoke version", ex);
+			request.error("Failed to invoke version", ex).send();
 		}
 	}
 	
@@ -313,7 +316,7 @@ public class TSDBJSONService {
 			invoke(false, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke aggregators", ex);
-			request.error("Failed to invoke aggregators", ex);
+			request.error("Failed to invoke aggregators", ex).send();
 		}
 	}
 	
@@ -328,7 +331,7 @@ public class TSDBJSONService {
 			invoke(true, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke config", ex);
-			request.error("Failed to invoke config", ex);
+			request.error("Failed to invoke config", ex).send();
 		}
 	}
 	
@@ -505,7 +508,7 @@ public class TSDBJSONService {
 			invoke(false, httpRequest, request.response());
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats", ex);
-			request.error("Failed to invoke stats", ex);
+			request.error("Failed to invoke stats", ex).send();
 		}
 	}
 	
@@ -520,13 +523,31 @@ public class TSDBJSONService {
 		if(qNodes==null) return "";
 		StringBuilder b = new StringBuilder();
 		for(JsonNode qNode: qNodes) {
+			b.append("&m=");
 			ObjectNode on = (ObjectNode)qNode;
 			b.append(on.get("a").asText()).append(":");
 			ObjectNode rateOptions = (ObjectNode)on.get("rate");
 			if(rateOptions!=null) {
-				
+				JsonNode ctrNode = rateOptions.get("counter");
+				JsonNode ctrMaxNode = rateOptions.get("counterMax");
+				JsonNode ctrResetNode = rateOptions.get("resetValue");
+				if(ctrNode!=null) {
+					b.append("rate");
+					if(ctrNode!=null) {
+						b.append("counter");
+					}
+					if(ctrMaxNode!=null) {
+						b.append(",").append(ctrMaxNode.asLong());
+					}
+					if(ctrResetNode!=null) {
+						b.append(",").append(ctrResetNode.asLong());
+					}
+					b.append(":");
+				}
 			}
-			b.append(on.get("m").asText()).append(":");
+			b.append(on.get("met").asText()).append(":"); //req
+			b.append(on.get("ds").asText()).append(":");  //opt
+			b.append(on.get("tags").asText()).append(":"); //opt
 			
 		}
 		
@@ -537,13 +558,36 @@ public class TSDBJSONService {
 	/**
 	 * Executes the named groovy script passed in the JSONRequest.
 	 * @param request The JSONRequest
+	 * <p>Example:<pre>
+	 * 	var q = '{"t":"req", "rid":1, "svc":"tsdb", "op":"groovy", "args":{"name":"printenv", "groovy" : "return System.getenv(args[0].toString());", "e" : "HOSTNAME"}}'
+	 * 	ws.send(q);
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="groovy", description="Executes the named groovy script passed in the JSONRequest")
 	public void groovy(JSONRequest request) {
+		if(groovyService==null) {
+			request.error("GroovyService not enabled").send();
+			return;
+		}
 		try {
+			Map<Object, Object> args = request.arguments;
+			String name = ((JsonNode)args.get("name")).asText();
+			String script = ((JsonNode)args.get("name")).asText();
+			if(name==null) throw new Exception("Script name was not provided");
+			if(script==null) throw new Exception("Script source [groovy] was not provided");
+			args.remove("name"); args.remove("groovy");  args.remove("__");
+			groovyService.compile(name, script);
+			Object[] gargs = new String[args.size()];
+			int cnt = 0;
+			for(Object o: args.values()) {
+				gargs[cnt] = ((JsonNode)o).asText();
+				cnt++;
+			}
+			Object response = groovyService.invokeScript(name, gargs);
+			request.response().setContent(jsonMapper.writeValueAsString(response)).send();			
 		} catch (Exception ex) {
 			log.error("Failed to invoke groovy", ex);
-			request.error("Failed to invoke groovy", ex);
+			request.error("Failed to invoke groovy", ex).send();
 		}
 	}
 	
@@ -583,6 +627,19 @@ public class TSDBJSONService {
 		} catch (Exception ex) {
 			log.warn("Failed to load HttpRpc instance for [{}]", className, ex);
 		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.IPluginContextResourceListener#onResourceRegistered(java.lang.String, java.lang.Object)
+	 */
+	@Override
+	public void onResourceRegistered(String name, Object resource) {
+		if(resource instanceof GroovyService) {
+			groovyService = (GroovyService)resource;
+			log.info("Set GroovyService");
+		}
+		
 	}
 
 }

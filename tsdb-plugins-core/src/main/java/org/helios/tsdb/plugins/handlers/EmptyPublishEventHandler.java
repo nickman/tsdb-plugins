@@ -26,7 +26,7 @@ public class EmptyPublishEventHandler extends AbstractTSDBEventHandler implement
 	@Override
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		log.info("Processing Sequence {} for Event [{}]", sequence, event);
-//		if(event.eventType==null || !event.eventType.isForPulisher()) return;		
+		if(event.eventType==null || !event.eventType.isForPulisher()) return;		
 //		if (event.eventType == TSDBEventType.DPOINT_DOUBLE) {
 //			publishDataPoint(event.metric, event.timestamp, event.doubleValue, event.tags, event.tsuidBytes);
 //		} else if (event.eventType == TSDBEventType.DPOINT_LONG) {

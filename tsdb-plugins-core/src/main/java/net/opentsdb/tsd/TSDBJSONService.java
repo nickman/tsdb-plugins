@@ -468,6 +468,10 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	/**
 	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/query.html">api/query</a> API call
 	 * @param request The JSONRequest
+	 * <p>Example:<pre>
+	 * 	var q = '{"t":"req", "rid":1, "svc":"tsdb", "op":"query", "args":{"start":"5m-ago", "m": [{"a":"avg","met":"jvm.ramfree"}]}}';
+	 * 	ws.send(q);
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="query", description="Collects TSDB wide stats and returns them in JSON format to the caller")
 	public void query(JSONRequest request) {
@@ -475,7 +479,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			
 			Map<Object, Object> args = request.arguments;
 			// Required Fields
-			String startTime = arg(args, "start", null, true).toString();
+			String startTime = ((JsonNode)arg(args, "start", null, true)).asText();
 			
 			// Psuedo Required Fields
 			ArrayNode mqueries = (ArrayNode)arg(args, "m", null, false);
@@ -488,15 +492,15 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			
 			
 			// Optional Fields
-			String endTime = arg(args, "end", SystemClock.unixTime(), false).toString();
-			boolean noAnnotations = arg(args, "no_annotations", true, false).toString().equalsIgnoreCase("true");
-			boolean globalAnnotations = arg(args, "global_annotations", false, false).toString().equalsIgnoreCase("true");
-			boolean msResolution = arg(args, "ms", false, false).toString().equalsIgnoreCase("true");
-			boolean showTSUIDs = arg(args, "show_tsuids", false, false).toString().equalsIgnoreCase("true");
+			String endTime = jarg(args, "end", SystemClock.unixTime(), false).asText();
+			boolean noAnnotations = jarg(args, "no_annotations", true, false).asBoolean();
+			boolean globalAnnotations = jarg(args, "global_annotations", false, false).asBoolean();
+			boolean msResolution = jarg(args, "ms", false, false).asBoolean();
+			boolean showTSUIDs = jarg(args, "show_tsuids", false, false).asBoolean();
 			
 			StringBuilder uri = new StringBuilder("json=true");
 			uri.append("&start=").append(startTime);
-			uri.append("&m=").append(flatQueries);
+			uri.append(flatQueries);
 			uri.append("&no_annotations=").append(noAnnotations);
 			uri.append("&end=").append(endTime);
 			uri.append("&no_annotations=").append(globalAnnotations);
@@ -507,8 +511,8 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/query?" + uri.toString());
 			invoke(false, httpRequest, request.response());
 		} catch (Exception ex) {
-			log.error("Failed to invoke stats", ex);
-			request.error("Failed to invoke stats", ex).send();
+			log.error("Failed to invoke query", ex);
+			request.error("Failed to invoke query", ex).send();
 		}
 	}
 	
@@ -545,14 +549,32 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 					b.append(":");
 				}
 			}
-			b.append(on.get("met").asText()).append(":"); //req
-			b.append(on.get("ds").asText()).append(":");  //opt
-			b.append(on.get("tags").asText()).append(":"); //opt
 			
+			if(on.has("ds")) {
+				b.append(on.get("ds").asText()).append(":");  //opt
+			}
+			if(on.has("tags")) {
+				b.append(on.get("tags").asText()).append(":"); //opt
+			}
+			if(!on.has("met")) {
+				throw new RuntimeException("No metric specified. (key is \"met\")");
+			}
+			b.append(on.get("met").asText()); //req
+			if(on.has("tags")) {
+				ObjectNode tagsNode = (ObjectNode)on.get("tags");
+				if(tagsNode.size()>0) {
+					b.append("{");
+					for(Iterator<String> is = tagsNode.fieldNames(); is.hasNext();) {
+						String v = is.next();
+						String k = tagsNode.get(v).asText();
+						b.append(v).append("=").append(k).append(",");
+					}
+					b.deleteCharAt(b.length()-1);					
+				}
+			}
 		}
-		
-		
-		return b.deleteCharAt(b.length()-1).toString();
+		log.info("Query String [{}]", b.toString());
+		return b.toString();
 	}
 	
 	/**
@@ -607,6 +629,19 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			else throw new RuntimeException("Request was missing required attribute [" + name + "]");
 		}
 		return v;
+	}
+	
+	protected JsonNode jarg(Map<Object, Object> node, String name, Object defaultValue, boolean required) {
+		Object v = node.get(name);
+		if(v==null) {
+			if(defaultValue==null) return nodeFactory.nullNode();
+			if(!required) return nodeFactory.POJONode(defaultValue);
+			else throw new RuntimeException("Request was missing required attribute [" + name + "]");
+		}
+		if(v instanceof JsonNode) {
+			return (JsonNode)v;
+		}
+		throw new RuntimeException("Item named [" + name + "] was of type [" + v.getClass().getName() + "] but was expected to be a JsonNode");
 	}
 	
 	

@@ -26,6 +26,7 @@ package org.helios.tsdb.plugins.rpc.netty;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.helios.tsdb.plugins.rpc.session.DefaultRPCSession;
 import org.helios.tsdb.plugins.rpc.session.IRPCSession;
 import org.helios.tsdb.plugins.rpc.session.ISessionLifecycle;
 import org.jboss.netty.channel.Channel;
@@ -57,16 +58,24 @@ public class NettyChannelSession implements ISessionLifecycle, ChannelFutureList
 	/**
 	 * Creates a new NettyChannelSession
 	 * @param channel The netty channel to associate to the session
-	 * @param session The session to associate with the Netty channel 
+	 * @param session The session to associate with the Netty channel. 
+	 * If null, a default instance will be created.
 	 */
 	public NettyChannelSession(Channel channel, IRPCSession session) {
 		if(channel==null) throw new IllegalArgumentException("The passed channel was null");
 		if(!channel.isOpen()) throw new IllegalStateException("The channel is not open");
-		if(session==null) throw new IllegalArgumentException("The passed session was null");
 		this.channel = channel;
-		this.session = session;
+		this.session = session!=null ? session : new DefaultRPCSession(this);
 		sessionId = Integer.toString(channel.getId());
 		log.info("Created Session [{}] with remote [{}]", sessionId, channel.getRemoteAddress());
+	}
+	
+	/**
+	 * Creates a new NettyChannelSession with a created default rpc session
+	 * @param channel The channel The netty channel to associate to the session
+	 */
+	public NettyChannelSession(Channel channel) {
+		this(channel, null);
 	}
 
 	/**

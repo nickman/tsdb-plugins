@@ -24,8 +24,15 @@
  */
 package org.helios.tsdb.plugins.rpc.netty.pipeline;
 
+import org.helios.tsdb.plugins.rpc.session.IRPCSession;
+import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
+import org.jboss.netty.channel.ChannelEvent;
+import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.ChannelState;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.logging.InternalLogLevel;
@@ -38,7 +45,7 @@ import org.jboss.netty.logging.InternalLogLevel;
  * <p><code>org.helios.tsdb.plugins.rpc.netty.pipeline.RemotingPipelineFactory</code></p>
  */
 
-public class RemotingPipelineFactory implements ChannelPipelineFactory {
+public class RemotingPipelineFactory implements ChannelPipelineFactory, ChannelUpstreamHandler {
 	/** The singleton instance */
 	protected static volatile RemotingPipelineFactory instance = null;
 	/** The singleton instance ctor lock */
@@ -67,7 +74,7 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory {
 	 * Creates a new RemotingPipelineFactory
 	 */
 	protected RemotingPipelineFactory() {
-
+		RPCSessionManager.getInstance();
 	}
 	
 	
@@ -79,9 +86,26 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory {
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
+		pipeline.addLast("session", this);
 		pipeline.addLast("logger", logger);
 		pipeline.addLast("protocolSwitch", protocolSwitch);
 		return pipeline;
+	}
+	
+	/**
+	 * <p>If the channel event is a {@link ChannelState#CONNECTED} event, a new {@link IRPCSession} is created for the connected channel.</p>
+	 * {@inheritDoc}
+	 * @see org.jboss.netty.channel.ChannelUpstreamHandler#handleUpstream(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelEvent)
+	 */
+	@Override
+	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+		if(e instanceof ChannelStateEvent) {
+			ChannelStateEvent cse = (ChannelStateEvent)e;
+			if(cse.getState()==ChannelState.CONNECTED && cse.getValue()!=null) {
+				RPCSessionManager.getInstance().getSession(e.getChannel());
+				ctx.getPipeline().remove(this);
+			}
+		}		
 	}
 
 }

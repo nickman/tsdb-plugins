@@ -25,14 +25,14 @@
 package org.helios.tsdb.plugins.rpc.session;
 
 /**
- * <p>Title: IRPCSession</p>
- * <p>Description: Defines an RPC session for retaining state on behalf of remote RPC clients</p> 
+ * <p>Title: IRPCSessionMBean</p>
+ * <p>Description: Session MBean to expose registered sessions as composite types</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.rpc.session.IRPCSession</code></p>
+ * <p><code>org.helios.tsdb.plugins.rpc.session.IRPCSessionMBean</code></p>
  */
 
-public interface IRPCSession extends IRPCSessionMBean {	
+public interface IRPCSessionMBean {
 	/**
 	 * Indicates if the session is expired
 	 * @return true if the session is expired, false otherwise
@@ -40,50 +40,10 @@ public interface IRPCSession extends IRPCSessionMBean {
 	public boolean isExpired();
 	
 	/**
-	 * Expires this session 
-	 */
-	public void expire();
-	
-	/**
 	 * Returns this session's unique id
 	 * @return this session's unique id
 	 */
 	public String getSessionId();
-	
-	/**
-	 * Touches the session, resetting the time to expire
-	 */
-	public void touch();
-	
-	/**
-	 * Returns the named untyped attribute from session state 
-	 * @param name The name of the attribute
-	 * @return the attribute value or null if not found
-	 */
-	public Object getAttribute(String name);
-	
-	/**
-	 * Returns the named typed attribute from session state 
-	 * @param name The name of the attribute
-	 * @param type The expected type of the attribute
-	 * @return the attribute value or null if not found
-	 */
-	public <T> T getAttribute(String name, Class<T> type);
-	
-	/**
-	 * Sets a session attribute
-	 * @param name The name of the attribute
-	 * @param value The attribute value
-	 * @return The value previously bound to the name, or null if the name was not bound
-	 */
-	public <T> T setAttribute(String name, T value);
-
-	/**
-	 * Clears a session attribute
-	 * @param name The name of the attribute
-	 * @return The value previously bound to the name, or null if the name was not bound
-	 */
-	public <T> T clearAttribute(String name);
 	
 	/**
 	 * Returns the bound attribute names for this session
@@ -116,6 +76,5 @@ public interface IRPCSession extends IRPCSessionMBean {
 	 */
 	public int getMaxInactiveInterval();
 	
-	
-	
+
 }

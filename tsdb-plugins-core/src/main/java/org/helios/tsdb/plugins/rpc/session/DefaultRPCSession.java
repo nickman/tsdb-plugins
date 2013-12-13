@@ -50,7 +50,8 @@ public class DefaultRPCSession implements IRPCSession {
 	protected final AtomicLong lastAccessTime = new AtomicLong();
 	/** The session attributes */
 	protected final Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
-	
+	/** A reference to the RPCSessionManager */
+	protected final RPCSessionManager sessionManager;
 	/**
 	 * Creates a new DefaultRPCSession
 	 * @param sessionLifecycle The session lifecycle
@@ -59,7 +60,18 @@ public class DefaultRPCSession implements IRPCSession {
 		this.sessionLifecycle = sessionLifecycle;
 		startTime = SystemClock.time();
 		lastAccessTime.set(startTime);
+		sessionManager = RPCSessionManager.getInstance();
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.rpc.session.IRPCSession#isExpired()
+	 */
+	@Override
+	public boolean isExpired() {
+		return sessionLifecycle.isExpired();
+	}
+	
 
 	/**
 	 * {@inheritDoc}

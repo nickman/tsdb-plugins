@@ -27,6 +27,7 @@ package org.helios.tsdb.plugins.rpc.netty;
 import org.helios.tsdb.plugins.rpc.session.DefaultRPCSession;
 import org.helios.tsdb.plugins.rpc.session.IRPCSession;
 import org.helios.tsdb.plugins.rpc.session.ITransportSessionFactory;
+import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.jboss.netty.channel.Channel;
 
 /**
@@ -63,7 +64,11 @@ public class NetyChannelSessionFactory implements ITransportSessionFactory {
 	public IRPCSession newRPCSession(Object transport) {
 		if(transport==null) throw new IllegalArgumentException("The passed transport was null");
 		if(!NETTY_CHANNEL.isInstance(transport)) throw new IllegalArgumentException("The passed transport type [" + transport.getClass().getName() + "] is not a Netty Channel");
-		return new DefaultRPCSession(new NettyChannelSession((Channel)transport));
+		Channel channel = (Channel)transport;
+		IRPCSession session = new DefaultRPCSession(new NettyChannelSession((Channel)transport));
+		session.addSessionAttribute(RPCSessionAttribute.Transport, "Netty");
+		session.addSessionAttribute(RPCSessionAttribute.RemoteAddress, "Netty");
+		return session;
 	}
 
 }

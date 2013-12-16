@@ -63,4 +63,9 @@ public interface RPCSessionManagerMXBean {
 	 * @return a map of the transport session factories registered keyed by the name of the class they support
 	 */
 	public Map<String, String> getTransportSessionFactories();
+	
+	/**
+	 * Expires all the sessions
+	 */
+	public void expireAll();
 }

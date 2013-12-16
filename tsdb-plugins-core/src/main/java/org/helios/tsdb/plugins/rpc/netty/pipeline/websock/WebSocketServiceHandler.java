@@ -34,6 +34,8 @@ import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
+import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -220,7 +222,7 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 				public void operationComplete(ChannelFuture f) throws Exception {
 					if(f.isSuccess()) {
 						Channel wsChannel = f.getChannel();
-						
+						RPCSessionManager.getInstance().getSession(wsChannel).addSessionAttribute(RPCSessionAttribute.Protocol, "WebSocket");
 //						SharedChannelGroup.getInstance().add(
 //								f.getChannel(), 
 //								ChannelType.WEBSOCKET_REMOTE, 

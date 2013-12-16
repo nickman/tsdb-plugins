@@ -32,6 +32,9 @@ import org.helios.tsdb.plugins.rpc.session.ISessionLifecycle;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.local.LocalChannel;
+import org.jboss.netty.channel.socket.DatagramChannel;
+import org.jboss.netty.channel.socket.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +68,12 @@ public class NettyChannelSession implements ISessionLifecycle, ChannelFutureList
 		if(channel==null) throw new IllegalArgumentException("The passed channel was null");
 		if(!channel.isOpen()) throw new IllegalStateException("The channel is not open");
 		this.channel = channel;
+		this.channel.getCloseFuture().addListener(this);
 		this.session = session!=null ? session : new DefaultRPCSession(this);
 		sessionId = Integer.toString(channel.getId());
 		log.info("Created Session [{}] with remote [{}]", sessionId, channel.getRemoteAddress());
 	}
+	
 	
 	/**
 	 * Creates a new NettyChannelSession with a created default rpc session
@@ -115,12 +120,11 @@ public class NettyChannelSession implements ISessionLifecycle, ChannelFutureList
 	@Override
 	public void operationComplete(ChannelFuture future) throws Exception {
 		Channel ch = future.getChannel();
-		if(ch!=null && !ch.isOpen()) {
-			if(expired.compareAndSet(false, true)) {
-				log.info("Expiring Session [{}]", sessionId);
-				session.expire();
-			}
+		if(expired.compareAndSet(false, true)) {
+			log.info("Expiring Session [{}]", sessionId);
+			session.expire();
 		}
+		
 	}
 
 }

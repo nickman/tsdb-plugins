@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.rpc.session;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -167,14 +168,17 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 	void expired(final IRPCSession expiredSession) {
 		if(expiredSession!=null) {
 			if(expiredSession.isExpired()) {
-				threadPool.execute(new Runnable() {
-					public void run() {
-						sessions.remove(expiredSession.getSessionId());
-						for(IRPCSessionListener listener: sessionListeners) {
-							listener.onSessionExpired(expiredSession);
-						}						
-					}
-				});
+				if(!sessionListeners.isEmpty()) {
+					threadPool.execute(new Runnable() {
+						public void run() {
+							sessions.remove(expiredSession.getSessionId());
+							for(IRPCSessionListener listener: sessionListeners) {
+								listener.onSessionExpired(expiredSession);
+							}						
+						}
+					});
+				}
+				sessions.remove(expiredSession.getSessionId());
 			}
 		}
 	}
@@ -185,13 +189,15 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 	 * @param attribute The attribute value
 	 */
 	void attributeBound(final String name, final Object attribute) {
-		threadPool.execute(new Runnable() {
-			public void run() {
-				for(IAttributeBindingListener listener: attributeListeners) {
-					listener.onAttributeBound(name, attribute);
+		if(!attributeListeners.isEmpty()) {
+			threadPool.execute(new Runnable() {
+				public void run() {
+					for(IAttributeBindingListener listener: attributeListeners) {
+						listener.onAttributeBound(name, attribute);
+					}
 				}
-			}
-		});
+			});
+		}
 	}
 	
 	
@@ -202,13 +208,15 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 	 * @param attribute The attribute value
 	 */
 	void attributeRemoved(final String name, final Object attribute) {
-		threadPool.execute(new Runnable() {
-			public void run() {
-				for(IAttributeBindingListener listener: attributeListeners) {
-					listener.onAttributeRemoved(name, attribute);
-				}		
-			}
-		});		
+		if(!attributeListeners.isEmpty()) {
+			threadPool.execute(new Runnable() {
+				public void run() {
+					for(IAttributeBindingListener listener: attributeListeners) {
+						listener.onAttributeRemoved(name, attribute);
+					}		
+				}
+			});
+		}
 	}
 	
 	/**
@@ -225,14 +233,16 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 				if(session==null) {
 					session = tmpSession;
 					sessions.put(session.getSessionId(), session);
-					final IRPCSession fsession = session;
-					threadPool.execute(new Runnable() {
-						public void run() {
-							for(IRPCSessionListener listener: sessionListeners) {
-								listener.onSessionCreated(fsession);
-							}													
-						}
-					});							
+					if(!sessionListeners.isEmpty()) {
+						final IRPCSession fsession = session;
+						threadPool.execute(new Runnable() {
+							public void run() {
+								for(IRPCSessionListener listener: sessionListeners) {
+									listener.onSessionCreated(fsession);
+								}													
+							}
+						});
+					}
 				}
 			}
 		}
@@ -351,6 +361,19 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 			factories.put(entry.getKey().getName(), entry.getValue().getClass().getName());
 		}
 		return factories;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.rpc.session.RPCSessionManagerMXBean#expireAll()
+	 */
+	@Override
+	public void expireAll() {
+		Set<IRPCSession> _sessions = new HashSet<IRPCSession>(sessions.values());
+		for(IRPCSession session: _sessions) {
+			session.expire();
+		}
+		_sessions.clear();		
 	}
 
 

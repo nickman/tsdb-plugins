@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.rpc.session;
 
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +52,9 @@ public class DefaultRPCSession implements IRPCSession {
 	protected final AtomicLong lastAccessTime = new AtomicLong();
 	/** The session attributes */
 	protected final Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
+	/** The session attributes */
+	protected final Map<RPCSessionAttribute, String> sessionAttributes = new EnumMap<RPCSessionAttribute, String>(RPCSessionAttribute.class);
+	
 	/** A reference to the RPCSessionManager */
 	protected final RPCSessionManager sessionManager;
 	/**
@@ -79,8 +84,8 @@ public class DefaultRPCSession implements IRPCSession {
 	 */
 	@Override
 	public void expire() {
-		// TODO Auto-generated method stub
-
+		sessionLifecycle.onSessionExpire();
+		sessionManager.expired(this);
 	}
 
 	/**
@@ -189,6 +194,30 @@ public class DefaultRPCSession implements IRPCSession {
 	public int getMaxInactiveInterval() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.rpc.session.IRPCSession#getSessionAttributes()
+	 */
+	@Override
+	public Map<String, String> getSessionAttributes() {
+		Map<String, String> sattrs = new HashMap<String, String>(sessionAttributes.size());
+		for(Map.Entry<RPCSessionAttribute, String> entry: sessionAttributes.entrySet()) {
+			sattrs.put(entry.getKey().name(), entry.getValue());
+		}
+		return sattrs;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.rpc.session.IRPCSession#addSessionAttribute(org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute, java.lang.String)
+	 */
+	@Override
+	public void addSessionAttribute(RPCSessionAttribute type, String value) {
+		if(type==null) throw new IllegalArgumentException("The passed type was null");
+		if(value==null) throw new IllegalArgumentException("The passed value was null");
+		sessionAttributes.put(type, value);		
 	}
 
 }

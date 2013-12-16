@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.rpc.session;
 
+import java.util.Map;
+
 /**
  * <p>Title: IRPCSessionMBean</p>
  * <p>Description: Session MBean to expose registered sessions as composite types</p> 
@@ -75,6 +77,13 @@ public interface IRPCSessionMBean {
 	 * @return a time period in seconds
 	 */
 	public int getMaxInactiveInterval();
+	
+	/**
+	 * Returns a map of the session attributes
+	 * @return a map of the session attributes
+	 */
+	public Map<String, String> getSessionAttributes();
+	
 	
 
 }

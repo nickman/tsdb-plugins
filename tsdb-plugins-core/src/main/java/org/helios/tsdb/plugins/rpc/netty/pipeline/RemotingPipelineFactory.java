@@ -25,7 +25,9 @@
 package org.helios.tsdb.plugins.rpc.netty.pipeline;
 
 import org.helios.tsdb.plugins.rpc.session.IRPCSession;
+import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -34,6 +36,9 @@ import org.jboss.netty.channel.ChannelState;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.local.LocalChannel;
+import org.jboss.netty.channel.socket.DatagramChannel;
+import org.jboss.netty.channel.socket.SocketChannel;
 import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.logging.InternalLogLevel;
 
@@ -102,10 +107,30 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory, ChannelU
 		if(e instanceof ChannelStateEvent) {
 			ChannelStateEvent cse = (ChannelStateEvent)e;
 			if(cse.getState()==ChannelState.CONNECTED && cse.getValue()!=null) {
-				RPCSessionManager.getInstance().getSession(e.getChannel());
+				IRPCSession session = RPCSessionManager.getInstance().getSession(e.getChannel());
+				session.addSessionAttribute(RPCSessionAttribute.RemoteAddress, cse.getValue().toString());
+				session.addSessionAttribute(RPCSessionAttribute.Protocol, getProtocol(e.getChannel()));
 				ctx.getPipeline().remove(this);
 			}
 		}		
 	}
+	
+	/**
+	 * Returns the generalized protocol of the passed channel
+	 * @param channel The channel
+	 * @return The generalized protocol
+	 */
+	protected String getProtocol(Channel channel) {
+		if(channel instanceof DatagramChannel) {
+			return "UDP";
+		} else if(channel instanceof SocketChannel) {
+			return "TCP";
+		} else if(channel instanceof LocalChannel) {
+			return "Local";
+		} else {
+			return "Unknown";
+		}
+	}
+
 
 }

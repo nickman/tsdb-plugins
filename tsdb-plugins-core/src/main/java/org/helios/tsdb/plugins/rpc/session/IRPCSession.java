@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.rpc.session;
 
+import java.util.Map;
+
 /**
  * <p>Title: IRPCSession</p>
  * <p>Description: Defines an RPC session for retaining state on behalf of remote RPC clients</p> 
@@ -33,6 +35,7 @@ package org.helios.tsdb.plugins.rpc.session;
  */
 
 public interface IRPCSession extends IRPCSessionMBean {	
+	
 	/**
 	 * Indicates if the session is expired
 	 * @return true if the session is expired, false otherwise
@@ -116,6 +119,17 @@ public interface IRPCSession extends IRPCSessionMBean {
 	 */
 	public int getMaxInactiveInterval();
 	
+	/**
+	 * Returns a map of the session attributes
+	 * @return a map of the session attributes
+	 */
+	public Map<String, String> getSessionAttributes();
 	
+	/**
+	 * Adds a new session attribute
+	 * @param type The attribute type
+	 * @param value The attribute value
+	 */
+	public void addSessionAttribute(RPCSessionAttribute type, String value);
 	
 }

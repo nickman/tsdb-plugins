@@ -11,11 +11,9 @@
 <script type="text/javascript" src="/js/ws/tsdb-ws-api.js" charset="utf-8"></script>
 
 <script type="text/javascript" charset="utf-8" src="/js/start.js"></script>
-<script type="application/dart">
+<script type="application/dart" id="d">
   main() {
-    Element element = document.getElementById('message');
-    element.innerHTML = 'Hello from Dart';
-     print(repeatGreeting1(“Hello”, 3));
+    print("HELLO FROM DART !");
   }     
 </script>
 </head>
@@ -31,12 +29,16 @@
 	   </div>
         </div>
         <div id="leftcolumn">
-            <div id="menu_connect">
-	      <div class="ui-widget">
-		      <label for="serverUrl">URL: </label>
-		      <input id="serverUrl"/>
-		      <button id="serverUrlBtn"  />
-	      </div>	      
+					<div id="accordion">
+					  <h3>Servers</h3>
+	            <div id="menu_connect" class="ui-widget">
+			      		<label for="serverUrl">URL: </label>
+			      		<input id="serverUrl"/>
+			      		<button id="serverUrlBtn"  />
+		      		</div>	      
+					  <h3>Second header</h3>
+					  <div>Second content panel</div>
+					</div>        	
             </div>
         </div>
         <div id="content">

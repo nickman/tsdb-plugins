@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!-- saved from url=(0031)http://api.jqueryui.com/dialog/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <title>dialog demo</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+  <script src="jquery-1.9.1.js"></script>
+  <script src="jquery-ui.js"></script>
+<style>html, body { border:0; margin:0; padding:0; }body { font-family: 'Helvetica', 'Arial',  'Verdana', 'sans-serif'; }</style></head>
+<body>
+ 
+<button id="opener">open the dialog</button>
+
+ 
+<script>window.onload = function() {
+$( "#dialog" ).dialog({ autoOpen: false });
+$( "#opener" ).click(function() {
+  $( "#dialog" ).dialog( "open" );
+});
+};</script>
+ 
+
+<div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-describedby="dialog" aria-labelledby="ui-id-1" style="display: none; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-1" class="ui-dialog-title">Dialog Title</span><button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only ui-dialog-titlebar-close" role="button" aria-disabled="false" title="close"><span class="ui-button-icon-primary ui-icon ui-icon-closethick"></span><span class="ui-button-text">close</span></button></div><div id="dialog" class="ui-dialog-content ui-widget-content">I'm a dialog</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 90;"></div></div></body></html>

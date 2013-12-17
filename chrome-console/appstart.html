@@ -9,6 +9,10 @@
 <script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/d3/d3.v3.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/ws/tsdb-ws-api.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.gridster.js" charset="utf-8"></script>
+
+
 
 <script type="text/javascript" charset="utf-8" src="/js/start.js"></script>
 <script type="application/dart" id="d">
@@ -24,26 +28,22 @@
 	  <div style="display: inline-block;vertical-align: top; padding-top: 10px;">
 	    <span class="helioslight">OpenTSDB Console</span>
 	    <div style="display: inline-block; width: 10px;vertical-align: middle;"></div>
-	    <div class="tool-widget" style="display: inline-block;vertical-align: middle;">Session:&nbsp;<span id="displaySession" style="display: inline-block; width:130px;height:20px;border:1px solid blue;line-height:2em">&nbsp;</span></div>
+	    <div class="tool-widget" style="display: inline-block;vertical-align: middle;">Server:&nbsp;<span id="connectedServer" style="display: inline-block; width:130px;height:20px;border:1px solid blue;line-height:2em">&nbsp;</span></div>
 	    <div class="tool-widget csubscriber" style="display: inline-block;">Connection:&nbsp;&nbsp;<div class="csubscriber-off"></div></div>
+	    <div class="tool-widget" style="display: inline-block;vertical-align: middle;">Session:&nbsp;<span id="displaySession" style="display: inline-block; width:130px;height:20px;border:1px solid blue;line-height:2em">&nbsp;</span></div>
 	   </div>
         </div>
         <div id="leftcolumn">
-					<div id="accordion">
-					  <h3>Servers</h3>
-	            <div id="menu_connect" class="ui-widget">
-			      		<label for="serverUrl">URL: </label>
-			      		<input id="serverUrl"/>
-			      		<button id="serverUrlBtn"  />
-		      		</div>	      
-					  <h3>Second header</h3>
-					  <div>Second content panel</div>
-					</div>        	
-            </div>
+	  <div id="tabs" >
+	    <ul>
+	      <li><a id="connections-btn">Connections</a></li>
+	      <li><a id="status-btn">Status</a></li>
+	    </ul>
+          </div>
         </div>
-        <div id="content">
-           <p></p>
-       </div>
+        <div id="desktop_content">
+	  
+        </div>
         <div id="footer">
             
             <span>

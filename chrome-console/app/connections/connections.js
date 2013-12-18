@@ -3,6 +3,7 @@
  * Whitehead, 2014
  */ 
 
+document.domain = "anpdknjjbhaojaaiopefckeimcpdpnkc";
 var _db = null;
 var _connectionStore = null;
 var _connections = {};
@@ -26,6 +27,7 @@ function loadConnections() {
     
   }).done(onOpen).fail(onOpenFail);
 }
+
 
 function onOpen(db, event) {
     _db = db;
@@ -60,7 +62,8 @@ function onOpenFail(error, event) {
 
 $(document).ready(function() { 
     console.info('Connections App Loaded');
-    loadConnections();
+    console.dir($('body'));
+    //loadConnections();
 });
 
 

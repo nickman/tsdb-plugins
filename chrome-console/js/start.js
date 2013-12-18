@@ -5,11 +5,31 @@ var cstatus_icons = [
 ];
 
 function loadApp(appName) {
-  
+  var appId = appName + "_app";
   var uri = '/app/' + appName + '/' + appName + '.html';
   console.info('Loading App [%s]', uri);
-  $('#desktop_content').empty().append($('<iframe id="' + appName + '-app" src="' + uri + '"></iframe>'));
   
+  $('#desktop_content').empty().append($('<div id="foo"><iframe id="' + appId + '" src="' + uri + '"></iframe><div>'));
+  $('#' + appId).toggle();
+  $('#desktop_content').append($('#' + appId).html());
+  $('#desktop_content').remove('#' + appId);
+  
+  
+  
+}
+
+function init() {
+    var appName = "connections";
+    var appId = appName + "_app";
+    var uri = '/app/' + appName + '/' + appName + '.html';
+    var curi = chrome.runtime.getURL(uri);
+    console.info('Loading App [%s]', uri);
+  
+    $('#desktop_content').empty().append($('<div id="foo"><iframe id="' + appId + '" src="' + curi + '"></iframe><div>'));
+    var ht = $($('#' + appId)[0].ownerDocument).children()[0];
+    $('#desktop_content').empty();
+    $('#desktop_content').append($(ht).children("body").children());
+    console.dir(ht);
 }
 
 function initialize() {

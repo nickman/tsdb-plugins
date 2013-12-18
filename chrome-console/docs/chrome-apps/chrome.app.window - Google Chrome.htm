@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)http://developer.chrome.com/apps/app_window.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>chrome.app.window - Google Chrome</title>
+    
+    <link href="./chrome.app.window - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.app.window - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./chrome.app.window - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.app.window - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./chrome.app.window - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/apps/" title="Google Chrome Apps">
+          <img src="./chrome.app.window - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            apps ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/apps/samples.html" title="Sample Apps (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-apps" title="Google Chrome Apps developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-app/info" title="[google-chrome-app] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar">
+        <ul class="level1 ">
+        <li class="level2">
+              <span class="level2">Discover</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/about_apps.html" class="level3 ">What Are Chrome Apps?</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Develop</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/first_app.html" class="level3 ">Create Your First App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Tutorials</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Learn with a Codelab</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab.html" class="level5 ">About this Codelab</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab1_setup.html" class="level5 ">1 - Set Up Development Environment</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab2_basic.html" class="level5 ">2 - Create Basic App</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab3_mvc.html" class="level5 ">3 - Create MVC</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab5_data.html" class="level5 ">4 - Save and Fetch Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab6_lifecycle.html" class="level5 ">5 - Manage App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab7_useridentification.html" class="level5 ">6 - Access User's Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab8_webresources.html" class="level5 ">7 - Access Web Resources</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab_10_publishing.html" class="level5 ">8 - Publish App</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">MVC Architecture &amp; Frameworks</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_frameworks.html" class="level5 ">About MVC Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/angular_framework.html" class="level5 ">Build Apps with AngularJS</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/sencha_framework.html" class="level5 ">Build Apps with Sencha Ext JS</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Chrome App Concepts</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">The Fundamentals</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_architecture.html" class="level5 ">App Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_lifecycle.html" class="level5 ">App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/offline_apps.html" class="level5 ">Offline First</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_external.html" class="level5 ">External Content</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Security</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/contentSecurityPolicy.html" class="level5 ">Content Security Policy</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Cloud-Enable Your App</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Messaging</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/cloudMessaging.html" class="level6 ">About Cloud Messaging</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/pushMessaging.html" class="level6 ">Client Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_server.html" class="level6 ">Service Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_tos.html" class="level6 ">Terms of Service</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Storage</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/storage.html" class="level6 ">chrome.storage</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_identity.html" class="level5 ">User Authentication</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Store and Retrieve Data</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_storage.html" class="level5 ">Storage APIs</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Use Low-Level System Services</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_usb.html" class="level5 ">USB</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_serial.html" class="level5 ">Serial</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_network.html" class="level5 ">Network Communications</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Interact with the Host Platform</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/desktop_notifications.html" class="level5 ">Rich Notifications</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Distribute</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/publish_app.html" class="level3 ">Publish Your App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Monetize Your App</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/apps/google_wallet.html" class="level4 ">Google Wallet for Digital Goods</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/analytics.html" class="level3 ">Analytics</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/api_index.html" class="level3 ">Chrome Platform APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/tags/webview.html" class="level3 ">Webview Tag</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/api_other.html" class="level3 ">Web APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/manifest.html" class="level3 ">Manifest File Format</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/app_deprecated.html" class="level3 ">Disabled Web Features</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Samples</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/samples.html" class="level3 ">Sample Apps</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Help</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="https://groups.google.com/a/chromium.org/forum/#!forum/chromium-apps" class="level3 ">Google Groups</a>
+          </li><li class="level3">
+                <a href="http://stackoverflow.com/questions/tagged/google-chrome-app" class="level3 ">Stack Overflow</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<h1>chrome.app.window</h1>
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/apps/app_window.html#types" data-list-item="">Types</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#type-Bounds" data-list-item="">Bounds</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#type-AppWindow" data-list-item="">AppWindow</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/app_window.html#methods" data-list-item="">Methods</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#method-create" data-list-item="">create        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#method-current" data-list-item="">current        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#method-getAll" data-list-item="">getAll        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#method-get" data-list-item="">get        </a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/app_window.html#events" data-list-item="">Events</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onBoundsChanged" data-list-item="">onBoundsChanged</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onClosed" data-list-item="">onClosed</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onFullscreened" data-list-item="">onFullscreened</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onMaximized" data-list-item="">onMaximized</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onMinimized" data-list-item="">onMinimized</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/app_window.html#event-onRestored" data-list-item="">onRestored</a>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<table class="intro" id="intro">
+  <tbody><tr>
+    <td class="title">Description:</td>
+    <td>
+         Use the <code>chrome.app.window</code> API to create windows. Windows
+         have an optional frame with title bar and size controls. They are not
+         associated with any Chrome browser windows.
+                <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Availability:</td>
+    <td>
+        Stable since Chrome 23.
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Permissions:</td>
+    <td>
+        <span class="code">
+        "app.window"
+                </span>
+        <br>
+    </td>
+  </tr>
+</tbody></table>
+<section>
+<h2 id="api-reference-header" title="">chrome.app.window reference</h2>
+<div class="api_reference">
+    <h2 id="types">Types</h2>
+      <div>
+        <h3 id="type-Bounds">Bounds</h3>
+        <div>
+            <h3 id="Bounds-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/app_window.html#type-Bounds">Bounds</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-Bounds-left"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Bounds-left" title="">
+                        left
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Bounds-top"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Bounds-top" title="">
+                        top
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Bounds-width"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Bounds-width" title="">
+                        width
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Bounds-height"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Bounds-height" title="">
+                        height
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+      <div>
+        <h3 id="type-AppWindow">AppWindow</h3>
+        <div>
+            <h3 id="AppWindow-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/app_window.html#type-AppWindow">AppWindow</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-AppWindow-focus"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-focus" title="">
+                        focus
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Focus the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-fullscreen"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-fullscreen" title="">
+                        fullscreen
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Fullscreens the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-isFullscreen"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-isFullscreen" title="">
+                        isFullscreen
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Is the window fullscreen?
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        boolean
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-minimize"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-minimize" title="">
+                        minimize
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Minimize the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-isMinimized"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-isMinimized" title="">
+                        isMinimized
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Is the window minimized?
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        boolean
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-maximize"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-maximize" title="">
+                        maximize
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Maximize the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-isMaximized"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-isMaximized" title="">
+                        isMaximized
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Is the window maximized?
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        boolean
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-restore"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-restore" title="">
+                        restore
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Restore the window, exiting a maximized, minimized, or fullscreen state.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-moveTo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-moveTo" title="">
+                        moveTo
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Move the window to the position (|left|, |top|).
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-moveTo-left"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-moveTo-left" title="">
+                              left
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-moveTo-top"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-moveTo-top" title="">
+                              top
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-resizeTo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-resizeTo" title="">
+                        resizeTo
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Resize the window to |width|x|height| pixels in size.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-resizeTo-width"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-resizeTo-width" title="">
+                              width
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-resizeTo-height"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-resizeTo-height" title="">
+                              height
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-drawAttention"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-drawAttention" title="">
+                        drawAttention
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Draw attention to the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-clearAttention"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-clearAttention" title="">
+                        clearAttention
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Clear attention to the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-close"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-close" title="">
+                        close
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Close the window.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-show"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-show" title="">
+                        show
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Show the window. Does nothing if the window is already visible. Focus the window if |focused| is set to true or omitted.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-show-focused"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-show-focused" title="">
+                              focused
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  boolean
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-hide"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-hide" title="">
+                        hide
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Hide the window. Does nothing if the window is already hidden.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-getBounds"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-getBounds" title="">
+                        getBounds
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Get the window's bounds as a <a href="http://developer.chrome.com/apps/app.window.html#type-Bounds">Bounds</a> object.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        <a href="http://developer.chrome.com/apps/app.window.html#type-Bounds">Bounds</a>
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setBounds"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setBounds" title="">
+                        setBounds
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set the window's bounds.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setBounds-bounds"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setBounds-bounds" title="">
+                              bounds
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/app.window.html#type-Bounds">Bounds</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-getMinWidth"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-getMinWidth" title="">
+                        getMinWidth
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Get the current minimum width of the window. Returns |undefined| if there is no minimum.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        integer
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-getMinHeight"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-getMinHeight" title="">
+                        getMinHeight
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Get the current minimum height of the window. Returns |undefined| if there is no minimum.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        integer
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-getMaxWidth"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-getMaxWidth" title="">
+                        getMaxWidth
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Get the current maximum width of the window. Returns |undefined| if there is no maximum.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        integer
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-getMaxHeight"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-getMaxHeight" title="">
+                        getMaxHeight
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Get the current maximum height of the window. Returns |undefined| if there is no maximum.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        integer
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setMinWidth"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setMinWidth" title="">
+                        setMinWidth
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set the current minimum width of the window. Set to |null| to remove the constraint.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setMinWidth-minWidth"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setMinWidth-minWidth" title="">
+                              minWidth
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setMinHeight"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setMinHeight" title="">
+                        setMinHeight
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set the current minimum height of the window. Set to |null| to remove the constraint.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setMinHeight-minHeight"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setMinHeight-minHeight" title="">
+                              minHeight
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setMaxWidth"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setMaxWidth" title="">
+                        setMaxWidth
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set the current maximum width of the window. Set to |null| to remove the constraint.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setMaxWidth-maxWidth"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setMaxWidth-maxWidth" title="">
+                              maxWidth
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setMaxHeight"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setMaxHeight" title="">
+                        setMaxHeight
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set the current maximum height of the window. Set to |null| to remove the constraint.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setMaxHeight-maxHeight"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setMaxHeight-maxHeight" title="">
+                              maxHeight
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-isAlwaysOnTop"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-isAlwaysOnTop" title="">
+                        isAlwaysOnTop
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Is the window always on top?
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <dt>Returns<span class="property">
+                        boolean
+                      </span></dt>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-setAlwaysOnTop"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-setAlwaysOnTop" title="">
+                        setAlwaysOnTop
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Set whether the window should stay above most other windows. Requires the <code>"alwaysOnTopWindows"</code> permission. Currently only available on Dev channel.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <dl>
+                      <h4 title="">Parameters</h4>
+                      <div>
+                        <a name="property-setAlwaysOnTop-alwaysOnTop"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-setAlwaysOnTop-alwaysOnTop" title="">
+                              alwaysOnTop
+                              <span class="property">
+                                (
+                                  boolean
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div><div>
+                  <a name="property-AppWindow-contentWindow"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-contentWindow" title="">
+                        contentWindow
+                        <span class="property">
+                          (
+                            window
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The JavaScript 'window' object for the created child.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-AppWindow-id"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-AppWindow-id" title="">
+                        id
+                        <span class="property">
+                          (
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The id the window was created with.
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+    <h2 id="methods">Methods</h2>
+      <div>
+        <h3 id="method-create">create
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.app.window.create</span>(<span>string url</span>, <span class="optional">object options</span>, <span class="optional">function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            The size and position of a window can be specified in a number of different ways. The most simple option is not specifying anything at all, in which case a default size and platform dependent position will be used.<br><br> Another option is to use the bounds property, which will put the window at the specified coordinates with the specified size. If the window has a frame, it's total size will be the size given plus the size of the frame; that is, the size in bounds is the content size, not the window size.<br><br> To automatically remember the positions of windows you can give them ids. If a window has an id, This id is used to remember the size and position of the window whenever it is moved or resized. This size and position is then used instead of the specified bounds on subsequent opening of a window with the same id. If you need to open a window with an id at a location other than the remembered default, you can create it hidden, move it to the desired location, then show it.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-create-url"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-url" title="">
+                      url
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-create-options"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-options" title="">
+                      options
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+                <dd>
+                  <h4 title="">Properties</h4>
+                  <dl>
+                    <div>
+                      <a name="property-options-id"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-id" title="">
+                            id
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                string
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Id to identify the window. This will be used to remember the size and position of the window and restore that geometry when a window with the same id is later opened. If a window with a given id is created while another window with the same id already exists, the currently opened window will be focused instead of creating a new window.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-minWidth"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-minWidth" title="">
+                            minWidth
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                integer
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Minimum width of the window.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-minHeight"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-minHeight" title="">
+                            minHeight
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                integer
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Minimum height of the window.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-maxWidth"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-maxWidth" title="">
+                            maxWidth
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                integer
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Maximum width of the window.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-maxHeight"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-maxHeight" title="">
+                            maxHeight
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                integer
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Maximum height of the window.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-frame"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-frame" title="">
+                            frame
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                string
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Frame type: <code>none</code> or <code>chrome</code> (defaults to <code>chrome</code>). For <code>none</code>, the <code>-webkit-app-region</code> CSS property can be used to apply draggability to the app's window. <code>-webkit-app-region: drag</code> can be used to mark regions draggable. <code>no-drag</code> can be used to disable this style on nested elements.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-bounds"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-bounds" title="">
+                            bounds
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                <a href="http://developer.chrome.com/apps/app.window.html#type-Bounds">Bounds</a>
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Size and position of the content in the window (excluding the titlebar). If an id is also specified and a window with a matching id has been shown before, the remembered bounds of the window will be used instead.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-transparentBackground"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-transparentBackground" title="">
+                            transparentBackground
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Enable window background transparency. Only supported in ash. Requires experimental API permission.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-state"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-state" title="">
+                            state
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                enum of <code>"normal"</code>, <code>"fullscreen"</code>, <code>"maximized"</code>, or <code>"minimized"</code>
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          The initial state of the window, allowing it to be created already fullscreen, maximized, or minimized. Defaults to 'normal'.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-hidden"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-hidden" title="">
+                            hidden
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          If true, the window will be created in a hidden state. Call show() on the window to show it once it has been created. Defaults to false.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-resizable"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-resizable" title="">
+                            resizable
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          If true, the window will be resizable by the user. Defaults to true.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-alwaysOnTop"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-alwaysOnTop" title="">
+                            alwaysOnTop
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          If true, the window will stay above most other windows. If there are multiple windows of this kind, the currently focused window will be in the foreground. Requires the <code>"alwaysOnTopWindows"</code> permission. Defaults to false.<br> Call <code>setAlwaysOnTop()</code> on the window to change this property after creation.<br> Currently only available on Dev channel.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-options-focused"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-focused" title="">
+                            focused
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          If true, the window will be focused when created. Defaults to true.
+                        </dd>
+                      </dl>
+                    </div>
+                  </dl>
+                </dd>
+              </div>
+              <div>
+                <a name="property-create-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called in the creating window (parent) before the load event is called in the created window (child). The parent can set fields or functions on the child usable from onload. E.g. background.js:<br> <code>function(createdWindow) { createdWindow.contentWindow.foo = function () { }; };</code> <br>window.js:<br> <code>window.onload = function () { foo(); }</code>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  If you specify the <em>callback</em> parameter, it should
+                  specify a function that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">appwindow createdWindow</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-createdWindow"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-createdWindow" title="">
+                        createdWindow
+                        <span class="property">
+                          (
+                            appwindow
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-current">current
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span><a href="http://developer.chrome.com/apps/app.window.html#type-AppWindow">AppWindow</a> chrome.app.window.current</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns an <a href="http://developer.chrome.com/apps/app.window.html#type-AppWindow">AppWindow</a> object for the current script context (ie JavaScript 'window' object). This can also be called on a handle to a script context for another page, for example: otherWindow.chrome.app.window.current().
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getAll">getAll
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>array of <a href="http://developer.chrome.com/apps/app.window.html#type-AppWindow">AppWindow</a> chrome.app.window.getAll</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Gets an array of all currently created app windows. This method is new in Chrome 33.
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-get">get
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span><a href="http://developer.chrome.com/apps/app.window.html#type-AppWindow">AppWindow</a> chrome.app.window.get</span>(<span>string id</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Gets an <a href="http://developer.chrome.com/apps/app.window.html#type-AppWindow">AppWindow</a> with the given id. If no window with the given id exists null is returned. This method is new in Chrome 33.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-get-id"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-get-id" title="">
+                      id
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+    <h2 id="events">Events</h2>
+      <div>
+        <h3 id="event-onBoundsChanged">onBoundsChanged</h3>
+        <div class="description">
+      <p>
+            Fired when the window is resized.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onBoundsChanged.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onBoundsChanged-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onBoundsChanged-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onClosed">onClosed</h3>
+        <div class="description">
+      <p>
+            Fired when the window is closed.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onClosed.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onClosed-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onClosed-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onFullscreened">onFullscreened</h3>
+        <div class="description">
+      <p>
+            Fired when the window is fullscreened.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onFullscreened.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onFullscreened-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onFullscreened-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onMaximized">onMaximized</h3>
+        <div class="description">
+      <p>
+            Fired when the window is maximized.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onMaximized.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onMaximized-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onMaximized-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onMinimized">onMinimized</h3>
+        <div class="description">
+      <p>
+            Fired when the window is minimized.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onMinimized.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onMinimized-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onMinimized-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onRestored">onRestored</h3>
+        <div class="description">
+      <p>
+            Fired when the window is restored from being minimized or maximized.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.app.window.onRestored.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onRestored-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onRestored-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+</div>
+</section>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./chrome.app.window - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./chrome.app.window - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./chrome.app.window - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./chrome.app.window - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./chrome.app.window - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./chrome.app.window - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./chrome.app.window - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

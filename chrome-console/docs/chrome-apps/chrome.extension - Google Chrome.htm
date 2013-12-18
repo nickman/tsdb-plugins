@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<!-- saved from url=(0053)http://developer.chrome.com/extensions/extension.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>chrome.extension - Google Chrome</title>
+    
+    <link href="./chrome.extension - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.extension - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./chrome.extension - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.extension - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./chrome.extension - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/extensions/" title="Google Chrome Extensions">
+          <img src="./chrome.extension - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            extensions ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/extensions/samples.html" title="Sample Extensions (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-extensions" title="Google Chrome Extensions developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-extension/info" title="[google-chrome-extension] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar">
+        <ul class="level1 ">
+        <li class="level2">
+              <a href="http://developer.chrome.com/extensions/getstarted.html" class="level2 ">Getting Started</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/overview.html" class="level2 ">Overview</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/whats_new.html" class="level2 ">What's New?</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/devguide.html" class="level2 ">Developer's Guide</a>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser UI</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/browserAction.html" class="level4 ">Browser Actions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contextMenus.html" class="level4 ">Context Menus</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/desktop_notifications.html" class="level4 ">Desktop Notifications</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/omnibox.html" class="level4 ">Omnibox</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/options.html" class="level4 ">Options Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/override.html" class="level4 ">Override Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/pageAction.html" class="level4 ">Page Actions</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser Interaction</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/bookmarks.html" class="level4 ">Bookmarks</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/cookies.html" class="level4 ">Cookies</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/devtools.html" class="level4 ">Extending DevTools</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/events.html" class="level4 ">Events</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/history.html" class="level4 ">History</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/management.html" class="level4 ">Management</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/tabs.html" class="level4 ">Tabs</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/windows.html" class="level4 ">Windows</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Implementation</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/a11y.html" class="level4 ">Accessibility</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/event_pages.html" class="level4 ">Event Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contentSecurityPolicy.html" class="level4 ">Content Security Policy</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/content_scripts.html" class="level4 ">Content Scripts</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/xhr.html" class="level4 ">Cross-Origin XHR</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/i18n.html" class="level4 ">Internationalization</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/messaging.html" class="level4 ">Message Passing</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/permissions.html" class="level4 ">Optional Permissions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/npapi.html" class="level4 ">NPAPI Plugins</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Finishing</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/hosting.html" class="level4 ">Hosting</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/external_extensions.html" class="level4 ">Other Deployment Options</a>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/tutorials.html" class="level2 ">Tutorials</a>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_migration_to_manifest_v2.html" class="level3 ">Manifest V2</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_debugging.html" class="level3 ">Debugging</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_analytics.html" class="level3 ">Google Analytics</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_oauth.html" class="level3 ">OAuth</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Formats</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/manifest.html" class="level4 ">Manifest Files</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/match_patterns.html" class="level4 ">Match Patterns</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/permission_warnings.html" class="level3 ">Permission Warnings</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_index.html" class="level3 ">chrome.* APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_other.html" class="level3 ">Other APIs</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">More</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/webstore/docs/index.html" class="level3 ">Chrome Web Store</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/apps/docs/developers_guide.html" class="level3 ">Hosted Apps</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/themes.html" class="level3 ">Themes</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<h1>chrome.extension</h1>
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/extensions/extension.html#content scripts" data-list-item="">Support for content scripts</a>
+    </li>
+    <li class="separator">
+      <a href="http://developer.chrome.com/extensions/extension.html#properties" data-list-item="">Properties</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#property-lastError" data-list-item="">lastError</a>
+          <ol>
+            <li>
+              <a href="http://developer.chrome.com/extensions/extension.html#property-lastError-message" data-list-item="">message</a>
+            </li>
+          </ol>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#property-inIncognitoContext" data-list-item="">inIncognitoContext</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/extension.html#methods" data-list-item="">Methods</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-sendRequest" data-list-item="">sendRequest        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-getURL" data-list-item="">getURL        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-getViews" data-list-item="">getViews        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-getBackgroundPage" data-list-item="">getBackgroundPage        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-getExtensionTabs" data-list-item="">getExtensionTabs        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-isAllowedIncognitoAccess" data-list-item="">isAllowedIncognitoAccess        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-isAllowedFileSchemeAccess" data-list-item="">isAllowedFileSchemeAccess        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#method-setUpdateUrlData" data-list-item="">setUpdateUrlData        </a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/extension.html#events" data-list-item="">Events</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#event-onRequest" data-list-item="">onRequest</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/extension.html#event-onRequestExternal" data-list-item="">onRequestExternal</a>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<table class="intro" id="intro">
+  <tbody><tr>
+    <td class="title">Description:</td>
+    <td>
+        The <code>chrome.extension</code> API has utilities that can be used by any extension page. It includes support for exchanging messages between an extension and its content scripts or between extensions, as described in detail in <a href="http://developer.chrome.com/extensions/messaging.html">Message Passing</a>.
+                <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Availability:</td>
+    <td>
+        Stable since Chrome 5.
+        <br>
+    </td>
+  </tr>
+</tbody></table>
+<section>
+<h2 id="content scripts">Support for content scripts</h2>
+<p>
+Unlike the other chrome.* APIs,
+parts of <code>chrome.extension</code>
+can be used by content scripts:
+</p>
+
+<dl>
+  <dt>
+    <a href="http://developer.chrome.com/extensions/runtime.html#method-sendMessage">runtime.sendMessage</a> and
+    <a href="http://developer.chrome.com/extensions/runtime.html#event-onMessage">runtime.onMessage</a>
+  </dt>
+  <dd>
+    Simple communication with extension pages
+  </dd>
+  <dt>
+    <a href="http://developer.chrome.com/extensions/runtime.html#method-connect">runtime.connect</a> and
+    <a href="http://developer.chrome.com/extensions/runtime.html#event-onConnect">runtime.onConnect</a>
+  </dt>
+  <dd>
+    Extended communication with extension pages
+  </dd>
+  <dt>
+    <a href="http://developer.chrome.com/extensions/extension.html#method-getURL">getURL</a>
+  </dt>
+  <dd>
+    Access to extension resources such as image files
+  </dd>
+</dl>
+
+<p>
+For details, see
+<a href="http://developer.chrome.com/extensions/content_scripts.html">Content Scripts</a>.
+</p>
+</section>
+<section>
+<h2 id="api-reference-header" title="">chrome.extension reference</h2>
+<div class="api_reference">
+    <h2 id="properties">Properties</h2>
+      <div>
+        <h3 id="property-lastError">lastError</h3>
+        <div class="summary">
+          <div class="line">chrome.extension.lastError</div>
+        </div>
+        <div>
+          <dt><span class="property">lastError</span> <span class="type_name">  (  object  )</span></dt>
+      <dd>
+            Set for the lifetime of a callback if an ansychronous extension api has resulted in an error. If no error has occured lastError will be <var>undefined</var>.
+          </dd>    <h4 id="lastError-properties" title="">
+            Properties of <a href="http://developer.chrome.com/extensions/extension.html#property-lastError">lastError</a>
+          </h4>
+          <dd><dl>      <div>
+              <a name="property-lastError-message"></a>
+              <dl>
+                <dt>
+                  <h4 id="property-lastError-message" title="message">
+                    message
+                    <span class="property">
+                      (
+                        string
+                      )
+                    </span>
+                  </h4>
+                </dt>
+                <dd>
+                  Description of the error that has taken place.
+                </dd>
+              </dl>
+            </div>
+      </dl></dd>
+        </div>
+      </div>
+      <div>
+        <h3 id="property-inIncognitoContext">inIncognitoContext</h3>
+        <div class="summary">
+          <div class="line">chrome.extension.inIncognitoContext</div>
+        </div>
+        <div>
+          <dt><span class="property">inIncognitoContext</span> <span class="type_name">  (  boolean  )</span></dt>
+      <dd>
+            True for content scripts running inside incognito tabs, and for extension pages running inside an incognito process. The latter only applies to extensions with 'split' incognito_behavior.
+          </dd>  </div>
+      </div>
+    <h2 id="methods">Methods</h2>
+      <div>
+        <h3 id="method-sendRequest">sendRequest
+        </h3>
+        <p class="warning">
+          sendRequest is deprecated. Please use <a href="http://developer.chrome.com/extensions/runtime.html#method-sendMessage">runtime.sendMessage</a>.
+        </p>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.extension.sendRequest</span>(<span class="optional">string extensionId</span>, <span>any request</span>, <span class="optional">function responseCallback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sends a single request to other listeners within the extension. Similar to <a href="http://developer.chrome.com/extensions/runtime.html#method-connect">runtime.connect</a>, but only sends a single request with an optional response. The <a href="http://developer.chrome.com/extensions/extension.html#event-onRequest">onRequest</a> event is fired in each page of the extension.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-sendRequest-extensionId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendRequest-extensionId" title="">
+                      extensionId
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The extension ID of the extension you want to connect to. If omitted, default is your own extension.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendRequest-request"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendRequest-request" title="">
+                      request
+                      <span class="property">
+                        (
+                          any
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendRequest-responseCallback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendRequest-responseCallback" title="">
+                      responseCallback
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  If you specify the <em>responseCallback</em> parameter, it should
+                  specify a function that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any response</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-responseCallback-response"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-responseCallback-response" title="">
+                        response
+                        <span class="property">
+                          (
+                            any
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The JSON response object sent by the handler of the request. If an error occurs while connecting to the extension, the callback will be called with no arguments and <a href="http://developer.chrome.com/extensions/runtime.html#property-lastError">runtime.lastError</a> will be set to the error message.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getURL">getURL
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>string chrome.extension.getURL</span>(<span>string path</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Converts a relative path within an extension install directory to a fully-qualified URL.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getURL-path"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getURL-path" title="">
+                      path
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    A path to a resource within an extension expressed relative to its install directory.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getViews">getViews
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>array of window chrome.extension.getViews</span>(<span class="optional">object fetchProperties</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns an array of the JavaScript 'window' objects for each of the pages running inside the current extension.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getViews-fetchProperties"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getViews-fetchProperties" title="">
+                      fetchProperties
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+                <dd>
+                  <h4 title="">Properties</h4>
+                  <dl>
+                    <div>
+                      <a name="property-fetchProperties-type"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-fetchProperties-type" title="">
+                            type
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                enum of <code>"tab"</code>, <code>"infobar"</code>, <code>"notification"</code>, or <code>"popup"</code>
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          The type of view to get. If omitted, returns all views (including background pages and tabs). Valid values: 'tab', 'infobar', 'notification', 'popup'.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-fetchProperties-windowId"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-fetchProperties-windowId" title="">
+                            windowId
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                integer
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          The window to restrict the search to. If omitted, returns all views.
+                        </dd>
+                      </dl>
+                    </div>
+                  </dl>
+                </dd>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getBackgroundPage">getBackgroundPage
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>window chrome.extension.getBackgroundPage</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns the JavaScript 'window' object for the background page running inside the current extension. Returns null if the extension has no background page.
+          </p>
+            <h4 title="">Properties of return type</h4>
+            <div>
+              <div>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getExtensionTabs">getExtensionTabs
+        </h3>
+        <p class="warning">
+          getExtensionTabs is deprecated. Please use <a href="http://developer.chrome.com/extensions/extension.html#method-getViews">getViews</a> <code>{type: "tab"}</code>.
+        </p>
+        <div class="summary">
+        <div class="line">
+        <span>array of window chrome.extension.getExtensionTabs</span>(<span class="optional">integer windowId</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns an array of the JavaScript 'window' objects for each of the tabs running inside the current extension. If <code>windowId</code> is specified, returns only the 'window' objects of tabs attached to the specified window.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getExtensionTabs-windowId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getExtensionTabs-windowId" title="">
+                      windowId
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-isAllowedIncognitoAccess">isAllowedIncognitoAccess
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.extension.isAllowedIncognitoAccess</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves the state of the extension's access to Incognito-mode (as determined by the user-controlled 'Allowed in Incognito' checkbox.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-isAllowedIncognitoAccess-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-isAllowedIncognitoAccess-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">boolean</span><span class="pln"> isAllowedAccess</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-isAllowedAccess"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-isAllowedAccess" title="">
+                        isAllowedAccess
+                        <span class="property">
+                          (
+                            boolean
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      True if the extension has access to Incognito mode, false otherwise.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-isAllowedFileSchemeAccess">isAllowedFileSchemeAccess
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.extension.isAllowedFileSchemeAccess</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves the state of the extension's access to the 'file://' scheme (as determined by the user-controlled 'Allow access to File URLs' checkbox.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-isAllowedFileSchemeAccess-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-isAllowedFileSchemeAccess-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">boolean</span><span class="pln"> isAllowedAccess</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-isAllowedAccess"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-isAllowedAccess" title="">
+                        isAllowedAccess
+                        <span class="property">
+                          (
+                            boolean
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      True if the extension can access the 'file://' scheme, false otherwise.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setUpdateUrlData">setUpdateUrlData
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.extension.setUpdateUrlData</span>(<span>string data</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sets the value of the ap CGI parameter used in the extension's update URL.  This value is ignored for extensions that are hosted in the Chrome Extension Gallery.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setUpdateUrlData-data"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setUpdateUrlData-data" title="">
+                      data
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+    <h2 id="events">Events</h2>
+      <div>
+        <h3 id="event-onRequest">onRequest</h3>
+        <p class="warning">
+          onRequest is deprecated. Please use <a href="http://developer.chrome.com/extensions/runtime.html#event-onMessage">runtime.onMessage</a>.
+        </p>
+        <div class="description">
+      <p>
+            Fired when a request is sent from either an extension process or a content script.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.extension.onRequest.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onRequest-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onRequest-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any request</span><span class="pun">,</span><span class="pln"> </span><a href="http://developer.chrome.com/extensions/runtime.html#type-MessageSender"><span class="pln">runtime</span><span class="pun">.</span><span class="typ">MessageSender</span></a><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">function</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onRequest-request"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequest-request" title="">
+                              request
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  any
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The request sent by the calling script.
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onRequest-sender"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequest-sender" title="">
+                              sender
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/extensions/runtime.html#type-MessageSender">runtime.MessageSender</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onRequest-sendResponse"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequest-sendResponse" title="">
+                              sendResponse
+                              <span class="property">
+                                (
+                                  function
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            Function to call (at most once) when you have a response. The argument should be any JSON-ifiable object, or undefined if there is no response. If you have more than one <code>onRequest</code> listener in the same document, then only one may send a response.
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onRequestExternal">onRequestExternal</h3>
+        <p class="warning">
+          onRequestExternal is deprecated. Please use <a href="http://developer.chrome.com/extensions/runtime.html#event-onMessageExternal">runtime.onMessageExternal</a>.
+        </p>
+        <div class="description">
+      <p>
+            Fired when a request is sent from another extension.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.extension.onRequestExternal.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onRequestExternal-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onRequestExternal-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any request</span><span class="pun">,</span><span class="pln"> </span><a href="http://developer.chrome.com/extensions/runtime.html#type-MessageSender"><span class="pln">runtime</span><span class="pun">.</span><span class="typ">MessageSender</span></a><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">function</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onRequestExternal-request"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequestExternal-request" title="">
+                              request
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  any
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The request sent by the calling script.
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onRequestExternal-sender"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequestExternal-sender" title="">
+                              sender
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/extensions/runtime.html#type-MessageSender">runtime.MessageSender</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onRequestExternal-sendResponse"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRequestExternal-sendResponse" title="">
+                              sendResponse
+                              <span class="property">
+                                (
+                                  function
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            Function to call when you have a response. The argument should be any JSON-ifiable object, or undefined if there is no response.
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+</div>
+</section>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./chrome.extension - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./chrome.extension - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./chrome.extension - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./chrome.extension - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./chrome.extension - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./chrome.extension - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./chrome.extension - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

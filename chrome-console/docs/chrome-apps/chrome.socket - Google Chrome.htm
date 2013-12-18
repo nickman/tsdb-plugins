@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)http://developer.chrome.com/apps/socket.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>chrome.socket - Google Chrome</title>
+    
+    <link href="./chrome.socket - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.socket - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./chrome.socket - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.socket - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./chrome.socket - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/apps/" title="Google Chrome Apps">
+          <img src="./chrome.socket - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            apps ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/apps/samples.html" title="Sample Apps (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-apps" title="Google Chrome Apps developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-app/info" title="[google-chrome-app] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar">
+        <ul class="level1 ">
+        <li class="level2">
+              <span class="level2">Discover</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/about_apps.html" class="level3 ">What Are Chrome Apps?</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Develop</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/first_app.html" class="level3 ">Create Your First App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Tutorials</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Learn with a Codelab</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab.html" class="level5 ">About this Codelab</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab1_setup.html" class="level5 ">1 - Set Up Development Environment</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab2_basic.html" class="level5 ">2 - Create Basic App</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab3_mvc.html" class="level5 ">3 - Create MVC</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab5_data.html" class="level5 ">4 - Save and Fetch Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab6_lifecycle.html" class="level5 ">5 - Manage App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab7_useridentification.html" class="level5 ">6 - Access User's Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab8_webresources.html" class="level5 ">7 - Access Web Resources</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab_10_publishing.html" class="level5 ">8 - Publish App</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">MVC Architecture &amp; Frameworks</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_frameworks.html" class="level5 ">About MVC Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/angular_framework.html" class="level5 ">Build Apps with AngularJS</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/sencha_framework.html" class="level5 ">Build Apps with Sencha Ext JS</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Chrome App Concepts</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">The Fundamentals</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_architecture.html" class="level5 ">App Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_lifecycle.html" class="level5 ">App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/offline_apps.html" class="level5 ">Offline First</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_external.html" class="level5 ">External Content</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Security</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/contentSecurityPolicy.html" class="level5 ">Content Security Policy</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Cloud-Enable Your App</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Messaging</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/cloudMessaging.html" class="level6 ">About Cloud Messaging</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/pushMessaging.html" class="level6 ">Client Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_server.html" class="level6 ">Service Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_tos.html" class="level6 ">Terms of Service</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Storage</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/storage.html" class="level6 ">chrome.storage</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_identity.html" class="level5 ">User Authentication</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Store and Retrieve Data</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_storage.html" class="level5 ">Storage APIs</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Use Low-Level System Services</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_usb.html" class="level5 ">USB</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_serial.html" class="level5 ">Serial</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_network.html" class="level5 ">Network Communications</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Interact with the Host Platform</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/desktop_notifications.html" class="level5 ">Rich Notifications</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Distribute</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/publish_app.html" class="level3 ">Publish Your App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Monetize Your App</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/apps/google_wallet.html" class="level4 ">Google Wallet for Digital Goods</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/analytics.html" class="level3 ">Analytics</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/api_index.html" class="level3 ">Chrome Platform APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/tags/webview.html" class="level3 ">Webview Tag</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/api_other.html" class="level3 ">Web APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/manifest.html" class="level3 ">Manifest File Format</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/app_deprecated.html" class="level3 ">Disabled Web Features</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Samples</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/samples.html" class="level3 ">Sample Apps</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Help</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="https://groups.google.com/a/chromium.org/forum/#!forum/chromium-apps" class="level3 ">Google Groups</a>
+          </li><li class="level3">
+                <a href="http://stackoverflow.com/questions/tagged/google-chrome-app" class="level3 ">Stack Overflow</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<h1>chrome.socket</h1>
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/apps/socket.html#types" data-list-item="">Types</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#type-SocketType" data-list-item="">SocketType</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo" data-list-item="">WriteInfo</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/socket.html#methods" data-list-item="">Methods</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-create" data-list-item="">create        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-destroy" data-list-item="">destroy        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-connect" data-list-item="">connect        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-bind" data-list-item="">bind        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-disconnect" data-list-item="">disconnect        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-read" data-list-item="">read        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-write" data-list-item="">write        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-recvFrom" data-list-item="">recvFrom        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-sendTo" data-list-item="">sendTo        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-listen" data-list-item="">listen        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-accept" data-list-item="">accept        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-setKeepAlive" data-list-item="">setKeepAlive        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-setNoDelay" data-list-item="">setNoDelay        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-getInfo" data-list-item="">getInfo        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-getNetworkList" data-list-item="">getNetworkList        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-joinGroup" data-list-item="">joinGroup        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-leaveGroup" data-list-item="">leaveGroup        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-setMulticastTimeToLive" data-list-item="">setMulticastTimeToLive        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-setMulticastLoopbackMode" data-list-item="">setMulticastLoopbackMode        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/socket.html#method-getJoinedGroups" data-list-item="">getJoinedGroups        </a>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<table class="intro" id="intro">
+  <tbody><tr>
+    <td class="title">Description:</td>
+    <td>
+         Use the <code>chrome.socket</code> API to send and receive data over the
+         network using TCP and UDP connections.
+                <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Availability:</td>
+    <td>
+        Stable since Chrome 24.
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Permissions:</td>
+    <td>
+        <span class="code">
+        {"socket": ["rule1", "rule2"]}
+                </span>
+        <br>
+        For example: <code>{"socket": ["tcp-connect:*:*"]}</code> means connecting on any port of any host. See <a href="http://developer.chrome.com/apps/app_network.html">Network Communications</a> for rule syntax.
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Learn More:</td>
+    <td>
+        <a href="http://developer.chrome.com/apps/app_network.html">
+        Network Communications
+                </a>
+        <br>
+        <a href="http://developer.chrome.com/apps/sencha_framework.html">
+        Build Apps with Sencha ExtJS
+                </a>
+        <br>
+        <a href="https://developers.google.com/live/shows/7320022-5001/">
+        Chrome Apps Office Hours: Networking APIs
+                </a>
+        <br>
+        <a href="https://developers.google.com/live/shows/7320022-2001/">
+        Chrome Apps Office Hours: Controlling an AR ParrotDrone
+                </a>
+        <br>
+    </td>
+  </tr>
+</tbody></table>
+<section>
+<h2 id="api-reference-header" title="">chrome.socket reference</h2>
+<div class="api_reference">
+    <h2 id="types">Types</h2>
+      <div>
+        <h3 id="type-SocketType">SocketType</h3>
+        <div>
+          <dd>enum of
+            <code>"tcp"</code>, 
+            or <code>"udp"</code>
+          </dd>
+          <dd></dd>
+        </div>
+      </div>
+      <div>
+        <h3 id="type-WriteInfo">WriteInfo</h3>
+        <div>
+            <h3 id="WriteInfo-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo">WriteInfo</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-WriteInfo-bytesWritten"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-WriteInfo-bytesWritten" title="">
+                        bytesWritten
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The number of bytes sent, or a negative error code.
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+    <h2 id="methods">Methods</h2>
+      <div>
+        <h3 id="method-create">create
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.create</span>(<span><a href="http://developer.chrome.com/apps/socket.html#type-SocketType">SocketType</a> type</span>, <span class="optional">object options</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Creates a socket of the specified type that will connect to the specified remote machine.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-create-type"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-type" title="">
+                      type
+                      <span class="property">
+                        (
+                          <a href="http://developer.chrome.com/apps/socket.html#type-SocketType">SocketType</a>
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The type of socket to create. Must be <code>tcp</code> or <code>udp</code>.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-create-options"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-options" title="">
+                      options
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socket options.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-create-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the socket has been created.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> createInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-createInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-createInfo" title="">
+                        createInfo
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-createInfo-socketId"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-createInfo-socketId" title="">
+                              socketId
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The id of the newly created socket.
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-destroy">destroy
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.destroy</span>(<span>integer socketId</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Destroys the socket. Each socket created should be destroyed after use.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-destroy-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-destroy-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-connect">connect
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.connect</span>(<span>integer socketId</span>, <span>string hostname</span>, <span>integer port</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Connects the socket to the remote machine (for a <code>tcp</code> socket). For a <code>udp</code> socket, this sets the default address which packets are sent to and read from for <code>read()</code> and <code>write()</code> calls.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-connect-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-connect-hostname"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-hostname" title="">
+                      hostname
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The hostname or IP address of the remote machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-connect-port"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-port" title="">
+                      port
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The port of the remote machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-connect-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the connection attempt is complete.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-bind">bind
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.bind</span>(<span>integer socketId</span>, <span>string address</span>, <span>integer port</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Binds the local address for socket. Currently, it does not support TCP socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-bind-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-bind-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-bind-address"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-bind-address" title="">
+                      address
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The address of the local machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-bind-port"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-bind-port" title="">
+                      port
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The port of the local machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-bind-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-bind-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the bind attempt is complete.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-disconnect">disconnect
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.disconnect</span>(<span>integer socketId</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Disconnects the socket. For UDP sockets, <code>disconnect</code> is a non-operation but is safe to call.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-disconnect-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-disconnect-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-read">read
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.read</span>(<span>integer socketId</span>, <span class="optional">integer bufferSize</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Reads data from the given connected socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-read-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-read-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-read-bufferSize"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-read-bufferSize" title="">
+                      bufferSize
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The read buffer size.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-read-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-read-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Delivers data that was available to be read without blocking.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> readInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-readInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-readInfo" title="">
+                        readInfo
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-readInfo-resultCode"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-readInfo-resultCode" title="">
+                              resultCode
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The resultCode returned from the underlying read() call.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-readInfo-data"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-readInfo-data" title="">
+                              data
+                              <span class="property">
+                                (
+                                  arraybuffer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-write">write
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.write</span>(<span>integer socketId</span>, <span>arraybuffer data</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Writes data on the given connected socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-write-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-write-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-write-data"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-write-data" title="">
+                      data
+                      <span class="property">
+                        (
+                          arraybuffer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The data to write.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-write-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-write-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the write operation completes without blocking or an error occurs.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo"><span class="typ">WriteInfo</span></a><span class="pln"> writeInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-writeInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-writeInfo" title="">
+                        writeInfo
+                        <span class="property">
+                          (
+                            <a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo">WriteInfo</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-recvFrom">recvFrom
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.recvFrom</span>(<span>integer socketId</span>, <span class="optional">integer bufferSize</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Receives data from the given UDP socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-recvFrom-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-recvFrom-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-recvFrom-bufferSize"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-recvFrom-bufferSize" title="">
+                      bufferSize
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The receive buffer size.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-recvFrom-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-recvFrom-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Returns result of the recvFrom operation.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> recvFromInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-recvFromInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-recvFromInfo" title="">
+                        recvFromInfo
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-recvFromInfo-resultCode"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-recvFromInfo-resultCode" title="">
+                              resultCode
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The resultCode returned from the underlying recvfrom() call.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-recvFromInfo-data"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-recvFromInfo-data" title="">
+                              data
+                              <span class="property">
+                                (
+                                  arraybuffer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-recvFromInfo-address"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-recvFromInfo-address" title="">
+                              address
+                              <span class="property">
+                                (
+                                  string
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The address of the remote machine.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-recvFromInfo-port"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-recvFromInfo-port" title="">
+                              port
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-sendTo">sendTo
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.sendTo</span>(<span>integer socketId</span>, <span>arraybuffer data</span>, <span>string address</span>, <span>integer port</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sends data on the given UDP socket to the given address and port.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-sendTo-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendTo-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendTo-data"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendTo-data" title="">
+                      data
+                      <span class="property">
+                        (
+                          arraybuffer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The data to write.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendTo-address"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendTo-address" title="">
+                      address
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The address of the remote machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendTo-port"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendTo-port" title="">
+                      port
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The port of the remote machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendTo-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendTo-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the send operation completes without blocking or an error occurs.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo"><span class="typ">WriteInfo</span></a><span class="pln"> writeInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-writeInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-writeInfo" title="">
+                        writeInfo
+                        <span class="property">
+                          (
+                            <a href="http://developer.chrome.com/apps/socket.html#type-WriteInfo">WriteInfo</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-listen">listen
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.listen</span>(<span>integer socketId</span>, <span>string address</span>, <span>integer port</span>, <span class="optional">integer backlog</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            This method applies to TCP sockets only. Listens for connections on the specified port and address. This effectively makes this a server socket, and client socket functions (connect, read, write) can no longer be used on this socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-listen-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-listen-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-listen-address"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-listen-address" title="">
+                      address
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The address of the local machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-listen-port"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-listen-port" title="">
+                      port
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The port of the local machine.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-listen-backlog"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-listen-backlog" title="">
+                      backlog
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Length of the socket's listen queue.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-listen-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-listen-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when listen operation completes.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-accept">accept
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.accept</span>(<span>integer socketId</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            This method applies to TCP sockets only. Registers a callback function to be called when a connection is accepted on this listening server socket. Listen must be called first. If there is already an active accept callback, this callback will be invoked immediately with an error as the resultCode.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-accept-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-accept-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-accept-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-accept-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The callback is invoked when a new socket is accepted.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> acceptInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-acceptInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-acceptInfo" title="">
+                        acceptInfo
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-acceptInfo-resultCode"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-acceptInfo-resultCode" title="">
+                              resultCode
+                              <span class="property">
+                                (
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-acceptInfo-socketId"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-acceptInfo-socketId" title="">
+                              socketId
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The id of the accepted socket.
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setKeepAlive">setKeepAlive
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.setKeepAlive</span>(<span>integer socketId</span>, <span>boolean enable</span>, <span class="optional">integer delay</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Enables or disables the keep-alive functionality for a TCP connection.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setKeepAlive-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setKeepAlive-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setKeepAlive-enable"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setKeepAlive-enable" title="">
+                      enable
+                      <span class="property">
+                        (
+                          boolean
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    If true, enable keep-alive functionality.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setKeepAlive-delay"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setKeepAlive-delay" title="">
+                      delay
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Set the delay seconds between the last data packet received and the first keepalive probe. Default is 0.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setKeepAlive-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setKeepAlive-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the setKeepAlive attempt is complete.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">boolean</span><span class="pln"> result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            boolean
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setNoDelay">setNoDelay
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.setNoDelay</span>(<span>integer socketId</span>, <span>boolean noDelay</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sets or clears <code>TCP_NODELAY</code> for a TCP connection. Nagle's algorithm will be disabled when <code>TCP_NODELAY</code> is set.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setNoDelay-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setNoDelay-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setNoDelay-noDelay"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setNoDelay-noDelay" title="">
+                      noDelay
+                      <span class="property">
+                        (
+                          boolean
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    If true, disables Nagle's algorithm.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setNoDelay-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setNoDelay-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the setNoDelay attempt is complete.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">boolean</span><span class="pln"> result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            boolean
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getInfo">getInfo
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.getInfo</span>(<span>integer socketId</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves the state of the given socket.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getInfo-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getInfo-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-getInfo-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getInfo-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the state is available.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-result-socketType"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-socketType" title="">
+                              socketType
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/socket.html#type-SocketType">SocketType</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The type of the passed socket. This will be <code>tcp</code> or <code>udp</code>.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-result-connected"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-connected" title="">
+                              connected
+                              <span class="property">
+                                (
+                                  boolean
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            Whether or not the underlying socket is connected.<br><br> For <code>tcp</code> sockets, this will remain true even if the remote peer has disconnected. Reading or writing to the socket may then result in an error, hinting that this socket should be disconnected via <code>disconnect()</code>.<br><br> For <code>udp</code> sockets, this just represents whether a default remote address has been specified for reading and writing packets.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-result-peerAddress"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-peerAddress" title="">
+                              peerAddress
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  string
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            If the underlying socket is connected, contains the IPv4/6 address of the peer.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-result-peerPort"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-peerPort" title="">
+                              peerPort
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            If the underlying socket is connected, contains the port of the connected peer.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-result-localAddress"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-localAddress" title="">
+                              localAddress
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  string
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            If the underlying socket is bound or connected, contains its local IPv4/6 address.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-result-localPort"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-result-localPort" title="">
+                              localPort
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  integer
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            If the underlying socket is bound or connected, contains its local port.
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getNetworkList">getNetworkList
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.getNetworkList</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves information about local adapters on this system.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getNetworkList-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getNetworkList-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when local adapter information is available.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">array of </span><span class="kwd">object</span><span class="pln"> result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            array of object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      <h4 title="">Properties of each object</h4>
+                      <dl>
+                        <div>
+                          <div>
+                              <dd>
+                                <dl>
+                                  <div>
+                                    <a name="property-resultType-name"></a>
+                                    <dl>
+                                      <dt>
+                                        <h4 id="property-resultType-name" title="">
+                                          name
+                                          <span class="property">
+                                            (
+                                              string
+                                            )
+                                          </span>
+                                        </h4>
+                                      </dt>
+                                      <dd>
+                                        The underlying name of the adapter. On *nix, this will typically be "eth0", "lo", etc.
+                                      </dd>
+                                    </dl>
+                                  </div><div>
+                                    <a name="property-resultType-address"></a>
+                                    <dl>
+                                      <dt>
+                                        <h4 id="property-resultType-address" title="">
+                                          address
+                                          <span class="property">
+                                            (
+                                              string
+                                            )
+                                          </span>
+                                        </h4>
+                                      </dt>
+                                      <dd>
+                                        The available IPv4/6 address.
+                                      </dd>
+                                    </dl>
+                                  </div><div>
+                                    <a name="property-resultType-prefixLength"></a>
+                                    <dl>
+                                      <dt>
+                                        <h4 id="property-resultType-prefixLength" title="">
+                                          prefixLength
+                                          <span class="property">
+                                            (
+                                              integer
+                                            )
+                                          </span>
+                                        </h4>
+                                      </dt>
+                                      <dd>
+                                        The prefix length
+                                      </dd>
+                                    </dl>
+                                  </div>
+                                </dl>
+                              </dd>
+                          </div>
+                        </div>
+                      </dl>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-joinGroup">joinGroup
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.joinGroup</span>(<span>integer socketId</span>, <span>string address</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Join the multicast group and start to receive packets from that group. The socket must be of UDP type and must be bound to a local port before calling this method.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-joinGroup-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-joinGroup-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-joinGroup-address"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-joinGroup-address" title="">
+                      address
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The group address to join. Domain names are not supported.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-joinGroup-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-joinGroup-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the join group operation is done with an integer parameter indicating the platform-independent error code.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-leaveGroup">leaveGroup
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.leaveGroup</span>(<span>integer socketId</span>, <span>string address</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Leave the multicast group previously joined using <code>joinGroup</code>. It's not necessary to leave the multicast group before destroying the socket or exiting. This is automatically called by the OS.<br><br> Leaving the group will prevent the router from sending multicast datagrams to the local host, presuming no other process on the host is still joined to the group.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-leaveGroup-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-leaveGroup-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-leaveGroup-address"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-leaveGroup-address" title="">
+                      address
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The group address to leave. Domain names are not supported.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-leaveGroup-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-leaveGroup-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the leave group operation is done with an integer parameter indicating the platform-independent error code.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setMulticastTimeToLive">setMulticastTimeToLive
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.setMulticastTimeToLive</span>(<span>integer socketId</span>, <span>integer ttl</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Set the time-to-live of multicast packets sent to the multicast group.<br><br> Calling this method does not require multicast permissions.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setMulticastTimeToLive-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastTimeToLive-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setMulticastTimeToLive-ttl"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastTimeToLive-ttl" title="">
+                      ttl
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The time-to-live value.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setMulticastTimeToLive-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastTimeToLive-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the configuration operation is done.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setMulticastLoopbackMode">setMulticastLoopbackMode
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.setMulticastLoopbackMode</span>(<span>integer socketId</span>, <span>boolean enabled</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Set whether multicast packets sent from the host to the multicast group will be looped back to the host.<br><br> Note: the behavior of <code>setMulticastLoopbackMode</code> is slightly different between Windows and Unix-like systems. The inconsistency happens only when there is more than one application on the same host joined to the same multicast group while having different settings on multicast loopback mode. On Windows, the applications with loopback off will not RECEIVE the loopback packets; while on Unix-like systems, the applications with loopback off will not SEND the loopback packets to other applications on the same host. See MSDN: http://goo.gl/6vqbj<br><br> Calling this method does not require multicast permissions.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setMulticastLoopbackMode-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastLoopbackMode-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setMulticastLoopbackMode-enabled"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastLoopbackMode-enabled" title="">
+                      enabled
+                      <span class="property">
+                        (
+                          boolean
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Indicate whether to enable loopback mode.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-setMulticastLoopbackMode-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setMulticastLoopbackMode-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called when the configuration operation is done.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">integer result</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-result"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-result" title="">
+                        result
+                        <span class="property">
+                          (
+                            integer
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getJoinedGroups">getJoinedGroups
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.socket.getJoinedGroups</span>(<span>integer socketId</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Get the multicast group addresses the socket is currently joined to.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getJoinedGroups-socketId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getJoinedGroups-socketId" title="">
+                      socketId
+                      <span class="property">
+                        (
+                          integer
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The socketId.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-getJoinedGroups-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getJoinedGroups-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called with an array of strings of the result.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">array of </span><span class="kwd">string</span><span class="pln"> groups</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-groups"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-groups" title="">
+                        groups
+                        <span class="property">
+                          (
+                            array of string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+</div>
+</section>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./chrome.socket - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./chrome.socket - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./chrome.socket - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./chrome.socket - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./chrome.socket - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./chrome.socket - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./chrome.socket - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

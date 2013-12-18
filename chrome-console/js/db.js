@@ -47,12 +47,25 @@ function deletedb() {
   dbRequest.onerror = function(evt){ console.error("Failed to delete db: %o", evt.target.error); }  
 }
 
-function allData(ostore) {
+function allData(ostore, callback) {
     if(idb==null) throw "No Database Connection";
     if(!idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
+    var dbObjectStore = idb.transaction([ostore]).objectStore(ostore);
     var dbCursorRequest = dbObjectStore.openCursor();
-dbCursorRequest.onsuccess = function (evt) {
-var curCursor = evt.targ
+    var results = [];
+		dbCursorRequest.onsuccess = function (evt) {
+			var curCursor = evt.target.result;
+			if(curCursor) {
+				results.push(curCursor.value);
+				curCursor.continue();
+			}
+			console.info("Post Cursor: %s", results.length);
+		};
+		console.info("Post Cursor Success: %s", results.length);
+		dbCursorRequest.onerror = function (evt) {
+				console.error("Failed to read all from store [%s]-->[%o]", ostore, evt.target.error);
+				throw evt.target.error;
+		};
 }
 
 

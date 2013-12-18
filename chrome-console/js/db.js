@@ -19,7 +19,9 @@ var dbname = "opentsdb";
 var idb = null;
 var stores = {
   connections: { schema: {keyPath: 'name'}, indexes: {name: {unique: true, keyPath: 'name'}}, defaultData: [
-    {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket'}
+    {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket', permission: false},
+    {name: 'DefaultTCP', url: 'localhost:4242', type: 'tcp', permission: false},
+    {name: 'DefaultHTTP', url: 'http://localhost:4242', type: 'http', permission: false}
   ] }
 }
 
@@ -50,6 +52,7 @@ function deletedb() {
 function allData(ostore, callback) {
     if(idb==null) throw "No Database Connection";
     if(!idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
+    var deferred = $.Deferred();
     var dbObjectStore = idb.transaction([ostore]).objectStore(ostore);
     var dbCursorRequest = dbObjectStore.openCursor();
     var results = [];
@@ -58,13 +61,15 @@ function allData(ostore, callback) {
 			if(curCursor) {
 				results.push(curCursor.value);
 				curCursor.continue();
+			} else {
+				deferred.resolve(results);
 			}
-			console.info("Post Cursor: %s", results.length);
+			
 		};
-		console.info("Post Cursor Success: %s", results.length);
+		return deferred.promise();
 		dbCursorRequest.onerror = function (evt) {
 				console.error("Failed to read all from store [%s]-->[%o]", ostore, evt.target.error);
-				throw evt.target.error;
+				deferred.fail(evt);
 		};
 }
 

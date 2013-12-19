@@ -7,63 +7,66 @@ document.domain = "anpdknjjbhaojaaiopefckeimcpdpnkc";
 var _db = null;
 var _connectionStore = null;
 var _connections = {};
+var cTable = null;
+
 
 var READ_ONLY = 0;
 var READ_WRITE = 1;
 
 function loadConnections() {
-  console.info("Opening DB");
-  $.indexedDB("opentsdb", {
-    "upgrade" : function(tx) {
-	console.info("Upgrade TX:[%o]", tx);
+  parent.allData("connections").then(
+    function(data) {
+      console.info("Connection Data:[%o]", data);
+      initGrid(data);
     },
-    "schema" : {
-      "1" :  function(tx) {
-				console.info("Schema 1 TX:[%o]", tx);
-				tx.createObjectStore("connections").createIndex("name");
-				console.info("Created connections ObjectStore");
-      }
+    function(evt) {
+      console.error("Failed to load connections-->[%o]", evt);
     }
-    
-  }).done(onOpen).fail(onOpenFail);
+  );
 }
 
-
-function onOpen(db, event) {
-    _db = db;
-    console.info("Done DB:[%o]", _db);
-    console.info("Done Event:[%o]", event.srcElement.result);
-    var tx = _db.transaction("connections", "readwrite");
-    var cnt = 0;
-    tx.objectStore("connections").each(function(item){
-    	cnt++;
-    	_connections[item.name] = item;	
-    });
-    console.info("Loaded %s Connections", cnt);
-    if(cnt==0) {
-    	var item = {
-    		name: "Default",
-    		url: "ws://localhost:4243/ws",
-    		def: true
-    	};
-    	tx.objectStore("connections", "readwrite").put(item, item.name);
-    	console.info("Stored Default [%o]", item);
-    }
-    
-    //_db.createObjectStore("connections");
-    //console.info("CStore:[%o]", _connectionStore);
-    
+function handleCellEdit(value, settings) {
+    console.info("Handling Edit:  value:%o,  settings:%o", value, settings);
+    return value;
 }
 
-function onOpenFail(error, event) {
-    console.error("Failed to open DB:[%o]", error);
-}
+function initGrid(data) {
+  console.debug("Initing Grid");
 
+  /*
+  $('#connectionsGrid').dataTable( {
+	"bPaginate": false,
+	"bLengthChange": false,
+	"bFilter": false,
+	"bSort": false,
+	"bInfo": false,
+	"bAutoWidth": true
+    } ); 
+   */
+  cTable = $('#connectionsGrid').dataTable({
+    "bJQueryUI": true
+  });
+  console.info("Editable Configured");
+  $.each(data, function(index, item) {
+    // <!-- {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket', permission: false}, -->
+    $('#connectionsGrid').dataTable().fnAddData( [
+      item.name, item.auto, item.url, item.type, item.permission, item.permission_pattern
+    ] ); 
+  });
+  cTable.$('td').editable( handleCellEdit , {
+    "callback": function( sValue, y ) {
+	    var aPos = cTable.fnGetPosition( this );
+	    cTable.fnUpdate( sValue, aPos[0], aPos[1] );
+    },
+    "height": "14px",
+    "width": "100%"
+  } );  
+  
+}
 
 $(document).ready(function() { 
-    console.info('Connections App Loaded');
-    console.dir($('body'));
-    //loadConnections();
+ 
+    loadConnections();
 });
 
 

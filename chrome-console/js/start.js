@@ -4,43 +4,31 @@ var cstatus_icons = [
   "/img/green-light-16X16.png"
 ];
 
+document.domain = "anpdknjjbhaojaaiopefckeimcpdpnkc";
+
 function loadApp(appName) {
   var appId = appName + "_app";
   var uri = '/app/' + appName + '/' + appName + '.html';
   console.info('Loading App [%s]', uri);
   
-  $('#desktop_content').empty().append($('<div id="foo"><iframe id="' + appId + '" src="' + uri + '"></iframe><div>'));
-  $('#' + appId).toggle();
-  $('#desktop_content').append($('#' + appId).html());
-  $('#desktop_content').remove('#' + appId);
-  
-  
+  $('#desktop_content').empty().append($('<iframe id="' + appId + '" src="' + uri + '"></iframe>').css('display', 'block').css('width', '80%').css('height', '80%')); //.width($('#desktop_content').width()));
   
 }
 
-function init() {
-    var appName = "connections";
-    var appId = appName + "_app";
-    var uri = '/app/' + appName + '/' + appName + '.html';
-    var curi = chrome.runtime.getURL(uri);
-    console.info('Loading App [%s]', uri);
-  
-    $('#desktop_content').empty().append($('<div id="foo"><iframe id="' + appId + '" src="' + curi + '"></iframe><div>'));
-    var ht = $($('#' + appId)[0].ownerDocument).children()[0];
-    $('#desktop_content').empty();
-    $('#desktop_content').append($(ht).children("body").children());
-    console.dir(ht);
-}
 
 function initialize() {
   // ====================================
+  //	Open DB
+  // ====================================
+  opendb();
+  // ====================================
   //	Buttons
   // ====================================
-  $('#connections-btn').button({})
+  $('#connections-btn')//.button({})
   .click(function(e){
     loadApp('connections');
   });
-  $('#status-btn').button({ disabled: true })
+  $('#status-btn')//.button({ disabled: true })
   .click(function(e){
     console.info("Status:%o", e);
   });
@@ -52,6 +40,8 @@ function initialize() {
       primary: "ui-icon-gear",
       secondary: "ui-icon-triangle-1-s"
     },text: false});
+  
+$('#heliosimg').click(function() { chrome.permissions.request({origins: ["*://localhost/ws"]}, function(a) { console.info("Granted:%o", a); }); });  
 }
 
 $(document).ready(function() { 

@@ -15,6 +15,9 @@
           "128": "/img/tsdbicon_128.png",
           "16": "/img/tsdbicon_16.png"
      },
+     "optional_permissions": [
+	"*://*/*"
+     ],
      "permissions": [
           "clipboardRead",
           "clipboardWrite",
@@ -32,8 +35,8 @@
           "history",
           "idle",
           "management",
-          "tabs",
-          "*://*/*"
+          "tabs"
+          
      ],
      "manifest_version": 2
 }

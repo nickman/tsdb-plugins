@@ -19,9 +19,9 @@ var dbname = "opentsdb";
 var idb = null;
 var stores = {
   connections: { schema: {keyPath: 'name'}, indexes: {name: {unique: true, keyPath: 'name'}}, defaultData: [
-    {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket', permission: false},
-    {name: 'DefaultTCP', url: 'localhost:4242', type: 'tcp', permission: false},
-    {name: 'DefaultHTTP', url: 'http://localhost:4242', type: 'http', permission: false}
+    {name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''},
+    {name: 'DefaultTCP', auto: false, url: 'localhost:4242', type: 'tcp', permission: false, permission_pattern: ''},
+    {name: 'DefaultHTTP', auto: false, url: 'http://localhost:4242', type: 'http', permission: false, permission_pattern: ''}
   ] }
 }
 
@@ -49,7 +49,7 @@ function deletedb() {
   dbRequest.onerror = function(evt){ console.error("Failed to delete db: %o", evt.target.error); }  
 }
 
-function allData(ostore, callback) {
+function allData(ostore) {
     if(idb==null) throw "No Database Connection";
     if(!idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
     var deferred = $.Deferred();

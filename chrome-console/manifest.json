@@ -10,14 +10,10 @@
           "height": 300,
           "width": 300
      },
-     "background_page": "background.html",
      "icons": {
           "128": "/img/tsdbicon_128.png",
           "16": "/img/tsdbicon_16.png"
      },
-     "optional_permissions": [
-	"*://*/*"
-     ],
      "permissions": [
           "clipboardRead",
           "clipboardWrite",
@@ -25,13 +21,9 @@
           "unlimitedStorage",
           "storage",
           "cookies",
-          "background",
           "tts",
           "contextMenus",
           "fileBrowserHandler",
-          "audio",
-          "audioCapture",
-          "bluetooth",
           "history",
           "idle",
           "management",

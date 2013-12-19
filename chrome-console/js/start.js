@@ -4,7 +4,7 @@ var cstatus_icons = [
   "/img/green-light-16X16.png"
 ];
 
-document.domain = "anpdknjjbhaojaaiopefckeimcpdpnkc";
+document.domain = chrome.runtime.id;
 
 function loadApp(appName) {
   var appId = appName + "_app";
@@ -24,11 +24,11 @@ function initialize() {
   // ====================================
   //	Buttons
   // ====================================
-  $('#connections-btn')//.button({})
+  $('#connections-btn').button({}).css({ width: '100%'})
   .click(function(e){
     loadApp('connections');
   });
-  $('#status-btn')//.button({ disabled: true })
+  $('#status-btn').button({ disabled: true }).css({ width: '100%'})
   .click(function(e){
     console.info("Status:%o", e);
   });

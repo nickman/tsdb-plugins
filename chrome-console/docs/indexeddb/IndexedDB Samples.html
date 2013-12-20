@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0084)http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/samples.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>IndexedDB Samples</title>
+<script type="text/javascript" src="./IndexedDB Samples_files/bootidb.js"></script>
+<script type="text/javascript">
+function launch_sample()
+{
+	var e = window.event.srcElement;
+	if (e.tagName == "A")
+		document.getElementById("sample").src = e.href;
+	
+	window.event.returnValue = false;
+}
+</script>
+</head>
+
+<body onload="AddTestOnlyWarning()"><div><div style="height: 39px; background-color:Red; color:White; "><p style="font-size:18px; top: 20px;"><b>This page is using MS IndexedDB prototype code. The code is for testing-purposes only!</b></p></div></div>
+<h2>Run the following samples in the order specified</h2>
+<div style="float:left;width:20%;">
+<h3>Asynchronous Samples</h3>
+<ol style="font-family: Arial, Sans-Serif; font-size: small;">
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%201.html" onclick="launch_sample()">Create/Open database</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Aynchronous%20API%20Samples%205.html" onclick="launch_sample()">Set IndexedDB Version</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%202_1.html" onclick="launch_sample()">Create Object Stores</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_1.html" onclick="launch_sample()">Put Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_1.html" onclick="launch_sample()">Create Index</a></li>
+<li><a href="./IndexedDB Samples_files/IndexedDB Asynchronous API Samples 3_2.html" onclick="launch_sample()">Add Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_3.html" onclick="launch_sample()">Get Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_4.html" onclick="launch_sample()">Cursor update records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_2.html" onclick="launch_sample()">Index - Open key cursor</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_3.html" onclick="launch_sample()">Index - Open Cursor</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_4.html" onclick="launch_sample()">Index - Get</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_5.html" onclick="launch_sample()">Index - Get Key</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_6.html" onclick="launch_sample()">Cursor Delete Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_7.html" onclick="launch_sample()">Delete Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%203_8.html" onclick="launch_sample()">Clear Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%204_6.html" onclick="launch_sample()">Delete Index</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%202_2.html" onclick="launch_sample()">Delete Object Stores</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Asynchronous%20API%20Samples%201_2.html" onclick="launch_sample()">Delete database</a></li>
+</ol>
+<h3>Synchronous Samples</h3>
+<ol style="font-family: Arial, Sans-Serif; font-size: small;">
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%201.html" onclick="launch_sample()">Create/Open database</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%205.html" onclick="launch_sample()">Set IndexedDB version</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%202_1.html" onclick="launch_sample()">Create Object Stores</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%202_2.html" onclick="launch_sample()">Open Object Stores</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_1.html" onclick="launch_sample()">Put Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%204_1.html" onclick="launch_sample()">Create Index</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_2.html" onclick="launch_sample()">Put Records (within a transaction)</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_3.html" onclick="launch_sample()">Add Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_4.html" onclick="launch_sample()">Add Records (within a transaction)</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_5.html" onclick="launch_sample()">Get Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%204_3.html" onclick="launch_sample()">Index - Open Cursor</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%204_4.html" onclick="launch_sample()">Index - Open Key Cursor</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%204_5.html" onclick="launch_sample()">Index - Get Key</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_6.html" onclick="launch_sample()">Delete Records</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_7.html" onclick="launch_sample()">Delete Records (within a transaction)</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%203_8.html" onclick="launch_sample()">Clear Records (within a transaction)</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%204_6.html" onclick="launch_sample()">Delete Index</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%202_3.html" onclick="launch_sample()">Delete Object Stores</a></li>
+<li><a href="http://html5labs.interoperabilitybridges.com/IndexedDBTest/CodeSnippets/IndexedDB%20Synchronous%20API%20Samples%201_2.html" onclick="launch_sample()">Delete database</a></li>
+</ol>
+</div>
+<div style="width:80%;float:right;height:950px;">
+<iframe id="sample" src="./IndexedDB Samples_files/IndexedDB Asynchronous API Samples 3_2.html" style="width:100%;height:100%;"></iframe>
+</div>
+
+
+
+</body></html>

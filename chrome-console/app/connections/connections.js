@@ -108,6 +108,22 @@ function initGrid(data) {
 			  
 			});
 			//console.groupEnd();
+
+  cTable = $('#connectionsGrid').dataTable({
+    "bJQueryUI": true, "aoColumns": oaAttrs,
+		"fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+			//console.info("fnRowCallback: nRow:%o, aData:%o, iDisplayIndex:%o, iDisplayIndexFull:%o", nRow, aData, iDisplayIndex, iDisplayIndexFull);
+			var id = aData[0];
+			var rowId = 'crow_' + aData[0];
+			nRow.id = rowId;
+			var cAttrs = null;
+			$.each(nRow.childNodes, function(index, item) {
+			  cAttrs = columnAttributes[index];
+			  item.id = rowId + "_" + (index);
+			  $('#' + item.id).attr('arr', (index));
+			  $('#' + item.id).addClass(cAttrs.classes);
+			});
+
     }    
   });
   console.info("Editable Configured");
@@ -118,6 +134,11 @@ function initGrid(data) {
   });
   $('#connectionsGrid').dataTable().fnAddData(allRowData); 
   
+    // <!-- {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket', permission: false}, -->
+    $('#connectionsGrid').dataTable().fnAddData( [
+      item.id, item.name, item.auto, item.url, item.type, item.permission, item.permission_pattern
+    ] ); 
+  });
   cTable.$('td.editable').editable( handleCellEdit , {
     "callback": function( sValue, y ) {
 	    var aPos = cTable.fnGetPosition( this );

@@ -18,7 +18,7 @@ create new
 var dbname = "opentsdb";
 var idb = null;
 var stores = {
-  connections: { schema: {keyPath: 'name'}, indexes: {name: {unique: true, keyPath: 'name'}}, defaultData: [
+  connections: { schema: {keyPath: 'id', autoIncrement: true}, indexes: {name: {unique: true, keyPath: 'name'}}, defaultData: [
     {name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''},
     {name: 'DefaultTCP', auto: false, url: 'localhost:4242', type: 'tcp', permission: false, permission_pattern: ''},
     {name: 'DefaultHTTP', auto: false, url: 'http://localhost:4242', type: 'http', permission: false, permission_pattern: ''}
@@ -111,7 +111,7 @@ function install() {
 	  var objectStore = dbTrans.objectStore(name);
 	  $.each(spec.defaultData, function(index, data) {
 	    var dbAddRequest = objectStore.add(data);
-	    dbAddRequest.onsuccess = function (evt) { console.info("Saved [%s] Default Data Item:[%o]", name, data); }
+	    dbAddRequest.onsuccess = function (evt) { console.info("Saved [%s] Default Data Item:[%o], ID:[%o]", name, data, evt.target.result); }
 	    dbAddRequest.onerror = function (evt) { console.error("Failed to save [%s] Default Data Item:[%o]-->%o", name, data, evt.target.error); }
 	  });
 	}      

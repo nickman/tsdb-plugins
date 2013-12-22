@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" id="connections_doc">
+<head>
+<link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="/js/dataTables/css/jquery.dataTables.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="connections.css" type="text/css" media="screen" />
+
+<title>Connections</title>
+
+<script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/ws/tsdb-ws-api.js" charset="utf-8"></script>
+<script type="text/javascript" src="/app/app-client.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/dataTables/jquery.jeditable.js"></script>
+<script type="text/javascript" src="/js/dataTables/jquery.dataTables.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/dataTables/jeditable.checkbox.js" charset="utf-8"></script>
+
+
+
+
+<script type="text/javascript" src="connections.js" charset="utf-8"></script>
+</head>
+<body> 
+  <h3 class="title">OpenTSDB Server Connections</h3>
+  <!-- {name: 'Default', url: 'ws://localhost:4243/ws', type: 'websocket', permission: false}, -->
+  <div id="demo">
+  <table id="connectionsGrid" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
+	<thead>
+		<tr>
+			<th>Id</th>
+			<th>Connection Name</th>
+			<th>Auto</th>
+			<th>Connection URL</th>
+			<th>Type</th>
+			<th>Has Permissions</th>
+			<th>Permission</th>
+			<th>Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
+  </table>
+  </div>
+</body>
+</html>
+

@@ -4,10 +4,38 @@
  */
 
 
+chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData) {  
+  var OP = launchData==null ? ["Starting", "Started"] : ["Restarting", "Restarted"];
+  console.info("%s server.js  <------------", OP[0]);
+  window.opentsdb.types.Server = Class.extend({
+    _self : this,
+    /**
+     * Constructor for Server. Initializes the listener.
+     */
+    init: function(){
+      var _me = this;
+      var handlerWrapper = function(request, sender, response) {
+        _me.handleRequest.apply(_me, arguments);
+        return true;
+      };
+      chrome.runtime.onMessage.addListener(
+        handlerWrapper
+      );  
 
-chrome.app.runtime.onLaunched.addListener(function() { 
-  console.info("Starting server.js  <------------");
-  window.opentsdb.server = {
+    },    
+    /**
+     * Indicates if the passed object is a jQuery promise
+     * @param value The object to test
+     * @return true if the passed object is a jQuery promise, false otherwise
+     */    
+    isPromise : function(value) {
+        if (typeof value.then !== "function") {
+            return false;
+        }
+        var promiseThenSrc = String($.Deferred().then);
+        var valueThenSrc = String(value.then);
+        return promiseThenSrc === valueThenSrc;
+    },
     /**
      * Message handler for one time requests
      * @param request The incoming request
@@ -17,27 +45,39 @@ chrome.app.runtime.onLaunched.addListener(function() {
     handleRequest : function(request, sender, response) {
         console.info("Server received request [%o] from sender [%o]", request, sender);
         console.info("Invoke Request:%o", request);
-        var port = window.opentsdb[request.port];
+        var port = window.opentsdb.services[request.port];
         var func = port[request.name];
         var resp = null;
         try {
-          resp = func(request.args);
+          resp = func.apply(port, request.args);
+          if(!this.isPromise(resp)) {
+            response(resp);  
+          } else {  
+            resp.then(
+              function(result) {      
+                var result_copy = result;
+                response(result_copy);
+                console.info("Promise Resolved. Returning result: [%o]", result_copy);
+              },
+              function(evt) {              
+                response(evt);
+                console.info("Promise Failed. Returning error: [%o]", evt);
+              },
+              function(progress) {
+                console.info("Promise Progress. Value: [%o]", progress);
+              }            
+            );
+          }            
         } catch (e) {
           console.error("Request Error:%o", e);
           resp = e;
         }      
-        console.info("Invoke Request:%o  RESPONSE:[%o]", request, resp);
-        response(resp);
-        // {port:'db', name:'allData', 'args':['connections]}      
     }
-    
-  };  
-  chrome.runtime.onMessage.addListener(
-    window.opentsdb.server.handleRequest
-  );  
-  window.opentsdb.services['server'] = window.opentsdb.server;
-  window.opentsdb.dependencies['server'].resolve(window.opentsdb.server);  
-  console.info("------------> Started server.js");
+  }); // end of Server definition
+  var server = new window.opentsdb.types.Server();
+  window.opentsdb.services.server = server; 
+  window.opentsdb.dependencies['server'].resolve(server);   
+  console.info("------------> [%s] server.js", OP[1]);
 });
 
 

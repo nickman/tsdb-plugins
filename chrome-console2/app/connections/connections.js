@@ -25,12 +25,12 @@ var oaAttrs = [];
 
 
 function loadConnections() {
-  sendRequest({port:'db', name:'allData', 'args':'connections'}).then(
+  sendRequest({port:'db', name:'allData', 'args': ['connections']}).then(
     function(data) {
       var rows = [];
       $.each(data, function(index, item) {
-	 rows.push([item.id, item.name, item.auto, item.url, item.type, item.permission, item.permission_pattern, '']);    
-	 item.dirty = false;
+        rows.push([item.id, item.name, item.auto, item.url, item.type, item.permission, item.permission_pattern, '']);    
+        item.dirty = false;
       });
       _connections = data;
       console.info("Connection Data:[%o]", data);
@@ -41,22 +41,6 @@ function loadConnections() {
     }    
   );
   
-  sendRequest({port:'db', name:'allData', args:'connections'}).then (
-  //window.opentsdb.allData("connections").then(
-    function(data) {
-      var rows = [];
-      $.each(data, function(index, item) {
-	 rows.push([item.id, item.name, item.auto, item.url, item.type, item.permission, item.permission_pattern, '']);    
-	 item.dirty = false;
-      });
-      _connections = data;
-      console.info("Connection Data:[%o]", data);
-      initGrid(rows);
-    },
-    function(evt) {
-      console.error("Failed to load connections-->[%o]", evt);
-    }
-  );
 }
 
 function handleCellEdit(value, settings) {

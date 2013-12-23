@@ -5,20 +5,26 @@
 
 $(document).ready(function() { 
     console.info("OpenTSDB Console Services Client");
+    chrome.runtime.onMessage.addListener(function(p){
+      console.info("App Client Received Message: [%o]", p);
+    });
 });
+
 
 function sendRequest(request) {  
   if(request==null) {
     throw "Passed request was null";
   }
   var deferred = $.Deferred();
-  chrome.runtime.sendMessage(request, function(response) {
-    if(response!=null) {
-      deferred.resolve(response);
-    } else {
-      deferred.rejectWith(this, "Request [" + JSON.stringify(request) + "] failed", chrome.runtime.lastError);
-    }
-  });  
+  var handler = function(resp) {
+    var _response = resp;
+    console.info("AppClient Received Response: [%o]", _response);
+    deferred.resolve(_response);
+  }
+  console.info("AppClient Sending Request: [%o]", request);
+  
+  chrome.runtime.sendMessage(request, handler);
+
   return deferred.promise();
 }
 

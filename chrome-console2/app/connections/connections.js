@@ -25,7 +25,7 @@ var oaAttrs = [];
 
 
 function loadConnections() {
-  sendRequest({port:'db', name:'allData', 'args':['connections']}).then(
+  sendRequest({port:'db', name:'allData', 'args':'connections'}).then(
     function(data) {
       var rows = [];
       $.each(data, function(index, item) {
@@ -41,7 +41,8 @@ function loadConnections() {
     }    
   );
   
-  window.opentsdb.allData("connections").then(
+  sendRequest({port:'db', name:'allData', args:'connections'}).then (
+  //window.opentsdb.allData("connections").then(
     function(data) {
       var rows = [];
       $.each(data, function(index, item) {

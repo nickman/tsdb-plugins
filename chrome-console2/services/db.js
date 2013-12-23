@@ -3,9 +3,8 @@
  * Whitehead, 2014
  */ 
 
-console.info("Loading DB [%o]", document);
 
- var dbService = {
+dbService = function(){
  	dbname : "opentsdb",
  	me : dbService,
  	idb : null,
@@ -35,6 +34,7 @@ console.info("Loading DB [%o]", document);
  			return d;
  		}
  		var dbRequest = window.indexedDB.open(this.dbname);
+ 		var me = this;
  		dbRequest.onerror = function(event) {
  			console.error("Failed to open indexeddb: %o", event.target.error);
  			d.reject(event.target.error);
@@ -57,26 +57,27 @@ console.info("Loading DB [%o]", document);
  	},
  	allData : function(ostore) {
  		var d = $.Deferred();
- 		me.opendb().then(
+ 		var me = this;
+ 		this.opendb().then(
  			function() {
  				try {
  					if(!me.idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
-			 		var dbObjectStore = me.idb.transaction([ostore]).objectStore(ostore);
-			 		var dbCursorRequest = dbObjectStore.openCursor();
-			 		var results = [];
-			 		dbCursorRequest.onsuccess = function (evt) {
-			 			var curCursor = evt.target.result;
-			 			if(curCursor) {
-			 				results.push(curCursor.value);
-			 				curCursor.continue();
-			 			} else {
-			 				d.resolve(results);
-			 			}
-			 		};
-			 		dbCursorRequest.onerror = function (evt) {
-			 			console.error("Failed to read all from store [%s]-->[%o]", ostore, evt.target.error);
-			 			deferred.fail(evt.target.error);
-			 		};
+ 					var dbObjectStore = me.idb.transaction([ostore]).objectStore(ostore);
+ 					var dbCursorRequest = dbObjectStore.openCursor();
+ 					var results = [];
+ 					dbCursorRequest.onsuccess = function (evt) {
+ 						var curCursor = evt.target.result;
+ 						if(curCursor) {
+ 							results.push(curCursor.value);
+ 							curCursor.continue();
+ 						} else {
+ 							d.resolve(results);
+ 						}
+ 					};
+ 					dbCursorRequest.onerror = function (evt) {
+ 						console.error("Failed to read all from store [%s]-->[%o]", ostore, evt.target.error);
+ 						deferred.fail(evt.target.error);
+ 					};
  				} catch (e) {
  					d.reject(e);
  				} 				 				
@@ -84,10 +85,12 @@ console.info("Loading DB [%o]", document);
  			function(err) {
  				d.reject(err);
  			}
- 		);
+ 			);
  		return d.promise(); 		
  	},
+
  	install : function() {
+ 		var me = this;
  		if(me.idb) me.idb.close();
  		console.info("Installing Schemas");
  		var dbRequest = window.indexedDB.open(me.dbname, 2);
@@ -99,7 +102,7 @@ console.info("Loading DB [%o]", document);
  		dbRequest.onupgradeneeded = function (evt) {
  			console.info("Connected for Upgrade");
  			me.idb = evt.target.result;
- 			$.each(stores, function(name, spec) {	
+ 			$.each(me.stores, function(name, spec) {	
  				var objectStore = me.idb.createObjectStore(name, spec.schema);
  				spec.store = objectStore;
  				console.info("Created Object Store [%s]", name);
@@ -111,39 +114,47 @@ console.info("Loading DB [%o]", document);
  						console.info("Created Object Store  Index [%s]->[%s]", name, iname);
  					});	  
  				}
- 			});
-	// connections: { schema: {keyPath: 'name'}, indexes: {name: {unique: true, keyPath: 'name'}} }
-	
-}
+ 			});	
+		}
 
-dbRequest.onsuccess = function (evt) {
-	console.info("DB Upgraded:%s", me.idb.version);
-	$.each(stores, function(name, spec) {	
-		if(spec.defaultData) {
-			var dbTrans = me.idb.transaction([name], 'readwrite');
-			var objectStore = dbTrans.objectStore(name);
-			$.each(spec.defaultData, function(index, data) {
-				var dbAddRequest = objectStore.add(data);
-				dbAddRequest.onsuccess = function (evt) { console.info("Saved [%s] Default Data Item:[%o], ID:[%o]", name, data, evt.target.result); }
-				dbAddRequest.onerror = function (evt) { console.error("Failed to save [%s] Default Data Item:[%o]-->%o", name, data, evt.target.error); }
+		dbRequest.onsuccess = function (evt) {
+			console.info("DB Upgraded:%s", me.idb.version);
+			$.each(me.stores, function(name, spec) {	
+				if(spec.defaultData) {
+					var dbTrans = me.idb.transaction([name], 'readwrite');
+					var objectStore = dbTrans.objectStore(name);
+					$.each(spec.defaultData, function(index, data) {
+						var dbAddRequest = objectStore.add(data);
+						dbAddRequest.onsuccess = function (evt) { console.info("Saved [%s] Default Data Item:[%o], ID:[%o]", name, data, evt.target.result); }
+						dbAddRequest.onerror = function (evt) { console.error("Failed to save [%s] Default Data Item:[%o]-->%o", name, data, evt.target.error); }
+					});
+				}      
 			});
-		}      
-	});
-}
-}
+		}
+	}
 }
 
-// dbService
-/*
+
+
+
 chrome.app.runtime.onLaunched.addListener(function() { 
-	console.info("Initializing Service db");
-	dbService.opendb();
-	if(window.opentsdb==null) {
-		window.opentsdb = {};
-	}
-	window.opentsdb.db = dbService;
+	console.info("Starting db.js  <------------");
+	window.opentsdb.db = new dbService();
+	window.opentsdb.db.opendb().then(
+		function() {
+			window.opentsdb.services['db'] = window.opentsdb.db;
+			window.opentsdb.dependencies['db'].resolve(window.opentsdb.db);		
+			console.info("------------> Started db.js")
+		},
+		function(evt) {
+			window.opentsdb.services['db'].reject(evt);			
+		}
+	);  
 });
-*/
+
+
+
+
 
 
 

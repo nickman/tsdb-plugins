@@ -3,14 +3,15 @@
      "description": "Management Console for OpenTSDB",
      "version": "1.0",
      "app": {
-	"background": {
-	  "scripts": [	
-	    "/js/jquery/jquery-2.0.3.js",
-	    "/js/server.js",
-	    "/js/db.js",	    
-	    "background.js"
-	  ]
-	}
+          "background": {
+               "scripts": [
+                    "/js/jquery/jquery-2.0.3.js",
+                    "/js/nsinit.js",                    
+                    "/services/db.js",
+                    "/services/server.js",	    	    
+                    "background.js"
+     	    ]
+	    }
      },
      "icons": {
           "128": "/img/tsdbicon_128.png",

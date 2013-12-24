@@ -107,12 +107,12 @@ function initGrid(data) {
 	  $(cellSelector, nRow).css({layout: 'inline', 'vertical-allignment':'middle'});
 	  //console.info("Cell Decorator:  rowColId:[%s], arr:[%s], name:[%s], classes:[%s]", rowColId, index, cAttrs.id, cAttrs.classes);
 	  $(cellSelector, nRow).attr('id', rowColId).attr('arr', index).attr('name', cAttrs.id).addClass(cAttrs.classes);
-	  $(actionSelector, nRow).empty()
-	    .append($('<span>Delete</span>').attr('id', rowColId + '_del_btn').button({icons: {primary:'ui-icon-close',text: true}}).css({ 'font-size': '0.7em', float : 'left'}))
-	    .append($('<span>Connect</span>').attr('id', rowColId + '_con_btn').button({icons: {primary:'ui-icon-folder-open',text: true}}).css({ 'font-size': '0.7em', float : 'left'}));
-
-			  
+	  $(actionSelector, nRow).empty().append($('<span><span>')
+	    .append($('<span>Delete</span>').attr('id', rowColId + '_del_btn').button({icons: {primary:'ui-icon-close',text: true}}).css({ 'font-size': '0.9em', float : 'left', padding : '.4em .4em .4em 2em;'}))
+	    .append($('<span>Connect</span>').attr('id', rowColId + '_con_btn').button({icons: {primary:'ui-icon-folder-open',text: true}}).css({ 'font-size': '0.9em', float : 'left', padding : '.4em .4em .4em 2em;'}))
+    )
 	});
+
     }
   });
   $('#connectionsGrid').dataTable().fnAddData(data);

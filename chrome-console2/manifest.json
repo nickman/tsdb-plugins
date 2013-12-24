@@ -6,9 +6,12 @@
           "background": {
                "scripts": [
                     "/js/jquery/jquery-2.0.3.js",
+                    "/js/sprintf.min.js",
                     "/js/nsinit.js",                    
                     "/services/db.js",
-                    "/services/server.js",	    	    
+                    "/services/remoteconns.js",
+                    "/services/server.js",	    	
+
                     "background.js"
      	    ]
 	    }
@@ -27,7 +30,8 @@
           "tts",
           "contextMenus",
           "fileBrowserHandler",
-          "idle"
+          "idle",
+          {"socket" : ["tcp-connect", "tcp-listen"]}
           
      ],
      "manifest_version": 2

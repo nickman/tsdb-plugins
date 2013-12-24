@@ -22,6 +22,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 		window.opentsdb.types = {}; 
 	}
 	// ========================================================================================================
+	//		Base service class definition
 	// ========================================================================================================
 	/* Simple JavaScript Inheritance
 	 * By John Resig http://ejohn.org/
@@ -87,8 +88,32 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    return Class;
 	  };
 	})();
+
+
 	// ========================================================================================================
+	//		Class extension functions
 	// ========================================================================================================
+	Class.prototype.sendRequest = $.proxy(function(request) {
+	  if(request==null) {
+	    throw "Passed request was null";
+	  }
+	  var deferred = $.Deferred();
+	  console.info("Service Sending Request: [%o]", request);
+	  
+	  chrome.runtime.sendMessage(request, function(resp) {
+	    console.info("Service Received Response: [%o]", resp);
+	    deferred.resolve(resp);
+	    return true;
+	  });
+
+	  return deferred.promise();
+	}, this);
+
+
+
+
+	// ========================================================================================================
+
 	console.info("OpenTSDB namespace initialized");
 	console.group("Service Scripts");
 	$.each(chrome.runtime.getManifest().app.background.scripts, function(index, script) {

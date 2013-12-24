@@ -68,7 +68,11 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	 		var d = $.Deferred();	 
 	 		var me = this;	
 	 		var _keys = [];
-	 		var results = {};
+	 		var results = {
+	 			count : 0
+	 		};
+	 		var xcount = 0;
+	 		var broken = false;
 	 		if(arguments.length < 3) {
 	 			d.resolve(results);
 	 			return d.promise();
@@ -94,29 +98,42 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	 						var keyId = objectStore.keyPath;
 		 					var ob = objectStore.get(value);
 		 					ob.onsuccess = function(evt) {
+		 						xcount++;
+		 						if(broken) return;
 		 						var row = evt.target.result;
 		 						if(row==null) {
 		 							if(failNotFound) {
 		 								console.error("getByKey value not found, Event:[%o]", evt);
 		 								d.reject(evt);
+		 								broken = true;
 		 							}
 		 						} else {
-		 							row.rownum = index;
+		 							row.rownum = results.count;
+		 							results.count++;
 		 							results[row[keyId]] = row;		 						
 		 						}
+			 					if(xcount==l) {
+				 					if(d.state() != "rejected") {
+				 						d.resolve(results);
+				 					}
+			 					}
 		 					}
 		 					ob.onerror = function(evt) {
+		 						xcount++;;
+		 						if(broken) return;
 		 						if(failNotFound) {
 		 							console.error("getByKey failed, Error:[%o]", evt.target.error);
 		 							d.reject(evt.target.error);
+		 							broken = true;
 		 						}		 						
+			 					if(xcount==l) {
+				 					if(d.state() != "rejected") {
+				 						d.resolve(results);
+				 					}
+			 					}
 		 					}
 		 					if(failNotFound && d.state=="rejected") break; 
-		 					// check index here
 	 					};
-	 					if(d.state() != "rejected") {
-	 						d.resolve(results);
-	 					}
 	 				} catch (e) {
 	 					console.error("getByKey failure:[%o]", e);
 	 					d.reject(e);

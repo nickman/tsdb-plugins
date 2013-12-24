@@ -72,6 +72,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
           console.error("Request Error:%o", e);
           resp = e;
         }      
+        return true;
     }
   }); // end of Server definition
   var server = new window.opentsdb.types.Server();

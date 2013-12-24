@@ -58,11 +58,76 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	 		};
 	 		return d.promise();
 	 	},
-	 	deletedb : function() {
-	 		if(me.idb) me.idb.close();
-	 		var dbRequest = window.indexedDB.deleteDatabase(me.dbname);
+	 	deletedb : function() {	 		
+	 		if(this.idb) this.idb.close();
+	 		var dbRequest = window.indexedDB.deleteDatabase(this.dbname);
 	 		dbRequest.onsuccess = function(evt){ console.info("Deleted DB:%o", evt); }
 	 		dbRequest.onerror = function(evt){ console.error("Failed to delete db: %o", evt.target.error); }  
+	 	},
+	 	getByKey: function(ostore, failNotFound, keys) {
+	 		var d = $.Deferred();	 
+	 		var me = this;	
+	 		var _keys = [];
+	 		var results = {};
+	 		if(arguments.length < 3) {
+	 			d.resolve(results);
+	 			return d.promise();
+	 		} 
+	 		if(!me.idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
+	 		for(var i = 2, l = arguments.length; i < l; i++) { 
+	 			var item = arguments[i];
+		 		if($.isArray(item)) {
+		 			$.each(item, function(index, value){
+		 				_keys.push(value);
+		 			});
+		 		} else {
+		 			_keys.push(item);
+		 		}
+	 		}
+			this.opendb().then(
+	 			function() {
+	 				try {	 					
+	 					var transaction = me.idb.transaction([ostore], "readonly");
+	 					var objectStore = transaction.objectStore(ostore);	 	
+	 					for(var index = 0, l = _keys.length; index < l; index++) {
+	 						var value = _keys[index];				
+	 						var keyId = objectStore.keyPath;
+		 					var ob = objectStore.get(value);
+		 					ob.onsuccess = function(evt) {
+		 						var row = evt.target.result;
+		 						if(row==null) {
+		 							if(failNotFound) {
+		 								console.error("getByKey value not found, Event:[%o]", evt);
+		 								d.reject(evt);
+		 							}
+		 						} else {
+		 							row.rownum = index;
+		 							results[row[keyId]] = row;		 						
+		 						}
+		 					}
+		 					ob.onerror = function(evt) {
+		 						if(failNotFound) {
+		 							console.error("getByKey failed, Error:[%o]", evt.target.error);
+		 							d.reject(evt.target.error);
+		 						}		 						
+		 					}
+		 					if(failNotFound && d.state=="rejected") break; 
+		 					// check index here
+	 					};
+	 					if(d.state() != "rejected") {
+	 						d.resolve(results);
+	 					}
+	 				} catch (e) {
+	 					console.error("getByKey failure:[%o]", e);
+	 					d.reject(e);
+	 				}
+	 			},
+	 			function(err) {
+	 					console.error("opendb failure:[%o]", e);
+	 					d.reject(e);
+	 			}
+	 		);
+	 		return d.promise();
 	 	},
 	 	allData : function(ostore) {
 	 		var d = $.Deferred();	 

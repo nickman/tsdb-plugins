@@ -38,7 +38,7 @@ function bootBackground() {
 			  		'id' : 'mainWindow',
 			  		'state' : 'normal',
 			    	'bounds': {
-			      		'width': Math.round(window.screen.availWidth*0.8),
+			      		'width': Math.round(window.screen.availWidth*0.95),
 			      		'height': Math.round(window.screen.availHeight*0.8)
 			    	}    
 			  	},

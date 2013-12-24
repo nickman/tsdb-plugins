@@ -129,7 +129,7 @@ function initGrid(data) {
       return true;
     },
     "onsubmit" : function(a,b) {
-	console.info("edit-submit: Validating edit from [%s] to [%s]", b.revert, b.firstChild[0].value);	
+	     console.info("edit-submit: Validating edit from [%s] to [%s]", b.revert, b.firstChild[0].value);	
     },
     "onerror": function (settings, original, xhr) {
         original.reset();

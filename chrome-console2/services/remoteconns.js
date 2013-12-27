@@ -7,11 +7,17 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	OP = launchData==null ? ["Starting", "Started"] : ["Restarting", "Restarted"];
 	console.info("%s remoteconns.js  <------------", OP[0]);	
 	var RConnService = Class.extend({
+		me: this,
 	    /**
 	     * Constructor for Db Service. 
 	     */
 	    init: function(){
 	    	this.me = this;
+	    	var _me = this;
+	    	this.addGlobalListener({onConnect: function(conn){
+	    		console.info("RConnService adding connected [%o]", conn);
+	    		_me[conn.connection.URL] = conn;
+	    	}});
 	    	console.info("Creating RConnService");
 	    },	    
 	    //=========================================================================================================
@@ -37,23 +43,38 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	"udp" : "udp",
 
 	    },
+	    /** Embeds the listener into the passed filter */
+	    filterize : function(listener, filter) {
+	    	if(filter==null || filter.filter=="undefined" || !$.isFunction(filter.filter)) return listener;
+	    	return function(event) {
+	    		if(filter.filter(event)) {
+	    			listener(event);
+	    		};
+	    	};
+	    },
 		/**  Registers global connection listeners, registered with all created connections */
-		addGlobalListener : function(globalListener) {
+		addGlobalListener : function(globalListener, filter) {
 			if(globalListener!=null) {
 				if(globalListener.onConnect && $.isFunction(globalListener.onConnect)) {
-					this.connectionListeners.connect.push(globalListener);					
+					this.connectionListeners.connect.push(this.filterize(globalListener.onConnect, filter));					
 				}
-				if(globalListener.onClose && $.isFunction(globalListener.onConnect)) {
-					this.connectionListeners.close.push(globalListener);					
+				if(globalListener.onClose && $.isFunction(globalListener.onClose)) {
+					this.connectionListeners.close.push(this.filterize(globalListener.onClose, filter));					
 				}
 				if(globalListener.onError && $.isFunction(globalListener.onError)) {
-					this.connectionListeners.error.push(globalListener);					
+					this.connectionListeners.error.push(this.filterize(globalListener.onError, filter));					
 				}
 				if(globalListener.onData && $.isFunction(globalListener.onData)) {
-					this.connectionListeners.data.push(globalListener);					
+					this.connectionListeners.data.push(this.filterize(globalListener.onData, filter));					
+				}
+				if(globalListener.onAny && $.isFunction(globalListener.onAny)) {
+					this.connectionListeners.connect.push(this.filterize(globalListener.onAny, filter));
+					this.connectionListeners.close.push(this.filterize(globalListener.onAny, filter));
+					this.connectionListeners.error.push(this.filterize(globalListener.onAny, filter));
+					this.connectionListeners.data.push(this.filterize(globalListener.onAny, filter));
 				}
 			}
-		},
+		},		
 		isConnectionUrl : function(connUrl) {
 			try {
 				return this.startsWithAny(connUrl, "http://", "tcp://", "ws://", "udp://");
@@ -97,8 +118,8 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		console.info("Retrieved Connection: [%o]", conn);
 	    		if(conn.type=="websocket") {
 	    			console.info("Connecting to [%s]", conn.url);
-	    			var websock = new WebSocket(conn.url);
-	    			console.info("WebSock for [%o]", websock);
+	    			var websock = new RConnService.WebSocketConnection(conn.url, this);
+	    			console.info("Created WebSock Instance: [%o]", websock);
 	    		} else {
 	    			console.error("The remote connection type [%s] has not been implemented", conn.type);
 	    		}
@@ -117,8 +138,9 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    /**
 	     * Constructor for Db Service. 
 	     */
-	    init: function(){
-	    	this.me = this;
+	    init: function(rconservice){
+	    	this.me = this;	    
+	    	this.rconservice = rconservice;	
 	    },
     	name: null, 
     	auto: false, 
@@ -131,7 +153,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     		listeners : [],
     		addListener : function(connectListener) {
     			if(connectListener!=null) {
-    				me.onConnect.listeners.push(connectListener);
+    				this.listeners.push(connectListener);
     			}
     		}
     	},
@@ -139,7 +161,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     		listeners : [],
     		addListener : function(closeListener) {
     			if(closeListener!=null) {
-    				me.onClose.listeners.push(closeListener);
+    				this.listeners.push(closeListener);
     			}
     		}
     	},
@@ -147,7 +169,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     		listeners : [],
     		addListener : function(errorListener) {
     			if(errorListener!=null) {
-    				me.onError.listeners.push(errorListener);
+    				this.listeners.push(errorListener);
     			}
     		}
     	},
@@ -155,7 +177,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     		listeners : [],
     		addListener : function(dataListener) {
     			if(dataListener!=null) {
-    				me.onIncomingData.listeners.push(dataListener);
+    				this.listeners.push(dataListener);
     			}
     		}
     	}
@@ -164,24 +186,46 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    //	WebSocket Connection Type
 	    //====================================================
     RConnService.WebSocketConnection = RConnService.Connection.extend({
-	    init: function(webSocketUrl){
-	    	this._super( this );
+	    init: function(webSocketUrl, rconservice){
+	    	this._super( rconservice );
 	    	this.webSocketUrl = webSocketUrl;
 	    	this.webSocket = new WebSocket(this.webSocketUrl);
+	    	console.debug("onConnect Stuff: [%o]", this.onConnect);
+	    	var rcon = this;
+	    	$.each(rconservice.connectionListeners.connect, function(i,x) {rcon.onConnect.addListener(x);});
+	    	$.each(rconservice.connectionListeners.close, function(i,x) {rcon.onClose.addListener(x);});
+	    	$.each(rconservice.connectionListeners.error, function(i,x) {rcon.onError.addListener(x);});
+	    	$.each(rconservice.connectionListeners.data, function(i,x) {rcon.onIncomingData.addListener(x);});
+	    	
 	    	this.webSocket.onopen = function() {
-
+	    		console.info("Connected WebSocket -- [%o]", this);
+	    		this.connection = rcon;
+	    		var x = rcon.onConnect.listeners;
+	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			x[i](this);
+	    		}
 	    	};
 	    	this.webSocket.onclose = function(event) {
-	    		var wasClean = event.wasClean;
+	    		console.info("Closed WebSocket, Event:[%o] -- [%o]", event, this);
+	    		var x = rcon.onClose.listeners;
+	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			x[i](event, this);
+	    		}
 	    	};
 	    	this.webSocket.onerror = function(error) {
-	    		console.error("WebSocket error on [%s]--> [%o]", me.webSocketUrl, error);
+	    		console.info("WebSocket Error, Error:[%o] -- [%o]", error, this);
+	    		var x = rcon.onError.listeners;
+	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			x[i](error, this);
+	    		}
 	    	};
 	    	this.webSocket.onmessage = function(message) {
-	    		console.debug("WebSocket message on [%s]--> [%o]", me.webSocketUrl, message);
+	    		console.info("WebSocket Data, Message:[%o] -- [%o]", message, this);	    		
+	    		var x = rcon.onIncomingData.listeners;
+	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			x[i](message, this);
+	    		}	    		
 	    	};
-
-
 	    },
     	//this._super( false );
 

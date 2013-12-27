@@ -112,8 +112,34 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 
 			return deferred.promise();
 		}, ctx);
+		Class.prototype.startsWith = function(str, pattern) {
+			if(str==null || (typeof str != "string")) throw "The passed value [" + str + "] was not a string";
+			if(pattern==null) throw "The passed pattern was null";
+			return str.indexOf(pattern.toString())==0;
+		};
+		Class.prototype.startsWithAny = function(str, pattern) {
+			if(str==null || (typeof str != "string")) throw "The passed value [" + str + "] was not a string";
+			if(arguments.length<2) return false;
+			for(var i = 1, il = arguments.length; i < il; i++) {
+				if(str.indexOf(arguments[i].toString())==0) return true;
+			}
+			return false;
+		};
 
-		Class.prototype 
+		Class.prototype.contains = function(str, pattern) {
+			if(str==null || (typeof str != "string")) throw "The passed value [" + str + "] was not a string";
+			if(pattern==null) throw "The passed pattern was null";
+			return str.indexOf(pattern.toString())!=0;
+		};
+		Class.prototype.endsWith = function(str, pattern) {
+			if(str==null || (typeof str != "string")) throw "The passed value [" + str + "] was not a string";
+			if(pattern==null) throw "The passed pattern was null";
+			spattern = pattern.toString();
+			slength = spattern.length;
+			xlength = str.length - slength;
+			return str.indexOf(spattern)==xlength;
+		};
+		
 
 	}
 

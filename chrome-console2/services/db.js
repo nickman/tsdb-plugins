@@ -27,11 +27,15 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	 				name: {
 	 					unique: true, 
 	 					keyPath: 'name'	    
-	 				}	  
+	 				},
+	 				url: {
+	 					unique: true, 
+	 					keyPath: 'url'	    	 					
+	 				}
 	 			}, 
 	 			defaultData: [
 	 			{name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''},
-	 			{name: 'DefaultTCP', auto: false, url: 'localhost:4242', type: 'tcp', permission: false, permission_pattern: ''},
+	 			{name: 'DefaultTCP', auto: false, url: 'tcp://localhost:4242', type: 'tcp', permission: false, permission_pattern: ''},
 	 			{name: 'DefaultHTTP', auto: false, url: 'http://localhost:4242', type: 'http', permission: false, permission_pattern: ''}
 	 			]
 	 		}
@@ -63,6 +67,91 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	 		var dbRequest = window.indexedDB.deleteDatabase(this.dbname);
 	 		dbRequest.onsuccess = function(evt){ console.info("Deleted DB:%o", evt); }
 	 		dbRequest.onerror = function(evt){ console.error("Failed to delete db: %o", evt.target.error); }  
+	 	},
+	 	// Example:  opentsdb.services.db.getByIndex("connections", true, "url", "ws://localhost:4243/ws").then(function(ok) { console.info("OK:", ok); }, function(err) { console.error("ERR:", err); });
+	 	getByIndex: function(ostore, failNotFound, indexName, indexValues) {
+	 		var d = $.Deferred();	 
+	 		var me = this;	
+	 		var _keys = [];
+	 		var results = {
+	 			count : 0
+	 		};
+	 		var xcount = 0;
+	 		var broken = false;
+	 		if(arguments.length < 4) {
+	 			d.resolve(results);
+	 			return d.promise();
+	 		} 
+	 		if(!me.idb.objectStoreNames.contains(ostore)) throw "No ObjectStore named [" + ostore + "] in Database";
+	 		for(var i = 3, l = arguments.length; i < l; i++) { 
+	 			var item = arguments[i];
+		 		if($.isArray(item)) {
+		 			$.each(item, function(index, value){
+		 				_keys.push(value);
+		 			});
+		 		} else {
+		 			_keys.push(item);
+		 		}
+	 		}
+			this.opendb().then(
+	 			function() {
+	 				try {	 					
+	 					var transaction = me.idb.transaction([ostore], "readonly");
+	 					var objectStore = transaction.objectStore(ostore);	 	
+	 					var keyId = objectStore.keyPath;
+	 					var dbIndex = objectStore.index(indexName);
+	 					console.info("Index: [%o]", index);
+	 					for(var index = 0, l = _keys.length; index < l; index++) {
+	 						var value = _keys[index];				
+	 						var ob = dbIndex.get(value);
+		 					ob.onsuccess = function(evt) {
+		 						xcount++;
+		 						if(broken) return;
+		 						var row = evt.target.result;
+		 						if(row==null) {
+		 							if(failNotFound) {
+		 								console.error("getByIndex [%s] value not found, Event:[%o]", indexName, evt);
+		 								d.reject(evt);
+		 								broken = true;
+		 							}
+		 						} else {
+		 							row.rownum = results.count;
+		 							results.count++;
+		 							results[row[keyId]] = row;		 						
+		 						}
+			 					if(xcount==l) {
+				 					if(d.state() != "rejected") {
+				 						d.resolve(results);
+				 					}
+			 					}
+		 					}
+		 					ob.onerror = function(evt) {
+		 						xcount++;;
+		 						if(broken) return;
+		 						if(failNotFound) {
+		 							console.error("getByIndex [%s] failed, Error:[%o]", indexName, evt.target.error);
+		 							d.reject(evt.target.error);
+		 							broken = true;
+		 						}		 						
+			 					if(xcount==l) {
+				 					if(d.state() != "rejected") {
+				 						d.resolve(results);
+				 					}
+			 					}
+		 					}
+		 					if(failNotFound && d.state=="rejected") break; 
+	 					};
+	 				} catch (e) {
+	 					console.error("getByIndex [%s] failure:[%o]", indexName, e);
+	 					d.reject(e);
+	 				}
+	 			},
+	 			function(err) {
+	 					console.error("opendb failure:[%o]", e);
+	 					d.reject(e);
+	 			}
+	 		);
+	 		return d.promise();
 	 	},
 	 	getByKey: function(ostore, failNotFound, keys) {
 	 		var d = $.Deferred();	 

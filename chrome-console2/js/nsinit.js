@@ -113,6 +113,8 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 			return deferred.promise();
 		}, ctx);
 
+		Class.prototype 
+
 	}
 
 

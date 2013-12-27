@@ -22,7 +22,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 		     * Constructor for Db Service. 
 		     */
 		    init: function(){
-
+		    	this.me = this;
 		    },
 	    	name: null, 
 	    	auto: false, 
@@ -30,24 +30,49 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	type: null, 
 	    	permission: false, 
 	    	permission_pattern: '',
-	    	onConnect.addListener : function(connectListener) {
 
+	    	onConnect : {
+	    		listeners : [],
+	    		addListener : function(connectListener) {
+	    			if(connectListener!=null) {
+	    				me.onConnect.listeners.push(connectListener);
+	    			}
+	    		}
 	    	},
-	    	onClose.addListener : function(closeListener) {
-
+	    	onClose : {
+	    		listeners : [],
+	    		addListener : function(closeListener) {
+	    			if(closeListener!=null) {
+	    				me.onClose.listeners.push(closeListener);
+	    			}
+	    		}
 	    	},
-	    	onError.addListener : function(errorListener) {
-
+	    	onError : {
+	    		listeners : [],
+	    		addListener : function(errorListener) {
+	    			if(errorListener!=null) {
+	    				me.onError.listeners.push(errorListener);
+	    			}
+	    		}
 	    	},
-	    	onIncomingData.addListener : function(dataListener) {
-
-	    	},
-
-
-
-
+	    	onIncomingData : {
+	    		listeners : [],
+	    		addListener : function(dataListener) {
+	    			if(dataListener!=null) {
+	    				me.onIncomingData.listeners.push(dataListener);
+	    			}
+	    		}
+	    	}
 	    }),
 	    WebSocketConnection : Connection.extend({
+		    init: function(webSocketUrl){
+		    	this._super( this );
+		    	this.webSocketUrl = webSocketUrl;
+		    	this.webSocket = new WebSocket(this.webSocketUrl);
+		    	this.webSocket
+		    },
+	    	//this._super( false );
+
 	    	// name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''
 			// URL: "ws://localhost:4243/ws"
 			// binaryType: "blob"
@@ -63,11 +88,38 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    }),
 
 	    //=========================================================================================================
-	    /** The connections being managed, keyed by type, then url */    
-	    connections : {
+	    /** The connections being managed, keyed by type, then URL */    
+	    connectionsByType : {
 	    },
-	    /** The managed connection listeners */    
-	    connectionListeners : [],
+	    /** The connections being managed, keyed by URL, then type */    
+	    connectionsByURL : {
+	    },
+
+	    /** The global connection listeners */    
+	    connectionListeners : {
+	    	connect: [],
+	    	close: [],
+	    	error: [],
+	    	data: []
+	    },
+		/**  Registers global connection listeners, registered with all created connections */
+		addGlobalListener : function(globalListener) {
+			if(globalListener!=null) {
+				if(globalListener.onConnect && $.isFunction(globalListener.onConnect)) {
+					this.connectionListeners.connect.push(globalListener);					
+				}
+				if(globalListener.onClose && $.isFunction(globalListener.onConnect)) {
+					this.connectionListeners.close.push(globalListener);					
+				}
+				if(globalListener.onError && $.isFunction(globalListener.onError)) {
+					this.connectionListeners.error.push(globalListener);					
+				}
+				if(globalListener.onData && $.isFunction(globalListener.onData)) {
+					this.connectionListeners.data.push(globalListener);					
+				}
+			}
+		},
+
 	    /** Acquires a connection when a request comes in for a connection we don't have */
 	    getConnection : function(conn, nested) {
 	    	if(conn==null) throw "Connection request was null";

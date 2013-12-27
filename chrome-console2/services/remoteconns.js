@@ -30,11 +30,35 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	type: null, 
 	    	permission: false, 
 	    	permission_pattern: '',
+	    	onConnect.addListener : function(connectListener) {
+
+	    	},
+	    	onClose.addListener : function(closeListener) {
+
+	    	},
+	    	onError.addListener : function(errorListener) {
+
+	    	},
+	    	onIncomingData.addListener : function(dataListener) {
+
+	    	},
+
+
 
 
 	    }),
 	    WebSocketConnection : Connection.extend({
 	    	// name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''
+			// URL: "ws://localhost:4243/ws"
+			// binaryType: "blob"
+			// bufferedAmount: 0
+			// extensions: ""
+			// onclose: null
+			// onerror: null
+			// onmessage: null
+			// onopen: null
+			// protocol: ""
+			// readyState: 1.	    	
 	    	
 	    }),
 

@@ -125,6 +125,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	    http_commands.put("api/search", new SearchRpc());
 	    loadInstanceOf("net.opentsdb.tsd.RpcHandler$Serializers", "api/serializers", null);
 	    loadInstanceOf("net.opentsdb.tsd.RpcHandler$ShowConfig", "api/config", null);
+	    pluginContext.setResource(getClass().getSimpleName(), this);
 	}
 	
 	/**

@@ -54,7 +54,7 @@ public class JSONRequest {
 
 	/** The arguments supplied to the op */
 	@JsonProperty("args")
-	public final Map<Object, Object> arguments = new TreeMap<Object, Object>();
+	public final ObjectNode arguments = jsonMapper.createObjectNode();
 	
 	
 	/** The shared json mapper */
@@ -199,7 +199,21 @@ public class JSONRequest {
 		this.serviceName = serviceName;
 		this.opName = opName;
 		this.request = request;
-		arguments.putAll((Map<? extends Object, ? extends Object>) JSONMsgStdKey.args.get(request.get("args")));
+		JsonNode argNode = request.get("args");
+		if(argNode!=null) {
+			if(argNode instanceof ArrayNode) {
+				ArrayNode an = (ArrayNode)argNode;
+				for(int i = 0; i < an.size(); i++) {
+					arguments.put("" + i, an.get(i));
+				}
+			} else if(argNode instanceof ObjectNode) {
+				ObjectNode on = (ObjectNode)argNode;
+				for(Iterator<String> siter = on.fieldNames(); siter.hasNext(); ) {
+					String fieldName = siter.next();
+					arguments.put(fieldName, on.get(fieldName));
+				}
+			}
+		}
 	}
 	
 	public static void main(String[] args) {
@@ -290,7 +304,7 @@ public class JSONRequest {
 	 * @return this request
 	 */
 	public JSONRequest addArg(Object key, Object value) {
-		arguments.put(key, value);
+		arguments.put(key.toString(), value);
 		return this;
 	}
 	

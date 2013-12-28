@@ -212,6 +212,14 @@
 	  <artifactId>jackson-databind</artifactId>
 	  <scope>provided</scope>
 	</dependency>
+	
+	<dependency>
+	  <groupId>com.fasterxml.jackson.dataformat</groupId>
+	  <artifactId>jackson-dataformat-xml</artifactId>	  
+	</dependency>
+	
+	
+	
     
     
     <dependency>

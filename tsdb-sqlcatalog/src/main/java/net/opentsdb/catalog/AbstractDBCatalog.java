@@ -71,17 +71,27 @@ import net.opentsdb.utils.JSONException;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.meta.MetaSynchronizer;
+import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
+import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import org.jboss.netty.buffer.ChannelBufferFactory;
+import org.jboss.netty.buffer.DirectChannelBufferFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.stumbleupon.async.Deferred;
@@ -93,7 +103,7 @@ import com.stumbleupon.async.Deferred;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.catalog.AbstractDBCatalog</code></p>
  */
-
+@JSONRequestService(name="sqlcatalog", description="The SQL metric catalog service")
 public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDBMXBean {
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
@@ -146,6 +156,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/** The number of batched TSMeta inserts */
 	protected int batchedtsMetaInserts = 0;
+	
+	/** Creates direct buffers for streaming conversion from SQL webrowset XML documents to JSON */
+	protected final ChannelBufferFactory streamBuffers = new DirectChannelBufferFactory(2048);
 
 	// ========================================================================================
 	//	The local sequence managers
@@ -410,6 +423,21 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			syncQueueProcessor.startAndWait();
 		}				
 		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
+		final AbstractDBCatalog finalMe = this;
+		pluginContext.addResourceListener(
+				new IPluginContextResourceListener() {
+					@Override
+					public void onResourceRegistered(String name, Object resource) {
+						((JSONRequestRouter)resource).registerJSONService(finalMe);	
+					}
+				},
+				new IPluginContextResourceFilter() {
+					@Override
+					public boolean include(String name, Object resource) {						
+						return name.equals(JSONRequestRouter.class.getSimpleName());
+					}
+				}
+		);		
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
@@ -1914,6 +1942,94 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}    		
     	}
+    }
+    
+	/**
+	 * WebSocket service exposed method for {@link #executeSQLForJson(boolean, String)}.
+	 * @param request The JSON request
+	 * <p>e.g.:
+	 * 	<pre>
+	 * 		{"t": "req", "rid": 7, "svc": "sqlcatalog", "op": "execsql", "args": {"includemeta":"true", "sql":"SELECT * FROM TSD_TSMETA"}}
+	 * 	</pre>
+	 * </p>
+	 */
+	@JSONRequestHandler(name="execsql", description="Executes the passed SQL statement and returns the results as JSON")
+	public void executeSQLForJson(JSONRequest request) {
+		log.info("JSONRequest:" + request);
+		boolean includeMeta =  request.getArgument("includemeta", false);
+				//"true".equalsIgnoreCase(request.getArgument("includemeta"));
+		String sqlText = request.getArgument("sql", "SELECT SYSDATE");
+		log.info("Executing SQL [{}]", sqlText);
+		request.response().setContent(executeSQLForJson(includeMeta, sqlText)).send();
+	}
+    
+    /**
+     * {@inheritDoc}
+     * @see net.opentsdb.catalog.CatalogDBInterface#executeSQLForJson(java.lang.String)
+     */
+	@Override
+    public String executeSQLForJson(boolean includeMeta, String sqlText) {
+    	if(sqlText==null || sqlText.trim().isEmpty()) throw new IllegalArgumentException("The passed SQL statement was null or empty");
+    	boolean isSelect = sqlText.trim().toUpperCase().startsWith("SELECT");
+    	Connection conn = null;
+    	PreparedStatement ps = null;
+    	ResultSet rset = null;
+    	final ElapsedTime et = SystemClock.startClock();
+    	try {
+    		conn = dataSource.getConnection();
+    		ps = conn.prepareStatement(sqlText);
+    		if(isSelect) {
+    			ObjectNode root = jsonMapper.createObjectNode();
+    			rset = ps.executeQuery();
+				ArrayNode metaNode = jsonMapper.createArrayNode();
+				ResultSetMetaData rsmd = rset.getMetaData();
+				int colCount = rsmd.getColumnCount();
+				Map<Integer, String> nameDecode = new HashMap<Integer, String>(colCount);
+				for(int i = 1; i <= colCount; i++) {
+					ObjectNode metaEntryNode = jsonMapper.createObjectNode();
+					nameDecode.put(i, rsmd.getColumnName(i));
+					metaEntryNode.put("name", rsmd.getColumnName(i));
+					metaEntryNode.put("type", rsmd.getColumnTypeName(i));
+					metaEntryNode.put("class", rsmd.getColumnClassName(i));
+					metaNode.add(metaEntryNode);
+				}
+    			if(includeMeta) {
+    				root.put("meta", metaNode);
+    			}
+    			ArrayNode dataNode = jsonMapper.createArrayNode();
+    			int cnt = 0;
+    			while(rset.next()) {
+    				cnt++;
+    				ObjectNode dataEntryNode = jsonMapper.createObjectNode();
+    				for(int i = 1; i <= colCount; i++) {
+    					Object value = rset.getObject(i);
+    					if(value instanceof Double) {
+    						double d = ((Double)value).doubleValue();
+    						if(Double.isInfinite(d)) value = "Double.Infinite";
+    						else if(Double.isNaN(d)) value = "Double.NaN";
+    					}    					
+    					dataEntryNode.put(nameDecode.get(i).toLowerCase(), value.toString());    					
+    				}
+    				dataNode.add(dataEntryNode);
+    			}
+    			root.put("data", dataNode);
+    			long elapsed = et.elapsedMs();
+    			root.put("elapsedms", elapsed);
+    			root.put("rows", cnt);
+    			return jsonMapper.writeValueAsString(root);
+    		} else {
+    			int rcode = ps.executeUpdate();
+    			long elapsed = et.elapsedMs();
+    			return jsonMapper.writeValueAsString(jsonMapper.createObjectNode().put("resultCode", rcode).put("elapsedms", elapsed));
+    		}
+    	} catch (Exception ex) {
+    		log.error("Failed to process SQL statement [" + sqlText + "]", ex);
+    		throw new RuntimeException("Failed to process SQL statement [" + sqlText + "]", ex);
+    	} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}    		    		
+    	}    	
     }
     
 	/**

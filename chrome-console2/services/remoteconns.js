@@ -14,10 +14,17 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    init: function(){
 	    	this.me = this;
 	    	var _me = this;
-	    	this.addGlobalListener({onConnect: function(conn){
-	    		console.info("RConnService adding connected [%o]", conn);
-	    		_me[conn.connection.URL] = conn;
-	    	}});
+	    	this.addGlobalListener({
+	    		onConnect: function _GLOBAL_ON_CONNECT_(conn){
+	    			console.info("RConnService adding connected [%o]", conn);
+	    			opentsdb.services.rcon.connectionsByURL[conn.connection.ID] = conn.connection;	    			
+	    			console.info("RConnService added connected [%o]", conn);
+	    		},
+	    		onClose: function _GLOBAL_ON_CLOSE_(event, conn){
+	    			console.info("RConnService removing closed [%o]", conn);
+	    			delete opentsdb.services.rcon.connectionsByURL[conn.connection.ID];
+	    		}	    		
+	    	});
 	    	console.info("Creating RConnService");
 	    },	    
 	    //=========================================================================================================
@@ -108,7 +115,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    				d.reject(err);	    				
 	    			}
 	    		);
-	    	} else if (this.isConnectionUrl(conn)) {
+	    	} else if (this.isConnectionUrl(conn)) {	    		
 	    		var _conn = {
 	    			url: conn,
 	    			type: ctx.getConnectionUrlType(conn)
@@ -120,10 +127,52 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    			console.info("Connecting to [%s]", conn.url);
 	    			var websock = new RConnService.WebSocketConnection(conn.url, this);
 	    			console.info("Created WebSock Instance: [%o]", websock);
+	    			websock.onConnect.addListener(function _OTF_LISTENER_(){
+	    				console.info("OTF: args:[%o]", arguments);
+	    				d.resolve(arguments[0]);	    				
+	    			});	    			
 	    		} else {
 	    			console.error("The remote connection type [%s] has not been implemented", conn.type);
+	    			d.reject("The remote connection type [" + conn.type + "] has not been implemented");
 	    		}
 	    	}
+	    	return d.promise();
+	    },
+	    sendRequest: function(url, request, nested) {
+	    	var d = nested==null ? $.Deferred() : nested;
+	    	if(this.connectionsByURL[url]==null) {
+	    		if(nested!=null) {
+	    			console.error("Received recursive request for connection [%s]. Not connected. Failing ... ", url);
+	    			d.reject("Failed to get connection to [" + url + "]");
+	    			return;
+	    		} else {
+	    			console.info("Received request for connection [%s]. Not connected. Connecting .... ", url);
+	    			var _me = this;
+	    			this.getConnection(url).then(
+	    				function() {  // on success
+	    					_me.sendRequest(url, request, d);
+	    				},
+	    				function(err) {  // on fail
+	    					d.reject(err);	    			
+	    				}
+	    			);
+	    		}
+	    	} else {
+	    		var _conn = this.connectionsByURL[url];
+	    		console.info("Have connection [%o] for request [%o]", _conn, request);
+	    		_conn.send(request);
+	    	}
+	    	return d.promise();
+	    },
+	    closeAll : function() {
+	    	console.group("Closing All Connections");
+	    	$.each(this.connectionsByURL, function(_url, _conn) {
+	    		try {
+	    			_conn.close();
+	    			console.info("Closed [%s]", _url);
+	    		} catch (e) {}
+	    	});
+			console.groupEnd();	    	
 	    }
 
 	});  // end of RConnService definition
@@ -189,6 +238,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    init: function(webSocketUrl, rconservice){
 	    	this._super( rconservice );
 	    	this.webSocketUrl = webSocketUrl;
+	    	this.ID = webSocketUrl;
 	    	this.webSocket = new WebSocket(this.webSocketUrl);
 	    	console.debug("onConnect Stuff: [%o]", this.onConnect);
 	    	var rcon = this;
@@ -200,10 +250,18 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	this.webSocket.onopen = function() {
 	    		console.info("Connected WebSocket -- [%o]", this);
 	    		this.connection = rcon;
+	    		rcon.close = function _CLOSE_WEBSOCK_() {
+	    			if(rcon.webSocket != null && rcon.webSocket.readyState != null && rcon.webSocket.readyState!=3)  {
+	    				rcon.webSocket.close();
+	    			}
+	    		};
 	    		var x = rcon.onConnect.listeners;
+	    		console.group("Calling onConnect Listeners");
 	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			console.info("Calling onConnect Listener [%s]", x[i]);
 	    			x[i](this);
 	    		}
+	    		console.groupEnd();
 	    	};
 	    	this.webSocket.onclose = function(event) {
 	    		console.info("Closed WebSocket, Event:[%o] -- [%o]", event, this);
@@ -220,13 +278,25 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		}
 	    	};
 	    	this.webSocket.onmessage = function(message) {
-	    		console.info("WebSocket Data, Message:[%o] -- [%o]", message, this);	    		
+	    		console.info("WebSocket Data, Message:[%o] -- [%o]", message, this);	    
+	    		var jsonMsg = JSON.parse(message.data);
+	    		if(jsonMsg.sessionid != null) {
+	    			rcon.sessionid = jsonMsg.sessionid;
+	    			console.group("");
+	    			console.info("===============================================");
+					console.info("     WebSock Session ID: [%s]", rcon.sessionid);
+	    			console.info("===============================================");
+	    			console.groupEnd();
+	    		}
 	    		var x = rcon.onIncomingData.listeners;
 	    		for(var i = 0, il = x.length; i < il; i++) {
-	    			x[i](message, this);
+	    			x[i](message, jsonMsg, this);
 	    		}	    		
 	    	};
 	    },
+	    send : function(data) {
+	    	this.webSocket.send(JSON.stringify(data));
+	    }
     	//this._super( false );
 
     	// name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''

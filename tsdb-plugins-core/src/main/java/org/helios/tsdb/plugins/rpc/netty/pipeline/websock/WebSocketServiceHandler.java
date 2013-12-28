@@ -66,6 +66,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -112,6 +113,9 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 		}
 		if((message instanceof ChannelBuffer)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame((ChannelBuffer)message), channel.getRemoteAddress()));
+		} else if((message instanceof JsonNode)) {  			
+			String json = marshaller.writerWithDefaultPrettyPrinter().writeValueAsString(message);
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(json), channel.getRemoteAddress()));			
 		} else if((message instanceof ChannelBufferizable)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
 		} else if((message instanceof JSONResponse) || (message instanceof CharSequence)) {				
@@ -231,7 +235,8 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
 //								"WebSock[" + wsChannel.getId() + "]"
 //						);
 						//wsChannel.write(new JSONObject(Collections.singletonMap("sessionid", wsChannel.getId())));
-						wsChannel.write(String.format("{\"sessionid\":%s}", wsChannel.getId()));
+						
+						wsChannel.write(marshaller.getNodeFactory().objectNode().put("sessionid", "" + wsChannel.getId()));
 						//wsChannel.getPipeline().remove(DefaultChannelHandler.NAME);
 					}
 				}

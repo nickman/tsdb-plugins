@@ -428,8 +428,13 @@
 		  <version>${jackson-annotations.version}</version>
 		  <scope>provided</scope>
 		</dependency>
-		
-		
+
+		<dependency>
+		  <groupId>com.fasterxml.jackson.dataformat</groupId>
+		  <artifactId>jackson-dataformat-xml</artifactId>
+		  <version>${jackson-annotations.version}</version>
+		</dependency>
+
 		
 		<dependency>
 		  <groupId>org.hbase</groupId>

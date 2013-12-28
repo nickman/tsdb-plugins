@@ -215,6 +215,14 @@ public interface CatalogDBMXBean {
 	 */
 	public String getPluginPath();
 	
+	/**
+	 * Executes the passed SQL statement and returns the results as JSON
+	 * @param includeMeta true to include meta-data, false to exclude it
+	 * @param sqlText The SQL statement to execute
+	 * @return the JSON representing the result of the SQL statement
+	 */
+	public String executeSQLForJson(boolean includeMeta, String sqlText);
+	
 	
 	
 

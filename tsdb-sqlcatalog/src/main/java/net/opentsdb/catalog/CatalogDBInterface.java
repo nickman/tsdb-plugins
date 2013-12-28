@@ -153,6 +153,14 @@ public interface CatalogDBInterface {
 	public void executeBatch(PreparedStatement ps) throws SQLException;
 	
 	/**
+	 * Executes the passed SQL statement and returns the results as JSON
+	 * @param includeMeta true to include meta-data, false to exclude it
+	 * @param sqlText The SQL statement to execute
+	 * @return the JSON representing the result of the SQL statement
+	 */
+	public String executeSQLForJson(boolean includeMeta, String sqlText);
+	
+	/**
 	 * Binds and batches a UIDMeta indexing operation
 	 * @param uidMeta The UIDMeta to index
 	 * @param ps The prepared statement to bind against and batch

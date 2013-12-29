@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * <p>Title: JSONResponse</p>
@@ -49,7 +50,11 @@ public class JSONResponse implements ChannelBufferizable {
 	
 	/** The content payload */
 	@JsonProperty("msg")
+	@JsonSerialize(using = JSONChannelBufferSerializer.class, as=Object.class)
 	protected Object content = null;
+	
+	
+	
 	/** The response op code */
 	@JsonProperty("op")
 	protected String opCode = null;
@@ -168,6 +173,19 @@ public class JSONResponse implements ChannelBufferizable {
 			throw new RuntimeException("Cannot set content. OutputStream already set");
 		}
 		this.content = content;
+		return this;
+	}
+	
+	/**
+	 * Sets the payload content from the passed buffer
+	 * @param channelBuffer The buffer to set the content to
+	 * @return this json response
+	 */
+	public JSONResponse setContent(ChannelBuffer channelBuffer) {
+		if(channelOutputStream!=null) {
+			throw new RuntimeException("Cannot set content. OutputStream already set");
+		}
+		channelOutputStream = new ChannelBufferOutputStream(channelBuffer);
 		return this;
 	}
 	

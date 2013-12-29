@@ -1,0 +1,119 @@
+<tsdb-elastic-index-mapping>
+	<indexes>
+		<index name="opentsdb_1" alias="opentsdb">
+			<settings>
+				<setting name="compound_on_flush" value="true"/>
+				<setting name="term_index_interval" value="128"/>
+				<setting name="number_of_replicas" value="1"/>
+				<setting name="term_index_divisor" value="1"/>
+				<setting name="compound_format" value="false"/>
+				<setting name="number_of_shards" value="5"/>
+				<setting name="refresh_interval" value="1"/>
+			</settings>
+		</index>
+	</indexes>
+
+	<objects>
+		<object name="uidmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "uidmeta": {
+			        "properties": {
+			            "uid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "name": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            }
+			        }
+			    }
+			}
+		]]></object> <!-- "dynamic": "strict", -->
+		<object name="annotation" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "annotation": {
+			    	
+			        "properties": {
+			            "tsuid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "description": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "notes": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "startTime": {
+			                "type": "long",
+			                "index": "not_analyzed"			            
+			            },
+			            "endTime": {
+			                "type": "long",
+			                "index": "not_analyzed"			            
+			            }
+			        }
+			    }
+			}								
+		]]></object>
+		<object name="tsmeta" index-ref="opentsdb_1"><![CDATA[
+			{
+			    "tsmeta": {
+			        "properties": {
+			            "tsuid": {
+			                "type": "string",
+			                "index": "not_analyzed"
+			            },
+			            "metric": {
+			                "properties": {
+			                    "name": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    }
+			                }
+			            },
+			            "tags": {
+			                "properties": {
+			                    "uid": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    },
+			                    "name": {
+			                        "type": "string",
+			                        "index": "not_analyzed"
+			                    }
+			                }
+			            }
+			        }
+			    }
+			}
+		]]></object>		
+	</objects>	
+</tsdb-elastic-index-mapping>
+
+<!-- 
+
+From:  http://stackoverflow.com/questions/14465668/elastic-search-multiple-indexes-vs-one-index-and-types-for-different-data-sets
+
+Assuming you are using Elasticsearch's default settings, having 1 index for each model will significantly increase the number of your shards as 1 index will use 5 shards, 5 data models will use 25 shards; while having 5 object types in 1 index is still going to use 5 shards.
+
+Implications for having each data model as index:
+
+Efficient and fast to search within index, as amount of data should be smaller in each shard since it is distributed to different indices.
+Searching a combination of data models from 2 or more indices is going to generate overhead, because the query will have to be sent to more shards across indices, compiled and sent back to the user.
+Not recommended if your data set is small since you will incur more storage with each additional shard being created and the performance gain is marginal.
+Recommended if your data set is big and your queries are taking a long time to process, since dedicated shards are storing your specific data and it will be easier for Elasticsearch to process.
+Implications for having each data model as an object type within an index:
+
+More data wiill be stored within the 5 shards of an index, which means there is lesser overhead issues when you query across different data models but your shard size will be significantly bigger.
+More data within the shards is going to take a longer time for Elasticsearch to search through since there are more documents to filter.
+Not recommended if you know you are going through 1 terabytes of data and you are not distributing your data across different indices or multiple shards in your Elasticsearch mapping.
+Recommended for small data sets, because you will not waste storage space for marginal performance gain since each shard take up space in your hardware.
+If you are asking what is too much data vs small data? Typically it depends on the processor speed and the RAM of your hardware, the amount of data you store within each variable in your mapping for Elasticsearch and your query requirements; using many facets in your queries is going to slow down your response time significantly. There is no straightforward answer to this and you will have to benchmark according to your needs.
+
+
+
+ -->

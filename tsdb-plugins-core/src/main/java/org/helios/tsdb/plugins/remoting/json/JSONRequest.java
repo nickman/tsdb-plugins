@@ -3,12 +3,12 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.helios.tsdb.plugins.util.StringHelper;
 import org.jboss.netty.channel.Channel;
@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ContainerNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -50,7 +49,9 @@ public class JSONRequest {
 	/** The original request, in case there is other stuff in there that the data service needs */
 	protected final JsonNode request;
 	
-
+	/** Indicates if argument accessors should return default values, or throw exceptions */
+	protected boolean allowDefaults = true;
+	
 
 	/** The arguments supplied to the op */
 	@JsonProperty("args")
@@ -60,88 +61,9 @@ public class JSONRequest {
 	/** The shared json mapper */
 	private static final ObjectMapper jsonMapper = new ObjectMapper();
 	
-	/**
-	 * <p>Title: JSONRequestStdKey</p>
-	 * <p>Description: Enumerates the standard keys for a json request/response </p>
-	 * <p>Company: Helios Development Group LLC</p>
-	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
-	 * <p><b><code>org.helios.tsdb.plugins.remoting.json.JSONRequest.JSONMsgStdKey</code></b>
-	 */
-	@SuppressWarnings("unchecked")
-	public static enum JSONMsgStdKey implements FieldReader {
-		/** Indicates the message is in regards to the referenced id */
-		rerid(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(rerid.name()); return (T) (n==null ? new Long(-1L) : new Long(n.asLong())); }}),
-		/** The type of message */
-		t(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(t.name()); return (T) (n==null ? null : n.asText()); }}),
-		/** The unique message id */
-		rid(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(rid.name()); return (T) (n==null ? new Long(-1L) : new Long(n.asLong())); }}),
-		/** The content payload */
-		msg(new FieldReader(){public <T> T get(JsonNode jsonNode) { return (T) jsonNode; }}),
-		/** The operation name */
-		op(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(op.name()); return (T) (n==null ? null : n.asText()); }}),
-		/** The service name */
-		svc(new FieldReader(){public <T> T get(JsonNode jsonNode) { JsonNode n = jsonNode.get(svc.name()); return (T) (n==null ? null : n.asText()); }}),
-		/** The request arguments */
-		args(mapFieldReader);
-		
-		
-		private JSONMsgStdKey(FieldReader fieldReader) {			
-			this.fieldReader = fieldReader; 
-		}
-		
-		/** This key's field reader */
-		public final FieldReader fieldReader;
-
-		@Override
-		public <T> T get(JsonNode jsonNode) {
-			return fieldReader.get(jsonNode);
-		}
-		
-		
-	}
-	
-	/**
-	 * <p>Title: FieldReader</p>
-	 * <p>Description: Typed json field reader</p> 
-	 * <p>Company: Helios Development Group LLC</p>
-	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
-	 * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequest.FieldReader</code></p>
-	 */
-	public static interface FieldReader {
-		public <T> T get(JsonNode jsonNode);
-	}
 	
 	/** The empty args map */
 	private static final Map<Object, Object> EMPTY_MAP = Collections.unmodifiableMap(new HashMap<Object, Object>(0));
-	/** The args field reader */
-	private static FieldReader mapFieldReader = new FieldReader() {		
-		@Override
-		public <T> T get(JsonNode jsonNode) {
-			if(jsonNode==null) return (T)EMPTY_MAP;
-			if(!(jsonNode instanceof ContainerNode)) {
-				return (T)EMPTY_MAP;
-			}
-			Map<Object, Object> argsMap = new LinkedHashMap<Object, Object>();
-			if(jsonNode instanceof ArrayNode) {
-				ArrayNode an = (ArrayNode)jsonNode;
-				for(int i = 0; i < an.size(); i++) {
-					argsMap.put(i, an.get(i));
-				}
-				argsMap.put("__", an);
-				argsMap.put("_size", an.size());
-				
-			} else if(jsonNode instanceof ObjectNode) {
-				ObjectNode on = (ObjectNode)jsonNode;
-				Iterator<Map.Entry<String,JsonNode>> fiter = on.fields();
-				while(fiter.hasNext()) {
-					Map.Entry<String,JsonNode> entry = fiter.next();
-					argsMap.put(entry.getKey(), entry.getValue());
-				}
-				argsMap.put("__", on);
-			}
-			return (T)argsMap;
-		}
-	};
 	
 	/**
 	 * Creates a new JSONRequest
@@ -169,16 +91,15 @@ public class JSONRequest {
 		try {
 			JsonNode jsonNode = jsonMapper.readTree(jsonContent.toString().trim());
 			return new JSONRequest(channel, 
-					(String)JSONMsgStdKey.t.get(jsonNode), 
-					(Long)JSONMsgStdKey.rid.get(jsonNode),
-					(Long)JSONMsgStdKey.rerid.get(jsonNode), 
-					(String)JSONMsgStdKey.svc.get(jsonNode), 
-					(String)JSONMsgStdKey.op.get(jsonNode), 
+					jsonNode.get("t").asText(),
+					jsonNode.get("rid").asLong(-1L),
+					-1L,
+					jsonNode.get("svc").asText(),
+					jsonNode.get("op").asText(),
 					jsonNode);
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to parse JsonNode from passed string [" + jsonContent + "]", e);
-		}
-		
+		}		
 	}
 	
 	/**
@@ -297,16 +218,16 @@ public class JSONRequest {
 		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey, channel);
 	}	
 	
-	/**
-	 * Adds an op argument to the map
-	 * @param key The argument key (if the args was an array, this is the sequence, if it was a map, this is the key)
-	 * @param value The argument value
-	 * @return this request
-	 */
-	public JSONRequest addArg(Object key, Object value) {
-		arguments.put(key.toString(), value);
-		return this;
-	}
+//	/**
+//	 * Adds an op argument to the map
+//	 * @param key The argument key (if the args was an array, this is the sequence, if it was a map, this is the key)
+//	 * @param value The argument value
+//	 * @return this request
+//	 */
+//	public JSONRequest addArg(Object key, Object value) {
+//		arguments.put(key.toString(), value);
+//		return this;
+//	}
 	
 	/**
 	 * Returns the named argument from the argument map
@@ -490,6 +411,376 @@ public class JSONRequest {
 			return this;
 		}
 	}
+
+
+	/**
+	 * @param index
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#get(int)
+	 */
+	public JsonNode get(int index) {
+		return arguments.get(index);
+	}
+
+	/**
+	 * @param fieldName
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#get(java.lang.String)
+	 */
+	public JsonNode get(String fieldName) {
+		return arguments.get(fieldName);
+	}
 	
+	public Object[] asStringArray() {
+		Object[] arr = new String[arguments.size()];
+		int cnt = 0;
+		for(Iterator<String> siter = arguments.fieldNames(); siter.hasNext();) {
+			arr[cnt] = arguments.get(cnt).asText();
+		}
+		return arr;
+	}
+	
+	/**
+	 * Removes the named fields
+	 * @param fieldNames The field names to remove
+	 * @return this request
+	 */
+	public JSONRequest removeFields(String...fieldNames) {
+		if(fieldNames!=null) {
+			for(String s: fieldNames) {
+				arguments.remove(s);
+			}
+		}
+		return this;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @return
+	 */
+	public ArrayNode getArray(String fieldName) {
+		ArrayNode array = null;
+		try {
+			JsonNode node = arguments.get(fieldName);
+			if(node!=null && node.isArray()) {
+				array = (ArrayNode)node;
+			} else {
+				throw new Exception();
+			}
+		} catch (Exception ex) {
+			if(!allowDefaults) {
+				throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+			}
+		}
+		return array;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public byte[] get(String fieldName, byte[] defaultValue) {
+		byte[] value = null;
+		try {
+			value = arguments.get(fieldName).binaryValue();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public int get(String fieldName, int defaultValue) {
+		int value = -1;
+		try {
+			value = arguments.get(fieldName).asInt();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public long get(String fieldName, long defaultValue) {
+		long value = -1;
+		try {
+			value = arguments.get(fieldName).asLong();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public double get(String fieldName, double defaultValue) {
+		double value = -1;
+		try {
+			value = arguments.get(fieldName).asDouble();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public BigInteger get(String fieldName, BigInteger defaultValue) {
+		BigInteger value = null;
+		try {
+			value = arguments.get(fieldName).bigIntegerValue();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public BigDecimal get(String fieldName, BigDecimal defaultValue) {
+		BigDecimal value = null;
+		try {
+			value = arguments.get(fieldName).decimalValue();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}	
+	
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public boolean get(String fieldName, boolean defaultValue) {
+		boolean value = false;
+		try {
+			value = arguments.get(fieldName).asBoolean();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}
+	
+	/**
+	 * @param fieldName
+	 * @param defaultValue
+	 * @return
+	 */
+	public String get(String fieldName, String defaultValue) {
+		String value = null;
+		try {
+			value = arguments.get(fieldName).asText();
+		} catch (Exception ex) {
+			if(allowDefaults) 
+			value = defaultValue;
+			else throw new RuntimeException("Failed to find or convert field [" + fieldName + "]");
+		}
+		return value;
+	}	
+	
+	
+
+	/**
+	 * @param fieldName
+	 * @return
+	 * @see com.fasterxml.jackson.databind.JsonNode#has(java.lang.String)
+	 */
+	public boolean has(String fieldName) {
+		return arguments.has(fieldName);
+	}
+
+	/**
+	 * @param index
+	 * @return
+	 * @see com.fasterxml.jackson.databind.JsonNode#has(int)
+	 */
+	public boolean has(int index) {
+		return arguments.has(index);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param pojo
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#putPOJO(java.lang.String, java.lang.Object)
+	 */
+	public ObjectNode putPOJO(String fieldName, Object pojo) {
+		return arguments.putPOJO(fieldName, pojo);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, int)
+	 */
+	public ObjectNode put(String fieldName, int v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param value
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.Integer)
+	 */
+	public ObjectNode put(String fieldName, Integer value) {
+		return arguments.put(fieldName, value);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, long)
+	 */
+	public ObjectNode put(String fieldName, long v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param value
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.Long)
+	 */
+	public ObjectNode put(String fieldName, Long value) {
+		return arguments.put(fieldName, value);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, float)
+	 */
+	public ObjectNode put(String fieldName, float v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param value
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.Float)
+	 */
+	public ObjectNode put(String fieldName, Float value) {
+		return arguments.put(fieldName, value);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, double)
+	 */
+	public ObjectNode put(String fieldName, double v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param value
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.Double)
+	 */
+	public ObjectNode put(String fieldName, Double value) {
+		return arguments.put(fieldName, value);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.math.BigDecimal)
+	 */
+	public ObjectNode put(String fieldName, BigDecimal v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.String)
+	 */
+	public ObjectNode put(String fieldName, String v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, boolean)
+	 */
+	public ObjectNode put(String fieldName, boolean v) {
+		return arguments.put(fieldName, v);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param value
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, java.lang.Boolean)
+	 */
+	public ObjectNode put(String fieldName, Boolean value) {
+		return arguments.put(fieldName, value);
+	}
+
+	/**
+	 * @param fieldName
+	 * @param v
+	 * @return
+	 * @see com.fasterxml.jackson.databind.node.ObjectNode#put(java.lang.String, byte[])
+	 */
+	public ObjectNode put(String fieldName, byte[] v) {
+		return arguments.put(fieldName, v);
+	}
+	
+	/**
+	 * Sets the allow defaults flag.
+	 * @param allow true to return the default value if the requested is not present or cannot be converted,
+	 * false to throw an exception (i.e. if the value is "required")
+	 * @return this request
+	 */
+	public JSONRequest allowDefaults(boolean allow) {
+		allowDefaults = allow;
+		return this;
+	}
 
 }

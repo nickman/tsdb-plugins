@@ -1,0 +1,857 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<architect-project version="1.0" appversion="1.0.6">
+ <project-name>sql-catalog-model</project-name>
+ <print-settings numCopies="1" zoom="1.0" pageNumbersPrinted="true" orientation="1" paperWidth="612.0" paperHeight="792.0" leftBorder="50.0" rightBorder="50.0" topBorder="50.0" bottomBorder="50.0" />
+ <project-data-sources>
+  <data-source id="DS0">
+   <property key="Logical" value="PlayPen Database" />
+  </data-source>
+  <data-source id="DS2">
+   <property key="Connection Type" value="H2 Database" />
+   <property key="Logical" value="TSDBCatalog" />
+   <property key="JDBC URL" value="jdbc:h2:tcp://localhost:9092/mem:tsdb" />
+   <property key="UID" value="sa" />
+   <property key="PWD" value="" />
+   <property key="ca.sqlpower.architect.etl.kettle.database" value="" />
+   <property key="ca.sqlpower.architect.etl.kettle.port" value="" />
+   <property key="ca.sqlpower.architect.etl.kettle.hostname" value="" />
+   <property key="ca.sqlpower.architect.etl.kettle.repos.login" value="" />
+   <property key="ca.sqlpower.architect.etl.kettle.repos.password" value="" />
+  </data-source>
+ </project-data-sources>
+ <source-databases>
+  <database id="DB0" populated="true" UUID="acb089e1-132c-437b-877d-e884e02e869e" dbcs-ref="DS2" name="TSDBCatalog" physicalName="TSDBCatalog" >
+   <catalog id="CAT1" populated="true" UUID="8b9225a2-30cf-428c-8d8e-5f999132a46d" name="TSDB" nativeTerm="catalog" physicalName="TSDB" >
+    <schema id="SCH2" populated="false" UUID="7fd77714-d062-44e1-8c71-992cc7530424" name="FTL" nativeTerm="schema" physicalName="FTL" >
+    </schema>
+    <schema id="SCH3" populated="false" UUID="c91afab5-4b4a-4dcb-bcbc-8846681915f1" name="INFORMATION_SCHEMA" nativeTerm="schema" physicalName="INFORMATION_SCHEMA" >
+    </schema>
+    <schema id="SCH4" populated="true" UUID="4bacd714-513e-48f4-9d90-769d04c740f7" name="PUBLIC" nativeTerm="schema" physicalName="PUBLIC" >
+     <table id="TAB5" populated="true" UUID="25f222d9-57ee-4f71-b92d-db55c1eb4ac1" name="SYNC_QUEUE" objectType="TABLE" physicalName="SYNC_QUEUE" >
+      <remarks></remarks>
+      <folder id="FOLTAB51" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL6" populated="true" UUID="78848d33-f7ac-4216-9184-a3c0c1078674" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_547091E6_D2BB_4FAC_8747_0501627DA66C)" name="QID" nullable="0" physicalName="QID" precision="19" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>The synthetic identifier for this sync operation</remarks>
+       </column>
+       <column id="COL7" populated="true" UUID="a5e455aa-6bf3-41b4-b698-21c00d772325" autoIncrement="false" name="EVENT_TYPE" nullable="0" physicalName="EVENT_TYPE" precision="20" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The source of the update that triggered this sync operation</remarks>
+       </column>
+       <column id="COL8" populated="true" UUID="15da1c55-f039-4154-8ed9-82b6947e128c" autoIncrement="false" name="EVENT_ID" nullable="0" physicalName="EVENT_ID" precision="40" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The PK of the event that triggered this Sync Operation</remarks>
+       </column>
+       <column id="COL9" populated="true" UUID="790c4c20-4979-4c55-8e9b-48b0b4dc218e" autoIncrement="false" defaultValue="NOW()" name="EVENT_TIME" nullable="0" physicalName="EVENT_TIME" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks></remarks>
+       </column>
+       <column id="COL10" populated="true" UUID="8c50c7a1-645b-4a0b-b1db-4e1d1b26afb7" autoIncrement="false" name="LAST_SYNC_ATTEMPT" nullable="1" physicalName="LAST_SYNC_ATTEMPT" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The last [failed] sync operation attempt timestamp</remarks>
+       </column>
+       <column id="COL11" populated="true" UUID="280c6a40-26de-4fc5-b8f6-72a77086f171" autoIncrement="false" name="LAST_SYNC_ERROR" nullable="1" physicalName="LAST_SYNC_ERROR" precision="2147483647" referenceCount="1" scale="0" sourceDataTypeName="CLOB" type="2005" >
+        <remarks>The exception trace of the last failed sync operation</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB53" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB52" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB54" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX12" populated="true" UUID="6d4cda7f-d212-4931-aac5-5cd2cf71b16c" clustered="false" name="SYNC_QUEUE_pk" physicalName="SYNC_QUEUE_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC13" populated="true" UUID="1b821262-a66f-45e5-9506-6ee3b77a66e0" ascendingOrDescending="UNSPECIFIED" column-ref="COL6" name="QID" physicalName="QID" />
+       </index>
+       <index id="IDX14" populated="true" UUID="2858fc0e-a612-4912-bb9a-014dfaba54eb" clustered="false" filterCondition="" name="PRIMARY_KEY_E5" physicalName="PRIMARY_KEY_E5" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC15" populated="true" UUID="6e7c11c1-ea57-4508-8540-b615ac135cfd" ascendingOrDescending="ASCENDING" column-ref="COL6" name="QID" physicalName="QID" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB16" populated="true" UUID="baefde46-fb9f-4560-bb8b-1ca00293cd50" name="TSD_ANNOTATION" objectType="TABLE" physicalName="TSD_ANNOTATION" >
+      <remarks>Table storing created annotations</remarks>
+      <folder id="FOLTAB161" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL17" populated="true" UUID="09f5f323-9a1f-41b0-bbf9-f27f876d7591" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_6445A4A5_4A1B_4C00_B278_0D87AD519422)" name="ANNID" nullable="0" physicalName="ANNID" precision="19" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>The synthetic unique identifier for this annotation</remarks>
+       </column>
+       <column id="COL18" populated="true" UUID="4095f40e-2f74-4241-9365-09e5106ffa0b" autoIncrement="false" name="START_TIME" nullable="0" physicalName="START_TIME" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The effective start time for this annotation</remarks>
+       </column>
+       <column id="COL19" populated="true" UUID="cd6860f3-771c-48f5-b64c-fa30ddc675f2" autoIncrement="false" name="DESCRIPTION" nullable="0" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The mandatory description for this annotation</remarks>
+       </column>
+       <column id="COL20" populated="true" UUID="95266771-db01-4fdf-9489-9f0f48ed51e3" autoIncrement="false" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional notes for this annotation</remarks>
+       </column>
+       <column id="COL21" populated="true" UUID="060b5f64-aa64-4a98-b999-03940829cd47" autoIncrement="false" name="FQNID" nullable="1" physicalName="FQNID" precision="19" referenceCount="2" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>AN optional reference to the associated TSMeta. If null, this will be a global annotation</remarks>
+       </column>
+       <column id="COL22" populated="true" UUID="3624e86b-9569-4ae6-b4ad-0a1cb6945dfe" autoIncrement="false" name="END_TIME" nullable="1" physicalName="END_TIME" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The optional effective end time for this annotation</remarks>
+       </column>
+       <column id="COL23" populated="true" UUID="258bdad2-ca64-4c60-94be-36f0fceeb8f5" autoIncrement="false" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional map of key/value pairs encoded in JSON for this annotation</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB163" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB162" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB164" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX24" populated="true" UUID="f52856fa-9bc7-4ae2-8a1b-3caf26cdaf43" clustered="false" name="TSD_ANNOTATION_pk" physicalName="TSD_ANNOTATION_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC25" populated="true" UUID="80fc811e-459d-4e04-9d64-08206ab07b3d" ascendingOrDescending="UNSPECIFIED" column-ref="COL17" name="ANNID" physicalName="ANNID" />
+       </index>
+       <index id="IDX26" populated="true" UUID="456df21c-63b6-4ad4-99c9-e060174dc79d" clustered="false" filterCondition="" name="PRIMARY_KEY_7D" physicalName="PRIMARY_KEY_7D" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC27" populated="true" UUID="16699ebd-7e85-47cf-a86f-86d032dc87fa" ascendingOrDescending="ASCENDING" column-ref="COL17" name="ANNID" physicalName="ANNID" />
+       </index>
+       <index id="IDX28" populated="true" UUID="2bbf0215-4675-4f97-a38c-7c3b9b172369" clustered="false" filterCondition="" name="TSD_ANNOTATION_AK" physicalName="TSD_ANNOTATION_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC29" populated="true" UUID="95e99157-3f24-4e6c-8c53-f7e1cda32a31" ascendingOrDescending="ASCENDING" column-ref="COL18" name="START_TIME" physicalName="START_TIME" />
+        <index-column id="IDC30" populated="true" UUID="2d44a566-0da6-4f9f-ba8c-9986caa26592" ascendingOrDescending="ASCENDING" column-ref="COL21" name="FQNID" physicalName="FQNID" />
+       </index>
+       <index id="IDX31" populated="true" UUID="430e7673-8a36-4565-9212-51761ff2648f" clustered="false" filterCondition="" name="TSD_ANNOTATION_FQNID_FK_INDEX_7" physicalName="TSD_ANNOTATION_FQNID_FK_INDEX_7" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC32" populated="true" UUID="23658dbf-d338-408e-afab-46570d129725" ascendingOrDescending="ASCENDING" column-ref="COL21" name="FQNID" physicalName="FQNID" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB33" populated="true" UUID="adc2ae44-142b-42a2-b077-714d1bf101a0" name="TSD_FQN" objectType="TABLE" physicalName="TSD_FQN" >
+      <remarks>Table storing each distinct time-series TSMeta and its attributes</remarks>
+      <folder id="FOLTAB331" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL34" populated="true" UUID="9f5f794e-df58-4635-90be-f95fe7be4458" autoIncrement="false" name="FQNID" nullable="0" physicalName="FQNID" precision="19" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>A synthetic unique identifier for each individual TSMeta/TimeSeries entry</remarks>
+       </column>
+       <column id="COL35" populated="true" UUID="5a8c5c9d-72a6-4ce9-a125-700c3ed2bb8d" autoIncrement="false" name="METRIC_UID" nullable="0" physicalName="METRIC_UID" precision="6" referenceCount="2" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The unique identifier of the metric name associated with this TSMeta</remarks>
+       </column>
+       <column id="COL36" populated="true" UUID="cf80d082-2761-4fd5-b94a-61a7f49223a4" autoIncrement="false" name="FQN" nullable="0" physicalName="FQN" precision="4000" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The fully qualified metric name</remarks>
+       </column>
+       <column id="COL37" populated="true" UUID="5d9879c8-7825-4611-8c75-cb6aa56834c0" autoIncrement="false" name="TSUID" nullable="0" physicalName="TSUID" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The TSUID as a hex encoded string</remarks>
+       </column>
+       <column id="COL38" populated="true" UUID="0fdc39b1-0b09-4e23-901a-e4eb4ea7a932" autoIncrement="false" defaultValue="SQRT(-1)" name="MAX_VALUE" nullable="1" physicalName="MAX_VALUE" precision="17" referenceCount="1" scale="0" sourceDataTypeName="DOUBLE" type="8" >
+        <remarks>Optional max value for the timeseries</remarks>
+       </column>
+       <column id="COL39" populated="true" UUID="5d4454d8-8563-4530-8cc6-1c71bc530b41" autoIncrement="false" defaultValue="SQRT(-1)" name="MIN_VALUE" nullable="1" physicalName="MIN_VALUE" precision="17" referenceCount="1" scale="0" sourceDataTypeName="DOUBLE" type="8" >
+        <remarks>Optional max value for the timeseries</remarks>
+       </column>
+       <column id="COL40" populated="true" UUID="6ebd7f43-6f99-4efc-af19-6a6db1c6d3ce" autoIncrement="false" name="DATA_TYPE" nullable="1" physicalName="DATA_TYPE" precision="20" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE</remarks>
+       </column>
+       <column id="COL41" populated="true" UUID="51be9ad9-49d6-43e1-ba2a-d3e234559c8f" autoIncrement="false" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional description for the time-series</remarks>
+       </column>
+       <column id="COL42" populated="true" UUID="feda796f-6c8d-42eb-ae3d-34d8eb5a4f1c" autoIncrement="false" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="20" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional name for the time-series</remarks>
+       </column>
+       <column id="COL43" populated="true" UUID="53bfc5de-a3a5-452a-81ba-6f11d964b9f9" autoIncrement="false" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional notes for the time-series</remarks>
+       </column>
+       <column id="COL44" populated="true" UUID="9ba393c2-151b-48a3-aea1-14a254b4951f" autoIncrement="false" name="UNITS" nullable="1" physicalName="UNITS" precision="20" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional units designation for the time-series</remarks>
+       </column>
+       <column id="COL45" populated="true" UUID="671d7a8d-ab53-4cc0-992c-b528e2eafccc" autoIncrement="false" defaultValue="0" name="RETENTION" nullable="1" physicalName="RETENTION" precision="10" referenceCount="1" scale="0" sourceDataTypeName="INTEGER" type="4" >
+        <remarks>Optional retention time for the time-series in days where 0 is indefinite</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB333" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB332" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB334" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX46" populated="true" UUID="92e2a87c-d939-4b40-9b7e-4dcf54eb8479" clustered="false" name="TSD_FQN_pk" physicalName="TSD_FQN_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC47" populated="true" UUID="e563b6e1-2dea-42a3-a28b-9edb31d541ea" ascendingOrDescending="UNSPECIFIED" column-ref="COL34" name="FQNID" physicalName="FQNID" />
+       </index>
+       <index id="IDX48" populated="true" UUID="fccf4424-e423-4cb0-b877-5e38660e7b70" clustered="false" filterCondition="" name="PRIMARY_KEY_E" physicalName="PRIMARY_KEY_E" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC49" populated="true" UUID="87b88035-b358-4597-bd83-9c617f7bf4cb" ascendingOrDescending="ASCENDING" column-ref="COL34" name="FQNID" physicalName="FQNID" />
+       </index>
+       <index id="IDX50" populated="true" UUID="a8b43bb5-9186-42a9-8d89-13df1f9330a2" clustered="false" filterCondition="" name="TSD_FQN_AK" physicalName="TSD_FQN_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC51" populated="true" UUID="f4fe6056-d954-4b77-a872-f2d1c2476076" ascendingOrDescending="ASCENDING" column-ref="COL34" name="FQNID" physicalName="FQNID" />
+       </index>
+       <index id="IDX52" populated="true" UUID="0b8880a9-ac14-425f-bc31-cb73753f5c78" clustered="false" filterCondition="" name="TSD_FQN_FQN_AK" physicalName="TSD_FQN_FQN_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC53" populated="true" UUID="29ad0f27-b8b5-442f-a109-33a99384370d" ascendingOrDescending="ASCENDING" column-ref="COL36" name="FQN" physicalName="FQN" />
+       </index>
+       <index id="IDX54" populated="true" UUID="83400e97-2b5b-48d1-ba7b-bc574861e5a8" clustered="false" filterCondition="" name="TSD_FQN_TSUID_AK" physicalName="TSD_FQN_TSUID_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC55" populated="true" UUID="b5244ce6-a640-45d9-b572-4f410622ff03" ascendingOrDescending="ASCENDING" column-ref="COL37" name="TSUID" physicalName="TSUID" />
+       </index>
+       <index id="IDX56" populated="true" UUID="eab26a9f-313a-4595-a244-611f6b2abf49" clustered="false" filterCondition="" name="TSD_FQN_METRIC_FK_INDEX_E" physicalName="TSD_FQN_METRIC_FK_INDEX_E" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC57" populated="true" UUID="45b945f8-e53c-4de0-956b-34d8ad543347" ascendingOrDescending="ASCENDING" column-ref="COL35" name="METRIC_UID" physicalName="METRIC_UID" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB58" populated="true" UUID="6d30e45f-ade4-45ac-9d5e-3a7e5726f1e1" name="TSD_FQN_TAGPAIR" objectType="TABLE" physicalName="TSD_FQN_TAGPAIR" >
+      <remarks>Associative table between TSD_FQN and TSD_TAGPAIR, or the TSMeta and the Tag keys and values of the UIDMetas therein</remarks>
+      <folder id="FOLTAB581" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL59" populated="true" UUID="48e412dc-4b8b-4bbe-b797-001ce33856af" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_0F40A2E8_B3C6_45AD_B21E_D398A41FB058)" name="FQN_TP_ID" nullable="0" physicalName="FQN_TP_ID" precision="19" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>Synthetic primary key of an association between an FQN and a Tag Pair</remarks>
+       </column>
+       <column id="COL60" populated="true" UUID="ba78e1e8-9aaf-41a7-ab4b-d0f15ba331ec" autoIncrement="false" name="FQNID" nullable="0" physicalName="FQNID" precision="19" referenceCount="2" scale="0" sourceDataTypeName="BIGINT" type="-5" >
+        <remarks>The ID of the parent FQN</remarks>
+       </column>
+       <column id="COL61" populated="true" UUID="d49ecc52-8eb2-4dfb-bf57-bdc34efd3c60" autoIncrement="false" name="UID" nullable="0" physicalName="UID" precision="12" referenceCount="2" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The ID of a child tag key/value pair</remarks>
+       </column>
+       <column id="COL62" populated="true" UUID="aa2d3a14-fb3b-418c-825e-32c26ac4ab64" autoIncrement="false" name="PORDER" nullable="0" physicalName="PORDER" precision="3" referenceCount="1" scale="0" sourceDataTypeName="TINYINT" type="-6" >
+        <remarks>The order of the tags in the FQN</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB583" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB582" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB584" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX63" populated="true" UUID="46d4f5c4-cf74-4b56-ae15-484837644955" clustered="false" name="TSD_FQN_TAGPAIR_pk" physicalName="TSD_FQN_TAGPAIR_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC64" populated="true" UUID="17e87f4e-1c38-4e5b-8d2e-9a6742433a35" ascendingOrDescending="UNSPECIFIED" column-ref="COL59" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+       </index>
+       <index id="IDX65" populated="true" UUID="f37e9648-4dd1-475c-af12-6bbc9cdd6407" clustered="false" filterCondition="" name="PRIMARY_KEY_7" physicalName="PRIMARY_KEY_7" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC66" populated="true" UUID="a9993e7d-257b-4048-b160-45bce4f759a5" ascendingOrDescending="ASCENDING" column-ref="COL59" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+       </index>
+       <index id="IDX67" populated="true" UUID="b8c35ac9-a0af-4ca5-8ddd-65e0008f9f14" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_AK" physicalName="TSD_FQN_TAGPAIR_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC68" populated="true" UUID="b712dc2d-07e7-420b-b10b-17211ab55072" ascendingOrDescending="ASCENDING" column-ref="COL59" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+       </index>
+       <index id="IDX69" populated="true" UUID="9e699ac9-773f-4856-a345-2df31863a7ae" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_IND" physicalName="TSD_FQN_TAGPAIR_IND" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC70" populated="true" UUID="7d015747-49f2-4e35-8733-572d2a18cee7" ascendingOrDescending="ASCENDING" column-ref="COL60" name="FQNID" physicalName="FQNID" />
+        <index-column id="IDC71" populated="true" UUID="e9862e20-d3d5-4307-a3b4-2ca862d5e5d1" ascendingOrDescending="ASCENDING" column-ref="COL61" name="UID" physicalName="UID" />
+        <index-column id="IDC72" populated="true" UUID="f566a91e-d807-428a-8ad9-8e2b976558cb" ascendingOrDescending="ASCENDING" column-ref="COL62" name="PORDER" physicalName="PORDER" />
+       </index>
+       <index id="IDX73" populated="true" UUID="1b38d2df-0330-413f-b708-518cec9208c8" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_FK_INDEX_7" physicalName="TSD_FQN_TAGPAIR_FK_INDEX_7" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC74" populated="true" UUID="ff84cf46-a1fd-4985-bfb9-5a23c0ecbe1c" ascendingOrDescending="ASCENDING" column-ref="COL61" name="UID" physicalName="UID" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB75" populated="true" UUID="7be8fa53-db5a-4dad-94af-f582ded21147" name="TSD_METRIC" objectType="TABLE" physicalName="TSD_METRIC" >
+      <remarks></remarks>
+      <folder id="FOLTAB751" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL76" populated="true" UUID="c6a6c9db-a5d3-4e10-a374-112cf712a4a8" autoIncrement="false" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The metric UID as a hex encoded string</remarks>
+       </column>
+       <column id="COL77" populated="true" UUID="7ae5ccd2-cb00-4acc-90b4-fe44e08246ed" autoIncrement="false" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The metric name</remarks>
+       </column>
+       <column id="COL78" populated="true" UUID="4da5c339-c4a7-4802-a9b9-54a027e77d98" autoIncrement="false" name="CREATED" nullable="0" physicalName="CREATED" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The timestamp of the creation of the UID</remarks>
+       </column>
+       <column id="COL79" populated="true" UUID="a4523191-b80f-4795-9e02-c4703c671b32" autoIncrement="false" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional description for this metric</remarks>
+       </column>
+       <column id="COL80" populated="true" UUID="23f97101-cbb6-47a7-86d5-cf76bc2de8f0" autoIncrement="false" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional display name for this metric</remarks>
+       </column>
+       <column id="COL81" populated="true" UUID="1e591300-680f-4c3b-b7c7-7d9d4e7d6ac4" autoIncrement="false" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional notes for this metric</remarks>
+       </column>
+       <column id="COL82" populated="true" UUID="0126e401-8bc3-4fa9-b2ff-d31549c93233" autoIncrement="false" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional map of key/value pairs encoded in JSON for this metric</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB753" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB752" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB754" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX83" populated="true" UUID="bc4635da-138f-42fe-b5a3-50647c5954da" clustered="false" name="TSD_METRIC_pk" physicalName="TSD_METRIC_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC84" populated="true" UUID="bbb0d144-6d76-47b9-8bb6-0fbfc0e8bf94" ascendingOrDescending="UNSPECIFIED" column-ref="COL76" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX85" populated="true" UUID="9dc42339-0139-4ada-b24f-430311ac904a" clustered="false" filterCondition="" name="PRIMARY_KEY_F" physicalName="PRIMARY_KEY_F" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC86" populated="true" UUID="11782bbf-ec1e-4567-be32-1aaeea839451" ascendingOrDescending="ASCENDING" column-ref="COL76" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX87" populated="true" UUID="44474014-8914-49a2-8da5-b772d4b3f0ca" clustered="false" filterCondition="" name="TSD_METRIC_AK" physicalName="TSD_METRIC_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC88" populated="true" UUID="fa4b22d9-14da-4fb2-83e8-08923760058c" ascendingOrDescending="ASCENDING" column-ref="COL77" name="NAME" physicalName="NAME" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB89" populated="true" UUID="7637a940-1f27-439c-ac41-e64dae715bd1" name="TSD_TAGK" objectType="TABLE" physicalName="TSD_TAGK" >
+      <remarks>Table storing distinct time-series metric names</remarks>
+      <folder id="FOLTAB891" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL90" populated="true" UUID="0ffb548d-e376-4338-9daa-86384240e323" autoIncrement="false" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The tag key UID as a hex encoded string</remarks>
+       </column>
+       <column id="COL91" populated="true" UUID="cb461470-080e-4aba-acbc-15e1470c129a" autoIncrement="false" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The tag key</remarks>
+       </column>
+       <column id="COL92" populated="true" UUID="1c67c492-7b7e-48bc-b9e4-3bbe5766d39e" autoIncrement="false" name="CREATED" nullable="0" physicalName="CREATED" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The timestamp of the creation of the UID</remarks>
+       </column>
+       <column id="COL93" populated="true" UUID="75fa1ac8-787c-4c5e-805f-00b1ce499ab7" autoIncrement="false" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional description for this tag key</remarks>
+       </column>
+       <column id="COL94" populated="true" UUID="e3c5f5e3-a163-42d4-acb1-4df34607338a" autoIncrement="false" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional display name for this tag key</remarks>
+       </column>
+       <column id="COL95" populated="true" UUID="437307fb-aa27-44c3-841a-545bed96e869" autoIncrement="false" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional notes for this tag key</remarks>
+       </column>
+       <column id="COL96" populated="true" UUID="53d78b1b-8792-4979-bdb3-4150df20bda6" autoIncrement="false" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional map of key/value pairs encoded in JSON for this tag key</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB893" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB892" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB894" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX97" populated="true" UUID="7b2a7179-359f-481c-a3d9-e9cbe97e51b4" clustered="false" name="TSD_TAGK_pk" physicalName="TSD_TAGK_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC98" populated="true" UUID="cfe91b6e-0bfd-4aec-b9c0-e902cf258451" ascendingOrDescending="UNSPECIFIED" column-ref="COL90" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX99" populated="true" UUID="740a021b-9aa1-42fa-b40b-fd09d87d9593" clustered="false" filterCondition="" name="PRIMARY_KEY_B" physicalName="PRIMARY_KEY_B" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC100" populated="true" UUID="449bfa6c-9d16-468a-bb13-17e7960eb022" ascendingOrDescending="ASCENDING" column-ref="COL90" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX101" populated="true" UUID="192d2a0d-4636-40a4-8d99-efe425df1b12" clustered="false" filterCondition="" name="TSD_TAGK_AK" physicalName="TSD_TAGK_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC102" populated="true" UUID="88f43af7-5772-432b-85aa-5b0d3b5e1796" ascendingOrDescending="ASCENDING" column-ref="COL91" name="NAME" physicalName="NAME" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB103" populated="true" UUID="2580eb5a-5cc2-4054-890c-78fbda1abd81" name="TSD_TAGPAIR" objectType="TABLE" physicalName="TSD_TAGPAIR" >
+      <remarks>Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta</remarks>
+      <folder id="FOLTAB1031" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL104" populated="true" UUID="fb042fd8-b9ca-4439-9680-e22db9cb6945" autoIncrement="false" name="UID" nullable="0" physicalName="UID" precision="12" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs.</remarks>
+       </column>
+       <column id="COL105" populated="true" UUID="807d0110-38f9-47a4-9773-09fb710a3fba" autoIncrement="false" name="TAGK" nullable="0" physicalName="TAGK" precision="6" referenceCount="2" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The pair tag key</remarks>
+       </column>
+       <column id="COL106" populated="true" UUID="de6b78e8-786e-4488-a7c5-50795350227d" autoIncrement="false" name="TAGV" nullable="0" physicalName="TAGV" precision="6" referenceCount="2" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The pair tag value</remarks>
+       </column>
+       <column id="COL107" populated="true" UUID="03c2934b-9b40-45b0-aa0e-908bee22b937" autoIncrement="false" name="NAME" nullable="0" physicalName="NAME" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The tag pair name expressed as T=V</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB1033" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB1032" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB1034" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX108" populated="true" UUID="a9cb10d8-62b4-4ce9-bb52-4dbeaf550588" clustered="false" name="TSD_TAGPAIR_pk" physicalName="TSD_TAGPAIR_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC109" populated="true" UUID="1e8c3ee3-6b44-46a8-aaaa-9f11f4853a59" ascendingOrDescending="UNSPECIFIED" column-ref="COL104" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX110" populated="true" UUID="6a05e50c-a8ab-4aaf-a24b-8cf2e2274450" clustered="false" filterCondition="" name="PRIMARY_KEY_C" physicalName="PRIMARY_KEY_C" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC111" populated="true" UUID="9b1bce7f-bd6c-4172-8336-f77baa61807e" ascendingOrDescending="ASCENDING" column-ref="COL104" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX112" populated="true" UUID="b1420fe9-81ca-47b9-ba07-ac8248ef1d82" clustered="false" filterCondition="" name="TSD_TAGPAIR_AK" physicalName="TSD_TAGPAIR_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC113" populated="true" UUID="27f51b3d-9f5a-43d5-97c4-b0b58ea6e0e6" ascendingOrDescending="ASCENDING" column-ref="COL105" name="TAGK" physicalName="TAGK" />
+        <index-column id="IDC114" populated="true" UUID="251f50bf-9c68-421a-b387-acccb6265703" ascendingOrDescending="ASCENDING" column-ref="COL106" name="TAGV" physicalName="TAGV" />
+       </index>
+       <index id="IDX115" populated="true" UUID="d04a5e7d-6c4d-4ccd-b150-c4e3955b4fd0" clustered="false" filterCondition="" name="CONSTRAINT_INDEX_C" physicalName="CONSTRAINT_INDEX_C" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC116" populated="true" UUID="90cd7a0d-624a-46c2-9f6f-882e84ed503a" ascendingOrDescending="ASCENDING" column-ref="COL105" name="TAGK" physicalName="TAGK" />
+       </index>
+       <index id="IDX117" populated="true" UUID="0dabdcac-9c73-447a-b72d-fd1ad08205ca" clustered="false" filterCondition="" name="CONSTRAINT_INDEX_CC" physicalName="CONSTRAINT_INDEX_CC" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC118" populated="true" UUID="ee5145bb-8f65-46e4-aa48-ddb5a36d671a" ascendingOrDescending="ASCENDING" column-ref="COL106" name="TAGV" physicalName="TAGV" />
+       </index>
+       <index id="IDX119" populated="true" UUID="841261d3-3b21-4181-9e19-3f23b36c0b42" clustered="false" filterCondition="" name="TSD_TAGPAIR_K_IDX" physicalName="TSD_TAGPAIR_K_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC120" populated="true" UUID="addfccb5-f521-4135-b998-53720be110b2" ascendingOrDescending="ASCENDING" column-ref="COL105" name="TAGK" physicalName="TAGK" />
+       </index>
+       <index id="IDX121" populated="true" UUID="dca8189a-4f19-411a-8df5-e17824027bae" clustered="false" filterCondition="" name="TSD_TAGPAIR_NAME_IDX" physicalName="TSD_TAGPAIR_NAME_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC122" populated="true" UUID="113fb9a8-31b9-4b51-a86e-db73bb111692" ascendingOrDescending="ASCENDING" column-ref="COL107" name="NAME" physicalName="NAME" />
+       </index>
+       <index id="IDX123" populated="true" UUID="d107edf3-37fd-431e-b640-066a1b395a57" clustered="false" filterCondition="" name="TSD_TAGPAIR_V_IDX" physicalName="TSD_TAGPAIR_V_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+        <index-column id="IDC124" populated="true" UUID="5f0be42f-1566-4274-9ce0-1bd9ed70376d" ascendingOrDescending="ASCENDING" column-ref="COL106" name="TAGV" physicalName="TAGV" />
+       </index>
+      </folder>
+     </table>
+     <table id="TAB125" populated="true" UUID="b035ed42-4780-42f0-aea8-0d7cb0c54d22" name="TSD_TAGV" objectType="TABLE" physicalName="TSD_TAGV" >
+      <remarks>Table storing distinct time-series tag values</remarks>
+      <folder id="FOLTAB1251" populated="true" name="Columns" physicalName="Columns" type="1">
+       <column id="COL126" populated="true" UUID="b625b2f1-dc60-4722-96a4-0142c0d845e5" autoIncrement="false" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" sourceDataTypeName="CHAR" type="1" >
+        <remarks>The tag value UID as a hex encoded string</remarks>
+       </column>
+       <column id="COL127" populated="true" UUID="e670dab3-a270-4616-8318-2ba45b4ef184" autoIncrement="false" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>The tag value</remarks>
+       </column>
+       <column id="COL128" populated="true" UUID="80c71661-45d1-4a9e-93f3-247b5afd862f" autoIncrement="false" name="CREATED" nullable="0" physicalName="CREATED" precision="23" referenceCount="1" scale="10" sourceDataTypeName="TIMESTAMP" type="93" >
+        <remarks>The timestamp of the creation of the UID</remarks>
+       </column>
+       <column id="COL129" populated="true" UUID="374301a4-cea7-4411-b850-fe2904a3c5ca" autoIncrement="false" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional description for this tag value</remarks>
+       </column>
+       <column id="COL130" populated="true" UUID="16b61a88-f659-4965-9086-688d7fa5184c" autoIncrement="false" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional display name for this tag value</remarks>
+       </column>
+       <column id="COL131" populated="true" UUID="d67921b2-5a50-406a-a01b-efa00cb1af49" autoIncrement="false" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>Optional notes for this tag value</remarks>
+       </column>
+       <column id="COL132" populated="true" UUID="751acfd7-199d-45ac-8127-c13b17ac21fc" autoIncrement="false" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" sourceDataTypeName="VARCHAR" type="12" >
+        <remarks>An optional map of key/value pairs encoded in JSON for this tag value</remarks>
+       </column>
+       </folder>
+       <folder id="FOLTAB1253" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+       </folder>
+       <folder id="FOLTAB1252" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+       </folder>
+       <folder id="FOLTAB1254" populated="true" name="Indices" physicalName="Indices" type="4">
+       <index id="IDX133" populated="true" UUID="c9c7de67-207b-46f1-915a-4af65722cb5c" clustered="false" name="TSD_TAGV_pk" physicalName="TSD_TAGV_pk" primaryKeyIndex="true" unique="false" >
+        <index-column id="IDC134" populated="true" UUID="3b386dd8-34be-4a56-9cb3-54e757326fe7" ascendingOrDescending="UNSPECIFIED" column-ref="COL126" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX135" populated="true" UUID="5741b733-908e-487b-bfea-b493e58c346a" clustered="false" filterCondition="" name="PRIMARY_KEY_B5" physicalName="PRIMARY_KEY_B5" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC136" populated="true" UUID="e3db13b9-3280-44b6-bebf-b8d3c5ef82d1" ascendingOrDescending="ASCENDING" column-ref="COL126" name="UID" physicalName="UID" />
+       </index>
+       <index id="IDX137" populated="true" UUID="3842e69a-db1f-4499-9d56-6b050a201aaf" clustered="false" filterCondition="" name="TSD_TAGV_AK" physicalName="TSD_TAGV_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+        <index-column id="IDC138" populated="true" UUID="2892f42b-fb04-4a97-9a9c-06d04f6242a7" ascendingOrDescending="ASCENDING" column-ref="COL127" name="NAME" physicalName="NAME" />
+       </index>
+      </folder>
+     </table>
+    </schema>
+   </catalog>
+   <relationships>
+    <relationship id="REL139" populated="true" UUID="81b6ef6a-7cd3-467d-8fda-026fcc4a77ef" deferrability="7" deleteRule="1" fk-table-ref="TAB16" fkCardinality="7" identifying="false" name="TSD_ANNOTATION_FQNID_FK" physicalName="TSD_ANNOTATION_FQNID_FK" pk-table-ref="TAB33" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP140" populated="true" UUID="0ce48deb-c09d-4845-9493-f1bb43a6067d" fk-column-ref="COL21" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL34" />
+    </relationship>
+    <relationship id="REL141" populated="true" UUID="19c352d5-378e-4836-8901-4b8ae825de7b" deferrability="7" deleteRule="0" fk-table-ref="TAB58" fkCardinality="7" identifying="false" name="TSD_FQN_TAGPAIR_FQNID_FK" physicalName="TSD_FQN_TAGPAIR_FQNID_FK" pk-table-ref="TAB33" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP142" populated="true" UUID="adc61ebf-fa59-4106-a12c-cd0aca0da689" fk-column-ref="COL60" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL34" />
+    </relationship>
+    <relationship id="REL143" populated="true" UUID="15d473cf-69aa-48de-aec4-0fbe1716e826" deferrability="7" deleteRule="1" fk-table-ref="TAB33" fkCardinality="7" identifying="false" name="TSD_FQN_METRIC_FK" physicalName="TSD_FQN_METRIC_FK" pk-table-ref="TAB75" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP144" populated="true" UUID="c1ff6278-a596-4c46-b1fb-692caa5d7bd7" fk-column-ref="COL35" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL76" />
+    </relationship>
+    <relationship id="REL145" populated="true" UUID="24eb9f0d-0aa0-479a-b983-66f6460981ae" deferrability="7" deleteRule="1" fk-table-ref="TAB103" fkCardinality="7" identifying="false" name="CONSTRAINT_C" physicalName="CONSTRAINT_C" pk-table-ref="TAB89" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP146" populated="true" UUID="f77644cc-772b-4957-9897-e9dde85df248" fk-column-ref="COL105" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL90" />
+    </relationship>
+    <relationship id="REL147" populated="true" UUID="06aea72f-cb04-4aac-9721-0a76922c3531" deferrability="7" deleteRule="0" fk-table-ref="TAB58" fkCardinality="7" identifying="false" name="TSD_FQN_TAGPAIR_FK" physicalName="TSD_FQN_TAGPAIR_FK" pk-table-ref="TAB103" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP148" populated="true" UUID="8aea4cdb-e73e-448d-b346-1828cc2cb257" fk-column-ref="COL61" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL104" />
+    </relationship>
+    <relationship id="REL149" populated="true" UUID="afa9c612-1a7a-4bc3-b599-ca9945201fa3" deferrability="7" deleteRule="1" fk-table-ref="TAB103" fkCardinality="7" identifying="false" name="CONSTRAINT_CC" physicalName="CONSTRAINT_CC" pk-table-ref="TAB125" pkCardinality="2" updateRule="1" >
+     <column-mapping id="CMP150" populated="true" UUID="1dd5f7b8-9f91-4b5a-adf5-04552b3abcb3" fk-column-ref="COL106" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL126" />
+    </relationship>
+   </relationships>
+  </database>
+ </source-databases>
+ <target-database id="ppdb" dbcs-ref="DS0">
+  <table id="TAB152" populated="true" UUID="dbad1a53-d80d-4e90-a720-02738d97c3e9" name="SYNC_QUEUE" objectType="TABLE" physicalName="SYNC_QUEUE" >
+   <remarks></remarks>
+   <folder id="FOLTAB1521" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL153" populated="true" UUID="883bc6c3-44d9-4501-a1cb-c32e46e8806c" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_547091E6_D2BB_4FAC_8747_0501627DA66C)" name="QID" nullable="0" physicalName="QID" precision="0" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL6" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>The synthetic identifier for this sync operation</remarks>
+    </column>
+    <column id="COL154" populated="true" UUID="14cdfa71-afc9-4516-bd84-9d8f8a7426b6" autoIncrement="false" defaultValue="" name="EVENT_TYPE" nullable="0" physicalName="EVENT_TYPE" precision="20" referenceCount="1" scale="0" source-column-ref="COL7" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The source of the update that triggered this sync operation</remarks>
+    </column>
+    <column id="COL155" populated="true" UUID="3ae00db9-c741-48e5-ac8c-49af7c1c8961" autoIncrement="false" defaultValue="" name="EVENT_ID" nullable="0" physicalName="EVENT_ID" precision="40" referenceCount="1" scale="0" source-column-ref="COL8" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The PK of the event that triggered this Sync Operation</remarks>
+    </column>
+    <column id="COL156" populated="true" UUID="6d965a3f-327f-4a9e-83f8-ae3f4404412f" autoIncrement="false" defaultValue="NOW()" name="EVENT_TIME" nullable="0" physicalName="EVENT_TIME" precision="0" referenceCount="1" scale="0" source-column-ref="COL9" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks></remarks>
+    </column>
+    <column id="COL157" populated="true" UUID="a48ab517-2355-4c3e-b352-565df9332eaa" autoIncrement="false" defaultValue="" name="LAST_SYNC_ATTEMPT" nullable="1" physicalName="LAST_SYNC_ATTEMPT" precision="0" referenceCount="1" scale="0" source-column-ref="COL10" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The last [failed] sync operation attempt timestamp</remarks>
+    </column>
+    <column id="COL158" populated="true" UUID="1974e8fd-ad90-44df-9e3e-4f6b132defbf" autoIncrement="false" defaultValue="" name="LAST_SYNC_ERROR" nullable="1" physicalName="LAST_SYNC_ERROR" precision="0" referenceCount="1" scale="0" source-column-ref="COL11" sourceDataTypeName="CLOB" type="2005" userDefinedTypeUUID="9c22ed40-2868-4d9e-96ca-789234a53c8f" >
+     <remarks>The exception trace of the last failed sync operation</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB1523" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB1522" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB1524" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX159" populated="true" UUID="e6a5c58e-bb9c-4ac7-8eb0-918e94305117" clustered="false" name="SYNC_QUEUE_pk" physicalName="SYNC_QUEUE_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC160" populated="true" UUID="6673506f-1057-4ffe-8c46-591ea3c92274" ascendingOrDescending="UNSPECIFIED" column-ref="COL153" name="QID" physicalName="QID" />
+    </index>
+    <index id="IDX161" populated="true" UUID="cdd91316-62f2-4d7a-8a50-17a51ef5e0ab" clustered="false" filterCondition="" name="PRIMARY_KEY_E5" physicalName="PRIMARY_KEY_E5" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC162" populated="true" UUID="d91df555-52e9-416f-a11e-0e0c2e8ff1c4" ascendingOrDescending="ASCENDING" column-ref="COL153" name="QID" physicalName="QID" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB163" populated="true" UUID="6c22dfae-4de2-4989-81be-3db14fcf3a0b" name="TSD_ANNOTATION" objectType="TABLE" physicalName="TSD_ANNOTATION" >
+   <remarks>Table storing created annotations</remarks>
+   <folder id="FOLTAB1631" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL164" populated="true" UUID="0f944a3e-c281-4fb0-a6cb-39095a7a5ee9" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_6445A4A5_4A1B_4C00_B278_0D87AD519422)" name="ANNID" nullable="0" physicalName="ANNID" precision="0" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL17" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>The synthetic unique identifier for this annotation</remarks>
+    </column>
+    <column id="COL165" populated="true" UUID="adac5313-c0be-47c2-9246-e2f1df226d94" autoIncrement="false" defaultValue="" name="START_TIME" nullable="0" physicalName="START_TIME" precision="0" referenceCount="1" scale="0" source-column-ref="COL18" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The effective start time for this annotation</remarks>
+    </column>
+    <column id="COL166" populated="true" UUID="a302f96c-af0d-46ce-be80-fd395ee38c5b" autoIncrement="false" defaultValue="" name="DESCRIPTION" nullable="0" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" source-column-ref="COL19" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The mandatory description for this annotation</remarks>
+    </column>
+    <column id="COL167" populated="true" UUID="8b39ace0-28ab-4bbb-af2b-98ad1bce6461" autoIncrement="false" defaultValue="" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" source-column-ref="COL20" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional notes for this annotation</remarks>
+    </column>
+    <column id="COL168" populated="true" UUID="f9e6ac0b-4448-4b57-852a-87cc9e28a18f" autoIncrement="false" defaultValue="" name="FQNID" nullable="0" physicalName="FQNID" precision="0" referenceCount="2" scale="0" source-column-ref="COL21" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>AN optional reference to the associated TSMeta. If null, this will be a global annotation</remarks>
+    </column>
+    <column id="COL169" populated="true" UUID="c42ab1cf-4aed-4ea0-bdc1-90376d980f7a" autoIncrement="false" defaultValue="" name="END_TIME" nullable="1" physicalName="END_TIME" precision="0" referenceCount="1" scale="0" source-column-ref="COL22" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The optional effective end time for this annotation</remarks>
+    </column>
+    <column id="COL170" populated="true" UUID="8e5e6b32-2612-46ec-9ed5-bda2cba1242b" autoIncrement="false" defaultValue="" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" source-column-ref="COL23" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional map of key/value pairs encoded in JSON for this annotation</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB1633" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB1632" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB1634" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX171" populated="true" UUID="d26652f4-4dc0-4e7c-bed6-c97accf6b7b0" clustered="false" name="TSD_ANNOTATION_pk" physicalName="TSD_ANNOTATION_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC172" populated="true" UUID="1db4427d-a6f6-45e3-9dc8-28745358a4c8" ascendingOrDescending="UNSPECIFIED" column-ref="COL164" name="ANNID" physicalName="ANNID" />
+    </index>
+    <index id="IDX173" populated="true" UUID="7a46b7af-09ec-4802-87a1-e473c0605edd" clustered="false" filterCondition="" name="PRIMARY_KEY_7D" physicalName="PRIMARY_KEY_7D" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC174" populated="true" UUID="25e2a449-b2fb-4489-a7e5-970a4af069a5" ascendingOrDescending="ASCENDING" column-ref="COL164" name="ANNID" physicalName="ANNID" />
+    </index>
+    <index id="IDX175" populated="true" UUID="99197ea0-5cb2-4ab7-b368-2efb90b3a635" clustered="false" filterCondition="" name="TSD_ANNOTATION_AK" physicalName="TSD_ANNOTATION_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC176" populated="true" UUID="a0dd1dad-de3b-45d5-936f-3be19ea4ac53" ascendingOrDescending="ASCENDING" column-ref="COL165" name="START_TIME" physicalName="START_TIME" />
+     <index-column id="IDC177" populated="true" UUID="a6d7bad3-c9a3-4189-b497-ab2352375dda" ascendingOrDescending="ASCENDING" column-ref="COL168" name="FQNID" physicalName="FQNID" />
+    </index>
+    <index id="IDX178" populated="true" UUID="61d76f15-c4ce-4fdc-bdf0-cbf6d01ea183" clustered="false" filterCondition="" name="TSD_ANNOTATION_FQNID_FK_INDEX_7" physicalName="TSD_ANNOTATION_FQNID_FK_INDEX_7" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC179" populated="true" UUID="82b9ba58-932f-44bb-9832-e8183f55d8b2" ascendingOrDescending="ASCENDING" column-ref="COL168" name="FQNID" physicalName="FQNID" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB180" populated="true" UUID="387457a6-6044-4eb1-b2b6-d2fa5b609a0a" name="TSD_FQN" objectType="TABLE" physicalName="TSD_FQN" >
+   <remarks>Table storing each distinct time-series TSMeta and its attributes</remarks>
+   <folder id="FOLTAB1801" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL181" populated="true" UUID="a3dd5e4f-f5b2-4443-98ae-480dbf6c61c9" autoIncrement="false" defaultValue="" name="FQNID" nullable="0" physicalName="FQNID" precision="0" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL34" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>A synthetic unique identifier for each individual TSMeta/TimeSeries entry</remarks>
+    </column>
+    <column id="COL182" populated="true" UUID="ad517849-76f2-4aae-996f-c453bd4a3314" autoIncrement="false" defaultValue="" name="METRIC_UID" nullable="0" physicalName="METRIC_UID" precision="6" referenceCount="2" scale="0" source-column-ref="COL35" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The unique identifier of the metric name associated with this TSMeta</remarks>
+    </column>
+    <column id="COL183" populated="true" UUID="ea5aaa69-8e8a-409d-89ab-ccd678f2c133" autoIncrement="false" defaultValue="" name="FQN" nullable="0" physicalName="FQN" precision="4000" referenceCount="1" scale="0" source-column-ref="COL36" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The fully qualified metric name</remarks>
+    </column>
+    <column id="COL184" populated="true" UUID="42f016fe-03ea-4f4b-ac21-f58588229eac" autoIncrement="false" defaultValue="" name="TSUID" nullable="0" physicalName="TSUID" precision="120" referenceCount="1" scale="0" source-column-ref="COL37" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The TSUID as a hex encoded string</remarks>
+    </column>
+    <column id="COL185" populated="true" UUID="52d55966-b5ba-4162-8488-a4bd002dc101" autoIncrement="false" defaultValue="SQRT(-1)" name="MAX_VALUE" nullable="1" physicalName="MAX_VALUE" precision="0" referenceCount="1" scale="0" source-column-ref="COL38" sourceDataTypeName="DOUBLE" type="8" userDefinedTypeUUID="4fc90970-b2e5-41dd-911c-cc605d87e7a8" >
+     <remarks>Optional max value for the timeseries</remarks>
+    </column>
+    <column id="COL186" populated="true" UUID="054c0040-92e1-4f11-a067-eead9a626d72" autoIncrement="false" defaultValue="SQRT(-1)" name="MIN_VALUE" nullable="1" physicalName="MIN_VALUE" precision="0" referenceCount="1" scale="0" source-column-ref="COL39" sourceDataTypeName="DOUBLE" type="8" userDefinedTypeUUID="4fc90970-b2e5-41dd-911c-cc605d87e7a8" >
+     <remarks>Optional max value for the timeseries</remarks>
+    </column>
+    <column id="COL187" populated="true" UUID="6e07da0b-8795-4273-a9c2-6ddca8356cd5" autoIncrement="false" defaultValue="" name="DATA_TYPE" nullable="1" physicalName="DATA_TYPE" precision="20" referenceCount="1" scale="0" source-column-ref="COL40" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE</remarks>
+    </column>
+    <column id="COL188" populated="true" UUID="09fdec48-53bf-4164-8c9f-0c3c98a70e4f" autoIncrement="false" defaultValue="" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="60" referenceCount="1" scale="0" source-column-ref="COL41" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional description for the time-series</remarks>
+    </column>
+    <column id="COL189" populated="true" UUID="a89a884d-b67f-461b-b0ef-fa08e70f7b6a" autoIncrement="false" defaultValue="" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="20" referenceCount="1" scale="0" source-column-ref="COL42" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional name for the time-series</remarks>
+    </column>
+    <column id="COL190" populated="true" UUID="cd635981-aa6f-4e4b-8aff-90db9d9e2076" autoIncrement="false" defaultValue="" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" source-column-ref="COL43" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional notes for the time-series</remarks>
+    </column>
+    <column id="COL191" populated="true" UUID="cde8877c-4f6d-4a07-b051-7fdb44abd2aa" autoIncrement="false" defaultValue="" name="UNITS" nullable="1" physicalName="UNITS" precision="20" referenceCount="1" scale="0" source-column-ref="COL44" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional units designation for the time-series</remarks>
+    </column>
+    <column id="COL192" populated="true" UUID="39409f0d-53a2-409c-b6d6-58690737ab7d" autoIncrement="false" defaultValue="0" name="RETENTION" nullable="1" physicalName="RETENTION" precision="0" referenceCount="1" scale="0" source-column-ref="COL45" sourceDataTypeName="INTEGER" type="4" userDefinedTypeUUID="63b011c7-c81f-4c75-8271-632b3c87f727" >
+     <remarks>Optional retention time for the time-series in days where 0 is indefinite</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB1803" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB1802" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB1804" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX193" populated="true" UUID="0dbc4599-7671-48a5-8265-a526c91b5dd7" clustered="false" name="TSD_FQN_pk" physicalName="TSD_FQN_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC194" populated="true" UUID="c2576d37-adcf-4df2-abd9-cc244e4ef29a" ascendingOrDescending="UNSPECIFIED" column-ref="COL181" name="FQNID" physicalName="FQNID" />
+    </index>
+    <index id="IDX195" populated="true" UUID="af1ae968-ba53-4d61-9373-1d41596ec345" clustered="false" filterCondition="" name="PRIMARY_KEY_E" physicalName="PRIMARY_KEY_E" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC196" populated="true" UUID="b5d5f5ba-3d93-4ce0-85bc-d9e3ef3aa43e" ascendingOrDescending="ASCENDING" column-ref="COL181" name="FQNID" physicalName="FQNID" />
+    </index>
+    <index id="IDX197" populated="true" UUID="dc9a49b2-c186-4203-9fba-625627b8d728" clustered="false" filterCondition="" name="TSD_FQN_AK" physicalName="TSD_FQN_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC198" populated="true" UUID="ab663392-5f6b-40e2-9cf0-d48a72eae4c5" ascendingOrDescending="ASCENDING" column-ref="COL181" name="FQNID" physicalName="FQNID" />
+    </index>
+    <index id="IDX199" populated="true" UUID="bb6e2478-f6e7-483f-a272-29eb93072828" clustered="false" filterCondition="" name="TSD_FQN_FQN_AK" physicalName="TSD_FQN_FQN_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC200" populated="true" UUID="deaad0cb-1da6-43b3-ba7f-cbceb2d7088d" ascendingOrDescending="ASCENDING" column-ref="COL183" name="FQN" physicalName="FQN" />
+    </index>
+    <index id="IDX201" populated="true" UUID="e1d95178-662a-4863-851f-e9b99bd24816" clustered="false" filterCondition="" name="TSD_FQN_TSUID_AK" physicalName="TSD_FQN_TSUID_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC202" populated="true" UUID="25706d35-d8e2-4e41-8c6c-8eb1533116f0" ascendingOrDescending="ASCENDING" column-ref="COL184" name="TSUID" physicalName="TSUID" />
+    </index>
+    <index id="IDX203" populated="true" UUID="7ecdcbde-db40-4f16-8800-d71e73283665" clustered="false" filterCondition="" name="TSD_FQN_METRIC_FK_INDEX_E" physicalName="TSD_FQN_METRIC_FK_INDEX_E" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC204" populated="true" UUID="ecd8b483-12b9-4936-a694-e002d690c1ee" ascendingOrDescending="ASCENDING" column-ref="COL182" name="METRIC_UID" physicalName="METRIC_UID" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB205" populated="true" UUID="3eda8ed6-268d-4b0d-9e1e-22cd6328fca6" name="TSD_FQN_TAGPAIR" objectType="TABLE" physicalName="TSD_FQN_TAGPAIR" >
+   <remarks>Associative table between TSD_FQN and TSD_TAGPAIR, or the TSMeta and the Tag keys and values of the UIDMetas therein</remarks>
+   <folder id="FOLTAB2051" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL206" populated="true" UUID="cf76923c-9552-4900-a56d-0d99f0039a37" autoIncrement="true" defaultValue="(NEXT VALUE FOR PUBLIC.SYSTEM_SEQUENCE_0F40A2E8_B3C6_45AD_B21E_D398A41FB058)" name="FQN_TP_ID" nullable="0" physicalName="FQN_TP_ID" precision="0" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL59" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>Synthetic primary key of an association between an FQN and a Tag Pair</remarks>
+    </column>
+    <column id="COL207" populated="true" UUID="109f497b-03d7-43a4-af22-03c4e327ea9b" autoIncrement="false" defaultValue="" name="FQNID" nullable="0" physicalName="FQNID" precision="0" referenceCount="2" scale="0" source-column-ref="COL60" sourceDataTypeName="BIGINT" type="-5" userDefinedTypeUUID="433cc8af-284d-4abb-8ef7-08ebcb34dbf1" >
+     <remarks>The ID of the parent FQN</remarks>
+    </column>
+    <column id="COL208" populated="true" UUID="d66eef3a-a8e3-40b6-b77a-24690af89b8e" autoIncrement="false" defaultValue="" name="UID" nullable="0" physicalName="UID" precision="12" referenceCount="2" scale="0" source-column-ref="COL61" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The ID of a child tag key/value pair</remarks>
+    </column>
+    <column id="COL209" populated="true" UUID="25c8cea6-1ea8-414e-b540-f57196c41ab3" autoIncrement="false" defaultValue="" name="PORDER" nullable="0" physicalName="PORDER" precision="0" referenceCount="1" scale="0" source-column-ref="COL62" sourceDataTypeName="TINYINT" type="-6" userDefinedTypeUUID="608a1d2c-c960-44ac-b1f3-503aba0a5b7b" >
+     <remarks>The order of the tags in the FQN</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB2053" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB2052" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB2054" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX210" populated="true" UUID="23b83b92-266c-426f-9db4-b8af8ac996ba" clustered="false" name="TSD_FQN_TAGPAIR_pk" physicalName="TSD_FQN_TAGPAIR_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC211" populated="true" UUID="ae8d00fb-2811-4230-9d77-78816e370e58" ascendingOrDescending="UNSPECIFIED" column-ref="COL206" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+    </index>
+    <index id="IDX212" populated="true" UUID="2629206d-09cb-4a38-9bf5-c144bb4f5f38" clustered="false" filterCondition="" name="PRIMARY_KEY_7" physicalName="PRIMARY_KEY_7" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC213" populated="true" UUID="5b71e21e-507b-47a1-b355-c5cb5fbc2113" ascendingOrDescending="ASCENDING" column-ref="COL206" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+    </index>
+    <index id="IDX214" populated="true" UUID="e67c6e0c-0507-4b90-8a74-f17c2162fe06" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_AK" physicalName="TSD_FQN_TAGPAIR_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC215" populated="true" UUID="df4ab41f-0ca6-4713-a1f6-7b793175725c" ascendingOrDescending="ASCENDING" column-ref="COL206" name="FQN_TP_ID" physicalName="FQN_TP_ID" />
+    </index>
+    <index id="IDX216" populated="true" UUID="761a6a3d-e615-4b96-9ffe-b3ffbc13fe21" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_IND" physicalName="TSD_FQN_TAGPAIR_IND" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC217" populated="true" UUID="9ae8a0ee-1bcb-4f13-a6cc-01df9abed07c" ascendingOrDescending="ASCENDING" column-ref="COL207" name="FQNID" physicalName="FQNID" />
+     <index-column id="IDC218" populated="true" UUID="aa5f2100-37c0-433b-be4f-9aed16797fce" ascendingOrDescending="ASCENDING" column-ref="COL208" name="UID" physicalName="UID" />
+     <index-column id="IDC219" populated="true" UUID="3a31922f-068f-4789-abd7-770d90e9649f" ascendingOrDescending="ASCENDING" column-ref="COL209" name="PORDER" physicalName="PORDER" />
+    </index>
+    <index id="IDX220" populated="true" UUID="b8693eeb-6318-408b-8465-b49176b5e086" clustered="false" filterCondition="" name="TSD_FQN_TAGPAIR_FK_INDEX_7" physicalName="TSD_FQN_TAGPAIR_FK_INDEX_7" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC221" populated="true" UUID="62a80cb3-605d-4507-bfb4-dd0242c65768" ascendingOrDescending="ASCENDING" column-ref="COL208" name="UID" physicalName="UID" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB222" populated="true" UUID="48a1b5c4-e08c-4ce5-a014-890abd254fd5" name="TSD_METRIC" objectType="TABLE" physicalName="TSD_METRIC" >
+   <remarks></remarks>
+   <folder id="FOLTAB2221" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL223" populated="true" UUID="3d82acf1-6512-4eb2-a85f-10f48204bfdb" autoIncrement="false" defaultValue="" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL76" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The metric UID as a hex encoded string</remarks>
+    </column>
+    <column id="COL224" populated="true" UUID="ba672ef4-e383-4193-a13f-837096f694ca" autoIncrement="false" defaultValue="" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL77" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The metric name</remarks>
+    </column>
+    <column id="COL225" populated="true" UUID="3f0a78aa-9ed8-4f32-8d53-438b6c74b7be" autoIncrement="false" defaultValue="" name="CREATED" nullable="0" physicalName="CREATED" precision="0" referenceCount="1" scale="0" source-column-ref="COL78" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The timestamp of the creation of the UID</remarks>
+    </column>
+    <column id="COL226" populated="true" UUID="9610d559-8465-4301-b467-1426edfd76ce" autoIncrement="false" defaultValue="" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" source-column-ref="COL79" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional description for this metric</remarks>
+    </column>
+    <column id="COL227" populated="true" UUID="108393be-4948-432f-8505-4775a4e0a922" autoIncrement="false" defaultValue="" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL80" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional display name for this metric</remarks>
+    </column>
+    <column id="COL228" populated="true" UUID="23810b7e-36ee-4a51-b7a8-b9c71ee30cb7" autoIncrement="false" defaultValue="" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" source-column-ref="COL81" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional notes for this metric</remarks>
+    </column>
+    <column id="COL229" populated="true" UUID="5672cabc-1ce3-4e59-89d1-0cd24a2ac293" autoIncrement="false" defaultValue="" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" source-column-ref="COL82" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional map of key/value pairs encoded in JSON for this metric</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB2223" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB2222" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB2224" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX230" populated="true" UUID="05a48f4d-d0fc-48c1-a732-5ba512c2f2c8" clustered="false" name="TSD_METRIC_pk" physicalName="TSD_METRIC_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC231" populated="true" UUID="4a92be44-fb15-4bbd-bc73-141ac7bd664a" ascendingOrDescending="UNSPECIFIED" column-ref="COL223" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX232" populated="true" UUID="923adda1-286f-48dd-acd4-473faf7a93ff" clustered="false" filterCondition="" name="PRIMARY_KEY_F" physicalName="PRIMARY_KEY_F" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC233" populated="true" UUID="d237890d-794e-405b-b7a9-e94cd7b81250" ascendingOrDescending="ASCENDING" column-ref="COL223" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX234" populated="true" UUID="8215c7aa-98c7-427d-8e38-9a2a6dbaef81" clustered="false" filterCondition="" name="TSD_METRIC_AK" physicalName="TSD_METRIC_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC235" populated="true" UUID="125ada11-2af6-4faf-b3ae-4c51c55de3d3" ascendingOrDescending="ASCENDING" column-ref="COL224" name="NAME" physicalName="NAME" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB236" populated="true" UUID="a8f7ca5c-93e5-4567-86b0-81d9905ffbb7" name="TSD_TAGK" objectType="TABLE" physicalName="TSD_TAGK" >
+   <remarks>Table storing distinct time-series metric names</remarks>
+   <folder id="FOLTAB2361" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL237" populated="true" UUID="6cf99065-f512-4eaa-8b7c-ffdc451f67b6" autoIncrement="false" defaultValue="" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL90" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The tag key UID as a hex encoded string</remarks>
+    </column>
+    <column id="COL238" populated="true" UUID="3cd1572a-96ac-4a31-9a61-1b65963de698" autoIncrement="false" defaultValue="" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL91" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The tag key</remarks>
+    </column>
+    <column id="COL239" populated="true" UUID="8cf73fc0-dfe3-4a49-9066-84210e60ed08" autoIncrement="false" defaultValue="" name="CREATED" nullable="0" physicalName="CREATED" precision="0" referenceCount="1" scale="0" source-column-ref="COL92" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The timestamp of the creation of the UID</remarks>
+    </column>
+    <column id="COL240" populated="true" UUID="04d20cb9-8a3a-4c08-b6b1-86afbe6d34ac" autoIncrement="false" defaultValue="" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" source-column-ref="COL93" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional description for this tag key</remarks>
+    </column>
+    <column id="COL241" populated="true" UUID="7b482ee9-866a-4275-9684-13e5073ecc54" autoIncrement="false" defaultValue="" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL94" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional display name for this tag key</remarks>
+    </column>
+    <column id="COL242" populated="true" UUID="c2300800-53fa-413f-a481-8e58dfa2b1be" autoIncrement="false" defaultValue="" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" source-column-ref="COL95" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional notes for this tag key</remarks>
+    </column>
+    <column id="COL243" populated="true" UUID="60602e45-8f38-4e14-a3a3-c181137cc77d" autoIncrement="false" defaultValue="" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" source-column-ref="COL96" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional map of key/value pairs encoded in JSON for this tag key</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB2363" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB2362" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB2364" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX244" populated="true" UUID="c07d5fec-54fe-4fe9-8ee9-4756a725a676" clustered="false" name="TSD_TAGK_pk" physicalName="TSD_TAGK_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC245" populated="true" UUID="7c9bd8b2-b030-4d65-84bf-24dfb65fc537" ascendingOrDescending="UNSPECIFIED" column-ref="COL237" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX246" populated="true" UUID="c057d59f-6f1c-46ed-bc79-a7e14528fe83" clustered="false" filterCondition="" name="PRIMARY_KEY_B" physicalName="PRIMARY_KEY_B" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC247" populated="true" UUID="9274816f-96b4-4200-b248-5fb97232b605" ascendingOrDescending="ASCENDING" column-ref="COL237" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX248" populated="true" UUID="610e22a4-1b27-4b7e-82c1-5f152c1210a4" clustered="false" filterCondition="" name="TSD_TAGK_AK" physicalName="TSD_TAGK_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC249" populated="true" UUID="f4a7b80f-78af-4738-8f30-fc9f6194c848" ascendingOrDescending="ASCENDING" column-ref="COL238" name="NAME" physicalName="NAME" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB250" populated="true" UUID="3de22279-420f-4f54-ad98-94693f458ca8" name="TSD_TAGPAIR" objectType="TABLE" physicalName="TSD_TAGPAIR" >
+   <remarks>Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta</remarks>
+   <folder id="FOLTAB2501" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL251" populated="true" UUID="de457c61-95bc-4eb5-9166-c5ed239eb107" autoIncrement="false" defaultValue="" name="UID" nullable="0" physicalName="UID" precision="12" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL104" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs.</remarks>
+    </column>
+    <column id="COL252" populated="true" UUID="108573d1-cf33-4a13-afec-ee2b86995415" autoIncrement="false" defaultValue="" name="TAGK" nullable="0" physicalName="TAGK" precision="6" referenceCount="2" scale="0" source-column-ref="COL105" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The pair tag key</remarks>
+    </column>
+    <column id="COL253" populated="true" UUID="b628b371-c24b-4488-ac62-e7577ef63839" autoIncrement="false" defaultValue="" name="TAGV" nullable="0" physicalName="TAGV" precision="6" referenceCount="2" scale="0" source-column-ref="COL106" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The pair tag value</remarks>
+    </column>
+    <column id="COL254" populated="true" UUID="5abf11f0-8d5f-49f0-a44c-ab28c33dac83" autoIncrement="false" defaultValue="" name="NAME" nullable="0" physicalName="NAME" precision="120" referenceCount="1" scale="0" source-column-ref="COL107" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The tag pair name expressed as T=V</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB2503" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB2502" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB2504" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX255" populated="true" UUID="807c3833-a085-4f84-94b9-acef86d72741" clustered="false" name="TSD_TAGPAIR_pk" physicalName="TSD_TAGPAIR_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC256" populated="true" UUID="4cdc8328-1de8-4e5d-a9cd-4cfa47fad932" ascendingOrDescending="UNSPECIFIED" column-ref="COL251" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX257" populated="true" UUID="e876084f-4425-4ab0-b9d8-f47656fb1547" clustered="false" filterCondition="" name="PRIMARY_KEY_C" physicalName="PRIMARY_KEY_C" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC258" populated="true" UUID="34a2a86d-9cd3-4516-b1a9-95f21411a51e" ascendingOrDescending="ASCENDING" column-ref="COL251" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX259" populated="true" UUID="cfdd5bbe-4ea8-40f9-aaa5-b97e42b4af51" clustered="false" filterCondition="" name="TSD_TAGPAIR_AK" physicalName="TSD_TAGPAIR_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC260" populated="true" UUID="af90b854-8e78-45c4-8ed9-7f2383a7f4a8" ascendingOrDescending="ASCENDING" column-ref="COL252" name="TAGK" physicalName="TAGK" />
+     <index-column id="IDC261" populated="true" UUID="c3a1181a-a54c-49cd-aa0d-e51cfc33c9df" ascendingOrDescending="ASCENDING" column-ref="COL253" name="TAGV" physicalName="TAGV" />
+    </index>
+    <index id="IDX262" populated="true" UUID="7665fc5d-e915-48dd-a822-5219b552a9ba" clustered="false" filterCondition="" name="CONSTRAINT_INDEX_C" physicalName="CONSTRAINT_INDEX_C" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC263" populated="true" UUID="a21ee6ef-fceb-4340-81df-100df8556bb7" ascendingOrDescending="ASCENDING" column-ref="COL252" name="TAGK" physicalName="TAGK" />
+    </index>
+    <index id="IDX264" populated="true" UUID="a9fcb3a1-f40e-49ab-bb07-2fe7f0cc9e31" clustered="false" filterCondition="" name="CONSTRAINT_INDEX_CC" physicalName="CONSTRAINT_INDEX_CC" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC265" populated="true" UUID="7f6153bf-1042-443c-bda5-3bd13dd410f7" ascendingOrDescending="ASCENDING" column-ref="COL253" name="TAGV" physicalName="TAGV" />
+    </index>
+    <index id="IDX266" populated="true" UUID="65de81f5-27d4-4cbc-9f52-a84d2ac37f5c" clustered="false" filterCondition="" name="TSD_TAGPAIR_K_IDX" physicalName="TSD_TAGPAIR_K_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC267" populated="true" UUID="ffff1ee6-e70a-4a07-9ff4-fa3da491ff7a" ascendingOrDescending="ASCENDING" column-ref="COL252" name="TAGK" physicalName="TAGK" />
+    </index>
+    <index id="IDX268" populated="true" UUID="b04d56b7-998a-4dd7-ab98-66a390301062" clustered="false" filterCondition="" name="TSD_TAGPAIR_NAME_IDX" physicalName="TSD_TAGPAIR_NAME_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC269" populated="true" UUID="08431a4c-9e87-4c89-b00d-94917152d845" ascendingOrDescending="ASCENDING" column-ref="COL254" name="NAME" physicalName="NAME" />
+    </index>
+    <index id="IDX270" populated="true" UUID="d87b7dd7-dd15-4d7a-9b1e-fb179f5f3663" clustered="false" filterCondition="" name="TSD_TAGPAIR_V_IDX" physicalName="TSD_TAGPAIR_V_IDX" primaryKeyIndex="false" qualifier="TSDB" unique="false" >
+     <index-column id="IDC271" populated="true" UUID="75c0a83d-4c23-4744-9040-9800e2befa14" ascendingOrDescending="ASCENDING" column-ref="COL253" name="TAGV" physicalName="TAGV" />
+    </index>
+   </folder>
+  </table>
+  <table id="TAB272" populated="true" UUID="4324adcf-d6c3-44cd-bad8-d2530cf77577" name="TSD_TAGV" objectType="TABLE" physicalName="TSD_TAGV" >
+   <remarks>Table storing distinct time-series tag values</remarks>
+   <folder id="FOLTAB2721" populated="true" name="Columns" physicalName="Columns" type="1">
+    <column id="COL273" populated="true" UUID="a3913d5a-194c-4a0b-bc7e-795af3065e93" autoIncrement="false" defaultValue="" name="UID" nullable="0" physicalName="UID" precision="6" primaryKeySeq="0" referenceCount="1" scale="0" source-column-ref="COL126" sourceDataTypeName="CHAR" type="1" userDefinedTypeUUID="67ddc63f-5541-4dd1-9236-632d9d155e80" >
+     <remarks>The tag value UID as a hex encoded string</remarks>
+    </column>
+    <column id="COL274" populated="true" UUID="c010974c-4703-4d84-85e8-82085513f968" autoIncrement="false" defaultValue="" name="NAME" nullable="0" physicalName="NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL127" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>The tag value</remarks>
+    </column>
+    <column id="COL275" populated="true" UUID="c358682a-e761-493c-a03f-2f83d9167a17" autoIncrement="false" defaultValue="" name="CREATED" nullable="0" physicalName="CREATED" precision="0" referenceCount="1" scale="0" source-column-ref="COL128" sourceDataTypeName="TIMESTAMP" type="93" userDefinedTypeUUID="6497d8de-0e00-40d6-a42e-e2adca83be64" >
+     <remarks>The timestamp of the creation of the UID</remarks>
+    </column>
+    <column id="COL276" populated="true" UUID="75affe06-7e35-494f-8037-96b90d995688" autoIncrement="false" defaultValue="" name="DESCRIPTION" nullable="1" physicalName="DESCRIPTION" precision="120" referenceCount="1" scale="0" source-column-ref="COL129" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional description for this tag value</remarks>
+    </column>
+    <column id="COL277" populated="true" UUID="44ae1c57-3814-4ea0-a661-0d157bf79b74" autoIncrement="false" defaultValue="" name="DISPLAY_NAME" nullable="1" physicalName="DISPLAY_NAME" precision="60" referenceCount="1" scale="0" source-column-ref="COL130" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional display name for this tag value</remarks>
+    </column>
+    <column id="COL278" populated="true" UUID="4114ce5e-95fc-4db8-b936-4ce1f4aaa2a2" autoIncrement="false" defaultValue="" name="NOTES" nullable="1" physicalName="NOTES" precision="120" referenceCount="1" scale="0" source-column-ref="COL131" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>Optional notes for this tag value</remarks>
+    </column>
+    <column id="COL279" populated="true" UUID="5f1ac2af-9e01-4ba7-b36c-8c3a6da3f2ad" autoIncrement="false" defaultValue="" name="CUSTOM" nullable="1" physicalName="CUSTOM" precision="120" referenceCount="1" scale="0" source-column-ref="COL132" sourceDataTypeName="VARCHAR" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+     <remarks>An optional map of key/value pairs encoded in JSON for this tag value</remarks>
+    </column>
+    </folder>
+    <folder id="FOLTAB2723" populated="true" name="Exported Keys" physicalName="Exported Keys" type="3">
+    </folder>
+    <folder id="FOLTAB2722" populated="true" name="Imported Keys" physicalName="Imported Keys" type="2">
+    </folder>
+    <folder id="FOLTAB2724" populated="true" name="Indices" physicalName="Indices" type="4">
+    <index id="IDX280" populated="true" UUID="05d202ef-d30d-4ec3-8787-a4f163a4539f" clustered="false" name="TSD_TAGV_pk" physicalName="TSD_TAGV_pk" primaryKeyIndex="true" unique="false" >
+     <index-column id="IDC281" populated="true" UUID="8ddb3436-1c26-4c7f-92c0-ea12c858785e" ascendingOrDescending="UNSPECIFIED" column-ref="COL273" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX282" populated="true" UUID="cf21dfb7-7c65-4e05-8cc4-2d65c62178e8" clustered="false" filterCondition="" name="PRIMARY_KEY_B5" physicalName="PRIMARY_KEY_B5" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC283" populated="true" UUID="aeb43029-7233-4950-bdb0-33a15241fb60" ascendingOrDescending="ASCENDING" column-ref="COL273" name="UID" physicalName="UID" />
+    </index>
+    <index id="IDX284" populated="true" UUID="5495de1f-6189-48fd-89ab-64e5c0865c46" clustered="false" filterCondition="" name="TSD_TAGV_AK" physicalName="TSD_TAGV_AK" primaryKeyIndex="false" qualifier="TSDB" unique="true" >
+     <index-column id="IDC285" populated="true" UUID="929cf143-300f-48f9-b4e8-5b743bac13be" ascendingOrDescending="ASCENDING" column-ref="COL274" name="NAME" physicalName="NAME" />
+    </index>
+   </folder>
+  </table>
+  <relationships>
+   <relationship id="REL286" populated="true" UUID="d212f770-7784-4b72-82ce-e16bec358c3c" deferrability="7" deleteRule="1" fk-table-ref="TAB163" fkCardinality="7" identifying="false" name="TSD_ANNOTATION_FQNID_FK" physicalName="TSD_ANNOTATION_FQNID_FK" pk-table-ref="TAB180" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP287" populated="true" UUID="578f6a34-39cb-48ab-b5c5-61fe38ad2f2f" fk-column-ref="COL168" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL181" />
+   </relationship>
+   <relationship id="REL288" populated="true" UUID="c495557e-74d6-4ae9-a85b-f5a39bb52f5c" deferrability="7" deleteRule="0" fk-table-ref="TAB205" fkCardinality="7" identifying="false" name="TSD_FQN_TAGPAIR_FQNID_FK" physicalName="TSD_FQN_TAGPAIR_FQNID_FK" pk-table-ref="TAB180" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP289" populated="true" UUID="6fa275fe-316f-4df1-81d9-697c37c26d18" fk-column-ref="COL207" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL181" />
+   </relationship>
+   <relationship id="REL290" populated="true" UUID="3014b561-1baa-4ae9-b85c-9ebee685a492" deferrability="7" deleteRule="1" fk-table-ref="TAB180" fkCardinality="7" identifying="false" name="TSD_FQN_METRIC_FK" physicalName="TSD_FQN_METRIC_FK" pk-table-ref="TAB222" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP291" populated="true" UUID="92a462d0-7967-4114-8b5f-4ffc14c183ca" fk-column-ref="COL182" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL223" />
+   </relationship>
+   <relationship id="REL292" populated="true" UUID="cacc14e4-8700-464a-9954-973dfd34de8c" deferrability="7" deleteRule="1" fk-table-ref="TAB250" fkCardinality="7" identifying="false" name="CONSTRAINT_C" physicalName="CONSTRAINT_C" pk-table-ref="TAB236" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP293" populated="true" UUID="691c4d73-0cfd-4b39-9e51-965ce3532868" fk-column-ref="COL252" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL237" />
+   </relationship>
+   <relationship id="REL294" populated="true" UUID="864d4c71-dc66-45c5-bab9-390ec375ff0d" deferrability="7" deleteRule="0" fk-table-ref="TAB205" fkCardinality="7" identifying="false" name="TSD_FQN_TAGPAIR_FK" physicalName="TSD_FQN_TAGPAIR_FK" pk-table-ref="TAB250" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP295" populated="true" UUID="ab07e7b5-eeb5-4d2c-add3-a0cc9d12a93d" fk-column-ref="COL208" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL251" />
+   </relationship>
+   <relationship id="REL296" populated="true" UUID="56c0606a-cec4-47b4-8acc-ae332645327d" deferrability="7" deleteRule="1" fk-table-ref="TAB250" fkCardinality="7" identifying="false" name="CONSTRAINT_CC" physicalName="CONSTRAINT_CC" pk-table-ref="TAB272" pkCardinality="2" updateRule="1" >
+    <column-mapping id="CMP297" populated="true" UUID="a1d5dde0-b423-4911-a91d-888745d52fd5" fk-column-ref="COL253" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL273" />
+   </relationship>
+  </relationships>
+ </target-database>
+ <ddl-generator type="ca.sqlpower.architect.ddl.GenericDDLGenerator" allow-connection="true"> </ddl-generator>
+ <liquibase-settings useSeparateChangeSets="false" generateId="false" idStart="1"/>
+ <create-kettle-job-settings filePath="" jobName="" schemaName="" kettleJoinType="0" savingToFile="true" />
+ <play-pen zoom="1.0" viewportX="0" viewportY="0" relationship-style="rectilinear" names-displayLogicalNames="true" showPrimaryTag="true" showForeignTag="true" showAlternateTag="true" columnVisibility="ALL" relationshipLabelVisibility="true">
+  <table-pane table-ref="TAB152" x="287" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB163" x="551" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB180" x="800" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB205" x="990" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB222" x="1177" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB236" x="1369" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB250" x="1561" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-pane table-ref="TAB272" x="1708" y="262" bgColor="0xf0f0f0" fgColor="0x000000" rounded="false" dashed="false"/>
+  <table-link relationship-ref="REL286" pkConnection="0.0" fkConnection="1.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="18"/>
+  <table-link relationship-ref="REL288" pkConnection="1.0" fkConnection="0.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="33"/>
+  <table-link relationship-ref="REL290" pkConnection="0.0" fkConnection="1.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="18"/>
+  <table-link relationship-ref="REL294" pkConnection="0.0" fkConnection="1.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="18"/>
+  <table-link relationship-ref="REL292" pkConnection="1.0" fkConnection="0.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="33"/>
+  <table-link relationship-ref="REL296" pkConnection="0.0" fkConnection="1.0" rLineColor="0x333333" pkLabelText="" fkLabelText="" orientation="18"/>
+ </play-pen>
+ <critic-manager>
+  <critic-grouping platformType="Generic" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.PrimaryKeyCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.RelationshipMappingTypeCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.EmptyRelationshipCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.AlphaNumericNameCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.AlphaNumericSequenceNameCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SetDefaultOnColumnWithNoDefaultCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SetNullOnNonNullableColumnCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.DuplicateNameCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="DB2" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.DB2UnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="H2" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.H2UnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="HSQLDB" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.HSQLDBUnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="MySQL" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.MySQLCommentCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.MySQLReservedWordsCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.MySQLUnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="Oracle" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.OraclePhysicalNameCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.OracleReservedWordsCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.OracleUnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="PostgreSQL" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.PostgreSQLReservedWordsCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="SQL Server" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SQLServerUnsupportedFeaturesCritic" severity="ERROR"/>
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SQLServerReservedWordsCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="SQL Server 2000" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SQLServer2000UnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+  <critic-grouping platformType="SQL Server 2005" enabled="true">
+   <critic-settings class="ca.sqlpower.architect.ddl.critic.impl.SQLServer2005UnsupportedFeaturesCritic" severity="ERROR"/>
+  </critic-grouping>
+ </critic-manager>
+ <profiles topNCount="10">
+  </profiles>
+  <olap>
+  </olap>
+  <olap-gui>
+  </olap-gui>
+</architect-project>

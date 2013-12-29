@@ -1956,13 +1956,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@JSONRequestHandler(name="execsql", description="Executes the passed SQL statement and returns the results as JSON")
 	public void executeSQLForJson(JSONRequest request) {
 		log.info("JSONRequest:" + request);
-		boolean includeMeta =  request.getArgument("includemeta", false);
+		request.allowDefaults(false);
+		boolean includeMeta =  request.get("includemeta", false);
 				//"true".equalsIgnoreCase(request.getArgument("includemeta"));
-		String sqlText = request.getArgument("sql", "SELECT SYSDATE");
+		String sqlText = request.get("sql", "");
 		log.info("Executing SQL [{}]", sqlText);
 		request.response().setContent(executeSQLForJson(includeMeta, sqlText)).send();
 	}
     
+	// TODO:  Add rowlimit and startat
+	
     /**
      * {@inheritDoc}
      * @see net.opentsdb.catalog.CatalogDBInterface#executeSQLForJson(java.lang.String)
@@ -2005,8 +2008,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     					Object value = rset.getObject(i);
     					if(value instanceof Double) {
     						double d = ((Double)value).doubleValue();
-    						if(Double.isInfinite(d)) value = "Double.Infinite";
-    						else if(Double.isNaN(d)) value = "Double.NaN";
+    						if(Double.isInfinite(d)) value = "Infinity";
+    						else if(Double.isNaN(d)) value = "NaN";
     					}    					
     					dataEntryNode.put(nameDecode.get(i).toLowerCase(), value.toString());    					
     				}

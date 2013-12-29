@@ -30,12 +30,16 @@ import static org.jboss.netty.handler.codec.http.HttpMethod.GET;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
+import org.helios.tsdb.plugins.util.StringHelper;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -191,7 +195,13 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
         	
         		
         } catch (Exception ex) {
+    		JSONResponse response = new JSONResponse(-1, JSONResponse.RESP_TYPE_ERR, ctx.getChannel());
+    		Map<String, String> map = new HashMap<String, String>(2);
+    		map.put("err", "Failed to parse request [" + request + "]");
+    		map.put("ex", StringHelper.formatStackTrace(ex));
+    		response.setContent(map);
         	log.error("Failed to parse request [" + request + "]", ex);
+        	ctx.getChannel().write(response);
         }		
 	}
 	

@@ -1,0 +1,13 @@
+hadoop:service=HBase,name=RPCStatistics-42808
+hadoop:service=Master,name=MasterStatistics
+hadoop:service=Master,name=Master
+org.apache.ZooKeeperService:name0=StandaloneServer_port-1
+hadoop:service=RegionServer,name=RegionServerDynamicStatistics
+hadoop:service=RegionServer,name=RegionServerStatistics
+hadoop:service=HBase,name=Info
+org.apache.ZooKeeperService:name0=StandaloneServer_port-1,name1=InMemoryDataTree
+hadoop:service=RegionServer,name=RegionServer
+org.apache.ZooKeeperService:name0=StandaloneServer_port-1,name1=Connections,name2=127.0.0.1,name3=0x142247efb1f0000
+org.apache.ZooKeeperService:name0=StandaloneServer_port-1,name1=Connections,name2=127.0.0.1,name3=0x142247efb1f0001
+org.apache.ZooKeeperService:name0=StandaloneServer_port-1,name1=Connections,name2=127.0.0.1,name3=0x142247efb1f0002
+hadoop:service=HBase,name=RPCStatistics-52872

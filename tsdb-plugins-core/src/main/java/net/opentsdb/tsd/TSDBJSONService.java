@@ -478,13 +478,15 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void query(JSONRequest request) {
 		try {
 			
-			Map<Object, Object> args = request.arguments;
+			request.allowDefaults(false);
 			// Required Fields
-			String startTime = ((JsonNode)arg(args, "start", null, true)).asText();
+			String startTime = request.get("start", "");
 			
+			
+			request.allowDefaults(true);
 			// Psuedo Required Fields
-			ArrayNode mqueries = (ArrayNode)arg(args, "m", null, false);
-			ArrayNode tqueries = (ArrayNode)arg(args, "tsuids", null, false);
+			ArrayNode mqueries = request.getArray("m");
+			ArrayNode tqueries = request.getArray("tsuids");
 			if(mqueries==null && tqueries==null) {
 				throw new Exception("No parameter provided for 'm' or 'tsuids'");
 			}
@@ -493,11 +495,13 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			
 			
 			// Optional Fields
-			String endTime = jarg(args, "end", SystemClock.unixTime(), false).asText();
-			boolean noAnnotations = jarg(args, "no_annotations", true, false).asBoolean();
-			boolean globalAnnotations = jarg(args, "global_annotations", false, false).asBoolean();
-			boolean msResolution = jarg(args, "ms", false, false).asBoolean();
-			boolean showTSUIDs = jarg(args, "show_tsuids", false, false).asBoolean();
+			String endTime = request.get("end",  "" + SystemClock.unixTime());
+			boolean noAnnotations = request.get("no_annotations", true);
+			
+			boolean globalAnnotations = request.get("global_annotations", false);
+			boolean msResolution = request.get("ms", false);
+			boolean showTSUIDs = request.get("show_tsuids", false);
+			
 			
 			StringBuilder uri = new StringBuilder("json=true");
 			uri.append("&start=").append(startTime);
@@ -593,24 +597,21 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			return;
 		}
 		try {
-			Map<Object, Object> args = request.arguments;
-			String name = ((JsonNode)args.get("name")).asText();
-			String script = ((JsonNode)args.get("name")).asText();
-			if(name==null) throw new Exception("Script name was not provided");
+			request.allowDefaults(false);
+			String name = request.get("name", "");
+			String script = request.get("groovy", "");
+			if(name==null) throw new Exception("Script name [name] was not provided");
 			if(script==null) throw new Exception("Script source [groovy] was not provided");
-			args.remove("name"); args.remove("groovy");  args.remove("__");
+			request.removeFields("name", "groovy", "__");
 			groovyService.compile(name, script);
-			Object[] gargs = new String[args.size()];
-			int cnt = 0;
-			for(Object o: args.values()) {
-				gargs[cnt] = ((JsonNode)o).asText();
-				cnt++;
-			}
+			Object[] gargs = request.asStringArray();
 			Object response = groovyService.invokeScript(name, gargs);
 			request.response().setContent(jsonMapper.writeValueAsString(response)).send();			
 		} catch (Exception ex) {
 			log.error("Failed to invoke groovy", ex);
 			request.error("Failed to invoke groovy", ex).send();
+		} finally {
+			request.allowDefaults(true);
 		}
 	}
 	

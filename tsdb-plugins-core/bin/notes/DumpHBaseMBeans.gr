@@ -1,0 +1,25 @@
+import javax.management.*;
+import javax.management.remote.*;
+import com.sun.tools.attach.*;
+import com.sun.tools.attach.spi.*;
+
+jmxConn = null;
+try {
+    VirtualMachine vm = VirtualMachine.attach("29910");
+    Properties props = vm.getAgentProperties();
+    service = props.getProperty("com.sun.management.jmxremote.localConnectorAddress");
+    jurl = new JMXServiceURL(service);
+    jmxConn = JMXConnectorFactory.connect(jurl);
+    server = jmxConn.getMBeanServerConnection();
+    server.queryNames(null, null).each() {
+        domain = it.getDomain();
+        if(domain.equals("hadoop") || domain.equals("org.apache.ZooKeeperService")) {
+            println it;
+        }
+        
+    }
+} finally {
+    if(jmxConn!=null) try { jmxConn.close(); println "JMX Connection Closed"; } catch (e) {}
+}    
+
+return;

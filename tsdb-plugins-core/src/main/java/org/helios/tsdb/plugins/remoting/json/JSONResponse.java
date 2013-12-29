@@ -73,7 +73,7 @@ public class JSONResponse implements ChannelBufferizable {
 
 	/** The buffer factory for this service  TODO: Make this configurable */
 	@JsonIgnore
-	private static final ChannelBufferFactory bufferFactory = new DirectChannelBufferFactory();
+	private static final ChannelBufferFactory bufferFactory = new DirectChannelBufferFactory(2048);
 	
 	
 	

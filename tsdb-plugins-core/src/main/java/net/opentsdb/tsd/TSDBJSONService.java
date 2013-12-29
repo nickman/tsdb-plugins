@@ -135,11 +135,8 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	 * @throws IOException thrown on IO errors
 	 */
 	protected void invokeForFile(HttpRequest request, JSONResponse response) throws IOException {
-		@SuppressWarnings("resource")
-		JsonGenerator generator = response.writeHeader(true);
-		
-		InvocationChannel ichannel = new InvocationChannel();
-		
+		JsonGenerator generator = response.writeHeader(true);		
+		InvocationChannel ichannel = new InvocationChannel();		
 		HttpQuery query = new HttpQuery(tsdb, request, ichannel);
 		String baseRoute = query.getQueryBaseRoute();
 		http_commands.get(baseRoute).execute(tsdb, query);

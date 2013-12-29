@@ -223,6 +223,17 @@ public interface CatalogDBMXBean {
 	 */
 	public String executeSQLForJson(boolean includeMeta, String sqlText);
 	
+	/**
+	 * Executes the passed SQL statement and returns the results as JSON
+	 * @param includeMeta true to include meta-data, false to exclude it
+	 * @param maxRows The maximum number of rows to return. A value of <b><code>0</code></p> or less means all rows.
+	 * @param startAt The row number to start at, the first row being 0.
+	 * @param sqlText The SQL statement to execute
+	 * @return the JSON representing the result of the SQL statement
+	 */
+	public String executeSQLForJson(boolean includeMeta, int maxRows, int startAt, String sqlText);
+	
+	
 	
 	
 

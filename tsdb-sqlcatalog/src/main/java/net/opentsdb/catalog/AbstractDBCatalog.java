@@ -25,7 +25,9 @@
 package net.opentsdb.catalog;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -82,11 +84,16 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferFactory;
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.buffer.DirectChannelBufferFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -1956,74 +1963,163 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@JSONRequestHandler(name="execsql", description="Executes the passed SQL statement and returns the results as JSON")
 	public void executeSQLForJson(JSONRequest request) {
 		log.info("JSONRequest:" + request);
-		request.allowDefaults(false);
+		request.allowDefaults(true);
 		boolean includeMeta =  request.get("includemeta", false);
-				//"true".equalsIgnoreCase(request.getArgument("includemeta"));
+		int maxRows = request.get("maxrows", 0);
+		int startAt = request.get("startat", 0);
+
+		request.allowDefaults(false);
 		String sqlText = request.get("sql", "");
-		log.info("Executing SQL [{}]", sqlText);
-		request.response().setContent(executeSQLForJson(includeMeta, sqlText)).send();
+		if(sqlText.trim().isEmpty()) {
+			request.error("The passed SQL was null or empty").send();
+			return;
+		}
+		log.info("Executing SQL [{}], Options: meta:{}, maxrows:{}, startat:{} ", sqlText, includeMeta, maxRows, startAt);
+		request.response().setContent(_executeSQLForJson(includeMeta, maxRows, startAt, sqlText)).send();
 	}
     
-	// TODO:  Add rowlimit and startat
+	/** UTF-8 Charset */
+	public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 	
-    /**
-     * {@inheritDoc}
-     * @see net.opentsdb.catalog.CatalogDBInterface#executeSQLForJson(java.lang.String)
-     */
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSQLForJson(boolean, java.lang.String)
+	 */
 	@Override
-    public String executeSQLForJson(boolean includeMeta, String sqlText) {
+	public String executeSQLForJson(boolean includeMeta, String sqlText) {
+		return executeSQLForJson(includeMeta, 0, 0, sqlText);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#executeSQLForJson(boolean, int, int, java.lang.String)
+	 */
+	@Override
+    public String executeSQLForJson(boolean includeMeta, int maxRows, int startAt, String sqlText) {
+		return _executeSQLForJson(includeMeta, maxRows, startAt, sqlText).toString(UTF8_CHARSET);
+	}
+
+	/**
+	 * Executes the passed SQL statement and returns the results as JSON
+	 * @param includeMeta true to include meta-data, false to exclude it
+	 * @param sqlText The SQL statement to execute
+	 * @return a ChannelBuffer containing the JSON representing the result of the SQL statement
+	 */
+    protected ChannelBuffer _executeSQLForJson(boolean includeMeta, String sqlText) {
+    	return _executeSQLForJson(includeMeta, 0, 0, sqlText); 
+    }
+	
+	
+	/**
+	 * Executes the passed SQL statement and returns the results as JSON
+	 * @param includeMeta true to include meta-data, false to exclude it
+	 * @param maxRows The maximum number of rows to return. A value of <b><code>0</code></p> or less means all rows.
+	 * @param startAt The row number to start at, the first row being 0.
+	 * @param sqlText The SQL statement to execute
+	 * @return a ChannelBuffer containing the JSON representing the result of the SQL statement
+	 */
+    protected ChannelBuffer _executeSQLForJson(boolean includeMeta, int maxRows, int startAt, String sqlText) {
     	if(sqlText==null || sqlText.trim().isEmpty()) throw new IllegalArgumentException("The passed SQL statement was null or empty");
+    	final ElapsedTime et = SystemClock.startClock();
     	boolean isSelect = sqlText.trim().toUpperCase().startsWith("SELECT");
     	Connection conn = null;
     	PreparedStatement ps = null;
     	ResultSet rset = null;
-    	final ElapsedTime et = SystemClock.startClock();
+    	final int _maxRows = maxRows<1 ? Integer.MAX_VALUE : maxRows;
+    	final int _startAt = startAt-1;    	
+    	final ChannelBuffer streamBuffer = ChannelBuffers.dynamicBuffer(streamBuffers);
+    	final ChannelBufferOutputStream out = new ChannelBufferOutputStream(streamBuffer); 
+    	final JsonGenerator generator; 
     	try {
+    		generator = jsonMapper.getFactory().createJsonGenerator(out, JsonEncoding.UTF8);    				    		
     		conn = dataSource.getConnection();
     		ps = conn.prepareStatement(sqlText);
     		if(isSelect) {
-    			ObjectNode root = jsonMapper.createObjectNode();
-    			rset = ps.executeQuery();
-				ArrayNode metaNode = jsonMapper.createArrayNode();
+    			// ===== start root =====
+    			generator.writeStartObject();
+    			
+    			rset = ps.executeQuery();    							
 				ResultSetMetaData rsmd = rset.getMetaData();
 				int colCount = rsmd.getColumnCount();
+				
+				// ===== start meta data =====
+				
 				Map<Integer, String> nameDecode = new HashMap<Integer, String>(colCount);
+				if(includeMeta) {
+					generator.writeFieldName("meta");
+					generator.writeStartArray();
+				}
 				for(int i = 1; i <= colCount; i++) {
-					ObjectNode metaEntryNode = jsonMapper.createObjectNode();
-					nameDecode.put(i, rsmd.getColumnName(i));
-					metaEntryNode.put("name", rsmd.getColumnName(i));
-					metaEntryNode.put("type", rsmd.getColumnTypeName(i));
-					metaEntryNode.put("class", rsmd.getColumnClassName(i));
-					metaNode.add(metaEntryNode);
+					nameDecode.put(i, rsmd.getColumnName(i).toLowerCase());
+					if(includeMeta) {
+						generator.writeStartObject();
+						generator.writeStringField("name", rsmd.getColumnName(i));
+						generator.writeStringField("type", rsmd.getColumnTypeName(i));
+						generator.writeStringField("class", rsmd.getColumnClassName(i));
+						generator.writeEndObject();
+					}
 				}
     			if(includeMeta) {
-    				root.put("meta", metaNode);
+    				generator.writeEndArray(); 
     			}
-    			ArrayNode dataNode = jsonMapper.createArrayNode();
+
+    			// ===== start data =====
+    			
+				generator.writeFieldName("data");
+				generator.writeStartArray();
+    			
+//    			ArrayNode dataNode = jsonMapper.createArrayNode();
     			int cnt = 0;
+    			
+    			// Fast-forward if start-at > 0
+    			if(startAt > 0) {
+    				while(rset.next() && cnt <= _startAt) {
+    					cnt++;
+    				}
+    			}
+    			
+    			cnt = 0;
     			while(rset.next()) {
     				cnt++;
-    				ObjectNode dataEntryNode = jsonMapper.createObjectNode();
+    				if(cnt > _maxRows) break;
+    				//ObjectNode dataEntryNode = jsonMapper.createObjectNode();
+    				generator.writeStartObject();
     				for(int i = 1; i <= colCount; i++) {
+    					generator.writeFieldName(nameDecode.get(i));
     					Object value = rset.getObject(i);
     					if(value instanceof Double) {
     						double d = ((Double)value).doubleValue();
     						if(Double.isInfinite(d)) value = "Infinity";
     						else if(Double.isNaN(d)) value = "NaN";
     					}    					
-    					dataEntryNode.put(nameDecode.get(i).toLowerCase(), value.toString());    					
+    					
+    					if(value instanceof Number) {
+    						generator.writeNumber(value.toString());
+    					} else {
+    						generator.writeString(value.toString());
+    					}    			    					
     				}
-    				dataNode.add(dataEntryNode);
+    				generator.writeEndObject();    				
     			}
-    			root.put("data", dataNode);
+    			generator.writeEndArray(); 
+    			generator.writeNumberField("rows", cnt);
+    			if(startAt > 0) {
+    				generator.writeNumberField("startat", startAt);
+    			}
     			long elapsed = et.elapsedMs();
-    			root.put("elapsedms", elapsed);
-    			root.put("rows", cnt);
-    			return jsonMapper.writeValueAsString(root);
+    			generator.writeNumberField("elapsedms", elapsed);
+    			generator.writeEndObject();    	
+    			out.flush();
+    			return streamBuffer;
     		} else {
     			int rcode = ps.executeUpdate();
     			long elapsed = et.elapsedMs();
-    			return jsonMapper.writeValueAsString(jsonMapper.createObjectNode().put("resultCode", rcode).put("elapsedms", elapsed));
+    			generator.writeStartObject();
+    			generator.writeNumberField("resultcode", rcode);
+    			generator.writeNumberField("elapsedms", elapsed);
+    			generator.writeEndObject();
+    			out.flush();
+    			return streamBuffer;
     		}
     	} catch (Exception ex) {
     		log.error("Failed to process SQL statement [" + sqlText + "]", ex);

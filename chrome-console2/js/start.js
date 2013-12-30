@@ -27,6 +27,11 @@ function initialize() {
   .click(function(e){
     loadApp('connections');
   });
+  $('#isql-btn').button({ disabled: false }).css({ width: '100%'})
+  .click(function(e){
+    loadApp('isql');
+  });
+
   $('#status-btn').button({ disabled: true }).css({ width: '100%'})
   .click(function(e){
     console.info("Status:%o", e);

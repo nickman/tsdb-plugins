@@ -1,3 +1,21 @@
+/*
+ *	Gridster
+ */
+ .gridster {
+    position:relative;
+    background-color: gray;
+} 
+
+li.slot {
+    background-color: white;
+    width: 150px;
+    height: 150px;
+    border: solid 2px black;
+    overflow: hidden;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 .title {
     font-family: Verdana, Arial, Helvetica, sans-serif;
 }

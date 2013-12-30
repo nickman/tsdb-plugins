@@ -21,6 +21,7 @@
           "16": "/img/tsdbicon_16.png"
      },
      "permissions": [
+          "alarms",
           "clipboardRead",
           "clipboardWrite",
           "notifications",

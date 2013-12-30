@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="/js/dataTables/css/jquery.dataTables.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="isql.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="/css/codemirror.css" type="text/css" media="screen" />
 
 <title>Metric Catalog SQL</title>
 
@@ -12,25 +13,39 @@
 <script type="text/javascript" src="/app/app-client.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/dataTables/jquery.jeditable.js"></script>
 <script type="text/javascript" src="/js/dataTables/jquery.dataTables.min.js" charset="utf-8"></script>
-<script type="text/javascript" src="/js/jquery.layout-latest.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/codemirror-compressed.js" charset="utf-8"></script>
+
+
+<!--
+<script type="text/javascript" src="/js/layout/jquery.sizes.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/layout/jlayout.border.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/layout/jquery.jlayout.js" charset="utf-8"></script>
+-->
 <script type="text/javascript" src="isql.js" charset="utf-8"></script>
 </head>
 
 <body> 
 	<h3 class="title">Metric Catalog SQL</h3>
-	<div id="content">
-		<div class="ui-layout-north">North</div>
-		<div class="ui-layout-south">
-		  <table id="isqlGrid" cellpadding="0" cellspacing="0" border="0" class="display" width="100%" style="font-size: smaller;">
-			<thead>
-				<tr>
-				</tr>
-			</thead>
-			<tbody>
-			</tbody>
-		  </table>
-		</div>  
-	</div>
+	<div id="content" style="height: 100%; width: 100%; ">
+		<div id="appContent" style="height: 100%; width: 100%; position: absolute; background-color: beige; border-width: 1px;border-color: black;">
+			<div id="toolbar" style="height: 5%; width: 100%; position: relative; background-color: gray">
+			<button id="go-btn" style="float: left;">Go</button>			
+			</div>
+			<div id="sqlentry" id="toolbar" style="height: 40%; width: 100%; position: relative; background-color: darksalmon">
+				<textarea id="sqleditor" style="height: 100%; width: 100%;"></textarea>
+			</div>
+			<div id="divider" style="width: 100%; height: 1%; background-color: black; position: relative;"></div>
+			<div id="sqlresults" id="toolbar" style="height: 54%; width: 100%; position: relative; background-color: darkseagreen">
+			  <table id="isqlGrid" style="width: 100%; height: 100%;">
+				<thead>
+					<tr>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			  </table>
+			</div>  
+		</div>
 </body>
 
 </html>

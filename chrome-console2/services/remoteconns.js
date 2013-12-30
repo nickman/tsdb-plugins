@@ -138,8 +138,25 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	}
 	    	return d.promise();
 	    },
+	    inflight : {
+	    	
+
+	    },
+	    ridCounter : 0,	    
+
+	    // opentsdb.services.rcon.sendRequest('ws://localhost:4243/ws', {"svc": "system", "op": "sleep", "args": {"sleep":4000}});
+
 	    sendRequest: function(url, request, nested) {
 	    	var d = nested==null ? $.Deferred() : nested;
+
+	    	/*
+	    	 * Need to check for these fields and track, provide a default if not present etc.
+	    	 * t:  if not provided, t='req'
+	    	 * rid: if not provided, use next id and return it on promise.progress
+	    	 * timeout:  (in ms.) if not provided, use default of 5000. register for timeout callback then remove from request.
+	    	 * handle responses, looking for 'rerid' to associate back to 'rid'
+	    	 */
+
 	    	if(this.connectionsByURL[url]==null) {
 	    		if(nested!=null) {
 	    			console.error("Received recursive request for connection [%s]. Not connected. Failing ... ", url);
@@ -160,7 +177,54 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	} else {
 	    		var _conn = this.connectionsByURL[url];
 	    		console.info("Have connection [%o] for request [%o]", _conn, request);
+	    		//======================================================================================================
+	    		//		Set up response handler and timeout
+	    		//======================================================================================================
+	    		var rid = -1;
+	    		var timeout = 5000;
+	    		if(request.rid!=null && !isNaN(request.rid)) {
+	    			rid = request.rid;
+	    		} else {
+	    			rid = this.ridCounter++;
+	    			request.rid = rid;
+	    		}
+	    		if(request.t==null) {
+	    			request.t = 'req';
+	    		}
+				if(request.timeout!=null && !isNaN(request.timeout) && (request.timeout > 0)) {
+					timeout = request.timeout;
+				}
+				var alarmName = "rid-" + rid + "-alarm";
+				var handler = function _OTF_DATA_HANDLER_(data){
+					var decoded = null;
+					var msg = null;
+					var rerid = -1;
+					if(data.data != null) {
+						decoded = JSON.parse(data.data);
+						if(decoded.rerid)
+						if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
+							rerid = decoded.rerid;
+							if(decoded.msg!=null) {
+								msg = JSON.parse(decoded.msg);
+							}
+						}
+					}
+					if(rerid==rid) {
+						chrome.alarms.clear(alarmName);
+						console.info("Received response on rid [%s] --> [%o]", rid, decoded);
+						_conn.onIncomingData.removeListener(_OTF_DATA_HANDLER_);
+					}
+				};
+				_conn.onIncomingData.addListener(handler);
+	    		chrome.alarms.create(alarmName, {when: Date.now() + timeout});
+	    		chrome.alarms.onAlarm.addListener(function(alarm){
+	    			if(alarm.name==alarmName) {
+	    				_conn.onIncomingData.removeListener(handler);
+	    				console.warn("Request rid [%s] timed out", rid);
+	    			}
+	    		});
 	    		_conn.send(request);
+	    		//======================================================================================================
 	    	}
 	    	return d.promise();
 	    },
@@ -204,7 +268,13 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     			if(connectListener!=null) {
     				this.listeners.push(connectListener);
     			}
-    		}
+    		},
+    		removeListener : $.proxy(function(listener) {
+    			var index = this.listeners.indexOf(listener);
+    			if(index>-1) {
+    				this.listeners.splice(index, 1);
+    			}
+    		}, this.me)
     	},
     	onClose : {
     		listeners : [],
@@ -212,7 +282,13 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     			if(closeListener!=null) {
     				this.listeners.push(closeListener);
     			}
-    		}
+    		},
+    		removeListener : $.proxy(function(listener) {
+    			var index = this.listeners.indexOf(listener);
+    			if(index>-1) {
+    				this.listeners.splice(index, 1);
+    			}
+    		}, this.me)
     	},
     	onError : {
     		listeners : [],
@@ -220,7 +296,13 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     			if(errorListener!=null) {
     				this.listeners.push(errorListener);
     			}
-    		}
+    		},
+    		removeListener : $.proxy(function(listener) {
+    			var index = this.listeners.indexOf(listener);
+    			if(index>-1) {
+    				this.listeners.splice(index, 1);
+    			}
+    		}, this.me)
     	},
     	onIncomingData : {
     		listeners : [],
@@ -228,7 +310,13 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     			if(dataListener!=null) {
     				this.listeners.push(dataListener);
     			}
-    		}
+    		},
+    		removeListener : $.proxy(function(listener) {
+    			var index = this.listeners.indexOf(listener);
+    			if(index>-1) {
+    				this.listeners.splice(index, 1);
+    			}
+    		}, this.me)
     	}
     });
 	    //====================================================
@@ -287,6 +375,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 					console.info("     WebSock Session ID: [%s]", rcon.sessionid);
 	    			console.info("===============================================");
 	    			console.groupEnd();
+	    			return;
 	    		}
 	    		var x = rcon.onIncomingData.listeners;
 	    		for(var i = 0, il = x.length; i < il; i++) {

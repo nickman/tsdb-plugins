@@ -5,6 +5,11 @@ package org.helios.tsdb.plugins.remoting.json.services;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -25,10 +30,33 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @JSONRequestService(name="system", description="Some generic system services")
 public class SystemJSONServices {
 	/** The json node factory */
-	private final JsonNodeFactory nodeFactory = JsonNodeFactory.instance; 
+	private final JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
+	/** Scheduler */
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory(){
+		final AtomicInteger serial = new AtomicInteger();
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(r, "SystemJSONServicesScheduler#" + serial.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		}});
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
+	/**
+	 * Helper service to sleep for a defined period
+	 * @param request the JSON request
+	 */
+	@JSONRequestHandler(name="sleep", description="Sleeps for a defined period")
+	public void sleep(final JSONRequest request) {
+		request.allowDefaults(false);
+		final long sleepMs = request.get("sleep", -1L);
+		scheduler.schedule(new Runnable(){
+			public void run() {
+				request.response().send();
+			}
+		}, sleepMs, TimeUnit.MILLISECONDS);
+	}
 	
 	/**
 	 * Writes out the system properties as JSON to the caller

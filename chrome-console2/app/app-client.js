@@ -18,8 +18,13 @@ function sendRequest(request) {
   var deferred = $.Deferred();
   var handler = function(resp) {
     var _response = resp;
-    console.info("AppClient Received Response: [%o]", _response);
-    deferred.resolve(_response);
+    if(_response.toString().indexOf("ERROR:")==0) {
+      deferred.reject(_response);
+    } else {
+      console.info("AppClient Received Response: [%o]", _response);
+      deferred.resolve(_response);
+    }
+    return true;
   }
   console.info("AppClient Sending Request: [%o]", request);
   

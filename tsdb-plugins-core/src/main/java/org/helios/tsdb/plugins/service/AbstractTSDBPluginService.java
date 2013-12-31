@@ -200,14 +200,13 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		log.info("All handlers stopped");
 		log.info("Stopping RPCServices");
 		for(IRPCService rpcService: rpcServices) {
-			rpcService.stopAndWait();
+			rpcService.stop();
 		}
 		rpcServices.clear();
 		plugins.clear();
 		log.info("All RPCServices stopped");
-		if(jmxServer!=null && jmxServer.isRunning()) {
-			jmxServer.stop();
-		}
+		try {jmxServer.stop(); } catch (Exception x) {/* No Op */}
+		jmxServer = null;
 		doPostShutdown();
 		log.info("\n\t====================================\n\tStopped PluginService [{}]\n\t====================================", getClass().getSimpleName());
 		shutdownDeferred.callback(true);

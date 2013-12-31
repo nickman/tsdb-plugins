@@ -63,6 +63,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 		addGlobalListener : function(globalListener, filter) {
 			if(globalListener!=null) {
 				if(globalListener.onConnect && $.isFunction(globalListener.onConnect)) {
+					console.info("Adding onConnect Global Listener [%s]", globalListener.onConnect.name);
 					this.connectionListeners.connect.push(this.filterize(globalListener.onConnect, filter));					
 				}
 				if(globalListener.onClose && $.isFunction(globalListener.onClose)) {
@@ -196,6 +197,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 				}
 				var alarmName = "rid-" + rid + "-alarm";
 				var handler = function _OTF_DATA_HANDLER_(data){
+					console.debug("_OTF_DATA_HANDLER_ Data Received:[%o]", data);
 					var decoded = null;
 					var msg = null;
 					var rerid = -1;
@@ -206,7 +208,11 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 							if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
 								rerid = decoded.rerid;
 								if(decoded.msg!=null) {
-									msg = JSON.parse(decoded.msg);
+									try {
+										msg = JSON.parse(decoded.msg);
+										decoded.msg = msg;
+									} catch (e) {}
+
 								}
 							}
 						} catch (e) {
@@ -214,6 +220,11 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 							return;
 						}
 					}
+					// =================
+					// PROBLEM:   First request comes out:  Processing Message with rerid:[-1] and rid:[0] 
+					// =================
+					
+					console.debug("Processing Message with rerid:[%s] and rid:[%s]", rerid, rid);
 					if(rerid==rid) {
 						chrome.alarms.clear(alarmName);
 						console.info("Received response on rid [%s] --> [%o]", rid, decoded);
@@ -227,7 +238,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    			if(alarm.name==alarmName) {
 	    				_conn.onIncomingData.removeListener(handler);
 	    				console.warn("Request rid [%s] timed out", rid);
-	    				d.reject("Request rid [" + rid + "] timed out");
+	    				d.reject("ERROR:Request rid [" + rid + "] timed out");
 	    			}
 	    		});
 	    		_conn.send(request);
@@ -254,6 +265,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    //	Base Connection Type
 	    //====================================================
     RConnService.Connection = Class.extend({
+
     	me: null,
 	    /**
 	     * Constructor for Db Service. 
@@ -326,6 +338,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     		}, this.me)
     	}
     });
+	RConnService.Connection.name = "Connection";
 	    //====================================================
 	    //	WebSocket Connection Type
 	    //====================================================
@@ -333,15 +346,16 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    init: function(webSocketUrl, rconservice){
 	    	this._super( rconservice );
 	    	this.webSocketUrl = webSocketUrl;
-	    	this.ID = webSocketUrl;
-	    	this.webSocket = new WebSocket(this.webSocketUrl);
+	    	this.ID = webSocketUrl;	    	
 	    	console.debug("onConnect Stuff: [%o]", this.onConnect);
-	    	var rcon = this;
+	    	var rcon = this;	    	
 	    	$.each(rconservice.connectionListeners.connect, function(i,x) {rcon.onConnect.addListener(x);});
 	    	$.each(rconservice.connectionListeners.close, function(i,x) {rcon.onClose.addListener(x);});
 	    	$.each(rconservice.connectionListeners.error, function(i,x) {rcon.onError.addListener(x);});
 	    	$.each(rconservice.connectionListeners.data, function(i,x) {rcon.onIncomingData.addListener(x);});
-	    	
+	    	console.debug("Added Global Listeners");
+	    	console.debug("Issuing connect for [%s]", this.webSocketUrl);
+	    	this.webSocket = new WebSocket(this.webSocketUrl);
 	    	this.webSocket.onopen = function() {
 	    		console.info("Connected WebSocket -- [%o]", this);
 	    		this.connection = rcon;
@@ -373,11 +387,16 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		}
 	    	};
 	    	this.webSocket.onmessage = function(message) {
+	    		var x = [];
+	    		$.each(rcon.onIncomingData.listeners, function(ind, val){
+	    			x.push(val);
+	    		});
+	
 	    		if(message.data==null || message.data=="") {
 	    			console.warn("Received data was null or empty");
 	    			return;
 	    		}
-	    		console.info("WebSocket Data, Message:[%o] -- [%o]", message, this);	    
+	    		console.info("WebSocket Data, Message:[%o] -- [%o] -- Listeners: [%s]", message, this, x.length);	    
 	    		var jsonMsg = JSON.parse(message.data);
 	    		if(jsonMsg.sessionid != null) {
 	    			rcon.sessionid = jsonMsg.sessionid;
@@ -388,8 +407,9 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    			console.groupEnd();
 	    			return;
 	    		}
-	    		var x = rcon.onIncomingData.listeners;
+	    		
 	    		for(var i = 0, il = x.length; i < il; i++) {
+	    			console.info("Calling Listener [%s], message[%o], jsonMsg:[%o], this:[%o]", i, message, jsonMsg, this);
 	    			x[i](message, jsonMsg, this);
 	    		}	    		
 	    	};
@@ -412,10 +432,14 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 		// readyState: 1.	    	
     	
     });
-
+	RConnService.WebSocketConnection.name="WebSocketConnection";
 	var rcon = new RConnService();
 	window.opentsdb.services.rcon = rcon;	
 	chrome.app.runtime.onRestarted.addListener(serviceInitializer);
 	window.opentsdb.dependencies['remoteconns'].resolve(rcon);		
 	console.info("------------> [%s] remoteconns.js", OP[1]);
+});
+
+chrome.runtime.onSuspend.addListener(function(){
+	opentsdb.services.rcon.closeAll();
 });

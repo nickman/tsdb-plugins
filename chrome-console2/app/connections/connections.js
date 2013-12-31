@@ -3,6 +3,7 @@
  * Whitehead, 2014
  */ 
 
+
 //document.domain = chrome.runtime.id;
 var _db = null;
 var _connectionStore = null;
@@ -118,7 +119,9 @@ function initGrid(data) {
   $('#connectionsGrid').dataTable().fnAddData(data);
   $('#connectionsGrid td').css({padding: '0px 0px'});
   
-  
+  /*
+   * 
+   */
   cTable.$('td.editable').editable( handleCellEdit , {    
     "callback": function( sValue, y ) {
 	    var aPos = cTable.fnGetPosition( this );

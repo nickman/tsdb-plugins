@@ -31,14 +31,15 @@ public class JSONChannelBufferSerializer extends JsonSerializer<Object> {
 	/**
 	 * {@inheritDoc}
 	 * @see com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object, com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider)
+	 * FIXME: Need a way to stream the data in the ChannelBuffer as converting to a byte[] or String will scorch heap usage.
 	 */
 	@Override
 	public void serialize(Object value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 		if(value instanceof ChannelBuffer) {
 			ChannelBuffer buff = (ChannelBuffer)value;
-			System.err.println(buff.toString(UTF8_CHARSET));
-			ChannelBufferInputStream cbis = new ChannelBufferInputStream(buff); 
-			jgen.writeBinary(cbis, buff.readableBytes());
+			System.err.println(buff.toString(UTF8_CHARSET));			
+			jgen.writeString(buff.toString(UTF8_CHARSET));
+			buff.clear();
 		} else {
 			provider.defaultSerializeValue(value, jgen);
 		}

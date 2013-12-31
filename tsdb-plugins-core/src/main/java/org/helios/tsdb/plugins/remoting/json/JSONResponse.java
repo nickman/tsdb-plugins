@@ -185,7 +185,8 @@ public class JSONResponse implements ChannelBufferizable {
 		if(channelOutputStream!=null) {
 			throw new RuntimeException("Cannot set content. OutputStream already set");
 		}
-		channelOutputStream = new ChannelBufferOutputStream(channelBuffer);
+		content = channelBuffer;
+		//channelOutputStream = new ChannelBufferOutputStream(channelBuffer);
 		return this;
 	}
 	

@@ -2109,7 +2109,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     			long elapsed = et.elapsedMs();
     			generator.writeNumberField("elapsedms", elapsed);
     			generator.writeEndObject();    	
-    			out.flush();
+    			generator.flush();
+    			generator.close();
+    			try {
+    				out.flush();
+    				out.close();
+    			} catch (Exception ex) {}
+    			log.info("SQL Result Written:{} bytes", out.writtenBytes());
     			return streamBuffer;
     		} else {
     			int rcode = ps.executeUpdate();
@@ -2118,7 +2124,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     			generator.writeNumberField("resultcode", rcode);
     			generator.writeNumberField("elapsedms", elapsed);
     			generator.writeEndObject();
-    			out.flush();
+    			generator.flush();
+    			generator.close();
+    			try {
+    				out.flush();
+    				out.close();
+    			} catch (Exception ex) {}
+    			log.info("SQL Result Written:{} bytes", out.writtenBytes());
     			return streamBuffer;
     		}
     	} catch (Exception ex) {

@@ -373,6 +373,10 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		}
 	    	};
 	    	this.webSocket.onmessage = function(message) {
+	    		if(message.data==null || message.data=="") {
+	    			console.warn("Received data was null or empty");
+	    			return;
+	    		}
 	    		console.info("WebSocket Data, Message:[%o] -- [%o]", message, this);	    
 	    		var jsonMsg = JSON.parse(message.data);
 	    		if(jsonMsg.sessionid != null) {

@@ -36,6 +36,7 @@ public class JSONChannelBufferSerializer extends JsonSerializer<Object> {
 	public void serialize(Object value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 		if(value instanceof ChannelBuffer) {
 			ChannelBuffer buff = (ChannelBuffer)value;
+			System.err.println(buff.toString(UTF8_CHARSET));
 			ChannelBufferInputStream cbis = new ChannelBufferInputStream(buff); 
 			jgen.writeBinary(cbis, buff.readableBytes());
 		} else {

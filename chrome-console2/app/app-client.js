@@ -28,6 +28,17 @@ function sendRequest(request) {
   return deferred.promise();
 }
 
+function sendRemoteRequest(url, request) {
+  return sendRequest({
+    port: 'rcon',
+    name: 'sendRequest',
+    args: [
+      url,
+      request
+    ]
+  });
+}
+
 function getServicePort(serviceName) {
   if(serviceName==null) {
     throw "Passed serviceName was null";

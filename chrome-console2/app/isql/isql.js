@@ -12,22 +12,17 @@ var isql = {
   execSql: function() {
   	var sqlText = isql.sqlEditor.getValue();
   	console.info("Excuting SQL [%s]", sqlText);
-    sendRequest({
-      port: 'rcon',
-      name: 'sendRequest',
-      args: [
-        'ws://localhost:4243/ws',
-        {
-          "t":"req",
-          "svc": "sqlcatalog",
-          "op": "execsql", 
-          "args": {
-            "includemeta":"true", 
-            "sql" : sqlText          
-          }
+    sendRemoteRequest(
+      'ws://localhost:4243/ws',
+      {
+        "t":"req",
+        "svc": "sqlcatalog",
+        "op": "execsql", 
+        "args": {
+          "includemeta":"true", 
+          "sql" : sqlText          
         }
-      ]
-    }).then(
+      }).then(
       function(result) {
         console.info("[isql]: exec sql result:%o", result);
       },
@@ -52,6 +47,7 @@ $(document).ready(function () {
     		}
     	}
   	});
+  isql.sqlEditor.setValue("select * from tsd_tsmeta");
   sqlGrid = $('#isqlGrid').dataTable({
     "bJQueryUI": true,
     "aaSorting" : []

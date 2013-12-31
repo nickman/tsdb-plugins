@@ -200,19 +200,25 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 					var msg = null;
 					var rerid = -1;
 					if(data.data != null) {
-						decoded = JSON.parse(data.data);
-						if(decoded.rerid)
-						if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
-							rerid = decoded.rerid;
-							if(decoded.msg!=null) {
-								msg = JSON.parse(decoded.msg);
+						try {
+							decoded = JSON.parse(data.data);
+							if(decoded.rerid)
+							if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
+								rerid = decoded.rerid;
+								if(decoded.msg!=null) {
+									msg = JSON.parse(decoded.msg);
+								}
 							}
+						} catch (e) {
+							d.reject(e);
+							return;
 						}
 					}
 					if(rerid==rid) {
 						chrome.alarms.clear(alarmName);
 						console.info("Received response on rid [%s] --> [%o]", rid, decoded);
 						_conn.onIncomingData.removeListener(_OTF_DATA_HANDLER_);
+						d.resolve(decoded);
 					}
 				};
 				_conn.onIncomingData.addListener(handler);
@@ -221,6 +227,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    			if(alarm.name==alarmName) {
 	    				_conn.onIncomingData.removeListener(handler);
 	    				console.warn("Request rid [%s] timed out", rid);
+	    				d.reject("Request rid [" + rid + "] timed out");
 	    			}
 	    		});
 	    		_conn.send(request);

@@ -5,15 +5,23 @@ package org.helios.tsdb.plugins.remoting.json.services;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +50,72 @@ public class SystemJSONServices {
 		}});
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
+	/** A channel group of system status subscribers */
+	protected final ChannelGroup systemStatusChannelGroup = new DefaultChannelGroup("SystemStatusSubscribers");
+	/** A map of request ids keyed by the channel that created them */
+	protected final Map<Channel, Long> systemStatusRids = new ConcurrentHashMap<Channel, Long>();
+	/** The schedule handle for the system status task */
+	protected volatile ScheduledFuture<?> systemStatusSchedule = null;
+	
+	/** The system status collection and publishing task */
+	protected final Runnable statusTask = new Runnable(){
+		public void run() {
+			ObjectNode stats = SystemStatusService.collect();
+			for(Channel channel: systemStatusChannelGroup) {
+				Long rerid = systemStatusRids.get(channel);
+				if(rerid==null) continue;
+				new JSONResponse(rerid, JSONResponse.RESP_TYPE_SUB, channel).setContent(stats).send();
+			}
+		}
+	};
+	
+	
+	/**
+	 * Subscribes the calling channel to system status messages
+	 * @param request The request from the subscribing channel
+	 * <p>Invoker:<b><code>sendRemoteRequest('ws://localhost:4243/ws', {svc:'system', op:'subsysstat'});</code></b>
+	 */
+	@JSONRequestHandler(name="subsysstat", description="Subscribes the calling channel to system status messages")
+	public void subscribeSystemStatus(final JSONRequest request) {
+		if(systemStatusChannelGroup.add(request.channel)) {
+			request.channel.getCloseFuture().addListener(new ChannelFutureListener(){
+				@Override
+				public void operationComplete(ChannelFuture future)	throws Exception {
+					systemStatusRids.remove(future.getChannel());
+				}
+			});
+			systemStatusRids.put(request.channel, request.requestId);
+		}
+		if(systemStatusSchedule==null) {
+			synchronized(scheduler) {
+				if(systemStatusSchedule==null) {
+					systemStatusSchedule = scheduler.scheduleWithFixedDelay(statusTask, 5, 5, TimeUnit.SECONDS);
+				}
+			}
+		}
+		request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).send();
+	}
+
+	/**
+	 * Subscribes the calling channel to system status messages
+	 * @param request The request from the subscribing channel
+	 */
+	@JSONRequestHandler(name="unsubsysstat", description="Unsubscribes the calling channel from system status messages")
+	public void stopSystemStatus(final JSONRequest request) {
+		systemStatusChannelGroup.remove(request.channel);
+		systemStatusRids.remove(request.channel);
+		request.response().send();
+		if(systemStatusChannelGroup.isEmpty()) {			
+			synchronized(scheduler) {
+				if(systemStatusSchedule!=null) {
+					systemStatusSchedule.cancel(false);
+					systemStatusSchedule = null;					
+				}
+			}
+		}
+	}
+	
 	
 	/**
 	 * Helper service to sleep for a defined period

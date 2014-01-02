@@ -204,7 +204,6 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 					if(data.data != null) {
 						try {
 							decoded = JSON.parse(data.data);
-							if(decoded.rerid)
 							if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
 								rerid = decoded.rerid;
 								if(decoded.msg!=null) {

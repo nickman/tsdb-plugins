@@ -50,6 +50,7 @@ function getServicePort(serviceName) {
   }  
   var deferred = $.Deferred();
   var port = chrome.runtime.connect({name: serviceName});
+  console.info("Acquired Port [%s]: [%o]", serviceName, port)
   port.onMessage.addListener(function(message) {
     deferred.notify(message);
   });

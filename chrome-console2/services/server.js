@@ -21,7 +21,6 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
       chrome.runtime.onMessage.addListener(
         handlerWrapper
       );  
-
     },    
     /**
      * Indicates if the passed object is a jQuery promise
@@ -73,9 +72,42 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
           resp = e;
         }      
         return true;
+    },
+    portServices: {},
+    registerServicePortHandler: function(serviceName, handler) {
+
+    },
+    handleServicePortConnect: function(port) {
+
+    },
+    // opentsdb.services.server.startServicePort("SystemStatus", {onMessage: function() { console.info("SystemStatus OnMessage:%o, handler:%o", arguments, this); }});
+    startServicePort: function(serviceName, handler) {
+      if(serviceName==null) throw "Service Name was Null";
+      if(this.openPorts[serviceName] != null) {
+        console.info("ServicePort handler for [%s] already installed", serviceName);  
+        return;
+      }
+      if(handler==null) throw "Service Handler was Null";
+      if(handler.onMessage==null || !$.isFunction(handler.onMessage)) throw "Service Handler had no valid onMessage function";
+      console.info("Installing ServicePort handler for [%s]", serviceName);
+      this.openPorts[serviceName] = {
+        handler: handler,
+        port : null
+      };
+      var _openPorts = this.openPorts;
+      chrome.runtime.onConnect.addListener(function(port){
+        console.info("onConnect event.Port:%o", port);
+        port.onMessage.addListener(_openPorts[serviceName].handler);
+        _openPorts[serviceName].handler.port = port;
+        _openPorts[serviceName].port = port;
+        console.info("Started ServicePort [%s]/[%s] -- [%o]", serviceName, port.name, _openPorts[serviceName]);
+        return true;
+      });
+      console.info("ServicePort handler for [%s] Installed", serviceName);
     }
   }); // end of Server definition
   var server = new window.opentsdb.types.Server();
+
   window.opentsdb.services.server = server; 
   window.opentsdb.dependencies['server'].resolve(server);   
   console.info("------------> [%s] server.js", OP[1]);

@@ -23,6 +23,17 @@ function initialize() {
   // ====================================
   //	Buttons
   // ====================================
+  $('#tabs li a').each(function(){    
+    var btn = $(this);
+    console.info("Enabling Button: id [%s], app [%s]", btn.attr('id'), btn.attr('app')); 
+    btn.button({}).css({ width: '100%'}).click(function(e){
+      loadApp(btn.attr('app'));
+    });
+    if(btn.hasClass('btnDisabled')) {
+      btn.toggle();
+    }
+  });
+  /*
   $('#connections-btn').button({}).css({ width: '100%'})
   .click(function(e){
     loadApp('connections');
@@ -36,7 +47,7 @@ function initialize() {
   .click(function(e){
     console.info("Status:%o", e);
   });
-  
+  */
   // ====================================
   // Connect button
   $('#serverUrlBtn').button({

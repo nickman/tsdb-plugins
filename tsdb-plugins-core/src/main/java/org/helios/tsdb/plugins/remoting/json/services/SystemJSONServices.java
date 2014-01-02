@@ -55,8 +55,6 @@ public class SystemJSONServices {
 	protected final ChannelGroup systemStatusChannelGroup = new DefaultChannelGroup("SystemStatusSubscribers");
 	/** A map of request ids keyed by the channel that created them */
 	protected final Map<Channel, Long> systemStatusRids = new ConcurrentHashMap<Channel, Long>();
-	/** The schedule handle for the system status task */
-	protected volatile ScheduledFuture<?> systemStatusSchedule = null;
 	
 	/** The system status collection and publishing task */
 	protected final Runnable statusTask = new Runnable(){
@@ -69,7 +67,10 @@ public class SystemJSONServices {
 			}
 		}
 	};
-	
+
+	/** The schedule handle for the system status task */
+	protected volatile ScheduledFuture<?> systemStatusSchedule = scheduler.scheduleWithFixedDelay(statusTask, 1, 15, TimeUnit.SECONDS);
+
 	
 	/**
 	 * Subscribes the calling channel to system status messages
@@ -86,15 +87,11 @@ public class SystemJSONServices {
 				}
 			});
 			systemStatusRids.put(request.channel, request.requestId);
+			request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).send();
+		} else {
+			
 		}
-		if(systemStatusSchedule==null) {
-			synchronized(scheduler) {
-				if(systemStatusSchedule==null) {
-					systemStatusSchedule = scheduler.scheduleWithFixedDelay(statusTask, 5, 5, TimeUnit.SECONDS);
-				}
-			}
-		}
-		request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).send();
+		
 	}
 
 	/**

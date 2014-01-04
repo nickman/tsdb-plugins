@@ -352,19 +352,6 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	$.each(rconservice.connectionListeners.close, function(i,x) {rcon.onClose.addListener(x);});
 	    	$.each(rconservice.connectionListeners.error, function(i,x) {rcon.onError.addListener(x);});
 	    	$.each(rconservice.connectionListeners.data, function(i,x) {rcon.onIncomingData.addListener(x);});
-	    	rcon.onConnect.addListener( function() {
-	    		// Fetch services catalog
-	    		console.info("Calling internal for services catalog");
-	    		_wconn._internalRequest(webSocketUrl, {svc:'router', op:'services', rid: rcon.ridCounter++, t:'req'}).then(
-	    			function(message) {
-	    				var jsonMsg = JSON.parse(message.data);
-	    				console.info("Processing service catalog for [%s] -- [%o]", webSocketUrl, jsonMsg);
-	    			},
-	    			function(err) {
-	    				console.error("Failed to get service catalog for [%s] -- [%o]", webSocketUrl, err);
-	    			}
-	    		);
-	    	});
 	    	console.debug("Added Global Listeners");
 	    	console.debug("Issuing connect for [%s]", this.webSocketUrl);
 	    	this.webSocket = new WebSocket(this.webSocketUrl);
@@ -473,6 +460,7 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	window.opentsdb.services.rcon = rcon;	
 	chrome.app.runtime.onRestarted.addListener(serviceInitializer);
 	window.opentsdb.dependencies['remoteconns'].resolve(rcon);		
+
 	console.info("------------> [%s] remoteconns.js", OP[1]);
 });
 

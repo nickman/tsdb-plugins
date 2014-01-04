@@ -104,7 +104,19 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
         return true;
       });
       console.info("ServicePort handler for [%s] Installed", serviceName);
-    }
+    },
+    initializeSubscriptionPorts: function(rconservice, url) {
+      console.info("Calling internal for services catalog");
+      _wconn._internalRequest(url, {svc:'router', op:'services', rid: rcon.ridCounter++, t:'req'}).then(
+        function(message) {
+          var jsonMsg = JSON.parse(message.data);
+          console.info("Processing service catalog for [%s] -- [%o]", webSocketUrl, jsonMsg);
+        },
+        function(err) {
+          console.error("Failed to get service catalog for [%s] -- [%o]", webSocketUrl, err);
+        }
+      );
+    }    
   }); // end of Server definition
   var server = new window.opentsdb.types.Server();
 

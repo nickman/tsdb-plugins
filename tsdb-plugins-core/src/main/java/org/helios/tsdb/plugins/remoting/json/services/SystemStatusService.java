@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -142,16 +143,31 @@ public class SystemStatusService {
 		getBacklog(category, id).insert(value, timestamp);
 	}
 	
+	/**
+	 * Returns a JSON node with the system status backlog
+	 * @return a JSON node with the system status backlog
+	 */
 	public static ObjectNode getBacklog() {
 		ObjectNode b = jsonMapper.createObjectNode();
 		for(Map.Entry<String, ConcurrentLongSlidingWindow> entry:  backlog.asMap().entrySet()) {
 			String[] parts = entry.getKey().split("/");
+			ObjectNode catNode = (ObjectNode)b.get(parts[0]);
+			if(catNode==null) {
+				catNode = jsonMapper.createObjectNode();
+				b.put(parts[0], catNode);
+			}			
 			long[] window = entry.getValue().asLongArray();
+			ObjectNode seriesNode = jsonMapper.createObjectNode();
+			ArrayNode timeNode = jsonMapper.createArrayNode();
+			ArrayNode valueNode = jsonMapper.createArrayNode();			
+			catNode.put(parts[1], seriesNode);
+			
+			seriesNode.put("time", timeNode);
+			seriesNode.put("values", valueNode);
 			for(int i = 0; i < window.length; i++) {
-				long val = window[i];
+				timeNode.add(window[i]);
 				i++;
-				long ts = window[i];
-				
+				valueNode.add(window[i]);
 			}
 		}
 		return b;

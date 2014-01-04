@@ -25,6 +25,7 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -77,7 +78,7 @@ public class SystemJSONServices {
 	 * @param request The request from the subscribing channel
 	 * <p>Invoker:<b><code>sendRemoteRequest('ws://localhost:4243/ws', {svc:'system', op:'subsysstat'});</code></b>
 	 */
-	@JSONRequestHandler(name="subsysstat", description="Subscribes the calling channel to system status messages")
+	@JSONRequestHandler(name="subsysstat", sub=true, unsub="unsubsysstat", description="Subscribes the calling channel to system status messages")
 	public void subscribeSystemStatus(final JSONRequest request) {
 		if(systemStatusChannelGroup.add(request.channel)) {
 			request.channel.getCloseFuture().addListener(new ChannelFutureListener(){
@@ -87,11 +88,13 @@ public class SystemJSONServices {
 				}
 			});
 			systemStatusRids.put(request.channel, request.requestId);
-			request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).send();
+			ArrayNode arrNode = nodeFactory.arrayNode();
+			arrNode.add(SystemStatusService.getBacklog());
+			arrNode.add(SystemStatusService.collect());
+			request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).setContent(arrNode).send();
 		} else {
-			
-		}
-		
+			request.response().setContent(SystemStatusService.getBacklog()).send();
+		}		
 	}
 
 	/**
@@ -103,14 +106,6 @@ public class SystemJSONServices {
 		systemStatusChannelGroup.remove(request.channel);
 		systemStatusRids.remove(request.channel);
 		request.response().send();
-		if(systemStatusChannelGroup.isEmpty()) {			
-			synchronized(scheduler) {
-				if(systemStatusSchedule!=null) {
-					systemStatusSchedule.cancel(false);
-					systemStatusSchedule = null;					
-				}
-			}
-		}
 	}
 	
 	

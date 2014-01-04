@@ -35,7 +35,7 @@ import com.google.common.eventbus.Subscribe;
 
 /**
  * <p>Title: NettyPublisher</p>
- * <p>Description: </p> 
+ * <p>Description: OpenTSDSB data publishing service on Netty</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.rpc.netty.NettyPublisher</code></p>

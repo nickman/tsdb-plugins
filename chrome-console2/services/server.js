@@ -113,7 +113,17 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
   console.info("------------> [%s] server.js", OP[1]);
 });
 
-
+/*
+msg: Object
+services: Object
+router: Object
+sqlcatalog: Object
+system: Object
+desc: "Some generic system services"
+ops: Object
+subs: Object
+subsysstat: "Subscribes the calling channel to system status messages"
+*/
 
 
 

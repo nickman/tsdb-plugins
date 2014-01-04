@@ -133,9 +133,15 @@ public class JSONRequestRouter {
 			serviceMap.put(entry.getKey(), svcMap);
 			svcMap.put("desc", opInvokerMap.values().iterator().next().getServiceDescription());			
 			ObjectNode opMap = nodeFactory.objectNode();
+			ObjectNode subMap = nodeFactory.objectNode();
 			svcMap.put("ops", opMap);
+			svcMap.put("subs", subMap);
 			for(AbstractJSONRequestHandlerInvoker invoker: opInvokerMap.values()) {
-				opMap.put(invoker.getOpName(), invoker.getOpDescription());
+				if(invoker.isSub()) {
+					subMap.put(invoker.getOpName(), invoker.getOpDescription());
+				} else {
+					opMap.put(invoker.getOpName(), invoker.getOpDescription());
+				}
 			}			
 		}
 		try {			

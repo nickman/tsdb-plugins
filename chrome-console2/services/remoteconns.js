@@ -352,9 +352,23 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    	$.each(rconservice.connectionListeners.close, function(i,x) {rcon.onClose.addListener(x);});
 	    	$.each(rconservice.connectionListeners.error, function(i,x) {rcon.onError.addListener(x);});
 	    	$.each(rconservice.connectionListeners.data, function(i,x) {rcon.onIncomingData.addListener(x);});
+	    	rcon.onConnect.addListener( function() {
+	    		// Fetch services catalog
+	    		console.info("Calling internal for services catalog");
+	    		_wconn._internalRequest(webSocketUrl, {svc:'router', op:'services', rid: rcon.ridCounter++, t:'req'}).then(
+	    			function(message) {
+	    				var jsonMsg = JSON.parse(message.data);
+	    				console.info("Processing service catalog for [%s] -- [%o]", webSocketUrl, jsonMsg);
+	    			},
+	    			function(err) {
+	    				console.error("Failed to get service catalog for [%s] -- [%o]", webSocketUrl, err);
+	    			}
+	    		);
+	    	});
 	    	console.debug("Added Global Listeners");
 	    	console.debug("Issuing connect for [%s]", this.webSocketUrl);
 	    	this.webSocket = new WebSocket(this.webSocketUrl);
+	    	var _wconn = this;
 	    	this.webSocket.onopen = function() {
 	    		console.info("Connected WebSocket -- [%o]", this);
 	    		this.connection = rcon;
@@ -415,6 +429,29 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    },
 	    send : function(data) {
 	    	this.webSocket.send(JSON.stringify(data));
+	    },
+	    _internalRequest: function(url, request) {
+	    	console.info("Internal call: [%s] -- [%s]", JSON.stringify(request));
+	    	var _ws = null;
+	    	var d = $.Deferred();
+    		_ws = new WebSocket(url);
+    		_ws.onopen = function() {
+    			_ws.send(JSON.stringify(request));
+    		};
+    		_ws.onerror = function(err) {
+    			d.reject(err);
+    			if(_ws!=null) try { _ws.close();} catch (e) {}
+    		};
+    		_ws.onmessage = function(msg) {
+    			var jsonMsg = null;
+    			if(msg.data!=null) {
+    				jsonMsg = JSON.parse(msg.data);
+    				if(jsonMsg.sessionid!=null) return;
+    			}
+    			d.resolve(msg);
+    			if(_ws!=null) try { _ws.close();} catch (e) {}
+    		};
+    		return d.promise();
 	    }
     	//this._super( false );
 

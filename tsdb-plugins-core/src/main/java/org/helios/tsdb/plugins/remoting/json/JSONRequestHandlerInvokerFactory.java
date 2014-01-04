@@ -80,6 +80,7 @@ public class JSONRequestHandlerInvokerFactory {
 		final String invokerServiceKey = svc.name();
 		final String invokerServiceDescription = svc.description();
 		
+		
 		invokerMap.put(invokerServiceKey, subInvokerMap);
 		
 		ClassPool cp = new ClassPool();
@@ -96,6 +97,9 @@ public class JSONRequestHandlerInvokerFactory {
 				final JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
 				final String opName = jsonHandler.name();
 				final String opDescription = jsonHandler.description();
+				final String unSubOp = jsonHandler.unsub();
+				final String unSubService = svc.name();
+				final boolean sub = jsonHandler.sub();
 				
 				int targetMethodHashCode = m.toGenericString().hashCode(); 
 				final String className = String.format("%s-%s%s-%s-%s", 
@@ -105,17 +109,26 @@ public class JSONRequestHandlerInvokerFactory {
 				CtField ctf = new CtField(targetClass, "typedTarget", invokerClass);
 				ctf.setModifiers(ctf.getModifiers() | Modifier.FINAL);
 				invokerClass.addField(ctf);
-				CtConstructor invokerCtor = CtNewConstructor.copy(parent.getConstructors()[0], invokerClass, null);
-				invokerCtor.setBody("{ super($$); typedTarget = (" + handlerInstance.getClass().getName() + ")$1; }");
-				invokerClass.addConstructor(invokerCtor);
+				for(CtConstructor parentCtor: parent.getConstructors()) {
+					CtConstructor invokerCtor = CtNewConstructor.copy(parentCtor, invokerClass, null);
+					invokerCtor.setBody("{ super($$); typedTarget = (" + handlerInstance.getClass().getName() + ")$1; }");
+					invokerClass.addConstructor(invokerCtor);					
+				}
 				CtMethod invokerMethod = CtNewMethod.copy(parent.getDeclaredMethod("doInvoke", new CtClass[] {jsonRequestCtClass}), invokerClass, null); 
 						
 				invokerMethod.setBody("{this.typedTarget." + m.getName() + "($1);}");
 				invokerMethod.setModifiers(invokerMethod.getModifiers() & ~Modifier.ABSTRACT);
 				invokerClass.addMethod(invokerMethod);
 				Class<?> clazz = invokerClass.toClass();
-				Constructor<?> ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class);
-				AbstractJSONRequestHandlerInvoker invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription);
+				Constructor<?> ctor = null;
+				AbstractJSONRequestHandlerInvoker invokerInstance = null;
+				if(sub) {
+					ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class, boolean.class, String.class, String.class);
+					invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription, sub, unSubOp, unSubService);										
+				} else {
+					ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class);
+					invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription);					
+				}
 				subInvokerMap.put(opName, invokerInstance);				
 			}
 			invokerCache.put(handlerInstance.getClass(), invokerMap);

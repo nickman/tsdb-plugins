@@ -51,4 +51,15 @@ public @interface JSONRequestHandler {
 	 */
 	public String description() default "A JSON Request Operation";	
 
+	/**
+	 * Indicates if this is a subscription initiator
+	 * @return true if this is a subscription initiator, false if it is a simple rpc
+	 */
+	public boolean sub() default false;
+	
+	/**
+	 * If this handler is a subscription initiator, this value is the op name of the unsubscriber
+	 * @return the op name of the unsubscriber or a blank if this is not an unsubscriber
+	 */
+	public String unsub() default "";
 }

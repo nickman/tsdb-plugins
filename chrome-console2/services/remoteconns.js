@@ -254,8 +254,36 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		} catch (e) {}
 	    	});
 			console.groupEnd();	    	
+	    },
+	    _internalRequest: function(url, request) {
+	    	console.info("Internal call: [%s] -- [%s]", url, JSON.stringify(request));
+	    	var _ws = null;
+	    	var d = $.Deferred();
+    		if(request.rid==null || !isNaN(request.rid)) {
+    			request.rid = this.ridCounter++;
+    		}
+    		if(request.t==null) {
+    			request.t = 'req';
+    		}
+    		_ws = new WebSocket(url);
+    		_ws.onopen = function() {
+    			_ws.send(JSON.stringify(request));
+    		};
+    		_ws.onerror = function(err) {
+    			d.reject(err);
+    			if(_ws!=null) try { _ws.close();} catch (e) {}
+    		};
+    		_ws.onmessage = function(msg) {
+    			var jsonMsg = null;
+    			if(msg.data!=null) {
+    				jsonMsg = JSON.parse(msg.data);
+    				if(jsonMsg.sessionid!=null) return;
+    			}
+    			d.resolve(msg);
+    			if(_ws!=null) try { _ws.close();} catch (e) {}
+    		};
+    		return d.promise();
 	    }
-
 	});  // end of RConnService definition
     //=========================================================================================================
     //	Connection Types
@@ -417,29 +445,6 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    send : function(data) {
 	    	this.webSocket.send(JSON.stringify(data));
 	    },
-	    _internalRequest: function(url, request) {
-	    	console.info("Internal call: [%s] -- [%s]", JSON.stringify(request));
-	    	var _ws = null;
-	    	var d = $.Deferred();
-    		_ws = new WebSocket(url);
-    		_ws.onopen = function() {
-    			_ws.send(JSON.stringify(request));
-    		};
-    		_ws.onerror = function(err) {
-    			d.reject(err);
-    			if(_ws!=null) try { _ws.close();} catch (e) {}
-    		};
-    		_ws.onmessage = function(msg) {
-    			var jsonMsg = null;
-    			if(msg.data!=null) {
-    				jsonMsg = JSON.parse(msg.data);
-    				if(jsonMsg.sessionid!=null) return;
-    			}
-    			d.resolve(msg);
-    			if(_ws!=null) try { _ws.close();} catch (e) {}
-    		};
-    		return d.promise();
-	    }
     	//this._super( false );
 
     	// name: 'Default', auto: false, url: 'ws://localhost:4243/ws', type: 'websocket', permission: false, permission_pattern: ''

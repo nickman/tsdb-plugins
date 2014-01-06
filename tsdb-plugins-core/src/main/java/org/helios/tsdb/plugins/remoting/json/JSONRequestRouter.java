@@ -27,16 +27,16 @@ package org.helios.tsdb.plugins.remoting.json;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.opentsdb.tsd.TSDBJSONService;
+
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
-
-import net.opentsdb.tsd.TSDBJSONService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -138,7 +138,10 @@ public class JSONRequestRouter {
 			svcMap.put("subs", subMap);
 			for(AbstractJSONRequestHandlerInvoker invoker: opInvokerMap.values()) {
 				if(invoker.isSub()) {
-					subMap.put(invoker.getOpName(), invoker.getOpDescription());
+					ArrayNode subUnsub = nodeFactory.arrayNode();
+					subUnsub.add(invoker.getOpName());
+					subUnsub.add(invoker.getUnSubOp());
+					subMap.put(invoker.getOpDescription(), subUnsub);
 				} else {
 					opMap.put(invoker.getOpName(), invoker.getOpDescription());
 				}

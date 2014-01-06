@@ -105,12 +105,66 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
       });
       console.info("ServicePort handler for [%s] Installed", serviceName);
     },
-    initializeSubscriptionPorts: function(rconservice, url) {
+    subscriptionPorts: {
+    },
+    initializeSubscriptionPorts: function(rconservice, webSocketUrl) {
       console.info("Calling internal for services catalog");
-      _wconn._internalRequest(url, {svc:'router', op:'services', rid: rcon.ridCounter++, t:'req'}).then(
+      var subsInited = false;
+      rconservice._internalRequest(webSocketUrl, {svc:'router', op:'services'}).then(
         function(message) {
           var jsonMsg = JSON.parse(message.data);
           console.info("Processing service catalog for [%s] -- [%o]", webSocketUrl, jsonMsg);
+          console.group("Services");
+          try {
+            $.each(jsonMsg.msg.services, function(serviceName, service){
+              console.info("Service:[%s]  :%s", serviceName, service.desc);
+              if(service.subs!=null) {
+                $.each(service.subs, function(description, ops){
+                  console.info("Sub Service [%s]/[%s]:  %s", ops[0], ops[1], description);
+                  var subPorts = window.opentsdb.services.server.subscriptionPorts;
+                  var _instances = [];
+                  subPorts[ops[0]] = {
+                    instances: _instances,
+                    onConnect: function(port) {
+                      _instances.push(port);
+                      console.info("Issuing Start Subscribe for [%s]/[%s]", serviceName, ops[0]);
+                      var p = port;
+                      window.opentsdb.services.rcon.sendRequest(webSocketUrl, {svc: serviceName, op:ops[0]}).then(
+                        function() {        // Sub Closed
+                          console.warn("Subscribe Done for [%s]/[%s]", serviceName, ops[0]);
+                        },
+                        function(err) {    // Sub Error
+                          console.error("Subscribe Error for [%s]/[%s] -- [%o]", serviceName, ops[0], err);
+                        },
+                        function(msg) {    // Sub Received
+                          console.info("Subscribe Receive for [%s]/[%s] -- [%o]", serviceName, ops[0], msg);
+                          p.postMessage(msg.msg[0]);
+                          $.each(_instances, function(index, portInstance){
+                            portInstance.postMessage(msg.msg[1]);
+                          });
+                        }
+                      );
+                    },
+                  };
+                });
+              }
+            });
+            console.info("Starting Port Connection Listener");
+            var subPorts = window.opentsdb.services.server.subscriptionPorts;
+            chrome.runtime.onConnect.addListener(function(port){
+              console.info("Handling connect for port name [%s]", port.name);
+              var subPort = subPorts[port.name];
+              if(subPort==null) {
+                console.error("No subscription port found for [%s]", port.name);
+                throw "No subscription port found for [" + port.name + "]";            
+              }
+              subPort.onConnect(port);
+            });
+            subsInited = true;
+          } catch (e) {
+            console.error("Failed to initialize subscription ports: [%o]", e);
+          }
+          console.groupEnd();
         },
         function(err) {
           console.error("Failed to get service catalog for [%s] -- [%o]", webSocketUrl, err);
@@ -119,9 +173,16 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
     }    
   }); // end of Server definition
   var server = new window.opentsdb.types.Server();
-
   window.opentsdb.services.server = server; 
   window.opentsdb.dependencies['server'].resolve(server);   
+  window.opentsdb.dependencies['remoteconns'].then(
+    function(rcon) {
+      server.initializeSubscriptionPorts(rcon, 'ws://localhost:4243/ws');
+    },
+    function(err) {
+      console.error("Failed to acquire rcon dependency: [%o]", err);
+    }
+  );
   console.info("------------> [%s] server.js", OP[1]);
 });
 

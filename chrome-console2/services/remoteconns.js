@@ -149,15 +149,6 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 
 	    sendRequest: function(url, request, nested) {
 	    	var d = nested==null ? $.Deferred() : nested;
-
-	    	/*
-	    	 * Need to check for these fields and track, provide a default if not present etc.
-	    	 * t:  if not provided, t='req'
-	    	 * rid: if not provided, use next id and return it on promise.progress
-	    	 * timeout:  (in ms.) if not provided, use default of 5000. register for timeout callback then remove from request.
-	    	 * handle responses, looking for 'rerid' to associate back to 'rid'
-	    	 */
-
 	    	if(this.connectionsByURL[url]==null) {
 	    		if(nested!=null) {
 	    			console.error("Received recursive request for connection [%s]. Not connected. Failing ... ", url);
@@ -244,7 +235,107 @@ chrome.app.runtime.onLaunched.addListener(function serviceInitializer(launchData
 	    		//======================================================================================================
 	    	}
 	    	return d.promise();
-	    },
+	    //======================================================================================================
+	    }, 			// END OF sendRequest
+	    //======================================================================================================
+	    subscribe: function(url, request, nested) {
+	    	var d = nested==null ? $.Deferred() : nested;
+	    	if(this.connectionsByURL[url]==null) {
+	    		if(nested!=null) {
+	    			console.error("Received recursive request for connection [%s]. Not connected. Failing ... ", url);
+	    			d.reject("Failed to get connection to [" + url + "]");
+	    			return;
+	    		} else {
+	    			console.info("Received request for connection [%s]. Not connected. Connecting .... ", url);
+	    			var _me = this;
+	    			this.getConnection(url).then(
+	    				function() {  // on success
+	    					_me.sendRequest(url, request, d);
+	    				},
+	    				function(err) {  // on fail
+	    					d.reject(err);	    			
+	    				}
+	    			);
+	    		}
+	    	} else {
+	    		var _conn = this.connectionsByURL[url];
+	    		console.info("Have connection [%o] for subscription [%o]", _conn, request);
+	    		//======================================================================================================
+	    		//		Set up response handler and timeout
+	    		//======================================================================================================
+	    		var rid = -1;
+	    		var timeout = 5000;
+	    		if(request.rid!=null && !isNaN(request.rid)) {
+	    			rid = request.rid;
+	    		} else {
+	    			rid = this.ridCounter++;
+	    			request.rid = rid;
+	    		}
+	    		if(request.t==null) {
+	    			request.t = 'sub';
+	    		}
+				if(request.timeout!=null && !isNaN(request.timeout) && (request.timeout > 0)) {
+					timeout = request.timeout;
+				}
+				var alarmName = "rid-" + rid + "-alarm";
+				// the handler gets back the subscription confirmation (or error)
+				// so the handler's job is to initiate the routing of all messages
+				// with the sub's RID to the promise.progress callback 
+
+				var handler = function _OTF_SUB_HANDLER_(data){
+					console.debug("_OTF_SUB_HANDLER_ Data Received:[%o]", data);
+					var decoded = null;
+					var msg = null;
+					var rerid = -1;
+					// if data is parsed, then
+					// 		if msg.rerid==this.rerid  AND t=='subst'
+					//  then out subscription is inited and we're good to go
+					if(data.data != null) {
+						try {
+							decoded = JSON.parse(data.data);
+							if(decoded.rerid!=null && !isNaN(decoded.rerid)) {
+								rerid = decoded.rerid;
+								if(decoded.msg!=null) {
+									try {
+										msg = JSON.parse(decoded.msg);
+										decoded.msg = msg;
+									} catch (e) {}
+
+								}
+							}
+						} catch (e) {
+							d.reject(e);
+							return;
+						}
+					}
+					// =================
+					// PROBLEM:   First request comes out:  Processing Message with rerid:[-1] and rid:[0] 
+					// =================
+					
+					console.debug("Processing Message with rerid:[%s] and rid:[%s]", rerid, rid);
+					if(rerid==rid) {
+						chrome.alarms.clear(alarmName);
+						console.info("Received response on rid [%s] --> [%o]", rid, decoded);
+						_conn.onIncomingData.removeListener(_OTF_DATA_HANDLER_);
+						d.resolve(decoded);
+					}
+				};
+				_conn.onIncomingData.addListener(handler);
+	    		chrome.alarms.create(alarmName, {when: Date.now() + timeout});
+	    		chrome.alarms.onAlarm.addListener(function(alarm){
+	    			if(alarm.name==alarmName) {
+	    				_conn.onIncomingData.removeListener(handler);
+	    				console.warn("Request rid [%s] timed out", rid);
+	    				d.reject("ERROR:Request rid [" + rid + "] timed out");
+	    			}
+	    		});
+	    		_conn.send(request);
+	    		//======================================================================================================
+	    	}
+	    	return d.promise();
+	    //======================================================================================================
+	    }, 			// END OF subscribe
+	    //======================================================================================================	    
 	    closeAll : function() {
 	    	console.group("Closing All Connections");
 	    	$.each(this.connectionsByURL, function(_url, _conn) {

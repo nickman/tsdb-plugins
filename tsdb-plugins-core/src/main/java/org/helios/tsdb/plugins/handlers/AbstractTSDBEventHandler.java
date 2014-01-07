@@ -29,6 +29,8 @@ import java.util.Properties;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
+import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
+import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +46,9 @@ import org.slf4j.LoggerFactory;
 public class AbstractTSDBEventHandler implements IEventHandler {
 	/** The handler logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** The handler logger leel manager */
+	protected final LoggerManager loggerManager = LoggerManagerFactory.getLoggerManager(getClass());
+	
 	/** The TSDB instance */
 	protected TSDB tsdb;
 	/** The extracted config */
@@ -88,8 +93,35 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	 */
 	@Override
 	public void collectStats(StatsCollector collector) {
-		// TODO Auto-generated method stub
+		// To be optionally implemented by concrete class
 		
+	}
+
+	/**
+	 * Returns the actual logging level for this event handler
+	 * @return the actual logging level for this event handler
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerLevel()
+	 */
+	public String getLoggerLevel() {
+		return loggerManager.getLoggerLevel();
+	}
+
+	/**
+	 * Returns the effective logging level for this event handler
+	 * @return the effective logging level for this event handler
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerEffectiveLevel()
+	 */
+	public String getLoggerEffectiveLevel() {
+		return loggerManager.getLoggerEffectiveLevel();
+	}
+
+	/**
+	 * Sets the logger level for this event handler
+	 * @param level The log level name
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#setLoggerLevel(java.lang.String)
+	 */
+	public void setLoggerLevel(String level) {
+		loggerManager.setLoggerLevel(level);
 	}
 
 

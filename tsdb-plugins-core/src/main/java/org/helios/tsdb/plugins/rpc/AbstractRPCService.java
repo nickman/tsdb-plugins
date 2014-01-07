@@ -108,7 +108,7 @@ public abstract class AbstractRPCService  implements IRPCService {
 	 * The concrete RPC service impl start
 	 */
 	protected void startImpl() {
-		/* Re-implement me */
+		/* Re-implement me */		
 	}
 
 	/**

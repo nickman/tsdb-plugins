@@ -27,10 +27,16 @@ package org.helios.tsdb.plugins.rpc;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import javax.management.ObjectName;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
+import org.helios.tsdb.plugins.handlers.TSDBServiceMXBean;
+import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
+import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,13 +51,18 @@ import com.google.common.util.concurrent.ListenableFuture;
  * <p><code>org.helios.tsdb.plugins.rpc.AbstractRPCService</code></p>
  */
 
-public abstract class AbstractRPCService  implements IRPCService {
+public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXBean {
 	/** The RPC service shared executor */
 	protected static volatile AsyncDispatcherExecutor rpcExecutor = null;
 	/** The initialization lock for the rpc executor */
 	protected static final Object lock = new Object();
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** The handler logger level manager */
+	protected final LoggerManager loggerManager = LoggerManagerFactory.getLoggerManager(getClass());
+	/** The object name for this service's management interface */
+	protected ObjectName objectName = JMXHelper.objectName("tsdb.plugin.service:name=" + getClass().getSimpleName());
+	
 	/** The parent TSDB instance */
 	protected final TSDB tsdb;
 	/** The extracted configuration */
@@ -101,6 +112,7 @@ public abstract class AbstractRPCService  implements IRPCService {
 	protected void doStart() {
 		log.info("\n\t======================================\n\tStarting RPC Service [{}]\n\t======================================\n", getClass().getSimpleName());
 		startImpl();
+		JMXHelper.registerMBean(this, objectName);
 		log.info("\n\t======================================\n\tRPC Service [{}] Started\n\t======================================\n", getClass().getSimpleName());
 	}
 	
@@ -117,6 +129,7 @@ public abstract class AbstractRPCService  implements IRPCService {
 	protected void doStop() {
 		log.info("\n\t======================================\n\tStopping RPC Service [{}]\n\t======================================\n", getClass().getSimpleName());
 		stopImpl();
+		JMXHelper.unregisterMBean(objectName);	
 		log.info("\n\t======================================\n\tRPC Service [{}] Stopped\n\t======================================\n", getClass().getSimpleName());
 	}
 
@@ -214,6 +227,33 @@ public abstract class AbstractRPCService  implements IRPCService {
 	 */
 	public void addListener(Listener listener) {
 		abstractService.addListener(listener, rpcExecutor);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#getLoggerLevel()
+	 */
+	@Override
+	public String getLoggerLevel() {
+		return loggerManager.getLoggerLevel();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#getLoggerEffectiveLevel()
+	 */
+	@Override
+	public String getLoggerEffectiveLevel() {
+		return loggerManager.getLoggerEffectiveLevel();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#setLoggerLevel(java.lang.String)
+	 */
+	@Override
+	public void setLoggerLevel(String level) {
+		loggerManager.setLoggerLevel(level);
 	}
 	
 }

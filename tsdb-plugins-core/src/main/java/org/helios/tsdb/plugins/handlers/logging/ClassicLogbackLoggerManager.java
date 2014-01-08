@@ -49,6 +49,10 @@ public class ClassicLogbackLoggerManager implements LoggerManager {
 	/** The supported logger levels */
 	private static final String[] LEVEL_NAMES = {"OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE", "ALL"};
 	
+	static {
+		Arrays.sort(LEVEL_NAMES);
+	}
+	
 	/**
 	 * Creates a new ClassicLogbackLoggerManager
 	 * @param loggerName The logger name of the logger to manage
@@ -65,14 +69,14 @@ public class ClassicLogbackLoggerManager implements LoggerManager {
 		logger = loggerContext.getLogger(clazz);
 	}
 	
-
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerLevel()
 	 */
 	@Override
 	public String getLoggerLevel() {
-		return logger.getLevel().toString();
+		Level level = logger.getLevel();		
+		return level!=null ? level.toString() : null;
 	}
 
 	/**

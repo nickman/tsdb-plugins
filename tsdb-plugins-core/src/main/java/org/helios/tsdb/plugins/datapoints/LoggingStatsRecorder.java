@@ -22,43 +22,35 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.handlers.logging;
+package org.helios.tsdb.plugins.datapoints;
+
+import org.slf4j.Logger;
+
+import net.opentsdb.stats.StatsCollector;
 
 /**
- * <p>Title: LoggerManager</p>
- * <p>Description: Defines a class that can set the logger level for slf4j underlying loggers</p> 
+ * <p>Title: LoggingStatsRecorder</p>
+ * <p>Description: A logging stats collector wrapper</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.handlers.logging.LoggerManager</code></p>
+ * <p><code>org.helios.tsdb.plugins.datapoints.LoggingStatsRecorder</code></p>
  */
 
-public interface LoggerManager {
-	/**
-	 * Returns the logger's actual level
-	 * @return the logger's actual level
-	 */
-	public String getLoggerLevel();
-	/**
-	 * Returns the logger's effective level
-	 * @return the logger's effective level
-	 */
-	public String getLoggerEffectiveLevel();
-	
-//	/**
-//	 * Indicates if this logger actually exists or if it is notional and delegating upwards
-//	 * @return true if this logger actually exists, false if it is notional
-//	 */
-//	public boolean isLoggerCreated();
+public class LoggingStatsRecorder {
+	/** The delegate stats collector */
+	protected final StatsCollector sc;
+	/** The logger that recordings will be logged through */
+	protected final Logger log;
 	
 	/**
-	 * Sets the logger's level
-	 * @param level The level to set the logger to
+	 * Creates a new LoggingStatsRecorder
+	 * @param sc The delegate stats collector
+	 * @param log The logger that recordings will be logged through
 	 */
-	public void setLoggerLevel(String level);
-	/**
-	 * Returns the names of the levels supported by this logger
-	 * @return the names of the levels supported by this logger
-	 */
-	public String[] getLevelNames();
-	
+	public LoggingStatsRecorder(StatsCollector sc, Logger log) {
+		super();
+		this.sc = sc;
+		this.log = log;
+	}
+
 }

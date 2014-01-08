@@ -55,6 +55,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
+import org.helios.tsdb.plugins.service.AbstractTSDBPluginService.StatsCollectorImpl;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
@@ -139,6 +140,10 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 	public void collectStats(StatsCollector statsCollector) {
 		log.debug("Collecting JVM Stats.....");
 		ElapsedTime et = SystemClock.startClock();
+		final boolean callerLoggerEnabled = (statsCollector instanceof StatsCollectorImpl);
+		if(callerLoggerEnabled) {
+			((StatsCollectorImpl)statsCollector).setCallerLogger(log);
+		}
 		try {
 			statsCollector.addHostTag(true);
 			statsCollector.addExtraTag("app", "tsdb");
@@ -151,6 +156,10 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 //			statsCollector.clearExtraTag("host");
 			statsCollector.clearExtraTag("app");
 			statsCollector.clearExtraTag("component");
+			if(callerLoggerEnabled) {
+				((StatsCollectorImpl)statsCollector).clearCallerLogger();
+			}
+
 		}
 	}
 	
@@ -195,6 +204,11 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 	 */
 	public void collect(StatsCollector statsCollector) {
 		final ElapsedTime et = SystemClock.startClock();
+		final boolean callerLoggerEnabled = (statsCollector instanceof StatsCollectorImpl);
+		if(callerLoggerEnabled) {
+			((StatsCollectorImpl)statsCollector).setCallerLogger(log);
+		}
+		
 		try {
 			collectThreads(statsCollector);
 			collectClassLoading(statsCollector);
@@ -208,6 +222,10 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			statsCollector.record("CollectTime", elapsed);
 		} catch (Exception e) {
 			log.error("AgentJVMMonitor: Unexpected collection exception", e);
+		} finally {
+			if(callerLoggerEnabled) {
+				((StatsCollectorImpl)statsCollector).clearCallerLogger();
+			}
 		}
 	}
 
@@ -265,6 +283,10 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 		} finally {
 			sc.clearExtraTag("group");
 		}
+	}
+	
+	protected void record(StatsCollector sc, String metricName, long value) {
+		
 	}
 	
 	/**
@@ -368,7 +390,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			sc.addExtraTag("group", "gc");
 			if(!gcDeltas.isEmpty()) {
 				for(GarbageCollectorMXBean gcBean: gcMXBeans) {				
-					String name = gcBean.getName();
+					String name = gcBean.getName().replace(' ', '-');
 					long[] lastPeriod = gcDeltas.get(name);
 					if(lastPeriod!=null) {
 						long gcTime = gcBean.getCollectionTime();
@@ -380,14 +402,14 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			}
 			gcDeltas.clear();
 			for(GarbageCollectorMXBean gcBean: gcMXBeans) {
-				String name = gcBean.getName();
-				String xtag = "name=" + gcBean.getName();
+				String name = gcBean.getName().replace(' ', '-');
+				String xtag = "name=" + name;
 				long gcCount = gcBean.getCollectionCount();
 				long gcTime = gcBean.getCollectionTime();
-				gcDeltas.put(gcBean.getName(), new long[]{now, gcTime});
+				gcDeltas.put(name, new long[]{now, gcTime});
 				sc.record("GCTime", gcTime, xtag);
 				sc.record("GCCount", gcCount, xtag);
-				if(gcLastGCAvailable.get(name)) {
+				if(gcLastGCAvailable.get(gcBean.getName())) {
 					try {
 						ObjectName on = JMXHelper.objectName(new StringBuilder(ManagementFactory.GARBAGE_COLLECTOR_MXBEAN_DOMAIN_TYPE).append(",name=").append(gcBean.getName()));
 						Long lastId = gcLastGCId.get(name);

@@ -26,12 +26,15 @@ package org.helios.tsdb.plugins.handlers;
 
 import java.util.Properties;
 
+import javax.management.ObjectName;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
 import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
 import org.helios.tsdb.plugins.service.PluginContext;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,10 +46,10 @@ import org.slf4j.LoggerFactory;
  * <p><code>org.helios.tsdb.plugins.handlers.AbstractTSDBEventHandler</code></p>
  */
 
-public class AbstractTSDBEventHandler implements IEventHandler {
+public class AbstractTSDBEventHandler implements IEventHandler, TSDBServiceMXBean {
 	/** The handler logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	/** The handler logger leel manager */
+	/** The handler logger level manager */
 	protected final LoggerManager loggerManager = LoggerManagerFactory.getLoggerManager(getClass());
 	
 	/** The TSDB instance */
@@ -57,6 +60,8 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	protected ClassLoader supportClassLoader = null;
 	/** The plugin context */
 	protected PluginContext pluginContext = null;
+	/** The object name for this service's management interface */
+	protected ObjectName objectName = JMXHelper.objectName("tsdb.plugin.service:name=" + getClass().getSimpleName());
 	
 	/**
 	 * Creates a new AbstractTSDBEventHandler
@@ -74,7 +79,8 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 		pluginContext = pc;
 		tsdb = pluginContext.getTsdb();
 		config = pluginContext.getExtracted();
-		supportClassLoader = pluginContext.getSupportClassLoader();		
+		supportClassLoader = pluginContext.getSupportClassLoader();
+		JMXHelper.registerMBean(this, objectName);
 	}
 
 	/**
@@ -83,8 +89,7 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	 */
 	@Override
 	public void shutdown() {
-		// TODO Auto-generated method stub
-		
+		JMXHelper.unregisterMBean(objectName);		
 	}
 
 	/**
@@ -98,28 +103,28 @@ public class AbstractTSDBEventHandler implements IEventHandler {
 	}
 
 	/**
-	 * Returns the actual logging level for this event handler
-	 * @return the actual logging level for this event handler
-	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerLevel()
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#getLoggerLevel()
 	 */
+	@Override
 	public String getLoggerLevel() {
 		return loggerManager.getLoggerLevel();
 	}
 
 	/**
-	 * Returns the effective logging level for this event handler
-	 * @return the effective logging level for this event handler
-	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerEffectiveLevel()
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#getLoggerEffectiveLevel()
 	 */
+	@Override
 	public String getLoggerEffectiveLevel() {
 		return loggerManager.getLoggerEffectiveLevel();
 	}
 
 	/**
-	 * Sets the logger level for this event handler
-	 * @param level The log level name
-	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#setLoggerLevel(java.lang.String)
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.TSDBServiceMXBean#setLoggerLevel(java.lang.String)
 	 */
+	@Override
 	public void setLoggerLevel(String level) {
 		loggerManager.setLoggerLevel(level);
 	}

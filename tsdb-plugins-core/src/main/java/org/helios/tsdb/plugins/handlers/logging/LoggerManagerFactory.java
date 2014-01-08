@@ -46,8 +46,6 @@ public class LoggerManagerFactory {
 	public static final Map<String, String> LOGGER_MANAGERS;
 	/** A cache of logger managers by name */
 	private static final Map<String, LoggerManager> cacheByName = new ConcurrentHashMap<String, LoggerManager>();
-	/** A cache of logger managers by class */
-	private static final Map<Class<?>, LoggerManager> cacheByClass = new ConcurrentHashMap<Class<?>, LoggerManager>();
 	
 	/** The selected logger manager ctor by String */
 	private static volatile Constructor<LoggerManager> loggerManagerByStringCtor = null;
@@ -115,22 +113,7 @@ public class LoggerManagerFactory {
 	 * @return the logger manager
 	 */
 	public static LoggerManager getLoggerManager(Class<?> clazz) {
-		LoggerManager lm = cacheByClass.get(clazz);
-		if(lm==null) {
-			synchronized(cacheByClass) {
-				lm = cacheByClass.get(clazz);
-				if(lm==null) {
-					initialize();
-					try {
-						lm = loggerManagerByClassCtor.newInstance(clazz);
-						cacheByClass.put(clazz, lm);
-					} catch (Exception e) {
-						throw new RuntimeException("Failed to create logger manager of type [" + loggerManagerByStringCtor.getDeclaringClass().getName() + "] for class [" + clazz.getName() + "]", e);
-					}					
-				}
-			}
-		}
-		return lm;
+		return getLoggerManager(clazz.getName()); 
 	}
 	
 

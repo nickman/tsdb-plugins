@@ -22,43 +22,36 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.handlers.logging;
+package org.helios.tsdb.plugins.handlers;
 
 /**
- * <p>Title: LoggerManager</p>
- * <p>Description: Defines a class that can set the logger level for slf4j underlying loggers</p> 
+ * <p>Title: TSDBServiceMXBean</p>
+ * <p>Description: MXBean management interface for event handlers</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.handlers.logging.LoggerManager</code></p>
+ * <p><code>org.helios.tsdb.plugins.handlers.TSDBServiceMXBean</code></p>
  */
 
-public interface LoggerManager {
+public interface TSDBServiceMXBean {
 	/**
-	 * Returns the logger's actual level
-	 * @return the logger's actual level
+	 * Returns the actual logging level for this event handler
+	 * @return the actual logging level for this event handler
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerLevel()
 	 */
 	public String getLoggerLevel();
+
 	/**
-	 * Returns the logger's effective level
-	 * @return the logger's effective level
+	 * Returns the effective logging level for this event handler
+	 * @return the effective logging level for this event handler
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerEffectiveLevel()
 	 */
-	public String getLoggerEffectiveLevel();
-	
-//	/**
-//	 * Indicates if this logger actually exists or if it is notional and delegating upwards
-//	 * @return true if this logger actually exists, false if it is notional
-//	 */
-//	public boolean isLoggerCreated();
-	
+	public String getLoggerEffectiveLevel(); 
+
 	/**
-	 * Sets the logger's level
-	 * @param level The level to set the logger to
+	 * Sets the logger level for this event handler
+	 * @param level The log level name
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#setLoggerLevel(java.lang.String)
 	 */
 	public void setLoggerLevel(String level);
-	/**
-	 * Returns the names of the levels supported by this logger
-	 * @return the names of the levels supported by this logger
-	 */
-	public String[] getLevelNames();
-	
+
 }

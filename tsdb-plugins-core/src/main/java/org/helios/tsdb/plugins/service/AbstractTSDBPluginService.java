@@ -280,9 +280,16 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		}
 	}
 	
-	private static class StatsCollectorImpl extends StatsCollector {
-		/** Static class logger */
+	public static class StatsCollectorImpl extends StatsCollector {
+		/** The static class logger */
 		private static final Logger LOG = LoggerFactory.getLogger("StatsCollection");
+		/** The caller specified logger */
+		private static final ThreadLocal<Logger> callerLogger = new ThreadLocal<Logger>() {
+			@Override
+			protected Logger initialValue() {				
+				return LOG;
+			}
+		};
 		/** Indicates if collected metrics should be recorded to the TSDB */
 		private final boolean relay;
 		/** The parent TSDB instance */
@@ -293,11 +300,32 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		
 		
 		
+		/**
+		 * Creates a new StatsCollectorImpl
+		 * @param tsdb The parent TSDB instance
+		 * @param relay Indicates if collected metrics should be recorded to the TSDB
+		 */
 		public StatsCollectorImpl(TSDB tsdb, boolean relay) {
 			super("tsd");
 			this.tsdb = tsdb;
 			this.relay = relay;
 		}
+		
+		/**
+		 * Sets the caller logger that will used to log metrics emitted by this thread until it is cleared  
+		 * @param log The caller provided logger
+		 */
+		public void setCallerLogger(Logger log) {
+			callerLogger.set(log);
+		}
+		
+		/**
+		 * Clears the caller logger
+		 */
+		public void clearCallerLogger() {
+			callerLogger.remove();
+		}
+		
 		
 		/**
 		 * Pushes the extra tags onto the tag stack and clears the current map
@@ -332,8 +360,10 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		
 		@Override
 		public void emit(String datapoint) {
-			if(LOG.isDebugEnabled()) 
-				LOG.debug(datapoint.replace("\n", ""));			
+			final Logger log = callerLogger.get();
+			if(log.isDebugEnabled()) {
+				log.debug("Collector Metric:[{}]", datapoint.replace("\n", ""));
+			}
 		}
 		@Override
 		public void record(String name, long value, String xtratag) {	
@@ -346,12 +376,12 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 						this.addExtraTag(tg[0], tg[1]);
 					}
 					tsdb.addPoint(name, SystemClock.unixTime(), value, this.extratags);
-					if(tg!=null) {
-						this.clearExtraTag(tg[1]);					
-					}				
+//					if(tg!=null) {
+//						this.clearExtraTag(tg[0]);					
+//					}				
 				}
 			} catch (Exception ex) {
-				
+				LOG.error("Recording Error", ex);
 			}
 		}		
 		

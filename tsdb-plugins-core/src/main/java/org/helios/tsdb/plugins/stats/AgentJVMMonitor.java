@@ -343,7 +343,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			for(MemoryPoolMXBean pool: heapMemPoolMXBeans) {
 				try {
 					MemoryUsage usage = pool.getUsage();					
-					sc.addExtraTag("pool", pool.getName());
+					sc.addExtraTag("pool", pool.getName().replace(' ', '_'));
 					sc.addExtraTag("type", "heap");
 					sc.record("Committed", usage.getCommitted());
 					sc.record("Max", usage.getMax());
@@ -360,7 +360,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			for(MemoryPoolMXBean pool: nonHeapMemPoolMXBeans) {
 				try {
 					MemoryUsage usage = pool.getUsage();					
-					sc.addExtraTag("pool", pool.getName());
+					sc.addExtraTag("pool", pool.getName().replace(' ', '_'));
 					sc.addExtraTag("type", "nonheap");
 					sc.record("Committed", usage.getCommitted());
 					sc.record("Max", usage.getMax());
@@ -390,7 +390,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			sc.addExtraTag("group", "gc");
 			if(!gcDeltas.isEmpty()) {
 				for(GarbageCollectorMXBean gcBean: gcMXBeans) {				
-					String name = gcBean.getName().replace(' ', '-');
+					String name = gcBean.getName().replace(' ', '_');
 					long[] lastPeriod = gcDeltas.get(name);
 					if(lastPeriod!=null) {
 						long gcTime = gcBean.getCollectionTime();
@@ -402,7 +402,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			}
 			gcDeltas.clear();
 			for(GarbageCollectorMXBean gcBean: gcMXBeans) {
-				String name = gcBean.getName().replace(' ', '-');
+				String name = gcBean.getName().replace(' ', '_');
 				String xtag = "name=" + name;
 				long gcCount = gcBean.getCollectionCount();
 				long gcTime = gcBean.getCollectionTime();
@@ -483,7 +483,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 				} catch (Exception e) {
 					log.error("Failed to collect nio buffers", e);
 				} finally {
-					sc.clearExtraTag("name");
+					//sc.clearExtraTag("name");
 				}
 			}
 		} finally {

@@ -16,6 +16,11 @@
   <logger name="org.apache.zookeeper" level="info"/>
   <logger name="org.hbase.async" level="info"/>
   <logger name="com.stumbleupon.async" level="info"/>
+  <logger name="net.opentsdb.graph" level="warn"/>
+  <logger name="net.opentsdb.tsd.GraphHandler" level="warn"/>
+  <logger name="net.opentsdb.tsd.ConnectionManager" level="warn"/>
+  <logger name="net.opentsdb.tsd.HttpQuery" level="warn"/>
+  <logger name="net.opentsdb.core.TsdbQuery" level="warn"/>
   <root level="info">
     <appender-ref ref="STDOUT"/>
   </root>

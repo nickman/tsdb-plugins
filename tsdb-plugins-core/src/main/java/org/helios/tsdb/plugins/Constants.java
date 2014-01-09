@@ -98,6 +98,8 @@ public class Constants {
 	public static final String CONFIG_ENABLE_PUBLISH = "tsd.rtpublisher.enable";
 	/** The TSDB config for specifying the publish plugin */
 	public static final String CONFIG_PUBLISH_PLUGIN = "tsd.rtpublisher.plugin";
+	/** The TSDBPluginService config for specifying publisher service class names */
+	public static final String CONFIG_PUBLISH_SERVICES = "helios.tsd.publish.services";
 	
 	// ===========================================================================================	
 	//		RPC Plugin Config

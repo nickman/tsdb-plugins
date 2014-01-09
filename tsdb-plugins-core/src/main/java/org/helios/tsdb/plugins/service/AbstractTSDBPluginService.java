@@ -257,6 +257,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 	public void run() {
 		log.debug("Collecting...");
 		StatsCollectorImpl collector = new StatsCollectorImpl(tsdb, true);
+		collector.addHostTag(true);
 		try {			
 			tsdb.collectStats(collector);
 			collector.clear();
@@ -280,6 +281,13 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		}
 	}
 	
+	/**
+	 * <p>Title: StatsCollectorImpl</p>
+	 * <p>Description: Optionally logging using caller logger and string cleaning StatsCollector impl</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.tsdb.plugins.service.AbstractTSDBPluginService.StatsCollectorImpl</code></p>
+	 */
 	public static class StatsCollectorImpl extends StatsCollector {
 		/** The static class logger */
 		private static final Logger LOG = LoggerFactory.getLogger("StatsCollection");
@@ -297,8 +305,6 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		
 		/** The tag backup/restore stack */
 		private final Stack<Map<String, String>> tagStack = new Stack<Map<String, String>>(); 
-		
-		
 		
 		/**
 		 * Creates a new StatsCollectorImpl
@@ -365,20 +371,40 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				log.debug("Collector Metric:[{}]", datapoint.replace("\n", ""));
 			}
 		}
+		
+		/**
+		 * String cleaning delegation to {@link #addExtraTag(String, String)}
+		 * @param key The tag key
+		 * @param value The tag value
+		 */
+		public void extraTag(String key, String value) {
+			addExtraTag(key.replace(' ', '_'), value.replace(' ', '_'));
+		}
+		
+		/**
+		 * String cleaning delegation to {@link #clearExtraTag(String)}
+		 * @param key The tag key
+		 */
+		public void clearTag(String key) {
+			clearExtraTag(key.replace(' ', '_'));
+		}
+		
 		@Override
 		public void record(String name, long value, String xtratag) {	
 			try {
-				super.record(name, value, xtratag);
+				final String _name = name.replace(' ', '_');
+				final String _xtratag = xtratag==null ? null : xtratag.replace(' ', '_');
+				super.record(_name, value, _xtratag);
 				if(relay) {
 					String[] tg = null;
-					if(xtratag!=null) {
-						tg = splitXtraTag(xtratag);
-						this.addExtraTag(tg[0], tg[1]);
+					if(_xtratag!=null) {
+						tg = splitXtraTag(_xtratag);
+						addExtraTag(tg[0], tg[1]);
 					}
-					tsdb.addPoint(name, SystemClock.unixTime(), value, this.extratags);
-//					if(tg!=null) {
-//						this.clearExtraTag(tg[0]);					
-//					}				
+					tsdb.addPoint(_name, SystemClock.unixTime(), value, this.extratags);
+					if(tg!=null) {
+						clearExtraTag(tg[0]);					
+					}				
 				}
 			} catch (Exception ex) {
 				LOG.error("Recording Error", ex);

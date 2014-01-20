@@ -6,4 +6,7 @@ file:
 log.*
 snapshot.*
 /bin
+/*.ocs
+/jxinsight.aspectj.cache
+/nohup.out
 

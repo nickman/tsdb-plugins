@@ -27,6 +27,7 @@ package org.helios.tsdb.plugins.shell;
 import java.util.Map;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 
@@ -146,6 +147,16 @@ public class Publisher extends RTPublisher implements Plugin {
 	@Override
 	public void setPluginContext(PluginContext ctx) {
 		pluginContext = ctx;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.tsd.RTPublisher#publishAnnotation(net.opentsdb.meta.Annotation)
+	 */
+	@Override
+	public Deferred<Object> publishAnnotation(Annotation annotation) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

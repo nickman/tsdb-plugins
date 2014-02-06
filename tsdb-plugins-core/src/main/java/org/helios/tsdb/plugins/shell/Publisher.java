@@ -159,4 +159,14 @@ public class Publisher extends RTPublisher implements Plugin {
 		pluginContext = ctx;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.tsd.RTPublisher#publishAnnotation(net.opentsdb.meta.Annotation)
+	 */
+	@Override
+	public Deferred<Object> publishAnnotation(Annotation annotation) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

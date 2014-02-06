@@ -143,6 +143,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 		final boolean callerLoggerEnabled = (statsCollector instanceof StatsCollectorImpl);
 		if(callerLoggerEnabled) {
 			((StatsCollectorImpl)statsCollector).setCallerLogger(log);
+			((StatsCollectorImpl)statsCollector).clear();
 		}
 		try {
 			statsCollector.addHostTag(true);
@@ -158,6 +159,7 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			statsCollector.clearExtraTag("component");
 			if(callerLoggerEnabled) {
 				((StatsCollectorImpl)statsCollector).clearCallerLogger();
+				((StatsCollectorImpl)statsCollector).clear();
 			}
 
 		}
@@ -204,11 +206,6 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 	 */
 	public void collect(StatsCollector statsCollector) {
 		final ElapsedTime et = SystemClock.startClock();
-		final boolean callerLoggerEnabled = (statsCollector instanceof StatsCollectorImpl);
-		if(callerLoggerEnabled) {
-			((StatsCollectorImpl)statsCollector).setCallerLogger(log);
-		}
-		
 		try {
 			collectThreads(statsCollector);
 			collectClassLoading(statsCollector);
@@ -219,13 +216,9 @@ public class AgentJVMMonitor extends AbstractRPCService   {
 			collectOS(statsCollector);
 			if(java7) collectNio(statsCollector);
 			long elapsed = et.elapsedMs();
-			statsCollector.record("CollectTime", elapsed);
+			statsCollector.record("CollectTime", elapsed, "plugin=AgentJVMMonitor");
 		} catch (Exception e) {
 			log.error("AgentJVMMonitor: Unexpected collection exception", e);
-		} finally {
-			if(callerLoggerEnabled) {
-				((StatsCollectorImpl)statsCollector).clearCallerLogger();
-			}
 		}
 	}
 

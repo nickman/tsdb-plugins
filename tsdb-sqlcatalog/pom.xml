@@ -173,7 +173,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <scope>provided</scope>
     </dependency>
 	
     <dependency>
@@ -294,6 +293,9 @@
 			              <artifactSet>
 			                <excludes>
 			                </excludes>
+			                <includes>
+			                	
+			                </includes>
 			              </artifactSet>
 					    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 					    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>

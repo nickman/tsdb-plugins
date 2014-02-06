@@ -40,11 +40,14 @@ import javassist.LoaderClassPath;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.core.TSDB;
+
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.heliosapm.shorthand.attach.vm.agent.LocalAgentInstaller;
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
@@ -68,8 +71,8 @@ public class CatalogDataSource implements ICatalogDataSource {
 	protected BoneCPConfig config = null;
 	/** The built datasource */
 	protected BoneCPDataSource connectionPool = null;
-	/** Instance logger */
-	protected final Logger log = LoggerFactory.getLogger(getClass());
+	/** Static class logger */
+	protected static final Logger log = LoggerFactory.getLogger(CatalogDataSource.class);
 	
 	/** The driver wrapper */
 	protected DelegatingDriver delegatingDriver = null;
@@ -293,7 +296,17 @@ public class CatalogDataSource implements ICatalogDataSource {
 	
 	static {
 		try {
-			Class<?> refQueueClazz = Class.forName("com.google.common.base.FinalizableReferenceQueue", true, BoneCP.class.getClassLoader());
+			log.info("Class Search Starting");
+			Class<?>[] classes = LocalAgentInstaller.getInstrumentation().getAllLoadedClasses();
+			for(Class<?> clazz: classes) {
+				if("com.google.common.base.FinalizableReferenceQueue".equals(clazz.getName())) {
+					log.info("FRQ ClassLoader: [{}]", clazz.getClassLoader());
+				}
+			}
+			log.info("Class Search Done");
+			log.info("Loading FinalizableReferenceQueue using classloader [{}]", TSDB.class.getClassLoader());
+			Class<?> refQueueClazz = Class.forName("com.google.common.base.FinalizableReferenceQueue", true, TSDB.class.getClassLoader()); 
+					//BoneCP.class.getClassLoader().getParent());
 			refQueueField = BoneCP.class.getDeclaredField("finalizableRefQueue");
 			refQueueField.setAccessible(true);
 			refQueueCleanup = refQueueClazz.getDeclaredMethod("cleanUp");

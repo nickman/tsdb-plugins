@@ -259,26 +259,54 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		StatsCollectorImpl collector = new StatsCollectorImpl(tsdb, true);
 		collector.addHostTag(true);
 		try {			
+			//collector.clear();
 			tsdb.collectStats(collector);
+		} catch (Exception ex) {
+			log.error("tsdb.collectStats error:" + ex);
+		} finally {
+			//collector.restore();
+		}
+		try {			
+			collector.clear();
+			for(ISearchEventHandler handler: searchHandlers) {
+				handler.collectStats(collector);
+			}			
+		} catch (Exception ex) {
+			log.error("handler.collectStats error:" + ex);
+		} finally {
+			collector.restore();
+		}
+		try {			
 			collector.clear();
 			for(ISearchEventHandler handler: searchHandlers) {
 				handler.collectStats(collector);
 			}
+		} catch (Exception ex) {
+			log.error("searchHandlers.collectStats error:" + ex);
+		} finally {
 			collector.restore();
+		}
+		try {			
 			collector.clear();
 			for(IPublishEventHandler handler: publishHandlers) {
 				handler.collectStats(collector);
 			}
+		} catch (Exception ex) {
+			log.error("publishHandlers.collectStats error:" + ex);
+		} finally {
 			collector.restore();
-			collector.clear();			
+		}
+		try {			
+			collector.clear();
 			for(IRPCService handler: rpcServices) {
 				handler.collectStats(collector);
 			}
-			collector.restore();
-			log.debug("Collect done.");
 		} catch (Exception ex) {
-			log.error("Stats Collection Exception", ex);
+			log.error("rpcHandlers.collectStats error:" + ex);
+		} finally {
+			collector.restore();
 		}
+		log.debug("Collect done.");
 	}
 	
 	/**

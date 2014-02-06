@@ -27,6 +27,7 @@ package org.helios.tsdb.plugins.shell;
 import java.util.Map;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.stats.StatsCollector;
 import net.opentsdb.tsd.RTPublisher;
 
@@ -83,6 +84,16 @@ public class Publisher extends RTPublisher implements Plugin {
 		log.debug("Initializing instance");
 		pluginService = TSDBPluginServiceLoader.getInstance(tsdb, this);
 	}
+	
+	  /**
+	   * Called any time a new annotation is published
+	   * @param annotation The published annotation
+	   * @return A deferred without special meaning to wait on if necessary. The 
+	   * value may be null but a Deferred must be returned.
+	   */      
+	  public Deferred<Object> publishAnnotation(final Annotation annotation) {
+	    return Deferred.fromResult(new Object());
+	  }
 	
 
 	/**

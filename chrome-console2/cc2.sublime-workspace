@@ -4,8 +4,100 @@
 		"selected_items":
 		[
 			[
+				"before",
+				"beforeStart"
+			],
+			[
+				"byte",
+				"bytesWritten"
+			],
+			[
+				"TCP",
+				"TCPTransport"
+			],
+			[
+				"write",
+				"writeInfo"
+			],
+			[
 				"pro",
-				"promise"
+				"prototype"
+			],
+			[
+				"socket",
+				"socketProtocol"
+			],
+			[
+				"protocol",
+				"protocolName"
+			],
+			[
+				"su",
+				"superConstructor"
+			],
+			[
+				"Socket",
+				"SocketProtocol"
+			],
+			[
+				"subs",
+				"subscription"
+			],
+			[
+				"service",
+				"serviceName"
+			],
+			[
+				"err",
+				"error"
+			],
+			[
+				"send",
+				"sendRequest"
+			],
+			[
+				"open",
+				"openPorts"
+			],
+			[
+				"fun",
+				"function"
+			],
+			[
+				"conn",
+				"connectionListeners"
+			],
+			[
+				"glo",
+				"globalListener"
+			],
+			[
+				"fai",
+				"failNotFound"
+			],
+			[
+				"res",
+				"resolve"
+			],
+			[
+				"ke",
+				"keyPath"
+			],
+			[
+				"Object",
+				"ObjectStore"
+			],
+			[
+				"handle",
+				"handleRequest"
+			],
+			[
+				"sc",
+				"script"
+			],
+			[
+				"cr",
+				"createdWindow"
 			],
 			[
 				"fa",
@@ -15,23 +107,19 @@
 	},
 	"buffers":
 	[
-		{
-			"file": "js/db.js",
-			"settings":
-			{
-				"buffer_size": 4472,
-				"line_ending": "Unix"
-			}
-		}
 	],
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 0.0,
+		"height": 306.0,
 		"selected_items":
 		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			]
 		],
-		"width": 0.0
+		"width": 467.0
 	},
 	"console":
 	{
@@ -48,10 +136,113 @@
 	},
 	"file_history":
 	[
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/thrift-chrome-transport.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/timeout-promises.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/background.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/echoserver/pom.xml",
+		"/home/nwhitehead/3projects/opentsdb/build/tsdb",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/js-inheritance.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/js-inheritance2.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/chrome-socket-api-errors.js",
+		"/home/nwhitehead/3projects/chrome-app-samples/udp/networking.js",
+		"/home/nwhitehead/3projects/chrome-app-samples/multicast/MulticastSocket.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/dynamic-buffer.js",
+		"/home/nwhitehead/3projects/chrome-app-samples/telnet/tcp-client.js",
+		"/home/nwhitehead/hprojects/mythrift/lib/jschrome/test/chrome-app/ThriftService/manifest.json",
+		"/home/nwhitehead/bin/tsdb-mavenize.bash",
+		"/home/nwhitehead/hprojects/tsdb/chrome-console2/manifest.json",
+		"/home/nwhitehead/hprojects/tsdb/chrome-console2/background.js",
+		"/home/nwhitehead/hprojects/tsdb/chrome-console2/services/remoteconns.js",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/test/chrome-app/ThriftService/thrift-chrome-transport.js",
+		"/home/nwhitehead/hprojects/thrift/lib/NettyEchoServer.java",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/package.json",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/thrift.js",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/index.js",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/connection.js",
+		"/home/nwhitehead/hprojects/thrift/lib/js/src/thrift.js",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/lib/thrift-chrome-transport.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/background.js",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/test/chrome-app/ThriftService/manifest.json",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/test/chrome-app/ThriftService/background.js",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/lib/thrift-chrome-protocol.js",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/transport.js",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/protocol.js",
+		"/home/nwhitehead/hprojects/thrift/lib/nodejs/lib/thrift/binary.js",
+		"/home/nwhitehead/hprojects/thrift/lib/jschrome/lib/thrift-chrome.js",
+		"/home/nwhitehead/libs/java/thrift/js/thrift.js",
+		"/home/nwhitehead/libs/java/thrift/js/Hbase.thrift",
+		"/home/nwhitehead/libs/java/thrift/js/Hbase.js",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/src/main/resources/hbase-webapps/thrift/thrift.jsp",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/src/main/resources/hbase-webapps/thrift/index.html",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/bin/hbase",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/hbase-webapps/master/WEB-INF/web.xml",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/target/surefire-reports/net.opentsdb.tsd.TestRpcHandler.txt",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/hbase-webapps/regionserver/WEB-INF/web.xml",
+		"/home/nwhitehead/services/hbase/hbase-0.94.11/hbase-webapps/rest/WEB-INF/web.xml",
+		"/home/nwhitehead/3projects/opentsdb/pom.xml",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/src/test/java/net/opentsdb/tsd/DummyRTPublisher.java",
+		"/home/nwhitehead/3projects/eep-java/pom.xml",
+		"/home/nwhitehead/3projects/opentsdb/src/logback.xml",
+		"/home/nwhitehead/hprojects/jboss7Sample/project/test/pom.xml",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/build/Makefile",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/src/test/java/net/opentsdb/storage/MockBase.java",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/third_party/include.mk",
+		"/home/nwhitehead/hprojects/helios/helios-util/src/main/java/org/helios/helpers/RegexHelper.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-agent/src/main/java/org/helios/apmrouter/util/RegexHelper.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-agent/src/main/java/org/helios/apmrouter/util/StringHelper.java",
+		"/home/nwhitehead/3projects/opentsdb/src/net/opentsdb/tools/TSDMain.java",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/src/main/java/net/opentsdb/tsd/RTPublisher.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-server/pom.xml",
+		"/home/nwhitehead/mavenized-tsdb.txt",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/build.sh",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/bootstrap",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/configure",
+		"/home/nwhitehead/hprojects/opentsdb/mavenized/opentsdb/Makefile.am",
+		"/home/nwhitehead/hprojects/pom.xml",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/DateTimeBox.java",
+		"/home/nwhitehead/hprojects/opentsdb/tsdb-mavenize.bash",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/QueryUi.gwt.xml",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/QueryUi.java",
+		"/home/nwhitehead/hprojects/tsdb-plugins/tsdb-plugins-core/pom.xml",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/EventsHandler.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/GotJsonCallback.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/MetricForm.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/QueryString.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/RemoteOracle.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/main/java/net/opentsdb/tsd/client/ValidatedTextBox.java",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/status/status.html",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/appstart.html",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/app-client.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/services/server.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/services/remoteconns.js",
+		"/home/nwhitehead/bin/start-tsdb",
+		"/home/nwhitehead/3projects/opentsdb/src/opentsdb.conf",
+		"/home/nwhitehead/3projects/opentsdb/src/net/opentsdb/core/TSDB.java",
+		"/home/nwhitehead/hprojects/opentsdb/src/core/TSDB.java",
+		"/home/nwhitehead/groovy/groovy-2.1.6/conf/groovy-starter.conf",
+		"/home/nwhitehead/3projects/opentsdb/build/src/BuildData.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-server/src/main/java/org/helios/apmrouter/cache/CacheStatisticsMBean.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-server/src/main/java/org/helios/apmrouter/cache/CacheStatistics.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-agent/src/main/java/org/helios/apmrouter/util/SimpleLogger.java",
+		"/home/nwhitehead/hprojects/apmrouter/apmrouter-server/src/main/java/org/helios/apmrouter/logging/APMLogLevel.java",
+		"/home/nwhitehead/hprojects/tsdb/tsdb-plugins-core/jxinsight.override.config",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/isql/isql.html",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/connections/connections.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/js/start.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/connections/connections.html",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/isql/isql.css",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/app/isql/isql.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/js/nsinit.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/manifest.json",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/cc2.sublime-project",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/services/db.js",
+		"/home/nwhitehead/.config/sublime-text-2/Packages/User/Preferences.sublime-settings",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/js/server.js",
+		"/home/nwhitehead/hprojects/tsdb-plugins/chrome-console2/js/db.js"
 	],
 	"find":
 	{
-		"height": 0.0
+		"height": 35.0
 	},
 	"find_in_files":
 	{
@@ -65,6 +256,20 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"state",
+			"() {  },",
+			"[native code]",
+			"\n        ",
+			"Promise",
+			"getTableNames",
+			"plugin_tes",
+			"tsdb_SRC",
+			"create_table",
+			"include t",
+			"$",
+			"\"plugin\"",
+			"Gnu",
+			"this."
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -72,6 +277,10 @@
 		"regex": false,
 		"replace_history":
 		[
+			"() {},",
+			"",
+			"#include t",
+			"me."
 		],
 		"reverse": false,
 		"show_context": true,
@@ -82,36 +291,8 @@
 	"groups":
 	[
 		{
-			"selected": 0,
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "js/db.js",
-					"settings":
-					{
-						"buffer_size": 4472,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2476,
-								2476
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 784.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				}
 			]
 		}
 	],
@@ -148,7 +329,7 @@
 	"menu_visible": true,
 	"replace":
 	{
-		"height": 0.0
+		"height": 64.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -170,7 +351,7 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 150.0,
 	"status_bar_visible": true
 }

@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -41,9 +41,9 @@ import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.event.TSDBEvent;
-import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.IEventHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +63,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>org.helios.tsdb.plugins.async.DisruptorEventDispatcher</code></p>
  */
 
-public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHandler<TSDBEvent> {
+public class DisruptorEventDispatcher implements DisruptorEventDispatcherMXBean, AsyncEventDispatcher, EventHandler<TSDBEvent> {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The RingBuffer instance events are published to */
@@ -82,13 +82,20 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 	protected SequenceBarrier closerSequenceBarrier = null;
 	/** The closer batch processor */
 	protected BatchEventProcessor<TSDBEvent> closerBatchProcessor;
+	/** The names of the registered event handlers */
+	protected final Set<String> eventHandlerNames = new HashSet<String>();
 
+	/** A counter of the number of events processed */
+	protected final AtomicLong eventsProcessed = new AtomicLong();
+	
+	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.async.AsyncEventDispatcher#initialize(java.util.Properties, java.util.concurrent.Executor, java.util.Collection)
 	 */
 	@Override
 	public void initialize(Properties config, Executor executor, Collection<IEventHandler> handlers) {
+		
 		log.info("\n\t========================================\n\tStarting DisruptorEventDispatcher\n\t========================================\n");
 		this.executor = executor;
 		ringBufferSize = ConfigurationHelper.getIntSystemThenEnvProperty(Constants.RING_BUFFER_SIZE, Constants.DEFAULT_RING_BUFFER_SIZE, config);
@@ -107,6 +114,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 				eventHandlerBatchProcessors.add(
 						new BatchEventProcessor<TSDBEvent>(ringBuffer, eventHandlerSequenceBarrier, eventHandler)
 				);
+				eventHandlerNames.add(handler.getClass().getName());
 				log.info("Registered TSDBEventHandler [{}]", handler.getClass().getName());
 			} else {
 				log.warn("The handler [{}] does not implement [{}]. Not registered to handle events", handler.getClass().getName(), EventHandler.class.getName());
@@ -126,6 +134,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 		closerBatchProcessor = new BatchEventProcessor<TSDBEvent>(ringBuffer, closerSequenceBarrier, this);
 		ringBuffer.addGatingSequences(closerBatchProcessor.getSequence());		
 		log.info("Initialized Disruptor Closer.\n\tStarting RingBuffer Event Processing.....");
+		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=").append(getClass().getSimpleName())));
 		for(BatchEventProcessor<TSDBEvent> bep: eventHandlerBatchProcessors) {
 			executor.execute(bep);
 		}		
@@ -168,6 +177,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
         ringBuffer.publish(sequence);
         //log.info("Published Sequence {} for {}.....", sequence, metric);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -181,6 +191,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         ringBuffer.get(sequence).publishDataPoint(metric, timestamp, value, tags, tsuid);
         ringBuffer.publish(sequence);
         //log.info("Published Sequence {} for {}.....", sequence, metric);
+        eventsProcessed.incrementAndGet();
 	}
 
 
@@ -195,6 +206,15 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 		// TODO Auto-generated method stub
 
 	}
+	
+	/**
+	 * Returns the number of events processed
+	 * @return the number of events processed
+	 */
+	public long getEventProcessedCount() {
+		return eventsProcessed.get();
+	}
+
 
 	/**
 	 * {@inheritDoc}
@@ -205,6 +225,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).executeQuery(searchQuery, toComplete);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -216,6 +237,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).indexAnnotation(annotation);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -227,6 +249,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).deleteAnnotation(annotation);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -238,6 +261,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).indexTSMeta(tsMeta);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -249,6 +273,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).deleteTSMeta(tsMeta);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -260,6 +285,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).indexUIDMeta(uidMeta);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 	/**
@@ -271,6 +297,7 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
         long sequence = ringBuffer.next();
         ringBuffer.get(sequence).deleteUIDMeta(uidMeta);
         ringBuffer.publish(sequence);
+        eventsProcessed.incrementAndGet();
 	}
 
 
@@ -287,6 +314,29 @@ public class DisruptorEventDispatcher implements AsyncEventDispatcher, EventHand
 		//event.reset();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.DisruptorEventDispatcherMXBean#getBufferSize()
+	 */
+	public int getBufferSize() {
+		return ringBuffer.getBufferSize();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.DisruptorEventDispatcherMXBean#getRemainingCapacity()
+	 */
+	public long getRemainingCapacity() {
+		return ringBuffer.remainingCapacity();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.async.DisruptorEventDispatcherMXBean#getEventHandlerNames()
+	 */
+	public String[] getEventHandlerNames() {
+		return eventHandlerNames.toArray(new String[eventHandlerNames.size()]);
+	}
 
 
 }

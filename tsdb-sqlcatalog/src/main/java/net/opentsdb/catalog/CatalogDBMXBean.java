@@ -24,9 +24,9 @@
  */
 package net.opentsdb.catalog;
 
-import java.util.Map;
-
 import javax.management.MXBean;
+
+import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
 
 /**
  * <p>Title: CatalogDBMXBean</p>
@@ -37,7 +37,7 @@ import javax.management.MXBean;
  */
 
 @MXBean
-public interface CatalogDBMXBean {
+public interface CatalogDBMXBean extends LoggerManager {
 	/** The metric name insert counter */
 	public static final String METRIC_INSERT_CNT = "metric-insert"; 
 	/** The metric name update counter */

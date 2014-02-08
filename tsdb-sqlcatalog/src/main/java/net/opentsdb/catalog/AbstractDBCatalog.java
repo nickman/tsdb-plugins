@@ -25,7 +25,6 @@
 package net.opentsdb.catalog;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -72,6 +71,8 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSONException;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
+import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
+import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
 import org.helios.tsdb.plugins.meta.MetaSynchronizer;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
@@ -97,8 +98,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.stumbleupon.async.Deferred;
@@ -114,6 +113,8 @@ import com.stumbleupon.async.Deferred;
 public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDBMXBean {
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
+	/** Logger adapter for setting logger levels */
+	protected LoggerManager loggerManager = LoggerManagerFactory.getLoggerManager(getClass());
 	/** The constructed datasource */
 	protected DataSource dataSource = null;
 	/** The data source initializer */
@@ -124,10 +125,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected PluginContext pluginContext = null;
 	/** The extracted TSDB config properties */
 	protected Properties extracted = null;
-	/** Indicates if the SyncQueue poller is enabled */
-	protected boolean syncQueuePollerEnabled = false;
-	/** The sync queue processor instance */
-	protected SyncQueueProcessor syncQueueProcessor = null;
+	
+	/** The SQLWorker to manage JDBC Ops */
+	protected SQLWorker sqlWorker = null;
 	
 
 	// ========================================================================================
@@ -214,15 +214,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/** The default increment on the Annotation ID Sequence */
 	public static final int DEFAULT_DB_ANN_SEQ_INCR = 50;
 
-	/** The config property name for the increment on the Sync Queue ID Sequence */
-	public static final String DB_SYNCQ_SEQ_INCR = "helios.search.catalog.seq.syncq.incr";
-	/** The default increment on the Annotation ID Sequence */
-	public static final int DEFAULT_DB_SYNCQ_SEQ_INCR = 50;
-	
-	/** The config property name for the enablement of the Sync Queue polling processor */
-	public static final String DB_SYNCQ_POLLER_ENABLED = "helios.search.catalog.syncq.enabled";
-	/** The default enablement of the Sync Queue polling processor */
-	public static final boolean DEFAULT_DB_SYNCQ_POLLER_ENABLED = true;
 	
 	// ========================================================================================
 	//	Object COUNT and EXISTS SQL
@@ -304,9 +295,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		//tmp.put(VERSION_KEY, "1");
 		INIT_CUSTOM = Collections.unmodifiableMap(tmp);
 	}
-
-	
-
 
 	/**
 	 * Creates a new AbstractDBCatalog
@@ -406,11 +394,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		pluginContext = pc;
 		tsdb = pluginContext.getTsdb();
 		extracted = pluginContext.getExtracted();
-		syncQueuePollerEnabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_SYNCQ_POLLER_ENABLED, DEFAULT_DB_SYNCQ_POLLER_ENABLED, extracted);  
 		
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
+		sqlWorker = new SQLWorker(dataSource);
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
@@ -425,10 +413,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
 		pc.setResource(CatalogDBInterface.class.getSimpleName(), this);
-		if(syncQueuePollerEnabled) {
-			syncQueueProcessor = new SyncQueueProcessor(pc);
-			syncQueueProcessor.startAndWait();
-		}				
 		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
 		final AbstractDBCatalog finalMe = this;
 		pluginContext.addResourceListener(
@@ -453,10 +437,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBInterface#triggerSyncQueueFlush()
 	 */
 	public void triggerSyncQueueFlush() {
-		if(syncQueuePollerEnabled) {
-			if(syncQueueProcessor==null) throw new RuntimeException("SyncQueue Polling Enabled but syncQueueProcessor is null");
-			syncQueueProcessor.run();
-		}
+//		if(syncQueuePollerEnabled) {
+//			if(syncQueueProcessor==null) throw new RuntimeException("SyncQueue Polling Enabled but syncQueueProcessor is null");
+//			syncQueueProcessor.run();
+//		}
 	}
 	
 	/**
@@ -509,10 +493,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public void shutdown() {
 		log.info("\n\t================================================\n\tStopping TSDB Catalog DB\n\tName:{}\n\t================================================", cds.getConfig().getJdbcUrl());
-		if(syncQueueProcessor!=null && syncQueueProcessor.isRunning()) {
-			syncQueueProcessor.stopAndWait();
-			syncQueueProcessor = null;
-		}
 		doShutdown();
 		if(cds!=null) {
 			cds.shutdown();
@@ -548,6 +528,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
 		Set<Annotation> annotations = new HashSet<Annotation>();
 		BatchMileStone latch = null;
+		final boolean trace = log.isTraceEnabled();
 		try {			
 			for(TSDBSearchEvent event: events) {
 				if(BatchMileStone.class.isInstance(event)) {
@@ -559,26 +540,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				switch(event.eventType) {
 				case ANNOTATION_DELETE:		
 					if(shouldIgnore(event.annotation)) continue;
+					if(trace) log.trace("Deleting annotation [{}]", event.annotation);
 					deleteAnnotation(conn, event.annotation);
 					break;
 				case ANNOTATION_INDEX:
 					if(shouldIgnore(event.annotation)) continue;
+					if(trace) log.trace("Indexing annotation [{}]", event.annotation);
 					annotations.add(event.annotation);
 					break;
 				case TSMETA_DELETE:					
 					deleteTSMeta(conn, event.tsuid);
+					if(trace) log.trace("Deleting TSMeta [{}]", event.tsuid);
 					break;
 				case TSMETA_INDEX:
 					if(shouldIgnore(event.tsMeta)) continue;
 					TSMeta tsMeta = event.tsMeta;
+					if(trace) log.trace("Indexing TSMeta [{}]", event.tsMeta);
 					processTSMeta(batchedUidPairs, conn, tsMeta);
 					break;
 				case UIDMETA_DELETE:
 					if(shouldIgnore(event.uidMeta)) continue;
+					if(trace) log.trace("Deleting UIDMeta [{}]", event.uidMeta);
 					deleteUIDMeta(conn, event.uidMeta);
 					break;
 				case UIDMETA_INDEX:		
 					if(shouldIgnore(event.uidMeta)) continue;
+					if(trace) log.trace("Indexing UIDMeta [{}]", event.uidMeta);
 					if(!batchedUids.contains(event.uidMeta.toString())) {
 						processUIDMeta(conn, event.uidMeta);
 						batchedUids.add(event.uidMeta.toString());
@@ -705,7 +692,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			cmap = ((Annotation)custom).getCustom();
 		} else if(custom instanceof UIDMeta) {
 			cmap = ((UIDMeta)custom).getCustom();
-		} if(custom instanceof TSMeta) {
+		} else if(custom instanceof TSMeta) {
 			cmap = ((TSMeta)custom).getCustom();
 		} else {
 			return true;
@@ -904,26 +891,63 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the ANNID of the passed annotation
 	 */
 	protected long getAnnIdForAnnotation(Connection conn, Annotation annotation) {
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(GET_ANNOTATION_ID_SQL);
-			ps.setTimestamp(1, new Timestamp(utoms(annotation.getStartTime())));
-			if(annotation.getTSUID()==null) {
-				ps.setNull(2, Types.VARCHAR);
-			} else {
-				ps.setString(2, annotation.getTSUID());
-			}			
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getLong(1);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to get ANNID for annotation [" + annotation + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
-		}
+		return sqlWorker.sqlForLong(GET_ANNOTATION_ID_SQL,
+				new Timestamp(utoms(annotation.getStartTime())),
+				annotation.getTSUID()
+		);
 	}
+	
+	/*
+	 * PreparedStatement batch(PreparedStatement ps, SQL,
+	 * 
+	 * if ps is null, prepare --- return
+	 * bind
+	 * addBatch
+	 * 
+	 */
+	
+	/**
+	 * Increments or sets the version key on an annotation
+	 * @param a The annotation to version increment 
+	 * @return the new version
+	 */
+	protected int incrementVersion(Annotation a) {
+		HashMap<String, String> custom = a.getCustom();
+		if(custom==null) {
+			custom = new HashMap<String, String>(1);
+			a.setCustom(custom);
+		}
+		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);		
+	}
+	
+	/**
+	 * Increments or sets the version key on a TSMeta
+	 * @param tsmeta The TSMeta to version increment 
+	 * @return the new version
+	 */
+	protected int incrementVersion(TSMeta tsmeta) {
+		HashMap<String, String> custom = tsmeta.getCustom();
+		if(custom==null) {
+			custom = new HashMap<String, String>(1);
+			tsmeta.setCustom(custom);
+		}
+		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
+	}
+	
+	/**
+	 * Increments or sets the version key on a UIDMeta
+	 * @param uidmeta The UIDMeta to version increment 
+	 * @return the new version
+	 */
+	protected int incrementVersion(UIDMeta uidmeta) {
+		Map<String, String> custom = uidmeta.getCustom();
+		if(custom==null) {
+			custom = new HashMap<String, String>(1);
+			uidmeta.setCustom((HashMap<String, String>)custom);
+		}
+		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
+	}
+	
 	
 	/**
 	 * Executes a batched update for the passed modified Annotation
@@ -931,36 +955,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param a The changed Annotation
 	 */
 	protected void updateAnnotation(Connection conn, Annotation a) {
-		try {
-			long annId = getAnnIdForAnnotation(conn, a);
-			if(annotationsUpdatePs==null) annotationsUpdatePs = conn.prepareStatement(TSD_UPDATE_ANNOTATION);
-			Map<String, String> custom = a.getCustom();
-			if(custom==null) {
-				custom = new HashMap<String, String>(1);
-			}
-			int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
-			annotationsUpdatePs.setInt(1, version);		
-			annotationsUpdatePs.setTimestamp(2, new Timestamp(utoms(a.getStartTime())));
-			annotationsUpdatePs.setString(3, a.getDescription());
-			annotationsUpdatePs.setString(4, a.getNotes());
-			if(a.getTSUID()==null) {
-				annotationsUpdatePs.setNull(5, Types.BIGINT);
-			} else {
-				annotationsUpdatePs.setLong(5, getFqnIdForTsUid(conn, a.getTSUID()));
-			}
-			if(a.getEndTime()==0) {
-				annotationsUpdatePs.setNull(6, Types.TIMESTAMP);
-			} else {
-				annotationsUpdatePs.setTimestamp(6, new Timestamp(utoms(a.getEndTime())));
-			}
-			annotationsUpdatePs.setString(7, JSONMapSupport.nokToString(custom));
-			annotationsUpdatePs.setLong(8, annId);
-			annotationsUpdatePs.addBatch();
-			// TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, 
-			// NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to update Annotation [" + a + "]", ex);
-		}
+		long annId = getAnnIdForAnnotation(conn, a);
+		annotationsUpdatePs = sqlWorker.batch(conn, annotationsUpdatePs, TSD_UPDATE_ANNOTATION, 
+				incrementVersion(a),
+				new Timestamp(utoms(a.getStartTime())),
+				a.getDescription(),
+				a.getNotes(),
+				a.getTSUID()==null ? null : getFqnIdForTsUid(conn, a.getTSUID()),
+				a.getEndTime()==0 ? null : new Timestamp(utoms(a.getEndTime())),
+				JSONMapSupport.nokToString(a.getCustom()),
+				annId
+		);		
 	}	
 	
 	
@@ -970,44 +975,28 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void processAnnotation(Connection conn, Annotation annotation) {
-		try {
-			if(exists(conn, annotation)) {
-				updateAnnotation(conn, annotation);
-				return;
-			}
-			if(annotationsPs==null) annotationsPs = conn.prepareStatement(TSD_INSERT_ANNOTATION);
-			long startTime = annotation.getStartTime(); 
-			if(startTime==0) {
-				startTime = SystemClock.unixTime();
-				annotation.setStartTime(startTime);
-			}
-			long annId = annSequence.next();
-			annotationsPs.setLong(1, annId);
-			annotationsPs.setTimestamp(3, new Timestamp(utoms(startTime)));
-			annotationsPs.setString(4, annotation.getDescription());
-			annotationsPs.setString(5, annotation.getNotes());
-			if(annotation.getTSUID()==null) {
-				annotationsPs.setNull(6, Types.BIGINT);
-			} else {
-				annotationsPs.setLong(6, H2Support.fqnId(conn, annotation.getTSUID()));
-			}
-			
-			
-			long endTime = annotation.getEndTime();
-			if(endTime==0) {
-				annotationsPs.setNull(7, Types.TIMESTAMP);
-			} else {
-				annotationsPs.setTimestamp(7, new Timestamp(utoms(endTime)));
-			}			
-			HashMap<String, String> custom = fillInCustom(annotation.getCustom());
-			custom.put(PK_KEY, Long.toString(annId));
-			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
-			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
-			annotation.setCustom(custom);
-			annotationsPs.addBatch();
-		} catch (SQLException sex) {
-			throw new RuntimeException("Failed to store annotation [" + annotation.getDescription() + "]", sex);
+		if(exists(conn, annotation)) {
+			updateAnnotation(conn, annotation);
+			return;
 		}
+		long startTime = annotation.getStartTime(); 
+		if(startTime==0) {
+			startTime = SystemClock.unixTime();
+			annotation.setStartTime(startTime);
+		}
+		long annId = annSequence.next();		
+		int version = incrementVersion(annotation);
+		fillInCustom(annotation.getCustom());
+		long endTime = annotation.getEndTime();
+		annotationsPs = sqlWorker.batch(conn, annotationsPs, TSD_INSERT_ANNOTATION, 
+				annId, version,
+				new Timestamp(utoms(startTime)),
+				annotation.getDescription(),
+				annotation.getNotes(),
+				annotation.getTSUID()==null ? null : H2Support.fqnId(conn, annotation.getTSUID()),
+				endTime==0 ? null : new Timestamp(utoms(endTime)),
+				JSONMapSupport.nokToString(annotation.getCustom())
+		);
 	}
 	
 	
@@ -1051,44 +1040,23 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param tsMeta The changed TSMeta 
 	 */
 	protected void updateTSMeta(Connection conn, TSMeta tsMeta) {
-		try {
-			long fqnId = getFqnIdForTsUid(conn, tsMeta.getTSUID());
-			if(tsMetaFqnUpdatePs==null) tsMetaFqnUpdatePs = conn.prepareStatement(TSUID_UPDATE_SQL);
-			Map<String, String> custom = tsMeta.getCustom();
-			if(custom==null) {
-				custom = new HashMap<String, String>(1);
-			}
-			int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
-			tsMetaFqnUpdatePs.setInt(1, version);			
-			tsMetaFqnUpdatePs.setString(2, tsMeta.getMetric().getUID());
-			tsMetaFqnUpdatePs.setString(3, getFQN(tsMeta));
-			if(isNaNToNull() && Double.isNaN(tsMeta.getMax())) {
-				tsMetaFqnUpdatePs.setNull(4, Types.DOUBLE);
-			} else {
-				tsMetaFqnUpdatePs.setDouble(4, tsMeta.getMax());
-			}
-			if(isNaNToNull() && Double.isNaN(tsMeta.getMin())) {
-				tsMetaFqnUpdatePs.setNull(5, Types.DOUBLE);
-			} else {
-				tsMetaFqnUpdatePs.setDouble(5, tsMeta.getMin());
-			}
-			tsMetaFqnUpdatePs.setString(6, tsMeta.getDataType());
-			tsMetaFqnUpdatePs.setString(7, tsMeta.getDescription());
-			tsMetaFqnUpdatePs.setString(8, tsMeta.getDisplayName());
-			tsMetaFqnUpdatePs.setString(9, tsMeta.getNotes());
-			tsMetaFqnUpdatePs.setString(10, tsMeta.getUnits());
-			tsMetaFqnUpdatePs.setInt(11, tsMeta.getRetention());
-			tsMetaFqnUpdatePs.setString(12, JSONMapSupport.nokToString(custom));
-			tsMetaFqnUpdatePs.setLong(13, fqnId);
-			tsMetaFqnUpdatePs.addBatch();
-//			TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA " +
-//					"VERSION = ?, METRIC_UID = ?, FQN = ?, MAX_VALUE = ?, MIN_VALUE = ?," +
-//					"DATA_TYPE = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, UNITS = ?" +
-//					"RETENTION = ?, CUSTOM = ?" + 
-//					" WHERE FQNID = ?";			
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to update tsmeta [" + tsMeta + "]", ex);
-		}
+		long fqnId = getFqnIdForTsUid(conn, tsMeta.getTSUID());
+		int version = incrementVersion(tsMeta);
+		tsMetaFqnUpdatePs = sqlWorker.batch(conn, tsMetaFqnUpdatePs, TSUID_UPDATE_SQL, 
+				version,
+				tsMeta.getMetric().getUID(),
+				getFQN(tsMeta),
+				isNaNToNull() && Double.isNaN(tsMeta.getMax()) ? null : tsMeta.getMax(),
+				isNaNToNull() && Double.isNaN(tsMeta.getMin()) ? null : tsMeta.getMin(),
+				tsMeta.getDataType(),
+				tsMeta.getDescription(),
+				tsMeta.getDisplayName(),
+				tsMeta.getNotes(),
+				tsMeta.getUnits(),
+				tsMeta.getRetention(),
+				JSONMapSupport.nokToString(tsMeta.getCustom()),
+				fqnId						
+		);
 	}
 	
 	/**
@@ -1167,61 +1135,36 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			fqn.append(tag.getKey()).append("=").append(tag.getValue()).append(",");
 		}
 		fqn.deleteCharAt(fqn.length()-1);
-		try {
-			// annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
-//			Map<String, String> custom = fillInCustom(annotation.getCustom());
-//			annotationsPs.setString(8, JSONMapSupport.nokToString(custom));
-//			annotationsPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
-			
-			if(tsMetaFqnPs==null) tsMetaFqnPs = conn.prepareStatement(TSUID_INSERT_SQL);
-			long fqnSeq = fqnSequence.next();
-			tsMetaFqnPs.setLong(1, fqnSeq);
-			tsMetaFqnPs.setString(3, tsMeta.getMetric().getUID());
-			tsMetaFqnPs.setString(4, fqn.toString());
-			tsMetaFqnPs.setString(5, tsMeta.getTSUID());
-			tsMetaFqnPs.setTimestamp(6, new Timestamp(utoms(tsMeta.getCreated())));
-			if(isNaNToNull() && Double.isNaN(tsMeta.getMax())) {
-				tsMetaFqnPs.setNull(7, Types.DOUBLE);
-			} else {
-				tsMetaFqnPs.setDouble(7, tsMeta.getMax());
-			}
-			if(isNaNToNull() && Double.isNaN(tsMeta.getMin())) {
-				tsMetaFqnPs.setNull(8, Types.DOUBLE);
-			} else {
-				tsMetaFqnPs.setDouble(8, tsMeta.getMin());
-			}
-			tsMetaFqnPs.setString(9, tsMeta.getDataType());
-			tsMetaFqnPs.setString(10, tsMeta.getDescription());
-			tsMetaFqnPs.setString(11, tsMeta.getDisplayName());
-			tsMetaFqnPs.setString(12, tsMeta.getNotes());
-			tsMetaFqnPs.setString(13, tsMeta.getUnits());
-			tsMetaFqnPs.setInt(14, tsMeta.getRetention());
-			HashMap<String, String> custom = fillInCustom(tsMeta.getCustom());
-			custom.put(PK_KEY, Long.toString(fqnSeq));
-			tsMetaFqnPs.setString(15, JSONMapSupport.nokToString(custom));
-			tsMetaFqnPs.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));			
-			tsMeta.setCustom(custom);
-			tsMetaFqnPs.addBatch();
-			batchedtsMetaInserts++;
-			if(uidMetaTagPairFQNPs==null) uidMetaTagPairFQNPs = conn.prepareStatement(TSD_FQN_TAGPAIR_SQL); 
-			LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
-			int pairCount = tsMeta.getTags().size()/2;
-			int leaf = pairCount-1;
-			for(short i = 0; i < pairCount; i++) {
-				String pairUID = pairs.removeFirst().getUID() + pairs.removeFirst().getUID();
-				uidMetaTagPairFQNPs.setLong(1, fqnTpSequence.next());
-				uidMetaTagPairFQNPs.setLong(2, fqnSeq);
-				uidMetaTagPairFQNPs.setString(3, pairUID);
-				uidMetaTagPairFQNPs.setShort(4, i);
-				if(i==leaf) {
-					uidMetaTagPairFQNPs.setString(5, "L");
-				} else {
-					uidMetaTagPairFQNPs.setString(5, "B");
-				}
-				uidMetaTagPairFQNPs.addBatch();
-			}
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to store TSMeta [" + tsMeta + "]", ex);
+		long fqnSeq = fqnSequence.next();		
+		int version = incrementVersion(tsMeta);
+		tsMetaFqnPs = sqlWorker.batch(conn, tsMetaFqnPs, TSUID_INSERT_SQL, 
+				fqnSeq,	version,
+				tsMeta.getMetric().getUID(),
+				fqn.toString(),
+				tsMeta.getTSUID(),
+				new Timestamp(utoms(tsMeta.getCreated())),
+				isNaNToNull() && Double.isNaN(tsMeta.getMax()) ? null : tsMeta.getMax(),
+				isNaNToNull() && Double.isNaN(tsMeta.getMin()) ? null : tsMeta.getMin(),
+				tsMeta.getDataType(),
+				tsMeta.getDescription(),
+				tsMeta.getDisplayName(),
+				tsMeta.getNotes(),
+				tsMeta.getRetention(),
+				JSONMapSupport.nokToString(tsMeta.getCustom())					
+		);
+		batchedtsMetaInserts++;
+		LinkedList<UIDMeta> pairs = new LinkedList<UIDMeta>(tsMeta.getTags());
+		int pairCount = tsMeta.getTags().size()/2;
+		int leaf = pairCount-1;
+		for(short i = 0; i < pairCount; i++) {
+			String pairUID = pairs.removeFirst().getUID() + pairs.removeFirst().getUID();
+			uidMetaTagPairFQNPs = sqlWorker.batch(conn, uidMetaTagPairFQNPs, TSD_FQN_TAGPAIR_SQL, 
+					fqnTpSequence.next(),
+					fqnSeq,
+					pairUID,
+					i,
+					(i==leaf) ? "L" : "B"
+			);				
 		}
 	}
 	
@@ -1233,25 +1176,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public String processUIDMetaPair(final Set<String> batchUidPairs, Connection conn, UIDMeta[] tagPair) {
 		if(tagPair[0].getType()!=UniqueIdType.TAGK) throw new IllegalArgumentException("Provided uidMetaKey was expected to be of type TAGK but was actually [" + tagPair[0].getType() + "]");
 		if(tagPair[1].getType()!=UniqueIdType.TAGV) throw new IllegalArgumentException("Provided uidMetaValue was expected to be of type TAGV but was actually [" + tagPair[1].getType() + "]");
-		String tagPairUid = tagPair[0].getUID() + tagPair[1].getUID();
-		
-		if(batchUidPairs.contains(tagPairUid)) return tagPairUid; 
-		
+		String tagPairUid = tagPair[0].getUID() + tagPair[1].getUID();		
+		if(batchUidPairs.contains(tagPairUid)) return tagPairUid; 		
 		if(tagPairStored(conn, tagPairUid)) return tagPairUid;
-		
-		try {
-			if(uidMetaTagPairPs==null) {
-				uidMetaTagPairPs = conn.prepareStatement(INSERT_TAGPAIR_SQL);
-			}
-			uidMetaTagPairPs.setString(1, tagPairUid);
-			uidMetaTagPairPs.setString(2, tagPair[0].getUID());
-			uidMetaTagPairPs.setString(3, tagPair[1].getUID());
-			uidMetaTagPairPs.setString(4, tagPair[0].getName() + "=" + tagPair[1].getName());
-			uidMetaTagPairPs.addBatch();
-			batchUidPairs.add(tagPairUid);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to write tagpair [" + tagPairUid + "]", ex);
-		} 
+		uidMetaTagPairPs = sqlWorker.batch(conn, uidMetaTagPairPs, INSERT_TAGPAIR_SQL, tagPairUid, tagPair[0].getUID(), tagPair[1].getUID(), tagPair[0].getName() + "=" + tagPair[1].getName());
+		batchUidPairs.add(tagPairUid);
 		return null;
 	}
 	
@@ -1266,33 +1195,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param uidMeta The UIDMeta to delete
 	 */
 	@Override
-	public void deleteUIDMeta(Connection conn, UIDMeta uidMeta) {		
-		PreparedStatement ps = null;		
-		try {
-			if(uidMeta.getType()==UniqueIdType.TAGK || uidMeta.getType()==UniqueIdType.TAGV) {
-				// try deleting the parent tag pair. if this fails, bail out quietly
-				try {
-					ps = conn.prepareStatement(String.format(TSD_DELETE_UID_PARENT, uidMeta.getType().name()));
-					ps.setString(1, uidMeta.getUID());
-					ps.executeUpdate();
-				} catch (Exception ex) {
-					log.info("Failed to delete tagpair parent for [{}]", uidMeta);
-					return;					
-				} finally {
-					if (ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-				}
-			}
-			ps = conn.prepareStatement(String.format(TSD_DELETE_UID, uidMeta.getType().name()));
-			ps.setString(1, uidMeta.getUID());
-			int dcount = ps.executeUpdate();
-			if(dcount!=1) {
-				throw new Exception("Deletion returned update count of [" + dcount + "]");
-			}			
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to delete UID [" + uidMeta.getUID() + "]", ex);
-		} finally {
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+	public void deleteUIDMeta(Connection conn, UIDMeta uidMeta) {
+		if(uidMeta.getType()==UniqueIdType.TAGK || uidMeta.getType()==UniqueIdType.TAGV) {
+			sqlWorker.executeUpdate(conn, String.format(TSD_DELETE_UID_PARENT, uidMeta.getType().name()), uidMeta.getUID());
 		}
+		sqlWorker.executeUpdate(conn, String.format(TSD_DELETE_UID, uidMeta.getType().name()), uidMeta.getUID());
 	}
 	
 	/**
@@ -1302,19 +1209,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void deleteTSMeta(Connection conn, String tsUid) {		
-		PreparedStatement ps = null;		
-		try {
-			ps = conn.prepareStatement(TSD_DELETE_TS);
-			ps.setString(1, tsUid);
-			int dcount = ps.executeUpdate();
-			if(dcount!=1) {
-				throw new Exception("Deletion returned update count of [" + dcount + "]");
-			}
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to delete TSUID [" + tsUid + "]", ex);
-		} finally {
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
+		sqlWorker.executeUpdate(conn, TSD_DELETE_TS, tsUid);
 	}
 	
 	/**
@@ -1324,47 +1219,18 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void deleteAnnotation(Connection conn, Annotation annotation) {		
-		PreparedStatement ps = null;		
-		try {
-			String pk = annotation.getCustom().get(PK_KEY);
-			if(pk!=null) {
-				try {
-					long annId = Long.parseLong(pk);
-					ps = conn.prepareStatement("DELETE FROM TSD_ANNOTATION WHERE ANNID = ?");
-					ps.setLong(1, annId);
-					int dcount = ps.executeUpdate();
-					if(dcount!=1) {
-						throw new Exception("Deletion returned update count of [" + dcount + "]");
-					}					
-					return;
-				} catch (Exception ex) {
-					/* No Op */
-					ex.printStackTrace(System.err);
-					} finally {
-					if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-				}
-			}
-			ps = conn.prepareStatement(TSD_DELETE_ANNOTATION);
-			ps.setTimestamp(1, new Timestamp(TimeUnit.MILLISECONDS.convert(annotation.getStartTime(), TimeUnit.SECONDS)));
-			
-			if(annotation.getTSUID()==null) {
-				ps.setNull(2, Types.BIGINT);
-			} else {
-				long fqnId = H2Support.fqnId(conn, annotation.getTSUID());
-				if(fqnId==-1) {
-					ps.setNull(2, Types.BIGINT);
-				} else {
-					ps.setLong(2, H2Support.fqnId(conn, annotation.getTSUID()));
-				}
-			}
-			int dcount = ps.executeUpdate();
-			if(dcount!=1) {
-				throw new Exception("Deletion returned update count of [" + dcount + "]");
-			}
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to delete Annotation [" + annotation + "]", ex);
-		} finally {
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
+		String pk = annotation.getCustom().get(PK_KEY);
+		if(pk!=null) {
+			long annId = Long.parseLong(pk);
+			sqlWorker.executeUpdate(conn, "DELETE FROM TSD_ANNOTATION WHERE ANNID = ?", annId);
+			return;
+		} else {
+			sqlWorker.executeUpdate(conn, TSD_DELETE_ANNOTATION, 						
+					new Timestamp(utoms(annotation.getStartTime())),
+					annotation.getTSUID()==null ? null : 
+						H2Support.fqnId(conn, annotation.getTSUID())==-1 ? null : 
+							H2Support.fqnId(conn, annotation.getTSUID())
+			);
 		}
 	}
 	
@@ -1560,24 +1426,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the TSUID
 	 */
 	public String getTSUIDForFQNId(long fqnId) {
-		Connection conn = null;
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			conn = dataSource.getConnection();
-			ps = conn.prepareStatement("SELECT TSUID from TSD_TSMETA WHERE FQNID = ?");
-			ps.setLong(1,  fqnId);
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getString(1);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to get TSUID for TSMeta [" + fqnId + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-		}
-		
+		return sqlWorker.sqlForString("SELECT TSUID from TSD_TSMETA WHERE FQNID = ?", fqnId);
 	}
 	
 	// ===================================================================================================
@@ -1591,20 +1440,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public boolean exists(Connection conn, TSMeta tsMeta) {
 		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(TSUID_EXISTS_SQL);
-			ps.setString(1, tsMeta.getTSUID());
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1) > 0;
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on TSMeta [" + tsMeta + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
+		return sqlWorker.sqlForBool(conn, TSUID_EXISTS_SQL, tsMeta.getTSUID());
 	}
 	
 	/**
@@ -1613,15 +1449,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public boolean exists(TSMeta tsMeta) {
-		Connection conn = null;
-		try {
-			conn = dataSource.getConnection();
-			return exists(conn, tsMeta);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on TSMeta [" + tsMeta + "]", ex);
-		} finally {
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-		}		
+		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
+		return sqlWorker.sqlForBool(TSUID_EXISTS_SQL, tsMeta.getTSUID());
 	}
 
 
@@ -1632,20 +1461,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public boolean exists(Connection conn, UIDMeta uidMeta) {
 		if(uidMeta==null) throw new IllegalArgumentException("The passed UIDMeta was null");
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(String.format(UID_EXISTS_SQL, uidMeta.getType().name()));
-			ps.setString(1, uidMeta.getUID()); 
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1) > 0;
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on UIDMeta [" + uidMeta + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
+		return sqlWorker.sqlForBool(conn, String.format(UID_EXISTS_SQL, uidMeta.getType().name()), uidMeta.getUID());
 	}
 	
 	/**
@@ -1654,15 +1470,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public boolean exists(UIDMeta uidMeta) {
-		Connection conn = null;
-		try {
-			conn = dataSource.getConnection();
-			return exists(conn, uidMeta);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on UIDMeta [" + uidMeta + "]", ex);
-		} finally {
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-		}		
+		if(uidMeta==null) throw new IllegalArgumentException("The passed UIDMeta was null");
+		return sqlWorker.sqlForBool(String.format(UID_EXISTS_SQL, uidMeta.getType().name()), uidMeta.getUID());
 	}
 	
 	
@@ -1672,15 +1481,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public boolean exists(Annotation annotation) {
-		Connection conn = null;
-		try {
-			conn = dataSource.getConnection();
-			return exists(conn, annotation);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on Annotation [" + annotation + "]", ex);
-		} finally {
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-		}
+		if(annotation==null) throw new IllegalArgumentException("The passed Annotation was null");
+		return sqlWorker.sqlForBool(ANNOTATION_EXISTS_SQL, new Timestamp(utoms(annotation.getStartTime())), annotation.getTSUID());
 	}
 	
 
@@ -1692,26 +1494,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	public boolean exists(Connection conn, Annotation annotation) {
 		if(annotation==null) throw new IllegalArgumentException("The passed Annotation was null");
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(ANNOTATION_EXISTS_SQL);
-			ps.setTimestamp(1, new Timestamp(utoms(annotation.getStartTime())));
-			if(annotation.getTSUID()==null) {
-				ps.setNull(2, Types.VARCHAR);
-			} else {
-				ps.setString(2, annotation.getTSUID());
-			}
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1) > 0;
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to lookup exists on Annotation [" + annotation + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
-		
+		return sqlWorker.sqlForBool(conn, ANNOTATION_EXISTS_SQL, new Timestamp(utoms(annotation.getStartTime())), annotation.getTSUID());
 	}
 	
 	
@@ -1847,20 +1630,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return true if stored, false otherwise
 	 */
 	public boolean tagPairStored(Connection conn, String tagPairUid) {
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(UID_PAIR_EXISTS_SQL);
-			ps.setString(1, tagPairUid);
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1)>0;
-		} catch (SQLException sex) {
-			throw new RuntimeException("Failed to lookup UIDMeta Pair [" + tagPairUid + "]", sex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-		}
+		return sqlWorker.sqlForBool(conn, UID_PAIR_EXISTS_SQL, tagPairUid);
 	}
 
 	
@@ -1911,28 +1681,18 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
      * @param meta The meta to summarize
      * @return the summary map
      */
-    public Map<String, Object> summarize(TSMeta meta) {
-    	Connection conn = null;
-		PreparedStatement ps = null;
-		ResultSet rset = null;    	
+    @SuppressWarnings("resource")
+	public Map<String, Object> summarize(TSMeta meta) {
     	try {
-	    	conn = dataSource.getConnection();
-	    	
 	    	
     		final HashMap<String, Object> map = 
 	    			new HashMap<String, Object>(3);
 	    	map.put("tsuid", meta.getTSUID());
-	    	ps = conn.prepareStatement("SELECT NAME FROM TSD_METRIC WHERE XUID = ?");
-	    	ps.setString(1, meta.getCustom().remove(TSMETA_METRIC_KEY));
-	    	rset = ps.executeQuery();
-	    	if(rset.next()) {
-	    		map.put("metric", rset.getString(1));
+	    	String name = sqlWorker.sqlForString("SELECT NAME FROM TSD_METRIC WHERE XUID = ?", meta.getCustom().remove(TSMETA_METRIC_KEY));
+	    	if(name!=null) {
+	    		map.put("metric", name);
 	    	}
-	    	rset.close();
-	    	ps.close();
-	    	ps = conn.prepareStatement("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER");
-	    	ps.setLong(1, Long.parseLong(meta.getCustom().get(PK_KEY)));
-	    	rset = ps.executeQuery();
+	    	ResultSet rset = sqlWorker.executeQuery("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER", true, Long.parseLong(meta.getCustom().get(PK_KEY)));
 	    	final Map<String, String> tags = 
 	    			new LinkedHashMap<String, String>();
 
@@ -1944,10 +1704,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	    	return map;
     	} catch (Exception ex) {
     		throw new RuntimeException("Failed to summarize TSMeta list", ex);
-    	} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}    		
     	}
     }
     
@@ -2369,23 +2125,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the count
 	 */
 	protected int getCount(String tName) {
-		Connection conn = null;
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			conn = dataSource.getConnection();
-			ps = conn.prepareStatement("SELECT COUNT(*) FROM " + tName);
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getInt(1);
-		} catch (Exception ex) {
-			log.error("Failed to get count for [" + tName + "]", ex);
-			return -1;
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}
-			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
-		}
+		return sqlWorker.sqlForInt("SELECT COUNT(*) FROM " + tName);
 	}
 	
 	/**
@@ -2410,6 +2150,38 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		} catch (Exception ex) {
 			return "Not Available";
 		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerLevel()
+	 */
+	public String getLoggerLevel() {
+		return loggerManager.getLoggerLevel();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLoggerEffectiveLevel()
+	 */
+	public String getLoggerEffectiveLevel() {
+		return loggerManager.getLoggerEffectiveLevel();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#setLoggerLevel(java.lang.String)
+	 */
+	public void setLoggerLevel(String level) {
+		loggerManager.setLoggerLevel(level);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.handlers.logging.LoggerManager#getLevelNames()
+	 */
+	public String[] getLevelNames() {
+		return loggerManager.getLevelNames();
 	}
 	
 }

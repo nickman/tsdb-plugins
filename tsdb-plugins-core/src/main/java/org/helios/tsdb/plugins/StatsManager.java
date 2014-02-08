@@ -22,38 +22,39 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.stats;
+package org.helios.tsdb.plugins;
 
 /**
- * <p>Title: ComponentStatsAccumulator</p>
- * <p>Description: Accepts individual named stats dropped from the owning component and provides aggregated stats flushes to the TSDB on collections.</p> 
+ * <p>Title: StatsManager</p>
+ * <p>Description: A JMX managed stats accumulator</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>stats.ComponentStatsAccumulator</code></p>
+ * <p><code>org.helios.tsdb.plugins.StatsManager</code></p>
  */
 
-public class ComponentStatsAccumulator {
+public class StatsManager {
 	/** The object logically providing the stats */
 	protected final Object source;
 	/** The name of the object logically providing the stats */
 	protected final String name;
-
+	
 	/**
-	 * Creates a new ComponentStatsAccumulator
+	 * Creates a new StatsManager
 	 * @param source The object logically providing the stats
 	 * @param name The name of the object logically providing the stats
 	 */
-	public ComponentStatsAccumulator(Object source, String name) {
+	public StatsManager(Object source, String name) {
 		this.source = source;
 		this.name = name;
 	}
 
 	/**
-	 * Creates a new ComponentStatsAccumulator
+	 * Creates a new StatsManager
 	 * @param source The object logically providing the stats
 	 */
-	public ComponentStatsAccumulator(Object source) {
+	public StatsManager(Object source) {
 		this(source, source.getClass().getSimpleName());
 	}
-
+	
+	
 }

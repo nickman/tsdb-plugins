@@ -150,11 +150,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		long fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		long fqnTagPairSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR, extracted);
 		long fqnAnnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted);
-		long syncQSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_SYNCQ_SEQ_INCR, DEFAULT_DB_SYNCQ_SEQ_INCR, extracted);
 		userDefinedVars.put(FQN_SEQ_SIZE, fqnSeqIncrement);
 		userDefinedVars.put(FQN_TP_SEQ_SIZE, fqnTagPairSeqIncrement);
 		userDefinedVars.put(ANN_SEQ_SIZE, fqnAnnSeqIncrement);
-		userDefinedVars.put(QID_SEQ_SIZE, syncQSeqIncrement);
 		log.info("Processing DDL Resources:{}", Arrays.toString(ddlResources));
 		runDDLResources(userDefinedVars);
 		log.info("DDL Resources Processed");

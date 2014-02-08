@@ -398,7 +398,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
-		sqlWorker = new SQLWorker(dataSource);
+		sqlWorker = SQLWorker.getInstance(dataSource);
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
@@ -530,53 +530,58 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		BatchMileStone latch = null;
 		final boolean trace = log.isTraceEnabled();
 		try {			
-			for(TSDBSearchEvent event: events) {
-				if(BatchMileStone.class.isInstance(event)) {
-					log.info("==== Set Milestone ====");
-					latch = (BatchMileStone)event;
-					continue;
-				}
-				ops++;
-				switch(event.eventType) {
-				case ANNOTATION_DELETE:		
-					if(shouldIgnore(event.annotation)) continue;
-					if(trace) log.trace("Deleting annotation [{}]", event.annotation);
-					deleteAnnotation(conn, event.annotation);
-					break;
-				case ANNOTATION_INDEX:
-					if(shouldIgnore(event.annotation)) continue;
-					if(trace) log.trace("Indexing annotation [{}]", event.annotation);
-					annotations.add(event.annotation);
-					break;
-				case TSMETA_DELETE:					
-					deleteTSMeta(conn, event.tsuid);
-					if(trace) log.trace("Deleting TSMeta [{}]", event.tsuid);
-					break;
-				case TSMETA_INDEX:
-					if(shouldIgnore(event.tsMeta)) continue;
-					TSMeta tsMeta = event.tsMeta;
-					if(trace) log.trace("Indexing TSMeta [{}]", event.tsMeta);
-					processTSMeta(batchedUidPairs, conn, tsMeta);
-					break;
-				case UIDMETA_DELETE:
-					if(shouldIgnore(event.uidMeta)) continue;
-					if(trace) log.trace("Deleting UIDMeta [{}]", event.uidMeta);
-					deleteUIDMeta(conn, event.uidMeta);
-					break;
-				case UIDMETA_INDEX:		
-					if(shouldIgnore(event.uidMeta)) continue;
-					if(trace) log.trace("Indexing UIDMeta [{}]", event.uidMeta);
-					if(!batchedUids.contains(event.uidMeta.toString())) {
-						processUIDMeta(conn, event.uidMeta);
-						batchedUids.add(event.uidMeta.toString());
+			try {
+				for(TSDBSearchEvent event: events) {
+					if(BatchMileStone.class.isInstance(event)) {
+						log.info("==== Set Milestone ====");
+						latch = (BatchMileStone)event;
+						continue;
 					}
-					//log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
-					break;
-				default:
-					log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
-					break;					
-				}
-			} // end for event processor for loop
+					ops++;
+					switch(event.eventType) {
+					case ANNOTATION_DELETE:		
+						if(shouldIgnore(event.annotation)) continue;
+						if(trace) log.trace("Deleting annotation [{}]", event.annotation);
+						deleteAnnotation(conn, event.annotation);
+						break;
+					case ANNOTATION_INDEX:
+						if(shouldIgnore(event.annotation)) continue;
+						if(trace) log.trace("Indexing annotation [{}]", event.annotation);
+						annotations.add(event.annotation);
+						break;
+					case TSMETA_DELETE:					
+						deleteTSMeta(conn, event.tsuid);
+						if(trace) log.trace("Deleting TSMeta [{}]", event.tsuid);
+						break;
+					case TSMETA_INDEX:
+						if(shouldIgnore(event.tsMeta)) continue;
+						TSMeta tsMeta = event.tsMeta;
+						if(trace) log.trace("Indexing TSMeta [{}]", event.tsMeta);
+						processTSMeta(batchedUidPairs, conn, tsMeta);
+						break;
+					case UIDMETA_DELETE:
+						if(shouldIgnore(event.uidMeta)) continue;
+						if(trace) log.trace("Deleting UIDMeta [{}]", event.uidMeta);
+						deleteUIDMeta(conn, event.uidMeta);
+						break;
+					case UIDMETA_INDEX:		
+						if(shouldIgnore(event.uidMeta)) continue;
+						if(trace) log.trace("Indexing UIDMeta [{}]", event.uidMeta);
+						if(!batchedUids.contains(event.uidMeta.toString())) {
+							processUIDMeta(conn, event.uidMeta);
+							batchedUids.add(event.uidMeta.toString());
+						}
+						//log.info("Bound {} Index [{}]-[{}]", uidMeta.getType().name(), uidMeta.getName(), uidMeta.getUID());
+						break;
+					default:
+						log.warn("Unexpected event type found in event queue [{}]", event.eventType.name());
+						break;					
+					}
+				} // end for event processor for loop
+			} catch (Throwable tx) {
+				log.error("Event Process Loop Error", tx);
+				throw new RuntimeException("Event Process Loop Error", tx);
+			}
 			
 			// Execute batch inserts for TAGK, TAGV and METRIC
 			executeUIDBatches(conn);
@@ -708,21 +713,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
-		ps.setString(1, uidMeta.getUID());		
-		ps.setString(3, uidMeta.getName());
-		long created = uidMeta.getCreated();
-		if(created==0) {
-			created = SystemClock.unixTime();
-		}
-		ps.setTimestamp(4, new Timestamp(utoms(created)));
-		ps.setString(5, uidMeta.getDescription());
-		ps.setString(6, uidMeta.getDisplayName());
-		ps.setString(7, uidMeta.getNotes());
-		HashMap<String, String> custom = fillInCustom(uidMeta.getCustom());
-		ps.setString(8, JSONMapSupport.nokToString(custom));
-		ps.setInt(2, Integer.parseInt(custom.get(VERSION_KEY)));
-		uidMeta.setCustom(custom);		
-		ps.addBatch();
+		throw new UnsupportedOperationException("Deperectaed");
 	}
 	
 	/**
@@ -731,19 +722,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void bindUIDMetaUpdate(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
-		Map<String, String> custom = uidMeta.getCustom();
-		if(custom==null) {
-			custom = new HashMap<String, String>(1);
-		}
-		int version = JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
-		ps.setInt(1, version);
-		ps.setString(2, uidMeta.getName());
-		ps.setString(3, uidMeta.getDescription());
-		ps.setString(4, uidMeta.getDisplayName());
-		ps.setString(5, uidMeta.getNotes());
-		ps.setString(6, JSONMapSupport.nokToString(custom));
-		ps.setString(7, uidMeta.getUID());
-		ps.addBatch();
+		throw new UnsupportedOperationException("Deperectaed");
 	}
 	
 	/**
@@ -838,19 +817,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			if(!exists(conn, uidMeta)) {
 				switch(uidMeta.getType()) {
-					case METRIC:							
-						if(uidMetaMetricIndexPs==null) uidMetaMetricIndexPs = conn.prepareStatement(getUIDMetaMetricIndexSQL());							
-						bindUIDMeta(uidMeta, uidMetaMetricIndexPs);
+					case METRIC:
+						uidMetaMetricIndexPs = sqlWorker.batch(conn, uidMetaMetricIndexPs, getUIDMetaMetricIndexSQL(), getInsertBinds(uidMeta));
 						incrementOpCounter(METRIC_INSERT_CNT);
 						break;
 					case TAGK:
-						if(uidMetaTagKIndexPs==null) uidMetaTagKIndexPs = conn.prepareStatement(getUIDMetaTagKIndexSQL());
-						bindUIDMeta(uidMeta, uidMetaTagKIndexPs);
+						uidMetaTagKIndexPs = sqlWorker.batch(conn, uidMetaTagKIndexPs, getUIDMetaTagKIndexSQL(), getInsertBinds(uidMeta));								
 						incrementOpCounter(TAGK_INSERT_CNT);
 						break;
 					case TAGV:
-						if(uidMetaTagVIndexPs==null) uidMetaTagVIndexPs = conn.prepareStatement(getUIDMetaTagVIndexSQL());
-						bindUIDMeta(uidMeta, uidMetaTagVIndexPs);
+						uidMetaTagVIndexPs = sqlWorker.batch(conn, uidMetaTagVIndexPs, getUIDMetaTagVIndexSQL(), getInsertBinds(uidMeta));								
 						incrementOpCounter(TAGV_INSERT_CNT);
 						break;
 					default:
@@ -858,20 +834,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 						break;
 				}				
 			} else {
-				switch(uidMeta.getType()) {
+				switch(uidMeta.getType()) {  
 					case METRIC:							
-						if(uidMetaMetricUpdatePs==null) uidMetaMetricUpdatePs = conn.prepareStatement(getUIDMetaMetricUpdateSQL());							
-						bindUIDMetaUpdate(uidMeta, uidMetaMetricUpdatePs);
+						uidMetaMetricUpdatePs = sqlWorker.batch(conn, uidMetaMetricUpdatePs, getUIDMetaMetricUpdateSQL(), getUpdateBinds(uidMeta));
 						incrementOpCounter(METRIC_UPDATE_CNT);
 						break;
 					case TAGK:
-						if(uidMetaTagKUpdatePs==null) uidMetaTagKUpdatePs = conn.prepareStatement(getUIDMetaTagKUpdateSQL());
-						bindUIDMetaUpdate(uidMeta, uidMetaTagKUpdatePs);
+						uidMetaTagKUpdatePs = sqlWorker.batch(conn, uidMetaTagKUpdatePs, getUIDMetaTagKUpdateSQL(), getUpdateBinds(uidMeta));
 						incrementOpCounter(TAGK_UPDATE_CNT);
 						break;
 					case TAGV:
-						if(uidMetaTagVUpdatePs==null) uidMetaTagVUpdatePs = conn.prepareStatement(getUIDMetaTagVUpdateSQL());
-						bindUIDMetaUpdate(uidMeta, uidMetaTagVUpdatePs);
+						uidMetaTagVUpdatePs = sqlWorker.batch(conn, uidMetaTagVUpdatePs, getUIDMetaTagVUpdateSQL(), getUpdateBinds(uidMeta));
 						incrementOpCounter(TAGV_UPDATE_CNT);
 						break;
 					default:
@@ -879,10 +852,48 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 						break;
 				}								
 			}
-		} catch (SQLException sex) {
-			throw new RuntimeException("Failed to process UIDMeta [" + uidMeta + "]", sex);
+		} catch (Exception ex) {
+			log.error("Failed to process UIDMeta [" + uidMeta + "]", ex);
+			throw new RuntimeException("Failed to process UIDMeta [" + uidMeta + "]", ex);
 		}
 	}
+	
+	/**
+	 * Returns an array of binding values for a UIDMeta insertion
+	 * @param uidMeta The UIDMeta to create binding values for
+	 * @return the insertion binding values
+	 */
+	protected Object[] getInsertBinds(UIDMeta uidMeta) {
+		int version = incrementVersion(uidMeta);
+		long created = uidMeta.getCreated();						
+		return new Object[]{
+				uidMeta.getUID(), version, uidMeta.getName(), 
+				created>0 ? new Timestamp(utoms(created)) : new Timestamp(SystemClock.time()),
+				uidMeta.getDescription(),
+				uidMeta.getDisplayName(),
+				uidMeta.getNotes(),
+				JSONMapSupport.nokToString(uidMeta.getCustom())				
+		};
+	}
+	
+	/**
+	 * Returns an array of binding values for a UIDMeta update
+	 * @param uidMeta The UIDMeta to create binding values for
+	 * @return the update binding values
+	 */
+	protected Object[] getUpdateBinds(UIDMeta uidMeta) {
+		int version = incrementVersion(uidMeta);					
+		return new Object[]{
+			version, uidMeta.getName(),
+			uidMeta.getDescription(),
+			uidMeta.getDisplayName(),
+			uidMeta.getNotes(),
+			JSONMapSupport.nokToString(uidMeta.getCustom()),				
+			uidMeta.getUID()
+		};				
+	}
+	
+	
 	
 	/**
 	 * Retrieves the ANNID for the passed annotation
@@ -1149,6 +1160,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				tsMeta.getDescription(),
 				tsMeta.getDisplayName(),
 				tsMeta.getNotes(),
+				tsMeta.getUnits(),
 				tsMeta.getRetention(),
 				JSONMapSupport.nokToString(tsMeta.getCustom())					
 		);

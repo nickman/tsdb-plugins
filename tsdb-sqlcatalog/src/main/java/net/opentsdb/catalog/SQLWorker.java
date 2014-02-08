@@ -38,8 +38,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.sun.rowset.CachedRowSetImpl;
-
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtField;
@@ -51,6 +49,13 @@ import javassist.Modifier;
 import javax.sql.DataSource;
 
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+
+import com.sun.rowset.CachedRowSetImpl;
 
 /**
  * <p>Title: SQLWorker</p>
@@ -67,6 +72,11 @@ public class SQLWorker {
 	protected final DataSource dataSource;
 	/** The binder factory for the data source */
 	protected final BinderFactory binderFactory;
+	/** The JDBC URL of the data source's database */
+	protected final String dbUrl;
+	
+	/** Static class Logger */
+	protected static final Logger log = LoggerFactory.getLogger(SQLWorker.class);
 	
 	/** A map of SQLWorkers keyed by their data source */
 	protected static final Map<String, SQLWorker> workers = new ConcurrentHashMap<String, SQLWorker>();
@@ -90,8 +100,9 @@ public class SQLWorker {
 				synchronized(workers) {
 					worker = workers.get(url);
 					if(worker==null) {
-						worker = new SQLWorker(dataSource);
+						worker = new SQLWorker(url, dataSource);
 						workers.put(url, worker);
+						log.info("\n\t=======================================\n\tCreated SQLWorker for [{}]\n\t=======================================\n", url);
 					}
 				}
 			}
@@ -105,10 +116,12 @@ public class SQLWorker {
 
 	/**
 	 * Creates a new SQLWorker
+	 * @param dbUrl The URL of the DB
 	 * @param dataSource The data source this SQLWorker will use
 	 */
-	public SQLWorker(DataSource dataSource) {
+	private SQLWorker(String dbUrl, DataSource dataSource) {
 		this.dataSource = dataSource;
+		this.dbUrl = dbUrl;
 		binderFactory = new BinderFactory(this.dataSource);
 	}
 	
@@ -180,7 +193,6 @@ public class SQLWorker {
 	 * @param args The query bind arguments
 	 * @return A result set for the query
 	 */
-	@SuppressWarnings("resource")
 	public ResultSet executeQuery(String sqlText, boolean disconnected, Object...args) {
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -274,7 +286,6 @@ public class SQLWorker {
 	 * @return the batched prepared statement
 	 */
 	public PreparedStatement batch(Connection conn, PreparedStatement ps, String sqlText, Object...args) {
-		System.err.println("Batching [" + sqlText + "] \n\t" + Arrays.toString(args));
 		try {
 			if(ps==null) {
 				ps = conn.prepareStatement(sqlText);
@@ -296,7 +307,9 @@ public class SQLWorker {
 	 * @return true if the first int from the first column of the first row is > 0, otherwise false
 	 */
 	public boolean sqlForBool(Connection conn, String sqlText, Object...args) {
-		return sqlForInt(conn, sqlText, args) > 0;
+		int x = sqlForInt(conn, sqlText, args);
+		log.debug("sqlForBool [{}] --> [{}]", sqlText, x>0);
+		return x > 0;
 	}
 
 	/**
@@ -313,7 +326,7 @@ public class SQLWorker {
 	/**
 	 * Executes the passed query statement and returns the first column of the first row as an int
 	 * @param sqlText The query SQL text
-	 * @param args The bind arguments
+	 * @param args The bind argumentsclazz
 	 * @return The int from the first column of the first row
 	 */
 	public int sqlForInt(String sqlText, Object...args) {
@@ -332,8 +345,9 @@ public class SQLWorker {
 		ResultSet rset = null;
 		boolean newConn = conn==null;
 		try {
-			if(newConn) conn = dataSource.getConnection();
-			conn = dataSource.getConnection();
+			if(newConn) {
+				conn = dataSource.getConnection();
+			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
@@ -369,8 +383,9 @@ public class SQLWorker {
 		ResultSet rset = null;
 		boolean newConn = conn==null;
 		try {
-			if(newConn) conn = dataSource.getConnection();
-			conn = dataSource.getConnection();
+			if(newConn) {
+				conn = dataSource.getConnection();			
+			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
@@ -417,6 +432,9 @@ public class SQLWorker {
 		// SELECT * FROM INFORMATION_SCHEMA.TYPE_INFO WHERE AUTO_INCREMENT = ?
 		try {
 			log("BinderTest");
+			log("LF:%s", LoggerFactory.getILoggerFactory().getClass().getName());
+			LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
+			lc.getLogger(SQLWorker.class).setLevel(Level.DEBUG);
 			JdbcConnectionPool pool = JdbcConnectionPool.create("jdbc:h2:mem:test", "sa", "sa");
 			BinderFactory factory = new BinderFactory(pool);
 			PreparedStatementBinder psb = factory.getBinder("SELECT * FROM INFORMATION_SCHEMA.TYPE_INFO WHERE AUTO_INCREMENT = ?");
@@ -451,6 +469,12 @@ public class SQLWorker {
 		 * @return the SQL statement for this binder
 		 */
 		public String getSQL();
+		
+		/**
+		 * Returns the number of times this binder has been executed
+		 * @return the binder's execution count
+		 */
+		public long getExecutionCount();
 	}
 	
 	/**
@@ -475,6 +499,9 @@ public class SQLWorker {
 		protected final CtClass[] sqlEx;
 		/** The String ctclass */
 		protected final CtClass str;
+		/** The AtomicLong ctclass */
+		protected final CtClass atomicL;
+		
 		/** The Object ctclass */
 		protected final CtClass obj;
 		/** The Object toString ctmethod */
@@ -487,6 +514,8 @@ public class SQLWorker {
 		protected final CtMethod bindMethod;
 		/** The PreparedStatementBinder getSQL CtMethod */
 		protected final CtMethod getSqlMethod;
+		/** The PreparedStatementBinder getExec CtMethod */
+		protected final CtMethod getExecMethod;
 		
 		
 		/**
@@ -495,18 +524,28 @@ public class SQLWorker {
 		 */
 		public BinderFactory(DataSource ds) {
 			this.ds = ds;
+			Connection conn = null;
+			Statement st = null;
 			try {
-				//classPool.appendClassPath(new LoaderClassPath(ps.getClass().getClassLoader()));
 				classPool.appendClassPath(new LoaderClassPath(PreparedStatementBinder.class.getClassLoader()));
+				conn = this.ds.getConnection();
+				st = conn.createStatement();
+				classPool.appendClassPath(new LoaderClassPath(st.getClass().getClassLoader()));
+				classPool.importPackage("java.util.concurrent.locks");
 				binderIface = classPool.get(PreparedStatementBinder.class.getName());
 				bindMethod = binderIface.getDeclaredMethod("bind");
+				getExecMethod = binderIface.getDeclaredMethod("getExecutionCount");
 				getSqlMethod = binderIface.getDeclaredMethod("getSQL");
 				sqlEx = new CtClass[] {classPool.get(SQLException.class.getName())};
 				str = classPool.get(String.class.getName());
 				obj = classPool.get(Object.class.getName());
+				atomicL = classPool.get(AtomicLong.class.getName());
 				toStr = obj.getDeclaredMethod("toString");
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to create PreparedStatementBinder CtClass IFace", ex);
+			} finally {
+				if(st!=null) try { st.close(); } catch (Exception x) { /* No Op */ }
+				if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 			}
 		}
 		
@@ -543,12 +582,26 @@ public class SQLWorker {
 				conn = ds.getConnection();				
 				ps = conn.prepareStatement(sqlText);
 				ParameterMetaData pmd = ps.getParameterMetaData();
-				classPool.appendClassPath(new LoaderClassPath(ps.getClass().getClassLoader()));
+				
+				
+				
 				CtClass binderClazz = classPool.makeClass(className);
 				binderClazz.addInterface(binderIface);
+				
 				CtField sqlField = new CtField(str, "sqltext", binderClazz);
+				sqlField.setModifiers(sqlField.getModifiers() | Modifier.FINAL);
 				binderClazz.addField(sqlField, CtField.Initializer.constant(sqlText));
+				
+				CtField counterField = new CtField(atomicL, "execCounter", binderClazz);
+				counterField.setModifiers(counterField.getModifiers() | Modifier.FINAL);
+				binderClazz.addField(counterField, CtField.Initializer.byExpr("new java.util.concurrent.atomic.AtomicLong(0L)"));
 
+				CtMethod execm = CtNewMethod.copy(getExecMethod, binderClazz, null);
+				execm.setBody("{ return execCounter.get(); }");				
+				execm.setModifiers(execm.getModifiers() & ~Modifier.ABSTRACT);
+				binderClazz.addMethod(execm);
+
+				
 				CtMethod tosm = CtNewMethod.copy(toStr, binderClazz, null);
 				tosm.setBody("{ return \"PreparedStatementBinder:\" + sqltext; }");				
 				tosm.setModifiers(tosm.getModifiers() & ~Modifier.ABSTRACT);
@@ -559,25 +612,36 @@ public class SQLWorker {
 				getm.setModifiers(getm.getModifiers() & ~Modifier.ABSTRACT);
 				binderClazz.addMethod(getm);
 				
-				
 				CtMethod bindm = CtNewMethod.copy(bindMethod, binderClazz, null);
 				bindm.setExceptionTypes(sqlEx);
-				StringBuilder b = new StringBuilder("{");
+				StringBuilder b = new StringBuilder("{ execCounter.incrementAndGet(); ");
 				for(int i = 0; i < pmd.getParameterCount(); i++) {
 					int sqlType = pmd.getParameterType(i+1);
+					String objRef = new StringBuilder("$2[").append(i).append("]").toString(); 
 					b.append("if($2[").append(i).append("]==null) {");
 					b.append("$1.setNull(").append(i+1).append(", ").append(sqlType).append(");");
 					b.append("} else {");
-					b.append("$1.setObject(").append(i+1).append(", $2[").append(i).append("], ").append(sqlType).append(");");
+					b.append("$1.setObject(").append(i+1).append(", ").append(objRef).append(", ").append(sqlType).append(");");
+//					if(log.isDebugEnabled()) {
+//						String bindClass = pmd.getParameterClassName(i+1);
+//						String dbType = pmd.getParameterTypeName(i+1);
+//						b.append("\n\nSystem.out.println(\"debugbind: index:[").append((i+1)).append("] value:[\" + ").append(objRef).append(" + \"] bc: [").append(bindClass)
+//						.append("] db: [").append(dbType).append("] SQL: [").append(sqlText)
+//						.append("]\");");
+//						
+//					}
 					b.append("}");
 				}
 				b.append("}");
+				//log(b.toString());
 				bindm.setBody(b.toString());
 				bindm.setModifiers(bindm.getModifiers() & ~Modifier.ABSTRACT);
 				binderClazz.addMethod(bindm);
 				binderClazz.writeFile("/tmp/sqlworker/");
+				@SuppressWarnings("unchecked")
 				Class<PreparedStatementBinder> javaClazz = binderClazz.toClass();
 				psb = javaClazz.newInstance();
+				binderClazz.detach();
 				return psb;
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to build PreparedStatementBinder for statement [" + sqlText + "]", ex);

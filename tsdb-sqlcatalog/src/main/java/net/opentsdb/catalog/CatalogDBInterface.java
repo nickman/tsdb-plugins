@@ -70,9 +70,9 @@ public interface CatalogDBInterface {
 	/** The custom map key to identify how the object was saved */
 	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
 	/** The custom map key to specify the version of the object */
-	public static final String VERSION_KEY = "tsd.sql.version";
+	public static final String VERSION_KEY = "v";
 	/** The custom map key to specify the DB pk of the object */
-	public static final String PK_KEY = "tsd.sql.pk";
+	public static final String PK_KEY = "p";
 	/** The custom map key to specify the TSD_METRIC pk of a TSMeta object */
 	public static final String TSMETA_METRIC_KEY = "tr.mxuid";
 	

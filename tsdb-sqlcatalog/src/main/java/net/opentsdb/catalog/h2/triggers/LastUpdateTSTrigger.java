@@ -41,6 +41,8 @@ import org.helios.tsdb.plugins.util.SystemClock;
 public class LastUpdateTSTrigger extends AbstractTrigger {
 	/** The JDBC index of the <b><code>LAST_UPDATE</code></b> timestamp column */
 	private int tsColumnId = -1;
+	/** The JDBC index of the <b><code>VERSION</code></b> number column */
+	private int vColumnId = -1;
 	
 	/**
 	 * {@inheritDoc}
@@ -49,7 +51,7 @@ public class LastUpdateTSTrigger extends AbstractTrigger {
 	@Override
 	public void fire(Connection conn, Object[] oldRow, Object[] newRow) throws SQLException {
 		newRow[tsColumnId] = SystemClock.getTimestamp();
-
+		newRow[vColumnId] = ((Integer)oldRow[vColumnId])+1; 
 	}
 
 	/**
@@ -61,5 +63,10 @@ public class LastUpdateTSTrigger extends AbstractTrigger {
 		ResultSet rset = conn.getMetaData().getColumns(null, schemaName, tableName, "LAST_UPDATE");
 		rset.next();
 		tsColumnId = rset.getInt(17)-1;
+		rset.close();
+		rset = conn.getMetaData().getColumns(null, schemaName, tableName, "VERSION");
+		rset.next();
+		vColumnId = rset.getInt(17)-1;		
+		this.log.debug("\n\t@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\tV ID: {}, LAST_UPDATE ID: {} for table {}\n\t@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n", vColumnId, tsColumnId, tableName);
 	}
 }

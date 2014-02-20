@@ -38,17 +38,10 @@ public class ConfigurationHelper {
 	 * @return the merged properties
 	 */
 	public static Properties mergeProperties(Properties...properties) {
-		Properties allProps = new Properties();
-		if(properties==null || properties.length==0) {
-			Properties sys = System.getProperties();
-			for(String key: sys.stringPropertyNames()) {
-				allProps.put(key, sys.getProperty(key));
-			}			
-		} else {
-			for(int i = properties.length-1; i>=0; i--) {
-				if(properties[i] != null && properties[i].size() >0) {
-					allProps.putAll(properties[i]);
-				}
+		Properties allProps = new Properties(System.getProperties());
+		for(int i = properties.length-1; i>=0; i--) {
+			if(properties[i] != null && properties[i].size() >0) {
+				allProps.putAll(properties[i]);
 			}
 		}
 		return allProps;

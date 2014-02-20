@@ -436,10 +436,8 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			cnt++;
 		}
 		log("Updated [%s] UIDMetas", cnt);
-		// CONN POOL OK 'TILL HERE
 
 		cnt=0;
-		// CONN POOL GETS HOSED HERE. FIXME!!
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertTrue(dbInterface.exists(tsMeta));
 			tsMeta.setNotes(tsMeta.toString());
@@ -458,12 +456,13 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		waitForProcessingQueue("testMetaUpdates/Updates", 30000, TimeUnit.MILLISECONDS);
 		// Validate that all versions are 2 and the syncToStore mock object equals the original object
 		Object[][] lookups = null;
+		int index = 0;
 		for(UIDMeta uidMeta: createdUIDMetas) {
-			Assert.assertEquals("Version of UIDMeta was not 2", "2", uidMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
+			Assert.assertEquals("Version of UIDMeta [" + uidMeta + "]@[" + index + "] was not 2", "2", uidMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));
 			lookups = jdbcHelper.query("SELECT VERSION FROM TSD_" + uidMeta.getType() + " WHERE XUID = '" + uidMeta.getUID() + "'");
 			Assert.assertEquals("Query lookup by " + uidMeta.getType() + " [" + uidMeta.getUID() + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version from DB was not 2", 2, ((Number)lookups[0][0]).intValue());
-			
+			index++;
 		}
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertEquals("Version of TSMeta was not 2", "2", tsMeta.getCustom().get(CatalogDBInterface.VERSION_KEY));

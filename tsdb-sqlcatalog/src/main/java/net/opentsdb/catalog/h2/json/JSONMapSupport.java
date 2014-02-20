@@ -24,9 +24,16 @@
  */
 package net.opentsdb.catalog.h2.json;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import net.opentsdb.utils.JSON;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NumericNode;
 
 /**
  * <p>Title: JSONMapSupport</p>
@@ -98,6 +105,14 @@ public class JSONMapSupport {
 		return map==null ? EMPTY_MAP : JSON.serializeToString(nvl("Map", map));		
 	}
 
+	private static final ObjectMapper jsonMapper = new ObjectMapper();
+	private static final JsonFactory jsonFactory = jsonMapper.getFactory();
+	private static final JsonNodeFactory jsonNodeFactory = jsonMapper.getNodeFactory();
+	
+	static {
+		jsonMapper.configure(MapperFeature.USE_STATIC_TYPING, true);		
+	}
+	
 	/**
 	 * Serializes the passed map to JSON bytes
 	 * @param map The map to serialize
@@ -199,8 +214,23 @@ public class JSONMapSupport {
 	 * @return the JSON source of the modified map
 	 */
 	public static String set(CharSequence key, Object value, Map<String, String> map) {
-		map.put(nvls("Key", key), nvls("Value", value));
+		map.put(nvls("Key", key), nvls("Value", (value instanceof Number) ? numerify(value)  : value));
 		return toString(map);
+	}
+	
+	/**
+	 * Converts the passed object to a JSON numeric node
+	 * @param number A {@link Number} or a string representing one
+	 * @return A JSON Numeric Node
+	 */
+	public static NumericNode numerify(Object number) {
+		if(number==null) throw new IllegalArgumentException("Passed number was null");
+		//if(!(number instanceof Number)) throw new IllegalArgumentException("The passed object [" + number + "] is not a number");
+		String s = number.toString();
+		if(s.indexOf('.')!=-1) {
+			return jsonNodeFactory.numberNode(new BigDecimal(s));
+		}
+		return jsonNodeFactory.numberNode(Long.parseLong(s));
 	}
 	
 
@@ -333,11 +363,10 @@ public class JSONMapSupport {
 		if(svalue==null) {
 			map.put(key, Integer.toString(incr));
 			return incr;
-		} else {
-			int value = Integer.parseInt(svalue) + incr;
-			map.put(key, Integer.toString(value));
-			return value;
-		}		
+		}
+		int value = Integer.parseInt(svalue) + incr;
+		map.put(key, Integer.toString(value));
+		return value;		
 	}
 
 	

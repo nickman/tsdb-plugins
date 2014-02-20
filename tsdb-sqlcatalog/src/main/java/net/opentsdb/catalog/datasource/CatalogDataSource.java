@@ -38,12 +38,14 @@ import java.util.Properties;
 import javassist.ClassPool;
 import javassist.LoaderClassPath;
 
+import javax.management.MBeanServerInvocationHandler;
 import javax.sql.DataSource;
 
 import net.opentsdb.core.TSDB;
 
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ import com.heliosapm.shorthand.attach.vm.agent.LocalAgentInstaller;
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
+import com.jolbox.bonecp.StatisticsMBean;
 
 /**
  * <p>Title: CatalogDataSource</p>
@@ -73,6 +76,9 @@ public class CatalogDataSource implements ICatalogDataSource {
 	protected BoneCPDataSource connectionPool = null;
 	/** Static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(CatalogDataSource.class);
+	
+	/** The statistics mbean proxy instance */
+	private volatile StatisticsMBean statsProxy;
 	
 	/** The driver wrapper */
 	protected DelegatingDriver delegatingDriver = null;
@@ -142,6 +148,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 //			checkDriverClasspath(driver, Thread.currentThread().getContextClassLoader());
 //			checkDriverClasspath(driver, pc.getSupportClassLoader());
 			pc.setResource(getClass().getSimpleName(), connectionPool);
+			getStatisticsMBean();
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
 		}
@@ -263,7 +270,22 @@ public class CatalogDataSource implements ICatalogDataSource {
 		return config;
 	}
 	
-	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.datasource.ICatalogDataSource#getStatisticsMBean()
+	 */
+	@Override
+	public StatisticsMBean getStatisticsMBean() {
+		if(statsProxy==null) {
+			synchronized(this) {
+				if(statsProxy==null) {
+					statsProxy = MBeanServerInvocationHandler.newProxyInstance(JMXHelper.getHeliosMBeanServer(), DataSourceStatsObjectName, StatisticsMBean.class, false); 
+				}
+			}
+		}
+		return statsProxy;
+	}
+
 	//============================================================================================
 	//  All the following stuff is a temporary work around for a lib version mismatch
 	//  between versions of Guava for OpenTSDB (13.x) and BoneCP (15).
@@ -344,6 +366,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 		return delegatingDriver.getName();
 	}
 	
+	
 
 	/**
 	 * <p>Title: DelegatingDriver</p>
@@ -355,6 +378,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 	public static class DelegatingDriver implements Driver {
 		/** The wrapped driver */
 		private final Driver driver;
+		
 
 		/**
 		 * Creates a new DelegatingDriver

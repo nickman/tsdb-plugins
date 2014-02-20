@@ -206,9 +206,8 @@ public class SQLWorker {
 				CachedRowSetImpl crs = new CachedRowSetImpl();
 				crs.populate(rset);
 				return crs;
-			} else {
-				return getAutoCloseResultSet(rset, ps, conn);
 			}
+			return getAutoCloseResultSet(rset, ps, conn);
 		} catch (Exception ex) {
 			throw new RuntimeException("SQL Query Failure [" + sqlText + "]", ex);
 		} finally {
@@ -402,17 +401,19 @@ public class SQLWorker {
 	
 	/**
 	 * Executes the passed query statement and returns the first column of the first row as a long
+	 * @param conn An optional connection. If not supplied, a new connection will be acquired, and closed when used.
 	 * @param sqlText The query SQL text
 	 * @param args The bind arguments
 	 * @return The long from the first column of the first row
 	 */
-	public long sqlForLong(String sqlText, Object...args) {
-		Connection conn = null;
+	public long sqlForLong(Connection conn, String sqlText, Object...args) {
 		PreparedStatement ps = null;
 		ResultSet rset = null;
+		boolean newConn = conn==null;
 		try {
-			conn = dataSource.getConnection();
-			conn = dataSource.getConnection();
+			if(newConn) {
+				conn = dataSource.getConnection();			
+			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
@@ -423,9 +424,22 @@ public class SQLWorker {
 		} finally {
 			if(rset!=null) try { rset.close(); } catch (Exception x) { /* No Op */ }
 			if(ps!=null) try { ps.close(); } catch (Exception x) { /* No Op */ }
-			if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
+			if(newConn && conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 		}
 	}
+	
+	/**
+	 * Executes the passed query statement and returns the first column of the first row as a long
+	 * @param sqlText The query SQL text
+	 * @param args The bind arguments
+	 * @return The long from the first column of the first row
+	 */
+	public long sqlForLong(String sqlText, Object...args) {
+		return sqlForLong(null, sqlText, args);
+	}
+	
+	
+
 	
 	
 	public static void main(String[] args) {

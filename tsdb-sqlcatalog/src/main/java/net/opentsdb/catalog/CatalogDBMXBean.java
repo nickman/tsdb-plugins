@@ -233,6 +233,24 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 */
 	public String executeSQLForJson(boolean includeMeta, int maxRows, int startAt, String sqlText);
 	
+	/**
+	 * Returns the catalog data source's total created connections
+	 * @return the catalog data source's total created connections
+	 */
+	public int getCreatedConnections();
+
+	/**
+	 * Returns the catalog data source's total free connections
+	 * @return the catalog data source's total free connections
+	 */
+	public int getFreeConnections();
+	
+	/**
+	 * Returns the catalog data source's total leased connections
+	 * @return the catalog data source's total leased connections
+	 */
+	public int getLeasedConnections();
+	
 	
 	
 	

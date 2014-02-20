@@ -24,6 +24,12 @@
  */
 package net.opentsdb.catalog.datasource;
 
+import javax.management.ObjectName;
+
+import org.helios.tsdb.plugins.util.JMXHelper;
+
+import com.jolbox.bonecp.StatisticsMBean;
+
 /**
  * <p>Title: ICatalogDataSource</p>
  * <p>Description: Constants and defaults for data source creation</p> 
@@ -34,6 +40,10 @@ package net.opentsdb.catalog.datasource;
 
 public interface ICatalogDataSource {
 
+	/** The ObjectName of the DataSource stats manager */
+	public static final ObjectName DataSourceStatsObjectName = JMXHelper.objectName("com.jolbox.bonecp:type=BoneCP-SQLCatalogDataSource");
+
+	
 	/** The config property name for the pool acquireIncrement */
 	public static final String JDBC_POOL_ACQUIREINCREMENT = "tsdb.jdbc.acquireIncrement";
 	/** The default pool acquireIncrement */
@@ -193,7 +203,9 @@ public interface ICatalogDataSource {
 	/** The config property name for the pool jdbcUrl */
 	public static final String JDBC_POOL_JDBCURL = "tsdb.jdbc.jdbcUrl";
 	/** The default pool jdbcUrl */
-	public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MVCC=TRUE";
+	//public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MVCC=TRUE";
+	//public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:file:e:/.tsdb/tsdb;MULTI_THREADED=1;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;CACHE_SIZE=65536;CACHE_TYPE=TQ";
+	public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:file:~/.tsdb/tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;CACHE_SIZE=65536;CACHE_TYPE=TQ;MVCC=TRUE";
 
 	/** The config property name for the pool lazyInit */
 	public static final String JDBC_POOL_LAZYINIT = "tsdb.jdbc.lazyInit";
@@ -310,6 +322,14 @@ public interface ICatalogDataSource {
 	 * @return the driver name and version used to connect to the database
 	 */
 	public String getDriverName();
+	
+	/**
+	 * Returns a datasource statistics mbean reference
+	 * @return a datasource statistics mbean reference
+	 */
+	public StatisticsMBean getStatisticsMBean();
+	
+	
 	
 
 }

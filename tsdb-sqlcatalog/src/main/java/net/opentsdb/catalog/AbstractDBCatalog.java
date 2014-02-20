@@ -35,7 +35,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -100,6 +99,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.jolbox.bonecp.StatisticsMBean;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -119,6 +119,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected DataSource dataSource = null;
 	/** The data source initializer */
 	protected CatalogDataSource cds = null;
+	/** The data source stats proxy */
+	protected StatisticsMBean dataSourceStats = null;	
 	/** The parent TSDB */
 	protected TSDB tsdb = null;
 	/** The plugin context */
@@ -224,6 +226,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public static final String UID_PAIR_EXISTS_SQL = "SELECT COUNT(*) FROM  TSD_TAGPAIR WHERE XUID = ?";
 	/** The SQL for verification of whether a TSMeta has been saved or not */
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = ?";
+	/** The SQL for verification of whether a TSMeta has been saved or not using a custom supplied PK */
+	public static final String TSUID_EXISTS_BY_PK_SQL = "SELECT COUNT(*) FROM TSD_TSMETA WHERE FQNID = ?";
+	
 	/** The SQL for verification of whether an Annotation has been saved or not */
 	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
 	/** The SQL to retrieve the ANNID for a given annotation with a null FQNID */
@@ -237,16 +242,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//	Object INSERT and UPDATE SQL
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
-	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?)";
+	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?,?)";
 	/** The UIDMeta update SQL template */	
 	public static final String UID_UPDATE_SQL_TEMPLATE = "UPDATE %s SET VERSION = ?, NAME = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, CUSTOM = ? WHERE XUID = ?";
 	
 	
 	/** The SQL to insert a TSMeta TSD_TSMETA */
 	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_TSMETA " + 
-			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, MAX_VALUE, MIN_VALUE, " + 
+			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, LAST_UPDATE, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM) " + 
-			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	/** The SQL to update TSD_TSMETA with a changed TSMeta */
 	public static final String TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA SET " +
 			"VERSION = ?, METRIC_UID = ?, FQN = ?, MAX_VALUE = ?, MIN_VALUE = ?," +
@@ -260,7 +265,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/** The SQL to insert the TSMeta UID pairs */
 	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
 	/** The SQL to insert an Annotation */
-	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,LAST_UPDATE,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	/** The SQL to update an Annotation */
 	public static final String TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
 	
@@ -400,6 +405,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
+		dataSourceStats = cds.getStatisticsMBean();
 		sqlWorker = SQLWorker.getInstance(dataSource);
 		popDbInfo();
 		doInitialize();
@@ -867,10 +873,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	protected Object[] getInsertBinds(UIDMeta uidMeta) {
 		int version = incrementVersion(uidMeta);
-		long created = uidMeta.getCreated();						
+		long created = uidMeta.getCreated();
+		Timestamp ts = created>0 ? new Timestamp(utoms(created)) : SystemClock.getTimestamp();
 		return new Object[]{
 				uidMeta.getUID(), version, uidMeta.getName(), 
-				created>0 ? new Timestamp(utoms(created)) : new Timestamp(SystemClock.time()),
+				ts,
+				ts,
 				uidMeta.getDescription(),
 				uidMeta.getDisplayName(),
 				uidMeta.getNotes(),
@@ -911,27 +919,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			);
 			
 		}
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-		log.info(GET_ANNOTATION_WITH_FQNID_ID_SQL.replaceFirst("\\?", "'" + sdf.format(new java.util.Date(utoms(annotation.getStartTime()))) + "'" ).replaceFirst("\\?", "" +fqnid));
 		return sqlWorker.sqlForLong(GET_ANNOTATION_WITH_FQNID_ID_SQL,
 				new Timestamp(utoms(annotation.getStartTime())),
 				fqnid
 		);
-		// 2014-02-20 07:56:50.0
 	}
-	
-//	public static final String GET_ANNOTATION_ID_NULL_FQNID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID IS NULL";
-//	public static final String GET_ANNOTATION_WITH_FQNID_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID = ?";	
-	
-	
-	/*
-	 * PreparedStatement batch(PreparedStatement ps, SQL,
-	 * 
-	 * if ps is null, prepare --- return
-	 * bind
-	 * addBatch
-	 * 
-	 */
 	
 	/**
 	 * Increments or sets the version key on an annotation
@@ -960,6 +952,22 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}
 		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
 	}
+	
+	/**
+	 * Sets the version key and PK on a TSMeta's custom map
+	 * @param tsmeta The TSMeta to version and pk increment 
+	 * @return the new version
+	 */
+	protected int incrementVersion(TSMeta tsmeta, long pk) {
+		HashMap<String, String> custom = tsmeta.getCustom();
+		if(custom==null) {
+			custom = new HashMap<String, String>(1);
+			tsmeta.setCustom(custom);
+		}
+		JSONMapSupport.set(PK_KEY, pk, custom);		
+		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
+	}
+	
 	
 	/**
 	 * Increments or sets the version key on a UIDMeta
@@ -1007,7 +1015,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			updateAnnotation(conn, annotation);
 			return;
 		}
-		long startTime = annotation.getStartTime(); 
+		long startTime = annotation.getStartTime();
+		Timestamp startTs = new Timestamp(utoms(startTime));
 		if(startTime==0) {
 			startTime = SystemClock.unixTime();
 			annotation.setStartTime(startTime);
@@ -1018,7 +1027,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		long endTime = annotation.getEndTime();
 		annotationsPs = sqlWorker.batch(conn, annotationsPs, TSD_INSERT_ANNOTATION, 
 				annId, version,
-				new Timestamp(utoms(startTime)),
+				startTs,
+				startTs,
 				annotation.getDescription(),
 				annotation.getNotes(),
 				annotation.getTSUID()==null ? null : H2Support.fqnId(conn, annotation.getTSUID()),
@@ -1046,20 +1056,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	protected long getFqnIdForTsUid(Connection conn, String tsuid) {
 		return sqlWorker.sqlForLong(GET_FQNID_FOR_TSUID_SQL, tsuid);
-//		PreparedStatement ps = null;
-//		ResultSet rset = null;
-//		try {
-//			ps = conn.prepareStatement(GET_FQNID_FOR_TSUID_SQL);
-//			ps.setString(1, tsuid);
-//			rset = ps.executeQuery();
-//			rset.next();
-//			return rset.getLong(1);
-//		} catch (Exception ex) {
-//			throw new RuntimeException("Failed to get FQNID for tssuid [" + tsuid + "]", ex);
-//		} finally {
-//			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-//			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
-//		}
 	}
 
 	
@@ -1068,7 +1064,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param conn The connection to update on
 	 * @param tsMeta The changed TSMeta 
 	 */
-	protected void updateTSMeta(Connection conn, TSMeta tsMeta) {
+	protected void updateTSMeta(Connection conn, TSMeta tsMeta) {		
 		long fqnId = getFqnIdForTsUid(conn, tsMeta.getTSUID());
 		int version = incrementVersion(tsMeta);
 		tsMetaFqnUpdatePs = sqlWorker.batch(conn, tsMetaFqnUpdatePs, TSUID_UPDATE_SQL, 
@@ -1141,7 +1137,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		Collection<UIDMeta> uidMetas = new ArrayList<UIDMeta>(tsMeta.getTags());
 		uidMetas.add(tsMeta.getMetric());
 		preProcessUIDMeta(conn, uidMetas);
-		
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
 		UIDMeta[] tagPair = new UIDMeta[2];
 		TreeMap<String, String> tags = new TreeMap<String, String>();
@@ -1165,13 +1160,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}
 		fqn.deleteCharAt(fqn.length()-1);
 		long fqnSeq = fqnSequence.next();		
-		int version = incrementVersion(tsMeta);
+		int version = incrementVersion(tsMeta, fqnSeq);
+		Timestamp createdTs = new Timestamp(utoms(tsMeta.getCreated()));
 		tsMetaFqnPs = sqlWorker.batch(conn, tsMetaFqnPs, TSUID_INSERT_SQL, 
 				fqnSeq,	version,
 				tsMeta.getMetric().getUID(),
 				fqn.toString(),
 				tsMeta.getTSUID(),
-				new Timestamp(utoms(tsMeta.getCreated())),
+				createdTs,				// CREATED
+				createdTs,				// LAST_UPDATE
 				isNaNToNull() && Double.isNaN(tsMeta.getMax()) ? null : tsMeta.getMax(),
 				isNaNToNull() && Double.isNaN(tsMeta.getMin()) ? null : tsMeta.getMin(),
 				tsMeta.getDataType(),
@@ -1254,14 +1251,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			long annId = Long.parseLong(pk);
 			sqlWorker.executeUpdate(conn, "DELETE FROM TSD_ANNOTATION WHERE ANNID = ?", annId);
 			return;
-		} else {
-			sqlWorker.executeUpdate(conn, TSD_DELETE_ANNOTATION, 						
-					new Timestamp(utoms(annotation.getStartTime())),
-					annotation.getTSUID()==null ? null : 
-						H2Support.fqnId(conn, annotation.getTSUID())==-1 ? null : 
-							H2Support.fqnId(conn, annotation.getTSUID())
-			);
 		}
+		sqlWorker.executeUpdate(conn, TSD_DELETE_ANNOTATION, 						
+				new Timestamp(utoms(annotation.getStartTime())),
+				annotation.getTSUID()==null ? null : 
+					H2Support.fqnId(conn, annotation.getTSUID())==-1 ? null : 
+						H2Support.fqnId(conn, annotation.getTSUID())
+		);
 	}
 	
 	
@@ -1467,6 +1463,14 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public boolean exists(Connection conn, TSMeta tsMeta) {
 		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
+		HashMap<String, String> map = tsMeta.getCustom(); 
+		if(map!=null && map.containsKey(PK_KEY)) {
+			long fqnid = -1;
+			try {
+				fqnid = Long.parseLong(map.get(PK_KEY));
+				return sqlWorker.sqlForBool(conn, TSUID_EXISTS_BY_PK_SQL, fqnid);
+			} catch (Exception ex) { /* No Op */ }
+		}
 		return sqlWorker.sqlForBool(conn, TSUID_EXISTS_SQL, tsMeta.getTSUID());
 	}
 	
@@ -1708,7 +1712,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
      * @param meta The meta to summarize
      * @return the summary map
      */
-    @SuppressWarnings("resource")
 	public Map<String, Object> summarize(TSMeta meta) {
     	try {
 	    	
@@ -1900,22 +1903,21 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     			} catch (Exception ex) {}
     			log.info("SQL Result Written:{} bytes", out.writtenBytes());
     			return streamBuffer;
-    		} else {
-    			int rcode = ps.executeUpdate();
-    			long elapsed = et.elapsedMs();
-    			generator.writeStartObject();
-    			generator.writeNumberField("resultcode", rcode);
-    			generator.writeNumberField("elapsedms", elapsed);
-    			generator.writeEndObject();
-    			generator.flush();
-    			generator.close();
-    			try {
-    				out.flush();
-    				out.close();
-    			} catch (Exception ex) {}
-    			log.info("SQL Result Written:{} bytes", out.writtenBytes());
-    			return streamBuffer;
     		}
+			int rcode = ps.executeUpdate();
+			long elapsed = et.elapsedMs();
+			generator.writeStartObject();
+			generator.writeNumberField("resultcode", rcode);
+			generator.writeNumberField("elapsedms", elapsed);
+			generator.writeEndObject();
+			generator.flush();
+			generator.close();
+			try {
+				out.flush();
+				out.close();
+			} catch (Exception ex) {/* No Op */}
+			log.info("SQL Result Written:{} bytes", out.writtenBytes());
+			return streamBuffer;
     	} catch (Exception ex) {
     		log.error("Failed to process SQL statement [" + sqlText + "]", ex);
     		throw new RuntimeException("Failed to process SQL statement [" + sqlText + "]", ex);
@@ -2186,6 +2188,49 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public String getLoggerLevel() {
 		return loggerManager.getLoggerLevel();
 	}
+	
+
+	
+	/**
+	 * Returns the catalog data source's total created connections
+	 * @return the catalog data source's total created connections
+	 */
+	public int getCreatedConnections() {
+		return dataSourceStats.getTotalCreatedConnections();
+	}
+
+	/**
+	 * Returns the catalog data source's total free connections
+	 * @return the catalog data source's total free connections
+	 */
+	public int getFreeConnections() {
+		return dataSourceStats.getTotalFree();
+	}
+	
+	/**
+	 * Returns the catalog data source's total leased connections
+	 * @return the catalog data source's total leased connections
+	 */
+	public int getLeasedConnections() {
+		return dataSourceStats.getTotalLeased();
+	}
+	
+	/**
+	 * Logs a connection usage snippet
+	 */
+	public void logConnectionUsage() {
+		log.info("Connection Usage: {}", getConnectionUsage());
+	}
+	
+	/**
+	 * Creates a realtime connection usage snippet
+	 * @return A message showing the created, free and in use connections
+	 */
+	@Override
+	public String getConnectionUsage() {
+		return String.format("c:[%s], f:[%s], l:[%s]", getCreatedConnections(), getFreeConnections(), getLeasedConnections());
+	}
+	
 
 	/**
 	 * {@inheritDoc}

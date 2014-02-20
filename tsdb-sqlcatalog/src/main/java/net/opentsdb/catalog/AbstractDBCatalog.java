@@ -35,7 +35,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -226,9 +226,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public static final String TSUID_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_TSMETA WHERE TSUID = ?";
 	/** The SQL for verification of whether an Annotation has been saved or not */
 	public static final String ANNOTATION_EXISTS_SQL = "SELECT COUNT(*) FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
-	/** The SQL to retrieve the ANNID for a given annotation */
-	public static final String GET_ANNOTATION_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND (FQNID IS NULL OR EXISTS (SELECT FQNID FROM TSD_TSMETA T WHERE T.FQNID = A.FQNID  AND TSUID = ?))";
-	
+	/** The SQL to retrieve the ANNID for a given annotation with a null FQNID */
+	public static final String GET_ANNOTATION_ID_NULL_FQNID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID IS NULL";
+	/** The SQL to retrieve the ANNID for a given annotation with a valid FQNID */
+	//public static final String GET_ANNOTATION_WITH_FQNID_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A, TSD_TSMETA T WHERE T.FQNID = A.FQNID AND START_TIME = ? AND TSUID = ?";	
+	public static final String GET_ANNOTATION_WITH_FQNID_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID = ?";
 	
 	
 	// ========================================================================================
@@ -902,11 +904,25 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the ANNID of the passed annotation
 	 */
 	protected long getAnnIdForAnnotation(Connection conn, Annotation annotation) {
-		return sqlWorker.sqlForLong(GET_ANNOTATION_ID_SQL,
+		long fqnid = annotation.getTSUID()==null ? null : getFqnIdForTsUid(conn, annotation.getTSUID());
+		if(fqnid==0) {
+			return sqlWorker.sqlForLong(GET_ANNOTATION_ID_NULL_FQNID_SQL,
+					new Timestamp(utoms(annotation.getStartTime()))
+			);
+			
+		}
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+		log.info(GET_ANNOTATION_WITH_FQNID_ID_SQL.replaceFirst("\\?", "'" + sdf.format(new java.util.Date(utoms(annotation.getStartTime()))) + "'" ).replaceFirst("\\?", "" +fqnid));
+		return sqlWorker.sqlForLong(GET_ANNOTATION_WITH_FQNID_ID_SQL,
 				new Timestamp(utoms(annotation.getStartTime())),
-				annotation.getTSUID()
+				fqnid
 		);
+		// 2014-02-20 07:56:50.0
 	}
+	
+//	public static final String GET_ANNOTATION_ID_NULL_FQNID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID IS NULL";
+//	public static final String GET_ANNOTATION_WITH_FQNID_ID_SQL = "SELECT ANNID FROM TSD_ANNOTATION A WHERE START_TIME = ? AND FQNID = ?";	
+	
 	
 	/*
 	 * PreparedStatement batch(PreparedStatement ps, SQL,
@@ -967,12 +983,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	protected void updateAnnotation(Connection conn, Annotation a) {
 		long annId = getAnnIdForAnnotation(conn, a);
+		Long tsuid = a.getTSUID()==null ? null : getFqnIdForTsUid(conn, a.getTSUID());
 		annotationsUpdatePs = sqlWorker.batch(conn, annotationsUpdatePs, TSD_UPDATE_ANNOTATION, 
 				incrementVersion(a),
 				new Timestamp(utoms(a.getStartTime())),
 				a.getDescription(),
 				a.getNotes(),
-				a.getTSUID()==null ? null : getFqnIdForTsUid(conn, a.getTSUID()),
+				tsuid,
 				a.getEndTime()==0 ? null : new Timestamp(utoms(a.getEndTime())),
 				JSONMapSupport.nokToString(a.getCustom()),
 				annId
@@ -1028,20 +1045,21 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the FQNID
 	 */
 	protected long getFqnIdForTsUid(Connection conn, String tsuid) {
-		PreparedStatement ps = null;
-		ResultSet rset = null;
-		try {
-			ps = conn.prepareStatement(GET_FQNID_FOR_TSUID_SQL);
-			ps.setString(1, tsuid);
-			rset = ps.executeQuery();
-			rset.next();
-			return rset.getLong(1);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to get FQNID for tssuid [" + tsuid + "]", ex);
-		} finally {
-			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
-			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
-		}
+		return sqlWorker.sqlForLong(GET_FQNID_FOR_TSUID_SQL, tsuid);
+//		PreparedStatement ps = null;
+//		ResultSet rset = null;
+//		try {
+//			ps = conn.prepareStatement(GET_FQNID_FOR_TSUID_SQL);
+//			ps.setString(1, tsuid);
+//			rset = ps.executeQuery();
+//			rset.next();
+//			return rset.getLong(1);
+//		} catch (Exception ex) {
+//			throw new RuntimeException("Failed to get FQNID for tssuid [" + tsuid + "]", ex);
+//		} finally {
+//			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
+//			if(ps!=null) try { ps.close(); } catch (Exception x) {/* No Op */}			
+//		}
 	}
 
 	
@@ -1296,9 +1314,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			rowsDeleted = prepareAndExec(conn, "DELETE FROM TSD_ANNOTATION");
 			conn.commit();
 			b.append("\n").append("TSD_ANNOTATION:").append(rowsDeleted);
-			rowsDeleted = prepareAndExec(conn,"DELETE FROM SYNC_QUEUE");
-			conn.commit();
-			b.append("\n").append("SYNC_QUEUE:").append(rowsDeleted);
 			log.info(b.append("\n\t======================================").toString());
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to purge Store", ex);

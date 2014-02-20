@@ -429,7 +429,6 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		waitForProcessingQueue("testMetaUpdates/Indexing", 30000, TimeUnit.MILLISECONDS);
 		// Submit updates for each UIDMeta and TSMeta to trigger and update
 		int cnt = 0;
-
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			Assert.assertTrue(dbInterface.exists(uidMeta));
 			uidMeta.setNotes(uidMeta.toString());			
@@ -437,7 +436,10 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			cnt++;
 		}
 		log("Updated [%s] UIDMetas", cnt);
+		// CONN POOL OK 'TILL HERE
+
 		cnt=0;
+		// CONN POOL GETS HOSED HERE. FIXME!!
 		for(TSMeta tsMeta: createdTSMetas) {
 			Assert.assertTrue(dbInterface.exists(tsMeta));
 			tsMeta.setNotes(tsMeta.toString());
@@ -476,8 +478,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 			Assert.assertEquals("Query lookup for Annotation ANNID [" + annId + "] was not 1", 1, lookups.length);
 			Assert.assertEquals("Version of TSD_ANNOTATION.VERSION was not 2", 2, ((Number)lookups[0][0]).intValue());
 		}
-		// Flush the sync queue
-		flushSyncQueue("Post Update");
+		
 		// Now the syncqueue has been flushed, loop through the objects again and find their flushed counter-part and compare
 		for(UIDMeta uidMeta: createdUIDMetas) {
 			UIDMeta storedUidMeta = (UIDMeta)modifiedUIDs.remove(uidMeta.toString());
@@ -519,8 +520,6 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		log("Deleted TS:%s", deletedTSs.size());
 		log("Deleted Annotations:%s", deletedAnnotations.size());
 		
-		// Manually trigger the syncqueue processor and wait for the queue to be cleared
-		flushSyncQueue("Post Delete");
 		// Validate that each of the deleted items are stored in the mock delete maps
 		for(Annotation annotation: createdAnnotations) {
 			Annotation deletedAnnotation = (Annotation)deletedAnnotations.remove(getDeletedKey(annotation));
@@ -622,32 +621,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 		}
 	}	
 	
-	/**
-	 * Flushes the sync queue and waits for the queue to be cleared
-	 * @param testPhase The name of the test phase we're flushing after
-	 * @throws Exception thrown on any error
-	 */
-	protected void flushSyncQueue(String testPhase) throws Exception {
-		log("PENDING:" + testPhase + " SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
-		log("PENDING:" + testPhase + " SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
-		
-		ElapsedTime et = SystemClock.startClock();
-		int syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
-		int syncQueueLoops = 0;
-		while(syncQueueSize>0 && syncQueueLoops < MAX_SYNC_QUEUE_LOOPS) {
-			TSDBCatalogSearchEventHandler.getInstance().getDbInterface().triggerSyncQueueFlush();
-			Thread.sleep(1000);
-			syncQueueSize = jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL");
-			syncQueueLoops++;
-		}
-		log(testPhase + " SyncQueue Size:" + jdbcHelper.queryForInt("select count(*) from SYNC_QUEUE"));
-		log(testPhase + " SyncQueue Internal Size:" + jdbcHelper.queryForInt("SELECT COUNT(*) FROM SYNC_QUEUE WHERE LAST_SYNC_ATTEMPT IS NULL"));
-		if(syncQueueLoops==MAX_SYNC_QUEUE_LOOPS) {
-			Assert.fail("SyncQueue Loops Exceeded Allowed Flush Loops in test phase [" + testPhase + "]:" + MAX_SYNC_QUEUE_LOOPS);
-		}
-		log("SyncQueue flushed for [%s] in [%s] ms. and [%s] wait loops", testPhase, et.elapsedMs(), syncQueueLoops);
-	}
-	
+
 	/**
 	 * Waits for the event processing queue to complete processing on whatever has been submitted to this point.
 	 * @param testPhase The name of the test phase

@@ -41,6 +41,7 @@ import net.opentsdb.meta.UIDMeta;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -185,10 +186,13 @@ public class VolumeMetricTest extends LoadMetricsTest {
 		
 		log("All index requests submitted. Waiting for milestone");
 		waitForProcessingQueue("testVolumeMetaUpdates/Indexing", 300000, TimeUnit.MILLISECONDS);
+	}
+	
+	@AfterClass
+	public static void testDaemon() throws Exception {
 		if(ConfigurationHelper.getBooleanSystemThenEnvProperty("debug.catalog.daemon", false)) {
 			Thread.currentThread().join();
-		}	
-		
+		}			
 	}
 
 }

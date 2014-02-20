@@ -59,6 +59,14 @@ public class SystemClock {
 	}
 	
 	/**
+	 * Returns a JDBC timestamp for the current time
+	 * @return a JDBC timestamp for the current time
+	 */
+	public static java.sql.Timestamp getTimestamp() {
+		return new java.sql.Timestamp(time());
+	}
+	
+	/**
 	 * Returns the current time in Unix Time (s.)
 	 * @return the current time in Unix Time
 	 */

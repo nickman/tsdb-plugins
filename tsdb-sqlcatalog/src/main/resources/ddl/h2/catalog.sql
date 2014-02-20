@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS TSD_TAGK (
     XUID CHAR(6) NOT NULL COMMENT 'The tag key UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag key',
-    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGK',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TAGK',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag key',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag key',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag key',
@@ -46,7 +47,8 @@ CREATE TABLE IF NOT EXISTS TSD_TAGV (
     XUID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
-    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGV',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TAGV',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag value',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag value',
@@ -56,13 +58,12 @@ CREATE TABLE IF NOT EXISTS TSD_TAGV (
 ALTER TABLE TSD_TAGV ADD CONSTRAINT IF NOT EXISTS TSD_TAGV_PK PRIMARY KEY ( XUID ) ;
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGV_AK ON TSD_TAGV (NAME ASC);
 
-
-
 CREATE TABLE IF NOT EXISTS TSD_METRIC (
     XUID CHAR(6) NOT NULL COMMENT 'The metric UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The metric name',
-    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
+    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the METRIC',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the METRIC',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this metric',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this metric',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this metric',
@@ -108,6 +109,7 @@ CREATE TABLE IF NOT EXISTS TSD_TSMETA (
 	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
 	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
 	CREATED TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the creation of the TSMeta',
+	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TSMETA',
 	MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
 	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional min value for the timeseries',
 	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
@@ -130,6 +132,7 @@ CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 	ANNID BIGINT NOT NULL COMMENT 'The synthetic unique identifier for this annotation',
 	VERSION INT NOT NULL COMMENT 'The version of this instance',
 	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
+	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the Annotation',
 	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
     NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',
 	FQNID BIGINT COMMENT 'An optional reference to the associated TSMeta. If null, this will be a global annotation',
@@ -139,50 +142,21 @@ CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 
 ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT IF NOT EXISTS TSD_ANNOTATION_PK PRIMARY KEY ( ANNID ) ;
 CREATE UNIQUE INDEX IF NOT EXISTS TSD_ANNOTATION_AK ON TSD_ANNOTATION (START_TIME, FQNID);
---ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT IF NOT EXISTS TSD_ANNOTATION_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_TSMETA ( FQNID ) ON DELETE CASCADE;
 
 
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_TSMETA ( FQNID ) ON DELETE CASCADE;
 
 
-
 -- ==============================================================================================
---  Sync Queue Table
--- ==============================================================================================
-
-CREATE TABLE IF NOT EXISTS SYNC_QUEUE (
-	QID BIGINT NOT NULL DEFAULT QID_SEQ.nextVAL COMMENT 'The synthetic identifier for this sync operation',
-	EVENT_TYPE VARCHAR(20) NOT NULL 
-		COMMENT 'The source of the update that triggered this sync operation'
-		CHECK EVENT_TYPE IN ('TSD_ANNOTATION', 'TSD_TSMETA', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV'), 
-	EVENT VARCHAR(120) NOT NULL COMMENT 'The PK of the event that triggered this Sync Operation',
-	OP_TYPE CHAR(1) NOT NULL
-		COMMENT 'The SQL Operation type that triggered this sync operation'
-		CHECK OP_TYPE IN ('I', 'D', 'U'), 	
-	TIMEOUTS INT NOT NULL DEFAULT 0 COMMENT 'The number of timeouts that have occured applying this sync',
-	EVENT_TIME TIMESTAMP AS NOW() NOT NULL COMMENT 'The timestamp when the sync event occured',
-	LAST_SYNC_ATTEMPT TIMESTAMP COMMENT 'The last [failed] sync operation attempt timestamp',
-	LAST_SYNC_ERROR CLOB COMMENT 'The exception trace of the last failed sync operation'
-);
-
-ALTER TABLE SYNC_QUEUE ADD CONSTRAINT IF NOT EXISTS SYNC_QUEUE_PK PRIMARY KEY ( QID ) ;
-
--- ==============================================================================================
---  Queue Triggers
+--  Timestamp Triggers
 -- ==============================================================================================
 
-CREATE TRIGGER IF NOT EXISTS TSD_METRIC_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.UIDMetaTrigger";
-CREATE TRIGGER IF NOT EXISTS TSD_TAGK_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.UIDMetaTrigger";
-CREATE TRIGGER IF NOT EXISTS TSD_TAGV_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.UIDMetaTrigger";
 
-CREATE TRIGGER IF NOT EXISTS TSD_FQN_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_TSMETA FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.TSMetaTrigger";
-CREATE TRIGGER IF NOT EXISTS TSD_ANNOTATON_UPDATED_TRG BEFORE INSERT,UPDATE,DELETE ON TSD_ANNOTATION FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.AnnotationTrigger";
-
-
-
-CREATE TRIGGER IF NOT EXISTS TSD_METRIC_UPDATED_A_TRG AFTER UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.PostUIDMetaTrigger";
-CREATE TRIGGER IF NOT EXISTS TSD_TAGK_UPDATED_A_TRG AFTER UPDATE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.PostUIDMetaTrigger";
-CREATE TRIGGER IF NOT EXISTS TSD_TAGV_UPDATED_A_TRG AFTER UPDATE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.PostUIDMetaTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_METRIC_UPDATED_A_TRG BEFORE UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.LastUpdateTSTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_TAGK_UPDATED_A_TRG BEFORE UPDATE ON TSD_TAGK FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.LastUpdateTSTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_TAGV_UPDATED_A_TRG BEFORE UPDATE ON TSD_TAGV FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.LastUpdateTSTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_METRIC_UPDATED_A_TRG BEFORE UPDATE ON TSD_METRIC FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.LastUpdateTSTrigger";
+CREATE TRIGGER IF NOT EXISTS TSD_TSMETA_UPDATED_A_TRG BEFORE UPDATE ON TSD_TSMETA FOR EACH ROW CALL "net.opentsdb.catalog.h2.triggers.LastUpdateTSTrigger";
 
 
 

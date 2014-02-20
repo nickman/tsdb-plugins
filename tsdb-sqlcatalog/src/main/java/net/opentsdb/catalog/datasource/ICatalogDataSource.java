@@ -193,7 +193,7 @@ public interface ICatalogDataSource {
 	/** The config property name for the pool jdbcUrl */
 	public static final String JDBC_POOL_JDBCURL = "tsdb.jdbc.jdbcUrl";
 	/** The default pool jdbcUrl */
-	public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
+	public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MVCC=TRUE";
 
 	/** The config property name for the pool lazyInit */
 	public static final String JDBC_POOL_LAZYINIT = "tsdb.jdbc.lazyInit";
@@ -213,7 +213,7 @@ public interface ICatalogDataSource {
 	/** The config property name for the pool maxConnectionsPerPartition */
 	public static final String JDBC_POOL_MAXCONNECTIONSPERPARTITION = "tsdb.jdbc.maxConnectionsPerPartition";
 	/** The default pool maxConnectionsPerPartition */
-	public static final String DEFAULT_JDBC_POOL_MAXCONNECTIONSPERPARTITION = "10";
+	public static final String DEFAULT_JDBC_POOL_MAXCONNECTIONSPERPARTITION = "30";
 
 	/** The config property name for the pool minConnectionsPerPartition */
 	public static final String JDBC_POOL_MINCONNECTIONSPERPARTITION = "tsdb.jdbc.minConnectionsPerPartition";

@@ -78,53 +78,6 @@ import com.stumbleupon.async.Deferred;
  */
 public class LoadMetricsTest extends CatalogBaseTest {
 	
-	/** The JDBCHelper, initialized with a datasource from the handler */
-	protected static JDBCHelper jdbcHelper = null;
-	
-	/** The maximum number of sync queue loops when trying to flush the sync queue */
-	public static final int MAX_SYNC_QUEUE_LOOPS = 10;
-	
-	/** The reflective access field for a TSMeta's tags ArrayList (since we don't have direct API access) */
-	protected static final Field tsMetaTagsField;
-	/** The reflective access field for a TSMeta's metric (since we don't have direct API access) */
-	protected static final Field tsMetaMetricField;
-	
-	static {
-		try {
-			tsMetaTagsField = TSMeta.class.getDeclaredField("tags");
-			tsMetaTagsField.setAccessible(true);
-			tsMetaMetricField = TSMeta.class.getDeclaredField("metric");
-			tsMetaMetricField.setAccessible(true);			
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
-	}
-	
-	/**
-	 * Reflectively sets the tags in a TSMeta instance
-	 * @param tsMeta the TSMeta instance
-	 * @param tags the tags
-	 */
-	protected static void setTags(TSMeta tsMeta, ArrayList<UIDMeta> tags) {
-		try {
-			tsMetaTagsField.set(tsMeta, tags);
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
-	}
-	
-	/**
-	 * Reflectively sets the metric in a TSMeta instance
-	 * @param tsMeta the TSMeta instance
-	 * @param metric The metric UIDMeta
-	 */
-	protected static void setMetric(TSMeta tsMeta, UIDMeta metric) {
-		try {
-			tsMetaMetricField.set(tsMeta, metric);
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
-	}
 	
 	
 	/** The async wait time */
@@ -135,135 +88,11 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	/** The maximum number of retrieval loops to allow */
 	public static final int MAX_RLOOPS = PUBLISH_COUNT;
 	
-	/** Synthetic UIDMeta counter for metrics */
-	protected final AtomicInteger METRIC_COUNTER = new AtomicInteger();
-	/** Synthetic UIDMeta counter for tag keys */
-	protected final AtomicInteger TAGK_COUNTER = new AtomicInteger();
-	/** Synthetic UIDMeta counter for tag values */
-	protected final AtomicInteger TAGV_COUNTER = new AtomicInteger();
-	
-	/** The names for which metrics have been created */
-	protected final Map<String, UIDMeta> createdMetricNames = new HashMap<String, UIDMeta>();
-	/** The names for which tag keys have been created */
-	protected final Map<String, UIDMeta> createdTagKeys = new HashMap<String, UIDMeta>();
-	/** The names for which tag values have been created */
-	protected final Map<String, UIDMeta> createdTagValues = new HashMap<String, UIDMeta>();
-
-	/**
-	 * Resets the UIDMeta counters
-	 */
-	@Before
-	public void resetCounters() {
-		METRIC_COUNTER.set(0);
-		TAGK_COUNTER.set(0);
-		TAGV_COUNTER.set(0);
-		createdMetricNames.clear();
-		createdTagKeys.clear();
-		createdTagValues.clear();
-		
-	}
-	
-	/**
-	 * Returns the UIDMeta uid as a byte array for the passed int
-	 * @param key The int ot generate a byte array for
-	 * @return the uid byte array
-	 */
-	public byte[] uidFor(int key) {
-		StringBuilder b = new StringBuilder(Integer.toHexString(key));
-		while(b.length()<6) {
-			b.insert(0, "0");
-		}
-		return UniqueId.stringToUid(b.toString());
-	}
-	
-	/**
-	 * Converts the passed ObjectName to a list of UIDMetas
-	 * @param on The ObjectName to convert
-	 * @return a list of UIDMetas
-	 */
-	public LinkedList<UIDMeta> objectNameToUIDMeta(ObjectName on) {
-		LinkedList<UIDMeta> metas = new LinkedList<UIDMeta>();
-		metas.add(newUIDMeta(UniqueIdType.METRIC, METRIC_COUNTER, on.getDomain()));
-		TreeMap<String, String> props = new TreeMap<String, String>(on.getKeyPropertyList()); 
-		for(Map.Entry<String, String> entry: props.entrySet()) {
-			metas.add(newUIDMeta(UniqueIdType.TAGK, TAGK_COUNTER, entry.getKey()));
-			metas.add(newUIDMeta(UniqueIdType.TAGV, TAGV_COUNTER, entry.getValue()));
-		}
-		return metas;
-	}
-	
-	/**
-	 * Creates a new UIDMeta
-	 * @param type The meta type
-	 * @param ctr An atomic counter providing the unique int identifier
-	 * @param uname The uid meta name
-	 * @return A UIDMeta
-	 */
-	public UIDMeta newUIDMeta(UniqueIdType type, AtomicInteger ctr, String uname) {
-		UIDMeta meta = null;
-		long unixTime = SystemClock.unixTime();
-		switch(type) {
-			case METRIC:
-				meta = createdMetricNames.get(uname);				
-				if(meta==null) {
-					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);
-					createdMetricNames.put(uname, meta);
-				}
-				meta.setCreated(unixTime);
-				return meta;
-			case TAGK:
-				meta = createdTagKeys.get(uname);
-				if(meta==null) {					
-					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);
-					createdTagKeys.put(uname, meta);
-				}
-				meta.setCreated(unixTime);
-				return meta;
-			case TAGV:
-				meta = createdTagValues.get(uname);
-				if(meta==null) {
-					meta = new UIDMeta(type, uidFor(ctr.incrementAndGet()), uname);					
-					createdTagValues.put(uname, meta);
-				}
-				meta.setCreated(unixTime);
-				return meta;
-			default:
-				throw new RuntimeException("yeow. Unrecognized type [" + type + "]");							
-		}
-	}
-	
-	/**
-	 * Creates a new TSMeta from the passed UIDMeta list
-	 * @param uidMetas A list of UIDMetas
-	 * @return the built TSMeta
-	 */
-	public TSMeta fromUids(LinkedList<UIDMeta> uidMetas) {
-		UIDMeta metricMeta = uidMetas.removeFirst();
-		StringBuilder strTsuid = new StringBuilder(metricMeta.getUID());
-		for(UIDMeta umeta: uidMetas) {
-			strTsuid.append(umeta.getUID());
-		}
-		byte[] tsuid = UniqueId.stringToUid(strTsuid.toString());
-		TSMeta tsMeta = new TSMeta(tsuid, SystemClock.unixTime());
-		setTags(tsMeta, new ArrayList<UIDMeta>(uidMetas));
-		setMetric(tsMeta, metricMeta);
-		return tsMeta;
-	}
 	
 
 
 	
-	/**
-	 * Initializes the environment for tests in this class
-	 */
-	@BeforeClass
-	public static void initialize() {
-		tearDownTSDBAfterTest = false;   // all tests in this class run against the same TSDB instance
-		createServiceJar();
-		configureTSDB();
-		TSDBCatalogSearchEventHandler.waitForStart();
-		jdbcHelper = new JDBCHelper(TSDBCatalogSearchEventHandler.getInstance().getDataSource());
-	}	
+	
 	
 	/**
 	 * Tests the indexing of a set of new UIDMetas.
@@ -615,21 +444,7 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	}	
 	
 
-	/**
-	 * Waits for the event processing queue to complete processing on whatever has been submitted to this point.
-	 * @param testPhase The name of the test phase
-	 * @param timeout The time period to wait for the processing to complete
-	 * @param unit the unit of the timeout
-	 */
-	protected void waitForProcessingQueue(String testPhase, long timeout, TimeUnit unit) {
-		ElapsedTime et = SystemClock.startClock();
-		if(!TSDBCatalogSearchEventHandler.getInstance().milestone().await(timeout, unit)) {
-			Assert.fail("Timed out waiting for [" + testPhase + "] Milestone");
-		} else {
-			log("[%s] Milestone met after [%s] ms.", testPhase, et.elapsedMs());
-		}
-		
-	}
+
 	
 	/** A map where the mock UIDMeta.delete op places deleted UIDMetas */
 	public static final Map<String, Object> deletedUIDs = new ConcurrentHashMap<String, Object>();

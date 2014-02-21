@@ -61,20 +61,49 @@ public interface CatalogDBInterface {
 	 * jdbc:h2:tcp://localhost:9092/mem:tsdb
 	 */
 	
-	/** The connection property key to specify the connection type */
-	public static final String TSD_CONN_TYPE = "TSDCONNTYPE";	
-    /** The connection property value for <b><code>tsdconntype</code></b> when the connection is from the event queue processor */
-    public static final String EQ_CONN_FLAG = "EQPROCESSOR";
-    /** The connection property value for <b><code>tsdconntype</code></b> when the connection is from the sync queue processor */
-    public static final String SYNC_CONN_FLAG = "SYNCPROCESSOR";
-	/** The custom map key to identify how the object was saved */
-	public static final String SAVED_BY_KEY = "tsd.sql.savedby";
 	/** The custom map key to specify the version of the object */
 	public static final String VERSION_KEY = "v";
 	/** The custom map key to specify the DB pk of the object */
 	public static final String PK_KEY = "p";
 	/** The custom map key to specify the TSD_METRIC pk of a TSMeta object */
-	public static final String TSMETA_METRIC_KEY = "tr.mxuid";
+	public static final String TSMETA_METRIC_KEY = "t";
+	
+	// ========================================================================================
+	//	FQN Sequence Related Constants
+	// ========================================================================================
+	
+	/** The config property name for the increment on the FQN ID Sequence */
+	public static final String DB_FQN_SEQ_INCR = "helios.search.catalog.seq.fqn.incr";
+	/** The default increment on the FQN ID Sequence */
+	public static final int DEFAULT_DB_FQN_SEQ_INCR = 50;
+	
+	/** The config property name for the increment on the FQN TagPair ID Sequence */
+	public static final String DB_TP_FQN_SEQ_INCR = "helios.search.catalog.seq.fqntp.incr";
+	/** The default increment on the FQN TagPair ID Sequence */
+	public static final int DEFAULT_DB_TP_FQN_SEQ_INCR = DEFAULT_DB_FQN_SEQ_INCR * 4;
+
+	/** The config property name for the increment on the Annotation ID Sequence */
+	public static final String DB_ANN_SEQ_INCR = "helios.search.catalog.seq.ann.incr";
+	/** The default increment on the Annotation ID Sequence */
+	public static final int DEFAULT_DB_ANN_SEQ_INCR = 50;
+
+	// ========================================================================================
+	//	Text Search and Indexing Related Constants
+	// ========================================================================================
+	
+	/** The config property name to disable text search indexing */
+	public static final String DB_DISABLE_TEXT_INDEXING = "helios.search.catalog.text.indexing.disable";
+	/** The default indicator for disabling the text search indexing */
+	public static final boolean DEFAULT_DB_DISABLE_TEXT_INDEXING = false;
+
+	// ========================================================================================
+	//	TSDB Sync Polling Related Constants
+	// ========================================================================================
+	
+	/** The config property name for the polling period (in seconds) of the TSDB Sync Process */
+	public static final String TSDB_SYNC_PERIOD = "helios.search.catalog.tsdb.sync.period";
+	/** The default indicator for disabling the text search indexing */
+	public static final long DEFAULT_TSDB_SYNC_PERIOD = 60;
 	
 	
 	/**
@@ -194,10 +223,7 @@ public interface CatalogDBInterface {
 	 */
 	public void executeUIDBatches(Connection conn);
 	
-	/**
-	 * Manually triggers a SyncQueue flush
-	 */
-	public void triggerSyncQueueFlush();
+
 	
 	// ===================================================================================================
 	// Object Exists (INSERT or UPDATE ?)
@@ -448,6 +474,27 @@ public interface CatalogDBInterface {
 	 * @return A message showing the created, free and in use connections
 	 */
 	public String getConnectionUsage();
+	
+	/**
+	 * Indicates if text indexing is disabled
+	 * @return true if text indexing is disabled, false otherwise
+	 */
+	public boolean isTextIndexingDisabled();	
+	
+	/**
+	 * Returns the TSDB Sync period in seconds
+	 * @return the TSDB Sync period in seconds
+	 */
+	public long getTSDBSyncPeriod();
+	
+	/**
+	 * Sets the TSDB Sync period in seconds. 
+	 * If this op modifies the existing value, a schedule change will be triggered.
+	 * This may stop a started schedule, or start a stopped schedule. 
+	 * @param newPeriod the TSDB Sync period in seconds.
+	 */
+	public void setTSDBSyncPeriod(final long newPeriod);
+
 	
 	
 	

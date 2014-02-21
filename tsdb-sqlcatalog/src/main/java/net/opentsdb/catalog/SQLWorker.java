@@ -141,7 +141,7 @@ public class SQLWorker {
 				} finally {
 					if("close".equals(method.getName())) {
 						try { st.close(); } catch (Exception x) { /* No Op */ }
-						try { conn.close(); } catch (Exception x) { /* No Op */ }
+						if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 					}
 				}
 			}
@@ -154,8 +154,7 @@ public class SQLWorker {
 	 * @param sqlText The SQL query
 	 * @param args The query bind arguments
 	 * @return A result set for the query
-	 */
-	@SuppressWarnings("resource")
+	 */	
 	public ResultSet executeRawQuery(String sqlText, Object...args) {
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -188,17 +187,20 @@ public class SQLWorker {
 	
 	/**
 	 * Executes the passed query and returns a result set
+	 * @param conn An optional connection. If not supplied, a new connection will be acquired, and closed when used.
 	 * @param sqlText The SQL query
 	 * @param disconnected true to read all rows and return a disconnected resultset, false to return the connected result set
 	 * @param args The query bind arguments
 	 * @return A result set for the query
 	 */
-	public ResultSet executeQuery(String sqlText, boolean disconnected, Object...args) {
-		Connection conn = null;
+	public ResultSet executeQuery(Connection conn, String sqlText, boolean disconnected, Object...args) {		
 		PreparedStatement ps = null;
 		ResultSet rset = null;
+		final boolean newConn = conn==null;
 		try {
-			conn = dataSource.getConnection();
+			if(newConn) {
+				conn = dataSource.getConnection();
+			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
@@ -207,16 +209,27 @@ public class SQLWorker {
 				crs.populate(rset);
 				return crs;
 			}
-			return getAutoCloseResultSet(rset, ps, conn);
+			return getAutoCloseResultSet(rset, ps, newConn ? conn : null);
 		} catch (Exception ex) {
 			throw new RuntimeException("SQL Query Failure [" + sqlText + "]", ex);
 		} finally {
 			if(disconnected) {				
 				if(rset!=null) try { rset.close(); } catch (Exception x) { /* No Op */ }
 				if(ps!=null) try { ps.close(); } catch (Exception x) { /* No Op */ }
-				if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }				
-			}
+				if(newConn && conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }				
+			} 
 		}		
+	}
+	
+	/**
+	 * Executes the passed query and returns a result set
+	 * @param sqlText The SQL query
+	 * @param disconnected true to read all rows and return a disconnected resultset, false to return the connected result set
+	 * @param args The query bind arguments
+	 * @return A result set for the query
+	 */
+	public ResultSet executeQuery(String sqlText, boolean disconnected, Object...args) {
+		return executeQuery(null, sqlText, disconnected, args);
 	}
 	
 	/**
@@ -256,14 +269,17 @@ public class SQLWorker {
 	
 	/**
 	 * Executes the passed statement
+	 * @param conn An optional connection. If not supplied, a new connection will be acquired, and closed when used.
 	 * @param sqlText The update SQL text
 	 * @param args The bind arguments
 	 */
-	public void execute(String sqlText, Object...args) {
-		Connection conn = null;
+	public void execute(Connection conn, String sqlText, Object...args) {		
 		PreparedStatement ps = null;
+		boolean newConn = conn==null;
 		try {
-			conn = dataSource.getConnection();
+			if(newConn) {
+				conn = dataSource.getConnection();
+			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			ps.execute();
@@ -271,9 +287,19 @@ public class SQLWorker {
 			throw new RuntimeException("SQL Update Failure [" + sqlText + "]", ex);
 		} finally {
 			if(ps!=null) try { ps.close(); } catch (Exception x) { /* No Op */ }
-			if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
+			if(newConn && conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 		}		
 	}
+	
+	/**
+	 * Executes the passed statement
+	 * @param sqlText The update SQL text
+	 * @param args The bind arguments
+	 */
+	public void execute(String sqlText, Object...args) {
+		execute(null, sqlText, args);
+	}
+	
 	
 
 	/**

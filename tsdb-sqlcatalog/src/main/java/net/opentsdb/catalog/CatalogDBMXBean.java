@@ -251,6 +251,27 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 */
 	public int getLeasedConnections();
 	
+	/**
+	 * Indicates if text indexing is disabled
+	 * @return true if text indexing is disabled, false otherwise
+	 */
+	public boolean isTextIndexingDisabled();	
+	
+	/**
+	 * Returns the TSDB Sync period in seconds
+	 * @return the TSDB Sync period in seconds
+	 */
+	public long getTSDBSyncPeriod();
+	
+	/**
+	 * Sets the TSDB Sync period in seconds. 
+	 * If this op modifies the existing value, a schedule change will be triggered.
+	 * This may stop a started schedule, or start a stopped schedule. 
+	 * @param newPeriod the TSDB Sync period in seconds.
+	 */
+	public void setTSDBSyncPeriod(final long newPeriod);
+
+	
 	
 	
 	

@@ -527,6 +527,16 @@ public class JSONMapSupport {
 	}
 	
 	/**
+	 * Retrieves the long bound in the map under the mapped key
+	 * @param map The map to retrieve the value from
+	 * @param key The key under which the long value is bound
+	 * @return the extracted long value
+	 */
+	public static long getLong(Map<String, String> map, String key) {
+		return Long.parseLong(nvl("Map", map).get(nvl("Key", key)));
+	}
+	
+	/**
 	 * Retrieves the value bound to the JSON map as a number
 	 * @param source The map JSON source
 	 * @param key The map key the number is bound to

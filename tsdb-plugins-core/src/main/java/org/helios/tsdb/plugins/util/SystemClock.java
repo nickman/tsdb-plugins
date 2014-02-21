@@ -59,6 +59,14 @@ public class SystemClock {
 	}
 	
 	/**
+	 * Returns the current time in milliseconds to second precision
+	 * @return the second precision current timestamp in ms.
+	 */
+	public static long rtime() {
+		return TimeUnit.MILLISECONDS.convert(TimeUnit.SECONDS.convert(time(), TimeUnit.MILLISECONDS), TimeUnit.SECONDS);
+	}
+	
+	/**
 	 * Returns a JDBC timestamp for the current time
 	 * @return a JDBC timestamp for the current time
 	 */

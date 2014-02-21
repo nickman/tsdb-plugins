@@ -146,6 +146,27 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_ANNOTATION_AK ON TSD_ANNOTATION (START_TIM
 
 ALTER TABLE TSD_FQN_TAGPAIR ADD CONSTRAINT IF NOT EXISTS TSD_FQN_TAGPAIR_FQNID_FK FOREIGN KEY(FQNID) REFERENCES TSD_TSMETA ( FQNID ) ON DELETE CASCADE;
 
+-- ==============================================================================================
+--  Sync Poller Timestamp Tables
+-- ==============================================================================================
+
+CREATE TABLE IF NOT EXISTS TSD_LASTSYNC (
+	TABLE_NAME VARCHAR(20) NOT NULL COMMENT 'The name of the table to be synchronized back to the TSDB' CHECK TABLE_NAME IN ('TSD_TSMETA', 'TSD_METRIC', 'TSD_TAGK', 'TSD_TAGV', 'TSD_ANNOTATION'),
+	LAST_SYNC TIMESTAMP NOT NULL COMMENT 'The timestamp of the completion time of the last successful synchronization'
+);
+
+ALTER TABLE TSD_LASTSYNC ADD CONSTRAINT IF NOT EXISTS TSD_LASTSYNC_PK PRIMARY KEY ( TABLE_NAME );
+
+CREATE TABLE IF NOT EXISTS TSD_LASTSYNC_FAILS (
+	TABLE_NAME VARCHAR(20) NOT NULL COMMENT 'The name of the table from which the synchronize attempt failed',
+	OBJECT_ID VARCHAR(20) NOT NULL COMMENT 'The rowid of the object for which the synchronize attempt failed',
+	ATTEMPTS INTEGER NOT NULL COMMENT 'The number of attempts to synchronize that have failed',
+	LAST_ATTEMPT TIMESTAMP NOT NULL 'The timestamp of the most recent failed attempt to synchronize'
+);
+
+ALTER TABLE TSD_LASTSYNC_FAILS ADD CONSTRAINT IF NOT EXISTS TSD_LASTSYNC_FAILS_PK PRIMARY KEY ( TABLE_NAME, ROWID );
+ALTER TABLE TSD_LASTSYNC_FAILS ADD CONSTRAINT IF NOT EXISTS TSD_LASTSYNC_FAILS_FK FOREIGN KEY(TABLE_NAME) REFERENCES TSD_LASTSYNC ( TABLE_NAME );
+
 
 -- ==============================================================================================
 --  Timestamp Triggers

@@ -26,6 +26,7 @@ package net.opentsdb.catalog;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +51,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
@@ -197,25 +201,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected String dbVersion = null;
 	
 	
-	// ========================================================================================
-	//	FQN Sequence Related Constants
-	// ========================================================================================
+	/** Indicates if text indexing is disabled */
+	protected boolean textIndexingDisabled = false;
 	
-	/** The config property name for the increment on the FQN ID Sequence */
-	public static final String DB_FQN_SEQ_INCR = "helios.search.catalog.seq.fqn.incr";
-	/** The default increment on the FQN ID Sequence */
-	public static final int DEFAULT_DB_FQN_SEQ_INCR = 50;
+	/** The TSDB Synchronized */
+	protected SyncQueueProcessor synker = null;
 	
-	/** The config property name for the increment on the FQN TagPair ID Sequence */
-	public static final String DB_TP_FQN_SEQ_INCR = "helios.search.catalog.seq.fqntp.incr";
-	/** The default increment on the FQN TagPair ID Sequence */
-	public static final int DEFAULT_DB_TP_FQN_SEQ_INCR = DEFAULT_DB_FQN_SEQ_INCR * 4;
-
-	/** The config property name for the increment on the Annotation ID Sequence */
-	public static final String DB_ANN_SEQ_INCR = "helios.search.catalog.seq.ann.incr";
-	/** The default increment on the Annotation ID Sequence */
-	public static final int DEFAULT_DB_ANN_SEQ_INCR = 50;
-
 	
 	// ========================================================================================
 	//	Object COUNT and EXISTS SQL
@@ -298,7 +289,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	static {
 		Map<String, String> tmp = new TreeMap<String, String>();
-		tmp.put(SAVED_BY_KEY, H2DBCatalog.class.getSimpleName());
 		//tmp.put(VERSION_KEY, "1");
 		INIT_CUSTOM = Collections.unmodifiableMap(tmp);
 	}
@@ -384,7 +374,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBInterface#initConnection(java.sql.Connection)
 	 */
 	public void initConnection(Connection conn) {
-		setConnectionProperty(conn, TSD_CONN_TYPE, EQ_CONN_FLAG);
+		
 	}
 
 	// ========================================================================================
@@ -401,11 +391,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		pluginContext = pc;
 		tsdb = pluginContext.getTsdb();
 		extracted = pluginContext.getExtracted();
+		textIndexingDisabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_DISABLE_TEXT_INDEXING, DEFAULT_DB_DISABLE_TEXT_INDEXING, extracted);
 		
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
 		dataSourceStats = cds.getStatisticsMBean();
+		
 		sqlWorker = SQLWorker.getInstance(dataSource);
 		popDbInfo();
 		doInitialize();
@@ -421,6 +413,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted), 
 				"ANN_SEQ", dataSource); // ANN_SEQ
 		pc.setResource(CatalogDBInterface.class.getSimpleName(), this);
+		checkLastSync();
 		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
 		final AbstractDBCatalog finalMe = this;
 		pluginContext.addResourceListener(
@@ -437,19 +430,44 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 					}
 				}
 		);		
+		synker = new SyncQueueProcessor(pluginContext);
+		synker.start();
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	
+	
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#triggerSyncQueueFlush()
+	 * Validates that the <b><code>TSD_LASTSYNC</code></b> is correctly populated.
 	 */
-	public void triggerSyncQueueFlush() {
-//		if(syncQueuePollerEnabled) {
-//			if(syncQueueProcessor==null) throw new RuntimeException("SyncQueue Polling Enabled but syncQueueProcessor is null");
-//			syncQueueProcessor.run();
-//		}
+	protected void checkLastSync() {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			final Iterator<String> tableNames = new HashSet<String>(Arrays.asList("TSD_TAGK", "TSD_TAGV", "TSD_METRIC", "TSD_TSMETA", "TSD_ANNOTATION")).iterator();
+			Timestamp jvmStartTime = new Timestamp(ManagementFactory.getRuntimeMXBean().getStartTime());
+			while(tableNames.hasNext()) {
+				String tableName = tableNames.next();
+				log.info("Checking TSD_LASTSYNC.{} Status", tableName);
+				if(!sqlWorker.sqlForBool(conn, "SELECT COUNT(*) FROM TSD_LASTSYNC WHERE TABLE_NAME = ?", tableName)) {
+					sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, LAST_SYNC) VALUES (?,?)", tableName, jvmStartTime);
+					log.info("Initialized TSD_LASTSYNC.{}", tableName);
+				}
+				tableNames.remove();
+			}
+			conn.commit();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to check TSD_LASTSYNC", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
+		}
 	}
+	
+//	CREATE TABLE IF NOT EXISTS TSD_LASTSYNC (
+//			TABLE_NAME VARCHAR(20) NOT NULL COMMENT 'The name of the table to be synchronized back to the TSDB',
+//			LAST_SYNC TIMESTAMP NOT NULL COMMENT 'The timestamp of the completion time of the last successful synchronization'
+//		);
+	
+	
 	
 	/**
 	 * Populates the DB meta-data
@@ -530,7 +548,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public void processEvents(Connection conn, Set<TSDBSearchEvent> events) {		
 		int ops = 0;
-		setConnectionProperty(conn, TSD_CONN_TYPE, SYNC_CONN_FLAG);
 		ElapsedTime et = SystemClock.startClock();
 		
 		Set<String> batchedUidPairs = new HashSet<String>(events.size());
@@ -663,7 +680,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(tsMetaFqnPs!=null) try { tsMetaFqnPs.close(); tsMetaFqnPs = null;} catch (Exception x) {/* No Op */}
 			if(uidMetaTagPairFQNPs!=null) try { uidMetaTagPairFQNPs.close(); uidMetaTagPairFQNPs = null;} catch (Exception x) {/* No Op */}
 			if(annotationsPs!=null) try { annotationsPs.close(); annotationsPs = null;} catch (Exception x) {/* No Op */}
-			setConnectionProperty(conn, TSD_CONN_TYPE, "");
 			batchedUids.clear();
 		}
 	}
@@ -1288,7 +1304,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			conn = dataSource.getConnection();
 			conn.setAutoCommit(false);
-			setConnectionProperty(conn, TSD_CONN_TYPE, SYNC_CONN_FLAG);
 			rowsDeleted = prepareAndExec(conn,"DELETE FROM TSD_TSMETA");
 			conn.commit();
 			b.append("\n").append("TSD_TSMETA:").append(rowsDeleted);
@@ -1961,6 +1976,26 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			}
 		};
 	}
+	
+//	protected ScheduledFuture<?> syncScheduleHandle = null;
+	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getTSDBSyncPeriod()
+	 */
+	public long getTSDBSyncPeriod() {
+		return synker.getTSDBSyncPeriod();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#setTSDBSyncPeriod(long)
+	 */
+	public void setTSDBSyncPeriod(final long newPeriod) {
+		synker.setTSDBSyncPeriod(newPeriod);
+	}
+	
 
 	/**
 	 * {@inheritDoc}
@@ -2254,6 +2289,14 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	public String[] getLevelNames() {
 		return loggerManager.getLevelNames();
+	}
+
+	/**
+	 * Indicates if text indexing is disabled
+	 * @return true if text indexing is disabled, false otherwise
+	 */
+	public boolean isTextIndexingDisabled() {
+		return textIndexingDisabled;
 	}
 	
 }

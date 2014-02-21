@@ -82,8 +82,6 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	/** The H2 HTTP Allow Others */
 	protected boolean httpAllowOthers = false;
 	
-	/** Indicates if lucene should be disabled */
-	boolean disableLucene = false;
 	
 	/** The container/manager for the TCP Listener */
 	protected Server tcpServer = null;
@@ -137,10 +135,6 @@ public class H2DBCatalog extends AbstractDBCatalog {
     /** The key of the user defined var to flag a connection as the sync queue processor */
     public static final String SYNC_CONN_FLAG = "syncprocessor";
     
-	/** The config property name to disable the lucene search engine in H2 */
-	public static final String DB_H2_DISABLE_LUCENE = "helios.search.catalog.h2.lucene.disable";
-	/** The default indicator for disabling the lucene search engine in H2 */
-	public static final boolean DEFAULT_DB_H2_DISABLE_LUCENE = false;
 	
 
     
@@ -157,7 +151,6 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		tcpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_TCP_ALLOW_OTHERS, DEFAULT_DB_H2_TCP_ALLOW_OTHERS, extracted);
 		httpPort = ConfigurationHelper.getIntSystemThenEnvProperty(DB_H2_HTTP_PORT, DEFAULT_DB_H2_HTTP_PORT, extracted);
 		httpAllowOthers = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_HTTP_ALLOW_OTHERS, DEFAULT_DB_H2_HTTP_ALLOW_OTHERS, extracted);
-		disableLucene = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_H2_DISABLE_LUCENE, DEFAULT_DB_H2_DISABLE_LUCENE, extracted);
 		long fqnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_FQN_SEQ_INCR, DEFAULT_DB_FQN_SEQ_INCR, extracted);
 		long fqnTagPairSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_TP_FQN_SEQ_INCR, DEFAULT_DB_TP_FQN_SEQ_INCR, extracted);
 		long fqnAnnSeqIncrement = ConfigurationHelper.getIntSystemThenEnvProperty(DB_ANN_SEQ_INCR, DEFAULT_DB_ANN_SEQ_INCR, extracted);
@@ -178,7 +171,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 			log.info("No H2 Listeners Configured");
 		}
 		Connection conn = null;
-		if(!disableLucene) {
+		if(!textIndexingDisabled) {
 			try {
 				conn = dataSource.getConnection();
 				FullTextLucene.init(conn);
@@ -237,7 +230,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
      */
 	@Override
     public List<?> executeSearch(Connection conn, SearchQuery query) {
-		if(disableLucene) return Collections.EMPTY_LIST;
+		if(textIndexingDisabled) return Collections.EMPTY_LIST;
 		PreparedStatement ps = null;
 		ResultSet rset = null;
 		List<?> results = null;

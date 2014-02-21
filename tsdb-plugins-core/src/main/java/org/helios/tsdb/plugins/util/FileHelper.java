@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package test.net.opentsdb.search.util;
+package org.helios.tsdb.plugins.util;
 
 import java.io.File;
 import java.util.Arrays;
@@ -76,16 +76,14 @@ public class FileHelper {
 	/** A set of the directories in the path */
 	public static final Set<File> PATH_DIRS = Collections.unmodifiableSet(filesFromPath(System.getenv("PATH"), false));
 	
-	static {
-		LOG.info("PATH DIRS: {}", PATH_DIRS);
-	}
 	
 	
-	public static void main(String[] args) {
-		try { Class.forName(FileHelper.class.getName(), true, FileHelper.class.getClassLoader()); } catch (Exception ex) {}
-		LOG.info("All Protected Files Size: {}", ALL_PROTECTED_FILES.size());
-		LOG.info("Gnuplot in path ?: {}", isFileInPath("gnuplot" , System.getenv("PATH")));
-	}
+//	public static void main(String[] args) {
+//		try { Class.forName(FileHelper.class.getName(), true, FileHelper.class.getClassLoader()); } catch (Exception ex) {}
+//		LOG.info("All Protected Files Size: {}", ALL_PROTECTED_FILES.size());
+//		LOG.info("Gnuplot in path ?: {}", isFileInPath("gnuplot.exe" , System.getenv("PATH")));
+//	LOG.info("PATH DIRS: {}", PATH_DIRS);
+//	}
 
 	/** A set of the files and directories in the java classpath */
 	public static final Set<File> JAVA_CLASSPATH_FILES = Collections.unmodifiableSet(filesFromPath(System.getProperty("java.class.path")));
@@ -93,12 +91,6 @@ public class FileHelper {
 	@SuppressWarnings("unchecked")
 	public static final Set<File> ALL_PROTECTED_FILES = aggregate(ROOTS, JAVA_BOOT_DIRS, JAVA_EXT_DIRS, JAVA_LIB_DIRS, JAVA_ENDORSED_DIRS, JAVA_BOOT_LIB_DIRS, JAVA_CLASSPATH_FILES);
 	
-	
-
-	
-	
-	private FileHelper() {
-	}
 	
 	/**
 	 * Splits the passed path and returns a set of the validated files therein.
@@ -194,11 +186,21 @@ public class FileHelper {
 		}
 	}
 
+	/**
+	 * Searches all the directories in the passed path to find the passed file name
+	 * @param fileName The file name to search for
+	 * @param paths A string of path separator delimited paths
+	 * @return true if the file was found, false otherwise
+	 */
 	public static boolean isFileInPath(String fileName, String paths) {
 		for(File dir: filesFromPath(paths, false)) {
 			if(new File(dir, fileName).exists()) return true;
 		}
 		return false;
 	}
+	
+	private FileHelper() {
+	}
+	
 	
 }

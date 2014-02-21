@@ -24,14 +24,17 @@
  */
 package test.net.opentsdb.search;
 
-import java.util.List;
+import java.io.File;
 
+import net.opentsdb.catalog.datasource.ICatalogDataSource;
 import net.opentsdb.search.SearchQuery;
 import net.opentsdb.search.SearchQuery.SearchType;
+import net.opentsdb.utils.Config;
 
 import org.helios.tsdb.plugins.test.BaseTest;
 
 import test.net.opentsdb.core.EmptyTSDB;
+import test.net.opentsdb.search.util.FileHelper;
 
 /**
  * <p>Title: CatalogBaseTest</p>
@@ -42,7 +45,8 @@ import test.net.opentsdb.core.EmptyTSDB;
  */
 
 public class CatalogBaseTest extends BaseTest {
-
+	/** The JDBC URL prefix of file based DB instances */
+	public static final String H2_FILE_URL_PREFIX = "jdbc:h2:file:";
 	/**
 	 * Creates a new CatalogBaseTest
 	 */
@@ -80,6 +84,41 @@ public class CatalogBaseTest extends BaseTest {
 		}
 	}
 	
+	/**
+	 * Configures the TSDB for all tests in this class.
+	 */
+	protected static void configureTSDB() {
+		cleanH2FileDir("CatalogSearchConfig");
+		tsdb = newTSDB("CatalogSearchConfig");
+	}
+	
+	public static void cleanH2FileDir(String configName) {
+		try {
+			Config cfg = getConfig(configName);
+			String jdbcUrl = cfg.getString(ICatalogDataSource.JDBC_POOL_JDBCURL);
+			if(jdbcUrl==null) jdbcUrl = ICatalogDataSource.DEFAULT_JDBC_POOL_JDBCURL;
+			if(jdbcUrl.startsWith(H2_FILE_URL_PREFIX)) {
+				int pl = H2_FILE_URL_PREFIX.length();
+		        int dindex = jdbcUrl.indexOf(';');
+		        String fileDir  = jdbcUrl.substring(pl, dindex==-1 ? jdbcUrl.length() : dindex);
+		        log("H2 FILE PREFIX: [%s]", fileDir);
+		        fileDir = fileDir.replace("~", System.getProperty("user.home"));
+		        File f = new File(fileDir);
+		        if(f.exists()) {
+//		        	if(f.isDirectory()) {
+//		        		FileHelper.emptyDir(f);
+//		        	} else {
+//		        		FileHelper.emptyDir(f.getParentFile());
+//		        	}
+		        }
+			}
+			// H2_FILE_URL_PREFIX
+			// jdbc:h2:file:~/sd-data/tsdb/tsdb;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to load CatalogSearchConfig", e);
+		}
+		
+	}
 
 	public static class FakeSyncToStore extends EmptyTSDB {
 		

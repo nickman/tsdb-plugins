@@ -61,6 +61,7 @@ public class VolumeMetricTest extends LoadMetricsTest {
 	 * Configures the TSDB for all tests in this class.
 	 */
 	protected static void configureTSDB() {
+		cleanH2FileDir("CatalogSearchConfig");
 		tsdb = newTSDB("CatalogSearchConfig");
 	}
 	

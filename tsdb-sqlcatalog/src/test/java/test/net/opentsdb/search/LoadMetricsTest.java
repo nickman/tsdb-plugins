@@ -27,7 +27,6 @@ package test.net.opentsdb.search;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -53,6 +52,7 @@ import net.opentsdb.search.SearchQuery;
 import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
+import net.opentsdb.utils.Config;
 
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
@@ -252,12 +252,6 @@ public class LoadMetricsTest extends CatalogBaseTest {
 	
 
 
-	/**
-	 * Configures the TSDB for all tests in this class.
-	 */
-	protected static void configureTSDB() {		
-		tsdb = newTSDB("CatalogSearchConfig");
-	}
 	
 	/**
 	 * Initializes the environment for tests in this class

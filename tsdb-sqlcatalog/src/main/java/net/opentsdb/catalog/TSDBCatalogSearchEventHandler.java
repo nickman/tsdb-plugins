@@ -200,7 +200,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		if(autoSync) {
 			try {
 				Thread.sleep(500);
-				long synched = dbInterface.synchronizeFromStore();
+				long synched = dbInterface.synchronizeFromStore(false);
 				log.info("\n\t*****************\n\tAutoSynced [{}] TSMetas\n\t*****************\n", synched);
 			} catch (Exception e) {
 				log.error("Failed to autosync", e);

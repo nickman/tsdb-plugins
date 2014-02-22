@@ -26,11 +26,11 @@ package test.net.opentsdb.search;
 
 import java.lang.management.ManagementFactory;
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import net.opentsdb.catalog.AbstractDBCatalog;
+import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 import net.opentsdb.meta.TSMeta;
@@ -71,12 +71,17 @@ public class VersionUpdatesTest extends CatalogBaseTest {
 	/** The custom map key for the internal pk id */
 	public static final String PK_KEY = AbstractDBCatalog.PK_KEY;
 	
+	/** The installed catalog service */
+	protected CatalogDBInterface dbInterface = null;
+	
 	/**
 	 * Purges the database before each test 
 	 */
 	@Before
 	public void purgeDb() {
-		TSDBCatalogSearchEventHandler.getInstance().getDbInterface().purge();
+		dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
+		dbInterface.purge();
+		dbInterface.setTSDBSyncPeriod(-1L);
 		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
 		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
 	}

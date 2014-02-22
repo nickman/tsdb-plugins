@@ -2189,9 +2189,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBMXBean#synchronizeFromStore()
 	 */
 	@Override
-	public long synchronizeFromStore() throws Exception {
+	public long synchronizeFromStore(boolean dumpOnly) throws Exception {
 		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-		return ms.process();
+		return ms.process(dumpOnly);
 	}
 	
 	

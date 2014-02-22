@@ -34,6 +34,9 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
@@ -56,9 +59,6 @@ public enum TSDBTable {
 	TSD_TSMETA(TSMeta.class, new TSTableInfo()),	
 	/** The annotation meta table  */
 	TSD_ANNOTATION(Annotation.class, new AnnotationTableInfo());
-	
-	
-	
 	
 	private TSDBTable(Class<?> type, TableInfo ti) {
 		this.type = type;
@@ -145,7 +145,8 @@ public enum TSDBTable {
 	public static class TSTableInfo implements TableInfo {
 		/** The select SQL */
 		private final String sql;
-
+		/** Instance logger */
+		private final Logger log = LoggerFactory.getLogger(getClass());
 		/**
 		 * Creates a new TSTableInfo
 		 */
@@ -183,15 +184,17 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Object obj, final TSDB tsdb) {
+		public Deferred<Boolean> sync(final Object obj, final TSDB tsdb) {
 			final TSMeta tsMeta = (TSMeta)obj;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				tsMeta.storeNew(tsdb).addBoth(new Callback<Void, Boolean>(){
 					public Void call(Boolean storeNewSuccess) throws Exception {
+						log.info("Callback on [{}] with arg [{}]", obj, storeNewSuccess);
 						if(!storeNewSuccess) {
 							tsMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
 								public Void call(Boolean syncSuccess) throws Exception {
+									log.info("Callback on [{}] with arg [{}]", obj, syncSuccess);
 									completion.callback(syncSuccess);
 									return null;
 								}
@@ -201,12 +204,12 @@ public enum TSDBTable {
 						}
 						return null;
 					}
-				});
-				return completion;
+				});				
 			} catch (Throwable ex) {
 				ex.printStackTrace(System.err);
-				throw new RuntimeException(ex);
+				completion.callback(ex);
 			}
+			return completion;
 		}
 		
 		/**
@@ -233,6 +236,8 @@ public enum TSDBTable {
 	public static class AnnotationTableInfo implements TableInfo {
 		/** The select SQL */
 		private final String sql;
+		/** Instance logger */
+		private final Logger log = LoggerFactory.getLogger(getClass());
 
 		/**
 		 * Creates a new AnnotationTableInfo
@@ -301,6 +306,9 @@ public enum TSDBTable {
 	public static class UIDTableInfo implements TableInfo {
 		/** The select SQL */
 		private final String sql;
+		/** Instance logger */
+		private final Logger log = LoggerFactory.getLogger(getClass());
+		
 		
 		/**
 		 * Creates a new UIDTableInfo
@@ -340,13 +348,14 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Object obj, final TSDB tsdb) {
+		public Deferred<Boolean> sync(final Object obj, final TSDB tsdb) {
 			final UIDMeta uidMeta = (UIDMeta)obj;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				uidMeta.storeNew(tsdb)
-					.addCallback(new Callback<Void, Object>() {
+					.addCallback(new Callback<Void, Object>() {						
 						public Void call(Object arg) throws Exception {
+							log.info("Callback on [{}] with arg [{}]-[{}]", obj, arg.getClass().getName(), arg);
 							completion.callback(true);
 							return null;
 						}
@@ -355,18 +364,19 @@ public enum TSDBTable {
 						public Void call(Object arg) throws Exception {
 							uidMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
 								public Void call(Boolean syncSuccess) throws Exception {
+									log.info("Errback on [{}] with arg [{}]", obj, syncSuccess);
 									completion.callback(syncSuccess);
 									return null;
 								}
 							});							
 							return null;
 						}
-					});
-				return completion;
+					});				
 			} catch (Throwable ex) {
 				ex.printStackTrace(System.err);
-				throw new RuntimeException(ex);
+				return completion;
 			}
+			return completion;
 		}
 
 		/**

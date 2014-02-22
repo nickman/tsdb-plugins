@@ -38,11 +38,14 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -73,6 +76,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+
+import com.stumbleupon.async.Callback;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: BaseTest</p>
@@ -638,6 +644,47 @@ public class BaseTest {
 		} else {
 			throw new RuntimeException("Invalid Indexable Type [" + c.getClass().getName() + "]");
 		}
+	}
+	
+	public static <T> T executeAsync(Deferred<T> deferred) throws Exception {
+		return executeAsync(deferred, 2000);
+	}
+	
+	public static <T> T executeAsync(Deferred<T> deferred, long timeoutMs) throws Exception {
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicReference<T> result = new AtomicReference<T>(null); 
+		final AtomicReference<Throwable> err = new AtomicReference<Throwable>(null);
+		deferred.addCallback(new Callback<Void, T>() {
+			@Override
+			public Void call(T t) throws Exception {
+				if(t instanceof Throwable) {
+					err.set((Throwable)t);
+				} else {
+					result.set(t);
+				}
+				latch.countDown();
+				return null;
+			}
+		});
+		deferred.addErrback(new Callback<Void, T>() {
+			@Override
+			public Void call(T t) throws Exception {
+				if(t instanceof Throwable) {
+					err.set((Throwable)t);
+				} else {
+					result.set(t);
+				}
+				latch.countDown();
+				return null;
+			}
+		});
+		if(!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+			throw new Exception("Timeout after [" + timeoutMs + "] ms.");
+		}
+		if(err.get()!=null) {
+			throw new Exception("Errback", err.get());
+		}
+		return result.get();
 	}
 	
 }

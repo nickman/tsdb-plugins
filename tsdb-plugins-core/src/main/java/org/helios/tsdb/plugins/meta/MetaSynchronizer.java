@@ -56,13 +56,11 @@ import org.slf4j.LoggerFactory;
 
 public class MetaSynchronizer {
 	/** The instance logger */
-	protected final Logger log = LoggerFactory.getLogger(getClass());
+	protected static final Logger log = LoggerFactory.getLogger(MetaSynchronizer.class);
 	/** The TSDB instance to synchronize against */
 	protected final TSDB tsdb;
     /** The start time */
     protected long start_time = -1;
-    /** The max metric ID from the UID table */
-    protected final long max_id;
 	
 	/** Charset used to convert Strings to byte arrays and back. */
 	public static final Charset CHARSET = Charset.forName("ISO-8859-1");
@@ -81,16 +79,17 @@ public class MetaSynchronizer {
 	 */
 	public MetaSynchronizer(TSDB tsdb) {
 		this.tsdb = tsdb;
-		max_id = getMaxMetricID(tsdb);
-		
 	}
 	
 	
 	/**
 	 * Runs the meta synchronization
+	 * @param dumpOnly If true, only dumps the TSMeta data to the logger, otherwise processes the synch
 	 * @return the number of TSMeta objects processed
 	 */
-	public long process() {
+	public long process(final boolean dumpOnly) {
+		long max_id = getMaxMetricID(tsdb);
+		if(max_id==0) return 0L;
 		start_time = SystemClock.unixTime();
 		long tsMetaCount = 0;
 		final long[][] segments = new long[SEGMENT_COUNT][2];
@@ -130,6 +129,7 @@ public class MetaSynchronizer {
 	    		scanner = tsdb.getClient().newScanner(tsdb.dataTable());
 	    		byte[] start_row =  Arrays.copyOfRange(Bytes.fromLong(segments[i][0]), 8 - metric_width, 8);
 	    		byte[] end_row =    Arrays.copyOfRange(Bytes.fromLong(segments[i][1]), 8 - metric_width, 8);
+	    		//end_row[2]++;
 	    		scanner.setStartKey(start_row);
 	    		scanner.setStopKey(end_row);
 	    		scanner.setFamily("t".getBytes(Charset.forName("ISO-8859-1")));
@@ -145,6 +145,12 @@ public class MetaSynchronizer {
 	    		    String tsuid_string = UniqueId.uidToString(tsuid);
 	    		    if(seenTSUids.add(tsuid_string)) {
 	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
+	    		    	if(dumpOnly) {
+	    		    		if(tsMeta!=null) {
+	    		    			print(tsMeta);
+	    		    		}
+	    		    		continue;
+	    		    	}
 	    		    	tsdb.indexTSMeta(tsMeta);
 	    		    	tsMetaCount++;
 	    		    }
@@ -166,33 +172,44 @@ public class MetaSynchronizer {
 	    return tsMetaCount;
 	}
 	
+	void print(TSMeta tsMeta) {
+		log.info(tsMeta.toString());
+	}
 	
-	  /**
-	   * Returns the max metric ID from the UID table
-	   * @param tsdb The TSDB to use for data access
-	   * @return The max metric ID as an integer value
-	   */
-	  public static long getMaxMetricID(final TSDB tsdb) {
-	    // first up, we need the max metric ID so we can split up the data table
-	    // amongst threads.
-	    final GetRequest get = new GetRequest(tsdb.uidTable(), new byte[] { 0 });
-	    get.family("id".getBytes(CHARSET));
-	    get.qualifier("metrics".getBytes(CHARSET));
-	    ArrayList<KeyValue> row;
-	    try {
-	      row = tsdb.getClient().get(get).joinUninterruptibly();
-	      if (row == null || row.isEmpty()) {
-	        throw new IllegalStateException("No data in the metric max UID cell");
-	      }
-	      final byte[] id_bytes = row.get(0).value();
-	      if (id_bytes.length != 8) {
-	        throw new IllegalStateException("Invalid metric max UID, wrong # of bytes");
-	      }
-	      return Bytes.getLong(id_bytes);
-	    } catch (Exception e) {
-	      throw new RuntimeException("Shouldn't be here", e);
-	    }
-	  }	
 	
+	/**
+	 * Returns the max metric ID from the UID table
+	 * @param tsdb The TSDB to use for data access
+	 * @return The max metric ID as an integer value
+	 */
+	public static long getMaxMetricID(final TSDB tsdb) {
+		// first up, we need the max metric ID so we can split up the data table
+		// amongst threads.
+		log.info("Fetching MAX Metric ID");
+		final GetRequest get = new GetRequest(tsdb.uidTable(), new byte[] { 0 });
+		get.family("id".getBytes(CHARSET));
+		get.qualifier("metrics".getBytes(CHARSET));
+		ArrayList<KeyValue> row;
+		try {
+			row = tsdb.getClient().get(get).joinUninterruptibly(2000);
+			if (row == null || row.isEmpty()) {
+				log.error("No data in the metric max UID cell");
+				throw new IllegalStateException("No data in the metric max UID cell");
+			}
+			final byte[] id_bytes = row.get(0).value();
+			if (id_bytes.length != 8) {
+				log.error("Invalid metric max UID, wrong # of bytes");
+				throw new IllegalStateException("Invalid metric max UID, wrong # of bytes");
+			}
+			long maxId = Bytes.getLong(id_bytes);
+			log.info("MAX ID: [{}]", maxId);
+			return maxId;
+		} catch (Throwable e) {
+			log.error("Unexpected exception getting max metric id: [{}]", e.toString());
+			//throw new RuntimeException("Shouldn't be here", e);
+			return 0;
+		}
+	}	
+
 	
 }

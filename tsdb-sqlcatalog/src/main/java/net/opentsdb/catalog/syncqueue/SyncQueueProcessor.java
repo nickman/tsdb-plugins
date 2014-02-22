@@ -52,6 +52,7 @@ import net.opentsdb.catalog.TSDBTable.TableInfo;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.meta.MetaSynchronizer;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
@@ -206,7 +207,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			taskHandle = null;
 		}		
 		if(newPeriod>1) {
-			taskHandle = scheduler.scheduleWithFixedDelay(this, 5, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+			//taskHandle = scheduler.scheduleWithFixedDelay(this, 5, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+			taskHandle = scheduler.schedule(this, 5, TimeUnit.SECONDS);
 			log.info("Started TSDB Sync Scheduler with a period of {} seconds", getTSDBSyncPeriod());
 		}
 	}
@@ -233,14 +235,22 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		if(!syncInProgress.compareAndSet(false, true)) {
 			log.debug("Sync already in progress. Ejecting....");
 		}
+		final long startTime = System.currentTimeMillis();
 		// First retry the failures
 		Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
 		Deferred<ArrayList<Void>> processNewDeferred = processNewSyncs();
-		
+		final Runnable scheduledTask = this;
 		Deferred.group(priorFailsDeferred, processNewDeferred).addBoth(new Callback<Void, ArrayList<ArrayList<Void>>>() {
 			@Override
 			public Void call(ArrayList<ArrayList<Void>> arg) throws Exception {
+				long elapsed = System.currentTimeMillis() - startTime;
+				log.info("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
+				new MetaSynchronizer(tsdb).process(true);
+				if(taskHandle!=null) {
+					taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+					log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+				}
 				syncInProgress.set(false);
 				return null;
 			}
@@ -266,14 +276,15 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			while(dis.next()) {
 				final TSDBTable table = TSDBTable.valueOf(dis.getString(1));
 				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
-				log.info("Looking for Syncs in [{}]", table.name());
+				log.info("Looking for New Syncs in [{}]", table.name());
 				rset = sqlWorker.executeQuery("SELECT * FROM " + table.name() + " WHERE LAST_UPDATE > ?", false, dis.getTimestamp(2));
 				int cnt = 0;
 				for(Object dbObject: table.ti.getObjects(rset, dbInterface)) {
+					log.info("Submitting New Sync [{}]", dbObject);
 					tableDeferreds.add(table.ti.sync(dbObject, tsdb).addBoth(syncCompletionHandler(dbObject, table.ti.getPk(conn, dbObject), 0)));
 					cnt++;
 				}
-				log.info("Processed [{}] Syncs from [{}]", cnt, table.name());
+				log.info("Processed [{}] New Syncs from [{}]", cnt, table.name());
 				rset.close();
 				rset = null;
 				allDeferreds.add(Deferred.group(tableDeferreds).addCallback(new Callback<Void, ArrayList<Void>>() {
@@ -318,6 +329,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					String objectId = rset.getString(2);
 					int attempts = rset.getInt(3);
 					Object failedObject = getDBObject(conn, tableName, objectId);
+					log.info("Submitting Failed Sync [{}]", failedObject);
 					tableDeferreds.add(table.ti.sync(failedObject, tsdb).addBoth(syncCompletionHandler(failedObject, objectId, attempts)));
 					cnt++;
 				}

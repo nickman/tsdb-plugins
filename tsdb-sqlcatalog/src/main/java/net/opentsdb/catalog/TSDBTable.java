@@ -34,6 +34,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 
+import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -45,14 +46,14 @@ import com.stumbleupon.async.Deferred;
  */
 
 public enum TSDBTable {
-	/** The time series meta table */
-	TSD_TSMETA(TSMeta.class, new TSTableInfo()),
-	/** The metric meta table */
-	TSD_METRIC(UIDMeta.class, null),
 	/** The tag key meta table  */
 	TSD_TAGK(UIDMeta.class, null),
 	/** The tag value meta table  */
 	TSD_TAGV(UIDMeta.class, null),
+	/** The metric meta table */
+	TSD_METRIC(UIDMeta.class, null),
+	/** The time series meta table */
+	TSD_TSMETA(TSMeta.class, new TSTableInfo()),	
 	/** The annotation meta table  */
 	TSD_ANNOTATION(Annotation.class, new AnnotationTableInfo());
 	
@@ -182,8 +183,30 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Object obj, TSDB tsdb) {
-			return ((TSMeta)obj).syncToStorage(tsdb, false);
+		public Deferred<Boolean> sync(Object obj, final TSDB tsdb) {
+			final TSMeta tsMeta = (TSMeta)obj;
+			final Deferred<Boolean> completion = new Deferred<Boolean>();
+			try {
+				tsMeta.storeNew(tsdb).addBoth(new Callback<Void, Boolean>(){
+					public Void call(Boolean storeNewSuccess) throws Exception {
+						if(!storeNewSuccess) {
+							tsMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
+								public Void call(Boolean syncSuccess) throws Exception {
+									completion.callback(syncSuccess);
+									return null;
+								}
+							});
+						} else {
+							completion.callback(true);
+						}
+						return null;
+					}
+				});
+				return completion;
+			} catch (Throwable ex) {
+				ex.printStackTrace(System.err);
+				throw new RuntimeException(ex);
+			}
 		}
 		
 		/**
@@ -317,8 +340,33 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Object obj, TSDB tsdb) {
-			return ((UIDMeta)obj).syncToStorage(tsdb, false);
+		public Deferred<Boolean> sync(Object obj, final TSDB tsdb) {
+			final UIDMeta uidMeta = (UIDMeta)obj;
+			final Deferred<Boolean> completion = new Deferred<Boolean>();
+			try {
+				uidMeta.storeNew(tsdb)
+					.addCallback(new Callback<Void, Object>() {
+						public Void call(Object arg) throws Exception {
+							completion.callback(true);
+							return null;
+						}
+					})
+					.addErrback(new Callback<Void, Object>() {
+						public Void call(Object arg) throws Exception {
+							uidMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
+								public Void call(Boolean syncSuccess) throws Exception {
+									completion.callback(syncSuccess);
+									return null;
+								}
+							});							
+							return null;
+						}
+					});
+				return completion;
+			} catch (Throwable ex) {
+				ex.printStackTrace(System.err);
+				throw new RuntimeException(ex);
+			}
 		}
 
 		/**

@@ -126,6 +126,24 @@ public class SQLWorker {
 	}
 	
 	/**
+	 * <p>Title: ResultSetHandler</p>
+	 * <p>Description: Defines an object that can be passed into a SQLWorker query and handle the result row.</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.SQLWorker.ResultSetHandler</code></p>
+	 */
+	public static interface ResultSetHandler {
+		/**
+		 * Callback on the next row. Implementations should not call {@link ResultSet#next()} unless 
+		 * it is intended to skip rows.
+		 * @param rowId The row sequence id, starting at zero.
+		 * @param rset The result set at the next logical row
+		 * @return true to contine processing, false otherwise
+		 */
+		public boolean onRow(int rowId, ResultSet rset);
+	}
+	
+	/**
 	 * Creates a ResultSet proxy that will close the parent statement and connection when the result set is closed.
 	 * @param rset The resultset to proxy
 	 * @param st The parent statement
@@ -222,6 +240,51 @@ public class SQLWorker {
 	}
 	
 	/**
+	 * Executes a query with a {@link ResultSetHandler} that handles the returned rows.
+	 * @param conn An optional connection. If not supplied, a new connection will be acquired, and closed when used.
+	 * @param sqlText The SQL query
+	 * @param rowHandler The row handler to handle the rows returned
+	 * @param args The bind variables
+	 * @return the number of rows retrieved
+	 */
+	public int executeQuery(Connection conn, String sqlText, ResultSetHandler rowHandler, Object...args) {
+		PreparedStatement ps = null;
+		ResultSet rset = null;
+		final boolean newConn = conn==null;
+		try {
+			if(newConn) {
+				conn = dataSource.getConnection();
+			}
+			ps = conn.prepareStatement(sqlText);
+			binderFactory.getBinder(sqlText).bind(ps, args);
+			int rowId = 0;
+			rset = ps.executeQuery();
+			while(rset.next()) {
+				if(!rowHandler.onRow(rowId, rset)) break;
+			}
+			return rowId+1;
+		} catch (Exception ex) {
+			throw new RuntimeException("SQL Query Failure [" + sqlText + "]", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) { /* No Op */ }
+			if(ps!=null) try { ps.close(); } catch (Exception x) { /* No Op */ }
+			if(newConn && conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }				
+		}		
+	}
+	
+	/**
+	 * Executes a query using a new connection with a {@link ResultSetHandler} that handles the returned rows.
+	 * @param sqlText The SQL query
+	 * @param rowHandler The row handler to handle the rows returned
+	 * @param args The bind variables
+	 * @return the number of rows retrieved
+	 */
+	public int executeQuery(String sqlText, ResultSetHandler rowHandler, Object...args) {
+		return executeQuery(sqlText, rowHandler, args);
+	}
+	
+	
+	/**
 	 * Executes the passed query and returns a result set
 	 * @param sqlText The SQL query
 	 * @param disconnected true to read all rows and return a disconnected resultset, false to return the connected result set
@@ -248,7 +311,9 @@ public class SQLWorker {
 			}
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
-			return ps.executeUpdate();
+			int updateResult = ps.executeUpdate();
+			if(newConn) conn.commit();
+			return updateResult;
 		} catch (Exception ex) {
 			throw new RuntimeException("SQL Update Failure [" + sqlText + "]", ex);
 		} finally {
@@ -283,6 +348,7 @@ public class SQLWorker {
 			ps = conn.prepareStatement(sqlText);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			ps.execute();
+			if(newConn) conn.commit();
 		} catch (Exception ex) {
 			throw new RuntimeException("SQL Update Failure [" + sqlText + "]", ex);
 		} finally {

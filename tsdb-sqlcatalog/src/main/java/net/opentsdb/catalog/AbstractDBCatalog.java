@@ -443,16 +443,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		Connection conn = null;
 		try {
 			conn = dataSource.getConnection();
-			final Iterator<String> tableNames = new HashSet<String>(Arrays.asList("TSD_TAGK", "TSD_TAGV", "TSD_METRIC", "TSD_TSMETA", "TSD_ANNOTATION")).iterator();
 			Timestamp jvmStartTime = new Timestamp(ManagementFactory.getRuntimeMXBean().getStartTime());
-			while(tableNames.hasNext()) {
-				String tableName = tableNames.next();
-				log.info("Checking TSD_LASTSYNC.{} Status", tableName);
-				if(!sqlWorker.sqlForBool(conn, "SELECT COUNT(*) FROM TSD_LASTSYNC WHERE TABLE_NAME = ?", tableName)) {
-					sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, LAST_SYNC) VALUES (?,?)", tableName, jvmStartTime);
-					log.info("Initialized TSD_LASTSYNC.{}", tableName);
+			for(TSDBTable table: TSDBTable.values()) {				
+				log.info("Checking TSD_LASTSYNC.{} Status", table.name());
+				if(!sqlWorker.sqlForBool(conn, "SELECT COUNT(*) FROM TSD_LASTSYNC WHERE TABLE_NAME = ?", table.name())) {
+					sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", table.name(), table.ordinal(), jvmStartTime);
+					log.info("Initialized TSD_LASTSYNC.{}", table.name());
 				}
-				tableNames.remove();
 			}
 			conn.commit();
 		} catch (Exception ex) {
@@ -461,13 +458,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 		}
 	}
-	
-//	CREATE TABLE IF NOT EXISTS TSD_LASTSYNC (
-//			TABLE_NAME VARCHAR(20) NOT NULL COMMENT 'The name of the table to be synchronized back to the TSDB',
-//			LAST_SYNC TIMESTAMP NOT NULL COMMENT 'The timestamp of the completion time of the last successful synchronization'
-//		);
-	
-	
 	
 	/**
 	 * Populates the DB meta-data
@@ -1039,7 +1029,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}
 		long annId = annSequence.next();		
 		int version = incrementVersion(annotation);
-		fillInCustom(annotation.getCustom());
+		fillInCustom(annotation.getCustom(), annId);
 		long endTime = annotation.getEndTime();
 		annotationsPs = sqlWorker.batch(conn, annotationsPs, TSD_INSERT_ANNOTATION, 
 				annId, version,
@@ -1706,9 +1696,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	/**
 	 * Creates or updates a custom map
 	 * @param customMap The map to create or update
+	 * @param pk The pk to insert 
 	 * @return a map with the custom tags plus whatever was in the map passed in
 	 */
-	public static HashMap<String, String> fillInCustom(Map<String, String> customMap) {
+	public static HashMap<String, String> fillInCustom(Map<String, String> customMap, long pk) {
 		HashMap<String, String> _customMap = new HashMap<String, String>();
 		_customMap.putAll(INIT_CUSTOM);
 		if(customMap!=null) {
@@ -1719,6 +1710,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		} else {
 			_customMap.put(VERSION_KEY, "1");
 		}
+		_customMap.put(PK_KEY, "" + pk);
 		return _customMap;
 	}	
 	

@@ -24,23 +24,16 @@
  */
 package net.opentsdb.catalog.syncqueue;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.Reader;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Date;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -57,22 +50,17 @@ import net.opentsdb.catalog.SQLWorker;
 import net.opentsdb.catalog.TSDBTable;
 import net.opentsdb.catalog.TSDBTable.TableInfo;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
-import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.core.TSDB;
-import net.opentsdb.meta.Annotation;
-import net.opentsdb.meta.TSMeta;
-import net.opentsdb.meta.UIDMeta;
-import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
-import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractService;
 import com.stumbleupon.async.Callback;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: SyncQueueProcessor</p>
@@ -96,6 +84,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected final TSDB tsdb;
 	/** The TSDB Sync period in seconds */
 	protected final AtomicLong syncPeriod = new AtomicLong(-1L);
+	/** Indicates if TSDB Sync has been completely disabled */
+	protected boolean syncDisabled = false;
 	/** The scheduler for kicking off poll events */
 	protected ScheduledExecutorService scheduler = null;
 	/** The handle to the scheduled task */
@@ -136,7 +126,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		tsdb = pluginContext.getTsdb();
 		dataSource = pluginContext.getResource(CatalogDataSource.class.getSimpleName(), DataSource.class);
 		dbInterface = pluginContext.getResource(CatalogDBInterface.class.getSimpleName(), CatalogDBInterface.class);
-		sqlWorker = SQLWorker.getInstance(dataSource);		
+		sqlWorker = SQLWorker.getInstance(dataSource);
+		syncDisabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(CatalogDBInterface.TSDB_DISABLE_SYNC, CatalogDBInterface.DEFAULT_TSDB_DISABLE_SYNC, pluginContext.getExtracted());
 	}
 
 
@@ -147,9 +138,13 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	@Override
 	protected void doStart() {
 		log.info("\n\t=========================================\n\tStarting SyncQueueProcessor\n\t=========================================");
-		scheduler = Executors.newScheduledThreadPool(2, this);
-		setTSDBSyncPeriod(ConfigurationHelper.getLongSystemThenEnvProperty(CatalogDBInterface.TSDB_SYNC_PERIOD, CatalogDBInterface.DEFAULT_TSDB_SYNC_PERIOD, pluginContext.getExtracted()));
-		log.info("Sync Poller Scheduled for [{}] s. period", syncPeriod.get());
+		if(!syncDisabled) {
+			scheduler = Executors.newScheduledThreadPool(2, this);
+			setTSDBSyncPeriod(ConfigurationHelper.getLongSystemThenEnvProperty(CatalogDBInterface.TSDB_SYNC_PERIOD, CatalogDBInterface.DEFAULT_TSDB_SYNC_PERIOD, pluginContext.getExtracted()));
+			log.info("Sync Poller Scheduled for [{}] s. period", syncPeriod.get());
+		} else {
+			log.info("\n\t===========================\n\tTSDB Sync Operations Disabled\n\t===========================\n");
+		}
 		notifyStarted();
 		log.info("\n\t=========================================\n\tSyncQueueProcessor Started\n\t=========================================");
 	}
@@ -180,6 +175,14 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	}
 	
 	/**
+	 * Indicates if all TSDB Synchronization operations have been disabled.
+	 * @return true if all TSDB Synchronization operations have been disabled, false otherwise
+	 */
+	public boolean isTSDBSyncDisabled() {
+		return syncDisabled;
+	}
+	
+	/**
 	 * Sets the TSDB Sync period in seconds. 
 	 * If this op modifies the existing value, a schedule change will be triggered.
 	 * This may stop a started schedule, or start a stopped schedule. 
@@ -204,6 +207,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}		
 		if(newPeriod>1) {
 			taskHandle = scheduler.scheduleWithFixedDelay(this, 5, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+			log.info("Started TSDB Sync Scheduler with a period of {} seconds", getTSDBSyncPeriod());
 		}
 	}
 
@@ -219,25 +223,6 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		return t;
 	}
 	
-	
-	//===================================================================================
-	//	SYNC QUEUE Column Indexes
-	//===================================================================================
-	/** The SyncQueue QID */
-	public static int SQ_QID = 0; 
-	/** The SyncQueue Event Type (TSMeta, TSAnnotation etc.) */
-	public static int SQ_EVENT_TYPE = 1; 
-	/** The PK of the event in its own table */
-	public static int SQ_EVENT_PK = 2;
-	/** The OpType ( Insert, Update, Delete) */
-	public static int SQ_OP_TYPE = 3;
-	/** The timestamp of the event */
-	public static int SQ_EVENT_TIME = 4;
-	/** The timestamp of the last synch failure */
-	public static int SQ_LAST_SYNC_ATTEMPT = 5; 
-	/** The stack trace of the last synch failure */
-	public static int SQ_LAST_SYNC_ERROR = 6;
-	
 	/**
 	 * <p>The implementation of the scheduled polling event</p>.
 	 * {@inheritDoc}
@@ -249,9 +234,17 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			log.debug("Sync already in progress. Ejecting....");
 		}
 		// First retry the failures
-		retryPriorFails();
+		Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
-		processNewSyncs();
+		Deferred<ArrayList<Void>> processNewDeferred = processNewSyncs();
+		
+		Deferred.group(priorFailsDeferred, processNewDeferred).addBoth(new Callback<Void, ArrayList<ArrayList<Void>>>() {
+			@Override
+			public Void call(ArrayList<ArrayList<Void>> arg) throws Exception {
+				syncInProgress.set(false);
+				return null;
+			}
+		});
 		
 	}
 	
@@ -259,65 +252,92 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 * Finds and processes new sync objects
 	 * FIXME:  Fail or no, the LAST_UPDATE should be updated.
 	 * FIXME: Need to handle non-callback exceptions in SYNC
+	 * FIXME: Need to specify order of tables processed
+	 * @return A deferred indicating the completion of all table syncs
 	 */
-	protected void processNewSyncs() {
+	protected Deferred<ArrayList<Void>> processNewSyncs() {
 		Connection conn = null;
 		ResultSet rset = null;
+		final List<Deferred<Void>> allDeferreds = new ArrayList<Deferred<Void>>();
 		try {
 			conn = dataSource.getConnection();
-			ResultSet dis = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY LAST_SYNC DESC", false);
+			ResultSet dis = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", false);
+			
 			while(dis.next()) {
-				TSDBTable table = TSDBTable.valueOf(dis.getString(1));
+				final TSDBTable table = TSDBTable.valueOf(dis.getString(1));
+				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
 				log.info("Looking for Syncs in [{}]", table.name());
-				rset = sqlWorker.executeQuery("SELECT * FROM " + table.name() + "WHERE LAST_UPDATE > ?", false, dis.getTimestamp(2));
+				rset = sqlWorker.executeQuery("SELECT * FROM " + table.name() + " WHERE LAST_UPDATE > ?", false, dis.getTimestamp(2));
 				int cnt = 0;
 				for(Object dbObject: table.ti.getObjects(rset, dbInterface)) {
-					table.ti.sync(dbObject, tsdb).addBoth(syncCompletionHandler(dbObject, table.ti.getPk(conn, dbObject), 0));
+					tableDeferreds.add(table.ti.sync(dbObject, tsdb).addBoth(syncCompletionHandler(dbObject, table.ti.getPk(conn, dbObject), 0)));
 					cnt++;
 				}
 				log.info("Processed [{}] Syncs from [{}]", cnt, table.name());
 				rset.close();
 				rset = null;
-				dis.updateTimestamp(2, SystemClock.getTimestamp());
-			}
+				allDeferreds.add(Deferred.group(tableDeferreds).addCallback(new Callback<Void, ArrayList<Void>>() {
+					public Void call(ArrayList<Void> arg) throws Exception {
+						long currentTime = SystemClock.time();
+						Timestamp ts = new Timestamp(currentTime);
+						sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());
+						log.info("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
+						return null;
+					}
+				}));		
+			}			
+			dis.close();
+			conn.commit();
 		} catch (Exception ex) {
 			log.error("Unexpected SynQueueProcessor Error", ex);
 		} finally {
 			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 		}
+		return Deferred.group(allDeferreds);
 	}
 	
 	
 	/**
 	 * Retries all the prior synch failures 
+	 * @return A deferred indicating the completion of all table syncs
 	 */
-	protected void retryPriorFails() {
+	protected Deferred<ArrayList<Void>> retryPriorFails() {
 		Connection conn = null;
 		ResultSet rset = null;
+		final List<Deferred<Void>> allDeferreds = new ArrayList<Deferred<Void>>();
 		try {
 			conn = dataSource.getConnection();
-			rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS ORDER BY LAST_ATTEMPT DESC, TABLE_NAME", false);
-			log.info("Retrying failed syncs");
-			int cnt = 0;
-			while(rset.next()) {
-				String tableName = rset.getString(1);
-				String objectId = rset.getString(2);
-				int attempts = rset.getInt(3);
-				Object failedObject = getDBObject(conn, tableName, objectId);
-				TSDBTable table = TSDBTable.valueOf(tableName);
-				table.ti.sync(failedObject, tsdb).addBoth(syncCompletionHandler(failedObject, objectId, attempts));
-				cnt++;
+			for(final TSDBTable table: TSDBTable.values()) {
+				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
+				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT DESC", false, table.name());
+				log.info("Retrying failed syncs for {}", table.name());
+				int cnt = 0;
+				while(rset.next()) {
+					String tableName = rset.getString(1);
+					String objectId = rset.getString(2);
+					int attempts = rset.getInt(3);
+					Object failedObject = getDBObject(conn, tableName, objectId);
+					tableDeferreds.add(table.ti.sync(failedObject, tsdb).addBoth(syncCompletionHandler(failedObject, objectId, attempts)));
+					cnt++;
+				}
+				log.info("Retried [{}] failed syncs", cnt);
+				allDeferreds.add(Deferred.group(tableDeferreds).addBoth(new Callback<Void, ArrayList<Void>>() {
+					public Void call(ArrayList<Void> arg) throws Exception {
+						return null;
+					}
+				}));
+				rset.close();
+				rset = null;				
 			}
-			log.info("Retried [{}] failed syncs", cnt);
-			rset.close();
-			rset = null;
+			conn.commit();
 		} catch (Exception ex) {
 			log.error("Unexpected SynQueueProcessor Error", ex);
 		} finally {
 			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 		}
+		return Deferred.group(allDeferreds);
 	}
 	
 	

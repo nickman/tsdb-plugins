@@ -102,9 +102,13 @@ public interface CatalogDBInterface {
 	
 	/** The config property name for the polling period (in seconds) of the TSDB Sync Process */
 	public static final String TSDB_SYNC_PERIOD = "helios.search.catalog.tsdb.sync.period";
-	/** The default indicator for disabling the text search indexing */
+	/** The default indicator for disabling the scheduling of syncs (but still allowing manual syncs) */
 	public static final long DEFAULT_TSDB_SYNC_PERIOD = 60;
 	
+	/** The config property name for disabling all invocations of the TSDB Sync Process */
+	public static final String TSDB_DISABLE_SYNC = "helios.search.catalog.tsdb.sync.disable";
+	/** The default indicator for disabling all invocations of the TSDB Sync Process */
+	public static final boolean DEFAULT_TSDB_DISABLE_SYNC = false;
 	
 	/**
 	 * Returns the created data source

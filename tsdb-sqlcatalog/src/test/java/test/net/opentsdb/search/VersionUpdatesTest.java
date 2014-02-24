@@ -80,8 +80,7 @@ public class VersionUpdatesTest extends CatalogBaseTest {
 	@Before
 	public void purgeDb() {
 		dbInterface = TSDBCatalogSearchEventHandler.getInstance().getDbInterface();
-		dbInterface.purge();
-		dbInterface.setTSDBSyncPeriod(-1L);
+		dbInterface.purge();		
 		int fqnCount = jdbcHelper.queryForInt("SELECT COUNT(*) FROM TSD_TSMETA");
 		Assert.assertEquals("Unexpected FQN RowCount After Purge", 0, fqnCount);
 	}
@@ -107,6 +106,7 @@ public class VersionUpdatesTest extends CatalogBaseTest {
 		Assert.assertEquals("The custom map PK value", "" + rows[0][TSMETA_FQNID],  customMap.get(PK_KEY));
 		Assert.assertEquals("The create time vs last update", rows[0][TSMETA_CREATED],  rows[0][TSMETA_LAST_UPDATE]);		
 		Assert.assertEquals("The create time vs the time we set", createTimeMs, ((Timestamp)rows[0][TSMETA_CREATED]).getTime());
+		Thread.currentThread().join();
 	}
 	
 

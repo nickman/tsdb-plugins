@@ -24,12 +24,12 @@
  */
 package net.opentsdb.catalog;
 
-import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -499,8 +499,19 @@ public interface CatalogDBInterface {
 	 * @param newPeriod the TSDB Sync period in seconds.
 	 */
 	public void setTSDBSyncPeriod(final long newPeriod);
-
 	
+	/**
+	 * Returns the number of pending Sync ops we're waiting on 
+	 * @return the number of pending Sync ops we're waiting on
+	 */
+	public long getPendingSynchOps();	
+
+	/**
+	 * Returns a map of UIDMeta names with the UnqiueIdType name as the value
+	 * @param tsuid The TSMeta TSUID to get the UIDMeta names for
+	 * @return a map of UIDMeta names with the UnqiueIdType name as the value
+	 */
+	public Map<String, String> getNamesForUIDs(String tsuid);
 	
 	
 }

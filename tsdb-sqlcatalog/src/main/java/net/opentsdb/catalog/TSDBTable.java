@@ -188,21 +188,11 @@ public enum TSDBTable {
 			final TSMeta tsMeta = (TSMeta)obj;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
-				tsMeta.storeNew(tsdb).addBoth(new Callback<Void, Boolean>(){
-					public Void call(Boolean storeNewSuccess) throws Exception {
-						log.info("Callback on [{}] with arg [{}]", obj, storeNewSuccess);
-						if(!storeNewSuccess) {
-							tsMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
-								public Void call(Boolean syncSuccess) throws Exception {
-									log.info("Callback on [{}] with arg [{}]", obj, syncSuccess);
-									completion.callback(syncSuccess);
-									return null;
-								}
-							});
-						} else {
-							completion.callback(true);
-						}
-						return null;
+				tsMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){
+					public Deferred<Void> call(Boolean syncSuccess) throws Exception {
+						log.info("Callback on [{}] with arg [{}]", obj, syncSuccess);
+						completion.callback(syncSuccess);
+						return Deferred.fromResult(null);
 					}
 				});				
 			} catch (Throwable ex) {
@@ -352,26 +342,13 @@ public enum TSDBTable {
 			final UIDMeta uidMeta = (UIDMeta)obj;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
-				uidMeta.storeNew(tsdb)
-					.addCallback(new Callback<Void, Object>() {						
-						public Void call(Object arg) throws Exception {
-							log.info("Callback on [{}] with arg [{}]-[{}]", obj, arg.getClass().getName(), arg);
-							completion.callback(true);
-							return null;
-						}
-					})
-					.addErrback(new Callback<Void, Object>() {
-						public Void call(Object arg) throws Exception {
-							uidMeta.syncToStorage(tsdb, false).addBoth(new Callback<Void, Boolean>(){
-								public Void call(Boolean syncSuccess) throws Exception {
-									log.info("Errback on [{}] with arg [{}]", obj, syncSuccess);
-									completion.callback(syncSuccess);
-									return null;
-								}
-							});							
-							return null;
-						}
-					});				
+				uidMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){
+					public Deferred<Void> call(Boolean syncSuccess) throws Exception {
+						log.info("Errback on [{}] with arg [{}]", obj, syncSuccess);
+						completion.callback(syncSuccess);
+						return Deferred.fromResult(null);
+					}
+				});											
 			} catch (Throwable ex) {
 				ex.printStackTrace(System.err);
 				return completion;

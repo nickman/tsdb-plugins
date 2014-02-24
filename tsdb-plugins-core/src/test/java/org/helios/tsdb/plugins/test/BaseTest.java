@@ -57,6 +57,7 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.tsd.RTPublisher;
 import net.opentsdb.tsd.RpcPlugin;
+import net.opentsdb.uid.UniqueId;
 import net.opentsdb.utils.Config;
 
 import org.hbase.async.HBaseClient;
@@ -218,6 +219,12 @@ public class BaseTest {
 	
 	/** The current test's TSDB */
 	protected static TSDB tsdb = null;
+	/** The uniqueid for tag keys */
+	protected static UniqueId tagKunik = null;
+	/** The uniqueid for tag values */
+	protected static UniqueId tagVunik = null;
+	/** The uniqueid for metric names */
+	protected static UniqueId tagMunik = null;
 
 	/**
 	 * Creates a new test TSDB
@@ -229,6 +236,9 @@ public class BaseTest {
 			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);
 			tsdb.initializePlugins(true);
+			tagKunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "tagk", TSDB.tagk_width());
+			tagVunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "tagv", TSDB.tagv_width());
+			tagMunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "metrics", TSDB.metrics_width());
 			return tsdb;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to get test TSDB [" + configName + "]", e);

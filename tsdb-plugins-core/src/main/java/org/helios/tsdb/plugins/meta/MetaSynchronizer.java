@@ -68,6 +68,9 @@ public class MetaSynchronizer {
 	/** The number of segments to divide the work up into */
 	public static final int SEGMENT_COUNT = 10;
 	
+	/** The Charset to be used by the Scanner */
+	public static final Charset SCANNER_CHARSET = Charset.forName("ISO-8859-1");
+	
 	/** A cache of already seen UIDs */
 	protected final Set<String> seenUids = new HashSet<String>();
 	/** A cache of already seen TSUIDs */
@@ -132,7 +135,7 @@ public class MetaSynchronizer {
 	    		//end_row[2]++;
 	    		scanner.setStartKey(start_row);
 	    		scanner.setStopKey(end_row);
-	    		scanner.setFamily("t".getBytes(Charset.forName("ISO-8859-1")));
+	    		scanner.setFamily("t".getBytes(SCANNER_CHARSET));
 	    		ArrayList<ArrayList<KeyValue>> scanResult = scanner.nextRows().joinUninterruptibly(15000);
 	    		if(scanResult==null) {
 	    			log.warn("ScanResult for segment [{}] for segments between [{}] and [{}] was null", i, segments[i][0], segments[i][1]);

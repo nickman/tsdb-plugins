@@ -1534,6 +1534,43 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getNamesForUIDs(java.lang.String)
+	 */
+	@Override
+	public Map<String, String> getNamesForUIDs(String tsuid) {
+		Connection conn = null;
+		try {
+			conn = dataSource.getConnection();
+			Map<String, String> map = new HashMap<String, String>();
+			String metric = tsuid.substring(0, (tsdb.metrics_width() * 2));
+			String metricName = sqlWorker.sqlForString(conn, "SELECT NAME FROM TSD_METRIC WHERE XUID = ?", metric);
+			map.put(metricName, UniqueId.UniqueIdType.METRIC.name());
+			boolean isTagK = true;
+			for(byte[] byteKey: UniqueId.getTagPairsFromTSUID(tsuid, tsdb.metrics_width(), tsdb.tagk_width(), tsdb.tagv_width())) {
+				String hexName = UniqueId.uidToString(byteKey);
+				String tagName = null;
+				if(isTagK) {
+					tagName = sqlWorker.sqlForString(conn, "SELECT NAME FROM TSD_TAGK WHERE XUID = ?", hexName);
+					map.put(tagName, UniqueId.UniqueIdType.TAGK.name());
+				} else {
+					tagName = sqlWorker.sqlForString(conn, "SELECT NAME FROM TSD_TAGV WHERE XUID = ?", hexName);
+					map.put(tagName, UniqueId.UniqueIdType.TAGV.name());					
+				}
+				isTagK = !isTagK;
+			}
+			return map;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get connection", ex);
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception ex) { /* No Op */ }
+		}
+	}
+	
+	
+	
+	
 	// ========================================================================================
 	//	Search Impl.
 	// ========================================================================================
@@ -2289,6 +2326,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	public boolean isTextIndexingDisabled() {
 		return textIndexingDisabled;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getPendingSynchOps()
+	 */
+	@Override
+	public long getPendingSynchOps() {
+		return synker.getPendingSynchOps();
 	}
 	
 }

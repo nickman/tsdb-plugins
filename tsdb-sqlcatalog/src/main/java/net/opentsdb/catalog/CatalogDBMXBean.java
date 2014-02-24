@@ -24,6 +24,8 @@
  */
 package net.opentsdb.catalog;
 
+import java.util.Map;
+
 import javax.management.MXBean;
 
 import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
@@ -272,6 +274,19 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 */
 	public void setTSDBSyncPeriod(final long newPeriod);
 
+	/**
+	 * Returns the number of pending Sync ops we're waiting on 
+	 * @return the number of pending Sync ops we're waiting on
+	 */
+	public long getPendingSynchOps();	
+	
+	/**
+	 * Returns a map of UIDMeta names with the UnqiueIdType name as the value
+	 * @param tsuid The TSMeta TSUID to get the UIDMeta names for
+	 * @return a map of UIDMeta names with the UnqiueIdType name as the value
+	 */
+	public Map<String, String> getNamesForUIDs(String tsuid);
+	
 	
 	
 	

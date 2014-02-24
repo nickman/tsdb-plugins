@@ -92,9 +92,6 @@ public class TSDBSyncTest extends CatalogBaseTest {
 //		//log("Data Point Added: [%s]", tsMeta2);
 //		
 		//new MetaSynchronizer(tsdb).process(true);
-		UniqueId tagKunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), UniqueId.UniqueIdType.TAGK.name().toLowerCase(), 3);
-		UniqueId tagVunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), UniqueId.UniqueIdType.TAGV.name().toLowerCase(), 3);
-		UniqueId tagMunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), "metrics", 3);
 		
 		for(ObjectName on: objectNames) {
 			String metric = on.getDomain().replace(" ", "");
@@ -114,7 +111,7 @@ public class TSDBSyncTest extends CatalogBaseTest {
 			log("TSMeta:[%s]", tsMeta);
 		}
 		log("Complete");
-		
+		Thread.currentThread().join();
 		//TSMeta tsMeta = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME)));
 		
 	}

@@ -227,7 +227,7 @@ CREATE ALIAS IF NOT EXISTS FQN FOR "net.opentsdb.catalog.h2.H2Support.getMetricN
 CREATE ALIAS IF NOT EXISTS TPN FOR "net.opentsdb.catalog.h2.H2Support.getNameForTagPair";
 
 CREATE ALIAS IF NOT EXISTS SYNCSTATUS FOR "net.opentsdb.catalog.h2.H2Support.getTSDBSyncStatus";
-CREATE VIEW IF NOT EXISTS SYNCSTATUS AS SELECT * FROM SYNCSTATUS();
+CREATE VIEW IF NOT EXISTS SYNCSTATUS AS SELECT *, MAX_LAST_UPDATED > LAST_SYNC AS PENDING FROM SYNCSTATUS();
 
 -- ======================================================================================================
 --  Drop the Lucene schema if it exists

@@ -148,6 +148,8 @@ public class MetaSynchronizer {
 	    		    	if(dumpOnly) {
 	    		    		if(tsMeta!=null) {
 	    		    			print(tsMeta);
+	    		    		} else {
+	    		    			System.err.println("Null TSMeta");
 	    		    		}
 	    		    		continue;
 	    		    	}

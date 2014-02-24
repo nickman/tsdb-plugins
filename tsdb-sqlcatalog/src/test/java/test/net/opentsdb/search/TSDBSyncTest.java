@@ -4,8 +4,10 @@
 package test.net.opentsdb.search;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,8 +17,11 @@ import net.opentsdb.catalog.AbstractDBCatalog;
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.uid.UniqueId;
 
-import org.helios.tsdb.plugins.meta.MetaSynchronizer;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,13 +72,15 @@ public class TSDBSyncTest extends CatalogBaseTest {
 	 * @throws Exception thrown on any error.
 	 */
 	@Test
-	public void testNewTSMetaInsertCustom() throws Exception {
+	public <T> void testNewTSMetaInsertCustom() throws Exception {
 		Set<ObjectName> objectNames = new HashSet<ObjectName>();
+		List<Deferred<T>> defs = new ArrayList<Deferred<T>>();
 		for(ObjectName on: ManagementFactory.getPlatformMBeanServer().queryNames(null, null)) {
 			objectNames.add(on);
 			final long timestamp = SystemClock.rtime();
-			executeAsync(addPoint(on, tsdb, 1, timestamp), 2000);					
+			defs.add((Deferred<T>) addPoint(on, tsdb, 1, timestamp));					
 		}
+		executeAsync(Deferred.group(defs), 5000);
 //		ObjectName on = JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME);
 //		//TSMeta tsMeta = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME)));
 //		final long timestamp = SystemClock.rtime();
@@ -84,7 +91,29 @@ public class TSDBSyncTest extends CatalogBaseTest {
 ////		TSMeta tsMeta = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME)));
 //		//log("Data Point Added: [%s]", tsMeta2);
 //		
-		new MetaSynchronizer(tsdb).process(true);
+		//new MetaSynchronizer(tsdb).process(true);
+		UniqueId tagKunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), UniqueId.UniqueIdType.TAGK.name().toLowerCase(), 3);
+		UniqueId tagVunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), UniqueId.UniqueIdType.TAGV.name().toLowerCase(), 3);
+		UniqueId tagMunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), "metrics", 3);
+		
+		for(ObjectName on: objectNames) {
+			String metric = on.getDomain().replace(" ", "");
+			byte[] mkey = tagMunik.getId(metric);
+			UIDMeta uidMeta = (UIDMeta)executeAsync(UIDMeta.getUIDMeta(tsdb, UniqueId.UniqueIdType.METRIC, mkey));
+			log("Metric UIDMeta:[%s]", uidMeta);
+			for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+				mkey = tagKunik.getId(entry.getKey().replace(" ", ""));
+				uidMeta = (UIDMeta)executeAsync(UIDMeta.getUIDMeta(tsdb, UniqueId.UniqueIdType.TAGK, mkey));
+				log("TAGK UIDMeta:[%s]", uidMeta);
+				mkey = tagVunik.getId(entry.getValue().replace(" ", ""));
+				uidMeta = (UIDMeta)executeAsync(UIDMeta.getUIDMeta(tsdb, UniqueId.UniqueIdType.TAGV, mkey));
+				log("TAGV UIDMeta:[%s]", uidMeta);								
+			}
+			String tsuid = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME))).getTSUID();
+			TSMeta tsMeta = (TSMeta)executeAsync(TSMeta.getTSMeta(tsdb, tsuid));
+			log("TSMeta:[%s]", tsMeta);
+		}
+		log("Complete");
 		
 		//TSMeta tsMeta = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME)));
 		

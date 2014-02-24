@@ -36,6 +36,7 @@ import javax.management.ObjectName;
 
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
 
+import org.h2.tools.SimpleResultSet;
 import org.helios.tsdb.plugins.util.JMXHelper;
 
 /**
@@ -564,32 +565,47 @@ public class H2Support {
 		}
 	}
 	
+	/**
+	 * Builds a result set displaying the TSDB synchronization status
+	 * @param conn The connection to use
+	 * @return A result set containing rows with each table name, the last sync update and the max last_update in the table.
+	 */
+	public static ResultSet getTSDBSyncStatus(Connection conn) {
+		PreparedStatement outerPs = null, innerPs = null;
+		ResultSet outerRs = null, innerRs = null;
+		SimpleResultSet srs = new SimpleResultSet();
+		srs.addColumn("TABLE_NAME", Types.VARCHAR, 0, 0);
+		srs.addColumn("LAST_SYNC", Types.TIMESTAMP, 0, 0);
+		srs.addColumn("MAX_LAST_UPDATED", Types.TIMESTAMP, 0, 0);
+		
+		try {
+			outerPs = conn.prepareStatement("SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING");
+			
+			outerRs = outerPs.executeQuery();
+			while(outerRs.next()) {
+				String tableName = outerRs.getString(1);
+				Timestamp lastSync = outerRs.getTimestamp(2);
+				innerPs = conn.prepareStatement("SELECT MAX(LAST_UPDATE) FROM " + tableName);
+				innerRs = innerPs.executeQuery();
+				innerRs.next();
+				Timestamp maxSync = innerRs.getTimestamp(1);
+				innerRs.close(); innerRs = null;
+				innerPs.close(); innerPs = null;
+				srs.addRow(tableName, lastSync, maxSync);
+			}
+			return srs;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to get TSDBSyncStatus Summary", ex);
+		} finally {
+			if(outerRs!=null) try { outerRs.close(); } catch (Exception x) {/* No Op */}
+			if(innerRs!=null) try { innerRs.close(); } catch (Exception x) {/* No Op */}
+			if(outerPs!=null) try { outerPs.close(); } catch (Exception x) {/* No Op */}
+			if(innerPs!=null) try { innerPs.close(); } catch (Exception x) {/* No Op */}
+		}
+		
+	}
+
 	
-	
-//	CREATE TABLE IF NOT EXISTS TSD_FQN_TAGPAIR (
-//			FQN_TP_ID BIGINT NOT NULL COMMENT 'Synthetic primary key of an association between an FQN and a Tag Pair',
-//			FQNID BIGINT NOT NULL COMMENT 'The ID of the parent FQN',
-//			XUID CHAR(12) NOT NULL COMMENT 'The ID of a child tag key/value pair',
-//			PORDER TINYINT NOT NULL COMMENT 'The order of the tags in the FQN',
-//			NODE CHAR(1) NOT NULL COMMENT 'Indicates if this tagpair is a Branch (B) or a Leaf (L)' CHECK NODE IN ('B', 'L')
-	
-//	CREATE TABLE IF NOT EXISTS TSD_TAGPAIR (
-//			XUID CHAR(12) NOT NULL COMMENT 'The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs.',
-//			TAGK CHAR(6) NOT NULL COMMENT 'The pair tag key' REFERENCES TSD_TAGK(XUID),
-//			TAGV CHAR(6) NOT NULL COMMENT 'The pair tag value' REFERENCES TSD_TAGV(XUID),
-//			NAME  VARCHAR2(120) NOT NULL COMMENT 'The tag pair name expressed as T=V'
-//		); COMMENT ON TABLE TSD_TAGPAIR IS 'Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta';
-	
-//	CREATE TABLE IF NOT EXISTS TSD_TAGV (
-//		    XUID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
-//		    VERSION INT NOT NULL COMMENT 'The version of this instance',
-//		    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
-//		    CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the UID',
-//		    DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
-//		    DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag value',
-//		    NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag value',
-//		    CUSTOM VARCHAR2(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this tag value'    
-//		); COMMENT ON TABLE TSD_TAGV IS 'Table storing distinct time-series tag values';
 	
 	
 	

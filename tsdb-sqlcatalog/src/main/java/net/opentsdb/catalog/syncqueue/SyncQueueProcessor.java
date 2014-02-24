@@ -220,7 +220,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 */
 	@Override
 	public Thread newThread(Runnable r) {
-		Thread t = new Thread(r, getClass().getSimpleName() + "Thread#" + serial.incrementAndGet());
+		Thread t = new Thread(r, getClass().getSimpleName() + "SynchThread#" + serial.incrementAndGet());
 		t.setDaemon(true);
 		return t;
 	}

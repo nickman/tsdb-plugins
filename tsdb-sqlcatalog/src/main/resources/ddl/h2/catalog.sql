@@ -226,6 +226,9 @@ CREATE ALIAS IF NOT EXISTS JMXID FOR "net.opentsdb.catalog.h2.H2Support.getMBean
 CREATE ALIAS IF NOT EXISTS FQN FOR "net.opentsdb.catalog.h2.H2Support.getMetricNameForFQN";
 CREATE ALIAS IF NOT EXISTS TPN FOR "net.opentsdb.catalog.h2.H2Support.getNameForTagPair";
 
+CREATE ALIAS IF NOT EXISTS SYNCSTATUS FOR "net.opentsdb.catalog.h2.H2Support.getTSDBSyncStatus";
+CREATE VIEW IF NOT EXISTS SYNCSTATUS AS SELECT * FROM SYNCSTATUS();
+
 -- ======================================================================================================
 --  Drop the Lucene schema if it exists
 -- ======================================================================================================

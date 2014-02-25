@@ -55,6 +55,7 @@ import net.opentsdb.catalog.TSDBTable;
 import net.opentsdb.catalog.TSDBTable.TableInfo;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.TSDB;
+import net.opentsdb.core.UniqueIdRegistry;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -144,9 +145,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	public SyncQueueProcessor(PluginContext pluginContext) {
 		this.pluginContext = pluginContext;
 		tsdb = pluginContext.getTsdb();
-		tagKunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), "tagk", TSDB.tagk_width());
-		tagVunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), "tagv", TSDB.tagv_width());
-		tagMunik = new UniqueId(tsdb.getClient(), tsdb.uidTable(), "metrics", TSDB.metrics_width());	
+		tagKunik = UniqueIdRegistry.getInstance().getTagKUniqueId();
+		tagVunik = UniqueIdRegistry.getInstance().getTagVUniqueId();
+		tagMunik = UniqueIdRegistry.getInstance().getMetricsUniqueId();
 		uniques.put(UniqueId.UniqueIdType.TAGK, tagKunik);
 		uniques.put(UniqueId.UniqueIdType.TAGV, tagVunik);
 		uniques.put(UniqueId.UniqueIdType.METRIC, tagMunik);
@@ -260,7 +261,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		if(!syncInProgress.compareAndSet(false, true)) {
 			log.debug("Sync already in progress. Ejecting....");
 		}
-		log.info("Starting TSDB Sync Run....");
+		log.debug("Starting TSDB Sync Run....");
 		final long startTime = System.currentTimeMillis();
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
@@ -272,11 +273,11 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			@Override
 			public Deferred<Object> call(ArrayList<Object> arg) throws Exception {
 				long elapsed = System.currentTimeMillis() - startTime;
-				log.info("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
+				log.debug("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
 //				new MetaSynchronizer(tsdb).process(true);
 				if(taskHandle!=null) {
 					taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
-					log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+					log.debug("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
 				}
 				syncInProgress.set(false);
 				return null;
@@ -304,8 +305,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			while(dis.next()) {
 				final TSDBTable table = TSDBTable.valueOf(dis.getString(1));
 				final List<Deferred<Boolean>> tableDeferreds = new ArrayList<Deferred<Boolean>>();
-				log.info("Looking for New Syncs in [{}]", table.name());
-				rset = sqlWorker.executeQuery("SELECT * FROM " + table.name() + " WHERE LAST_UPDATE > ?", false, dis.getTimestamp(2));
+				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), dis.getTimestamp(2));
+				String sqlText = String.format("SELECT '%s' as TAG_TYPE,* FROM %s WHERE LAST_UPDATE > ?", table.name().replace("TSD_", ""), table.name());
+				rset = sqlWorker.executeQuery(sqlText, false, dis.getTimestamp(2));
 				int cnt = 0;
 				for(final Object dbObject: table.ti.getObjects(rset, dbInterface)) {
 					log.info("Submitting New Sync [{}]", dbObject);
@@ -323,14 +325,22 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 								case TAGV:
 									deferredDbMetaKey = tagVunik.getOrCreateIdAsync(dbMeta.getName());
 									break;
+								default:
+									throw new Error("Should not reach here");								
 							}
 							
 							deferredDbMetaKey.addCallback(new Callback<UIDMeta, byte[]>() {
 								public UIDMeta call(byte[] arg) throws Exception {
+									log.info("Updating [{}]/[{}] with Notes:[{}] and Custom:[{}]", dbMeta, dbMeta.getName(), dbMeta.getNotes(), dbMeta.getCustom());
 									dbMeta.syncToStorage(tsdb, true)
 										.addCallback(new Callback<Object, Boolean>() {
-											public Object call(Boolean success) throws Exception {	
-												log.info("UID Sync Callback for [{}] -->  [{}]", dbObject, success);
+											public Object call(Boolean success) throws Exception {
+												if(success) {
+													log.info("UID Sync Callback for [{}] -->  [{}]", dbObject, success);
+												} else {
+													log.info("UID Sync CAS Failure for UIDMeta [{}]. Starting Update Loop", dbObject);
+													startUIDMetaUpdateLoop(dbMeta, new AtomicInteger(0));
+												}
 												return dbMeta;
 											}
 										})
@@ -363,19 +373,23 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 									.addCallback(new Callback<Void, Boolean>() {
 										public Void call(Boolean exists) throws Exception {
 											if(exists) {
-												dbMeta.syncToStorage(tsdb, true)
-												.addCallback(new Callback<Object, Boolean>() {
-													public Object call(Boolean success) throws Exception {	
-														log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
-														return dbMeta;
-													}
-												})
-												.addErrback(new Callback<Object, Boolean>() {
-													public Object call(Boolean success) throws Exception {	
-														log.error("Failed to synch [{}]", dbObject);
-														return dbMeta;
-													}
-												});										
+												try {
+													dbMeta.syncToStorage(tsdb, true)
+													.addCallback(new Callback<Object, Boolean>() {
+														public Object call(Boolean success) throws Exception {	
+															log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
+															return dbMeta;
+														}
+													})
+													.addErrback(new Callback<Object, Boolean>() {
+														public Object call(Boolean success) throws Exception {	
+															log.error("Failed to synch [{}]", dbObject);
+															return dbMeta;
+														}
+													});
+												} catch (IllegalStateException ise) {
+													/* No Op. Means no changes detected */
+												}
 											} else {
 												log.info("TSMeta [{}] does not exist. Need to create.....", dbMeta.getTSUID());
 												//dbMeta.storeNew(tsdb).joinUninterruptibly(5000);
@@ -409,7 +423,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 										@SuppressWarnings("cast")
 										public Object call(Boolean success) throws Exception {	
 											if(success) {
-												log.info("Sync Callback for [{}] -->  [{}]", dbObject, success);
+												log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
 											} else {
 //												sqlWorker.execute("INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", table.name(), table.ti.getPk(null, dbMeta), 1, SystemClock.getTimestamp());
 //												log.info("First Sync Fail for {}.{}", "TSMeta", table.ti.getBindablePK(dbMeta));
@@ -446,7 +460,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					pendingOps.incrementAndGet();
 					cnt++;
 				}				
-				log.info("Processed [{}] New Syncs from [{}]", cnt, table.name());
+				log.debug("Processed [{}] New Syncs from [{}]", cnt, table.name());
 				rset.close();
 				rset = null;
 				allDeferreds.add(Deferred.group(tableDeferreds).addBothDeferring(new Callback<Deferred<Object>, ArrayList<Boolean>>() {
@@ -459,7 +473,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 						long currentTime = SystemClock.time();
 						Timestamp ts = new Timestamp(currentTime);
 						sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());
-						log.info("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
+						log.debug("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
 						return null;
 					}
 				}));
@@ -510,6 +524,51 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			ex.printStackTrace(System.err);
 		}
 	}
+	
+	protected void startUIDMetaUpdateLoop(final UIDMeta uMeta, final AtomicInteger retryCount) {
+		final SyncQueueProcessor SQP = this;
+		final TSDBTable table = TSDBTable.valueOf("TSD_" + uMeta.getType().name());
+		
+		final UIDMeta uidMeta = (UIDMeta) table.ti.getObjects(sqlWorker.executeQuery(table.ti.getByPKSql(), true, uMeta.getUID()), dbInterface).iterator().next();
+		try {
+			//uidMeta.setCustom(null);
+			UIDMeta.getUIDMeta(tsdb, uidMeta.getType(), uniques.get(uidMeta.getType()).getId(uidMeta.getName())).addCallback(new Callback<Void, UIDMeta>() {
+				public Void call(UIDMeta casMeta) throws Exception {
+					casMeta.setNotes(uidMeta.getNotes());
+					casMeta.syncToStorage(tsdb, true).addCallback(new Callback<Void, Boolean>(){
+						public Void call(Boolean success) throws Exception {
+							if(success) {
+								log.info("UIDMeta Update Successful [{}] after [{}] retries", uidMeta, retryCount.get());
+							} else {
+								int retries = retryCount.incrementAndGet();
+								if(retries>=20) {
+									log.error("Exhausted retries updating UIDMeta [{}]", uidMeta);
+								} else {
+									log.error("UIDMeta update retry failed for [{}]. Next retry: [{}]", uidMeta, retries);
+									scheduler.schedule(new Runnable() {
+										public void run() {
+											SQP.startUIDMetaUpdateLoop(uidMeta, retryCount);
+										}
+									}, 500, TimeUnit.MILLISECONDS);
+								}
+							}
+							return null;
+						}
+					}).addErrback(new Callback<Void, Exception>(){
+						public Void call(Exception ex) throws Exception {
+							log.error("UIDMeta update for [{}] FAILED:", uidMeta, ex);				
+							return null;
+						}
+					});
+					
+					return null;
+				}
+			});
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
+	}
+	
 	
 	protected Deferred<ArrayList<Boolean>> ensureUIDsExist(final TSMeta tsMeta) {
 		tsMeta.setRetention(tsMeta.getRetention()+1);

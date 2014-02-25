@@ -273,6 +273,12 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 * @param newPeriod the TSDB Sync period in seconds.
 	 */
 	public void setTSDBSyncPeriod(final long newPeriod);
+	
+	/**
+	 * Sets a new TSDB sync period in seconds and ticks the last sync timestamp to current for all tables
+	 * @param newPeriod The TSDB sync period in seconds
+	 */
+	public void setTSDBSyncPeriodAndHighwater(final long newPeriod);	
 
 	/**
 	 * Returns the number of pending Sync ops we're waiting on 

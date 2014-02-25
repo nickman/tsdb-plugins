@@ -521,6 +521,12 @@ public interface CatalogDBInterface {
 	public long getTSDBSyncPeriod();
 	
 	/**
+	 * Sets a new TSDB sync period in seconds and ticks the last sync timestamp to current for all tables
+	 * @param newPeriod The TSDB sync period in seconds
+	 */
+	public void setTSDBSyncPeriodAndHighwater(final long newPeriod);
+	
+	/**
 	 * Sets the TSDB Sync period in seconds. 
 	 * If this op modifies the existing value, a schedule change will be triggered.
 	 * This may stop a started schedule, or start a stopped schedule. 

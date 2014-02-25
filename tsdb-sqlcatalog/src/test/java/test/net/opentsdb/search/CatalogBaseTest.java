@@ -299,11 +299,11 @@ public class CatalogBaseTest extends BaseTest {
 	 */
 	public LinkedList<UIDMeta> objectNameToUIDMeta(ObjectName on) {
 		LinkedList<UIDMeta> metas = new LinkedList<UIDMeta>();
-		metas.add(newUIDMeta(UniqueIdType.METRIC, METRIC_COUNTER, on.getDomain()));
+		metas.add(newUIDMeta(UniqueIdType.METRIC, METRIC_COUNTER, on.getDomain().replace(" ", "")));
 		TreeMap<String, String> props = new TreeMap<String, String>(on.getKeyPropertyList()); 
 		for(Map.Entry<String, String> entry: props.entrySet()) {
-			metas.add(newUIDMeta(UniqueIdType.TAGK, TAGK_COUNTER, entry.getKey()));
-			metas.add(newUIDMeta(UniqueIdType.TAGV, TAGV_COUNTER, entry.getValue()));
+			metas.add(newUIDMeta(UniqueIdType.TAGK, TAGK_COUNTER, entry.getKey().replace(" ", "")));
+			metas.add(newUIDMeta(UniqueIdType.TAGV, TAGV_COUNTER, entry.getValue().replace(" ", "")));
 		}
 		return metas;
 	}

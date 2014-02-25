@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.ObjectName;
 
@@ -17,6 +18,7 @@ import net.opentsdb.catalog.AbstractDBCatalog;
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.core.TSDB;
+import net.opentsdb.core.UniqueIdRegistry;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -75,12 +77,27 @@ public class TSDBSyncTest extends CatalogBaseTest {
 	public <T> void testNewTSMetaInsertCustom() throws Exception {
 		Set<ObjectName> objectNames = new HashSet<ObjectName>();
 		List<Deferred<T>> defs = new ArrayList<Deferred<T>>();
+		dbInterface.setTSDBSyncPeriodAndHighwater(10);
 		for(ObjectName on: ManagementFactory.getPlatformMBeanServer().queryNames(null, null)) {
 			objectNames.add(on);
 			final long timestamp = SystemClock.rtime();
-			defs.add((Deferred<T>) addPoint(on, tsdb, 1, timestamp));					
+			//addPoint(on, tsdb, 1, timestamp);
+			TSMeta tsMeta = fromUids(objectNameToUIDMeta(on));
+			final long createTimeMs = SystemClock.rtime();
+			final long createTimeSec = mstou(createTimeMs);
+			
+			tsMeta.setCreated(createTimeSec);
+			//tsdb.indexTSMeta(tsMeta);
+			addPoint(on, tsdb, 1, timestamp);
+			
 		}
-		executeAsync(Deferred.group(defs), 5000);
+		waitForProcessingQueue(name.getMethodName(), 3000000, TimeUnit.MILLISECONDS);
+		
+		UniqueIdRegistry.getInstance().purgeAllCaches();
+		Thread.currentThread().join();
+		
+		
+		
 //		ObjectName on = JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME);
 //		//TSMeta tsMeta = fromUids(objectNameToUIDMeta(JMXHelper.objectName(ManagementFactory.THREAD_MXBEAN_NAME)));
 //		final long timestamp = SystemClock.rtime();

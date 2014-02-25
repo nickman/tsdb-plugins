@@ -51,6 +51,7 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.core.UniqueIdRegistry;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -236,9 +237,9 @@ public class BaseTest {
 			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);
 			tsdb.initializePlugins(true);
-			tagKunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "tagk", TSDB.tagk_width());
-			tagVunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "tagv", TSDB.tagv_width());
-			tagMunik = new UniqueId(tsdb.getClient(), tsdb.metaTable(), "metrics", TSDB.metrics_width());
+			tagKunik = UniqueIdRegistry.getInstance().getTagKUniqueId();
+			tagVunik = UniqueIdRegistry.getInstance().getTagVUniqueId();
+			tagMunik = UniqueIdRegistry.getInstance().getMetricsUniqueId();
 			return tsdb;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to get test TSDB [" + configName + "]", e);

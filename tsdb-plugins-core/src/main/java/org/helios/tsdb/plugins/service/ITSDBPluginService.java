@@ -26,6 +26,7 @@ package org.helios.tsdb.plugins.service;
 
 import java.util.Map;
 
+import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -142,6 +143,12 @@ public interface ITSDBPluginService {
 	 * @return the core plugin service deferred shutdown indicator
 	 */
 	public Deferred<Object> shutdown(Deferred<Object> deferredToAdd); 
+	
+	/**
+	 * Returns the provided TSDB (which might be null if it has not been initialized yet)
+	 * @return the provided TSDB
+	 */
+	public TSDB getTSDB();
 	
 }
 	

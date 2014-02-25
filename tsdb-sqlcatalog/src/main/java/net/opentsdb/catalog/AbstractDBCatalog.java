@@ -2157,6 +2157,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#getTSDBSyncPeriod()
 	 */
+	@Override
 	public long getTSDBSyncPeriod() {
 		return synker.getTSDBSyncPeriod();
 	}
@@ -2165,8 +2166,19 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBInterface#setTSDBSyncPeriod(long)
 	 */
+	@Override
 	public void setTSDBSyncPeriod(final long newPeriod) {
 		synker.setTSDBSyncPeriod(newPeriod);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#setTSDBSyncPeriodAndHighwater(long)
+	 */
+	@Override
+	public void setTSDBSyncPeriodAndHighwater(final long newPeriod) {
+		sqlWorker.executeUpdate("UPDATE TSD_LASTSYNC SET LAST_SYNC = SYSTIMESTAMP");
+		setTSDBSyncPeriod(newPeriod);
 	}
 	
 

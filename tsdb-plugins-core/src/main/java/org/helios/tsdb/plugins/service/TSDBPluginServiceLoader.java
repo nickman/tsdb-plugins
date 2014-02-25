@@ -34,6 +34,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.core.UniqueIdRegistry;
 import net.opentsdb.utils.Config;
 
 import org.helios.tsdb.plugins.Constants;
@@ -104,7 +105,7 @@ public class TSDBPluginServiceLoader {
 		if(instance==null) {
 			synchronized(lock) {
 				if(instance==null) {
-					instance = new TSDBPluginServiceLoader(tsdb);
+					instance = new TSDBPluginServiceLoader(tsdb);					
 				}
 			}
 		}
@@ -140,6 +141,7 @@ public class TSDBPluginServiceLoader {
 	 */
 	private TSDBPluginServiceLoader(TSDB tsdb) {
 		this.tsdb = tsdb;
+		UniqueIdRegistry.getInstance(this.tsdb);
 		config = new Properties();
 		config.putAll(this.tsdb.getConfig().getMap());
 		supportClassLoader = getSupportClassLoader(tsdb.getConfig());
@@ -156,7 +158,7 @@ public class TSDBPluginServiceLoader {
 			@SuppressWarnings("unchecked")
 			Class<ITSDBPluginService> clazz = (Class<ITSDBPluginService>)_clazz;
 			pluginService = loadService(clazz);
-			pluginService.initialize();
+			pluginService.initialize();			
 		} catch (IllegalArgumentException iae) {
 			throw iae;
 		} catch (Exception ex) {
@@ -221,6 +223,8 @@ public class TSDBPluginServiceLoader {
 	public ITSDBPluginService getPluginService() {
 		return pluginService;
 	}
+	
+
 	
 	/**
 	 * Returns the provided TSDB (which might be null if it has not been initialized yet)

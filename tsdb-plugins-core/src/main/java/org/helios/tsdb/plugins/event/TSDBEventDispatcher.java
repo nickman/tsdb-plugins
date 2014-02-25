@@ -3,6 +3,7 @@ package org.helios.tsdb.plugins.event;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -259,6 +260,15 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 	 */
 	public void purgeAsync() {
 		asyncExecutor.purge();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#getTSDB()
+	 */
+	@Override
+	public TSDB getTSDB() {
+		return tsdb;
 	}
 
 	

@@ -33,6 +33,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -296,6 +297,8 @@ public enum TSDBTable {
 	public static class UIDTableInfo implements TableInfo {
 		/** The select SQL */
 		private final String sql;
+		/** The UniqueIdType of the UIDMetas */
+		private final UniqueIdType type;
 		/** Instance logger */
 		private final Logger log = LoggerFactory.getLogger(getClass());
 		
@@ -305,8 +308,8 @@ public enum TSDBTable {
 		 * @param table The actual table (METRIC, TAGK or TAGV)
 		 */
 		public UIDTableInfo(TSDBTable table) {
-			XX:  Need to add TAG_TYPE virtual column here.
-			sql = String.format("SELECT * FROM %s WHERE XUID = ?", table.name());
+			sql = String.format("SELECT '%s' as TAG_TYPE, * FROM %s WHERE XUID = ?", table.name().replace("TSD_", ""), table.name());
+			type = UniqueIdType.valueOf(table.name().replace("TSD_", ""));
 		}
 
 		/**
@@ -332,7 +335,7 @@ public enum TSDBTable {
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getObjects(java.sql.ResultSet, net.opentsdb.catalog.CatalogDBInterface)
 		 */
 		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
-			return dbInterface.readUIDMetas(rset, "");
+			return dbInterface.readUIDMetas(rset, type);
 		}
 		
 		/**
@@ -364,6 +367,8 @@ public enum TSDBTable {
 		public Object getPk(Connection conn, Object obj) {
 			return ((UIDMeta)obj).getUID();
 		}
+		
+		
 		
 		
 	}

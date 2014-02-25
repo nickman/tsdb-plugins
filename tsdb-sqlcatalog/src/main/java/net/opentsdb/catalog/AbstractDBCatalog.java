@@ -27,6 +27,7 @@ package net.opentsdb.catalog;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -42,7 +43,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,10 +51,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
@@ -71,6 +70,7 @@ import net.opentsdb.search.SearchQuery;
 import net.opentsdb.search.SearchQuery.SearchType;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
+import net.opentsdb.utils.JSON;
 import net.opentsdb.utils.JSONException;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
@@ -285,13 +285,75 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			
 	/** The keys to insert into a new custom map for UISMetas and Annotations */
 	public static final Map<String, String> INIT_CUSTOM;
+	/** A json mapper */
+	protected static final ObjectMapper jsonMapper = new ObjectMapper();
 	
+	
+	/** The TSMeta class tags field so we can set the tags reflectively */
+	private static final Field TSMETA_TAGS_FIELD;
+	/** The TSMeta class metric field so we can set the metric reflectively */
+	private static final Field TSMETA_METRIC_FIELD;
+	
+	// private ArrayList<UIDMeta> tags = null;
+	// private UIDMeta metric = null;
 	
 	static {
+		jsonMapper.enable(SerializationFeature.INDENT_OUTPUT);
 		Map<String, String> tmp = new TreeMap<String, String>();
-		//tmp.put(VERSION_KEY, "1");
 		INIT_CUSTOM = Collections.unmodifiableMap(tmp);
+		try {
+			TSMETA_TAGS_FIELD = TSMeta.class.getDeclaredField("tags");
+			TSMETA_TAGS_FIELD.setAccessible(true);
+			TSMETA_METRIC_FIELD = TSMeta.class.getDeclaredField("metric");
+			TSMETA_METRIC_FIELD.setAccessible(true);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to read TSMeta fields", ex);
+		}
 	}
+	
+	/**
+	 * Reflectively sets the tags on the passed TSMeta
+	 * @param tsMeta The TSMeta to set the tags on
+	 * @param tags The tags to set
+	 * @return The updated TSMeta
+	 */
+	protected static TSMeta setTSMetaTags(TSMeta tsMeta, ArrayList<UIDMeta> tags) {
+		try {
+			TSMETA_TAGS_FIELD.set(tsMeta, tags);
+			return tsMeta;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set tags on TSMeta [" + tsMeta + "]", ex); 
+		}
+	}
+	
+	/**
+	 * Reflectively sets the tags and metric on the passed TSMeta
+	 * @param tsMeta The TSMeta to update
+	 * @param tags The tags to set
+	 * @param metric The metric to update
+	 * @return The updated TSMeta
+	 */
+	protected static TSMeta setUIDs(TSMeta tsMeta, ArrayList<UIDMeta> tags, UIDMeta metric) {
+		setTSMetaTags(tsMeta, tags);
+		setTSMetaMetric(tsMeta, metric);
+		return tsMeta;
+	}
+	
+	/**
+	 * Reflectively sets the metric on the passed TSMeta
+	 * @param tsMeta The TSMeta to set the metric on
+	 * @param metric The metric UIDMeta to set
+	 * @return The updated TSMeta
+	 */
+	protected static TSMeta setTSMetaMetric(TSMeta tsMeta, UIDMeta metric) {
+		try {
+			TSMETA_METRIC_FIELD.set(tsMeta, metric);
+			return tsMeta;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to set metric on TSMeta [" + tsMeta + "]", ex); 
+		}
+	}
+	
 
 	/**
 	 * Creates a new AbstractDBCatalog
@@ -1337,21 +1399,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	// ==================================================================================================
 	//  Object Unmarshalling  (i.e. ResultSet to List of Objects)
 	// ==================================================================================================
-	
+
 	/**
-	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
-	 * @param rset The result set to read from
-	 * @return a [possibly empty] collection of UIDMetas
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#readUIDMetas(java.sql.ResultSet, java.lang.String)
 	 */
 	@Override
-	public List<UIDMeta> readUIDMetas(ResultSet rset) {
+	public List<UIDMeta> readUIDMetas(ResultSet rset, String uidType) {
+		return readUIDMetas(rset, (uidType==null || uidType.trim().isEmpty()) ? null : UniqueIdType.valueOf(uidType.trim().toUpperCase()));
+	}
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#readUIDMetas(java.sql.ResultSet, net.opentsdb.uid.UniqueId.UniqueIdType)
+	 */
+	@Override
+	public List<UIDMeta> readUIDMetas(ResultSet rset, UniqueIdType uidType) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<UIDMeta> uidMetas = new ArrayList<UIDMeta>();
 		
 		try {
-			String tName = rset.getMetaData().getTableName(1).toUpperCase().replace("TSD_", "");
-			UniqueIdType utype = UniqueIdType.valueOf(tName); 
 			while(rset.next()) {
+				UniqueIdType utype = null;
+				if(uidType!=null) {
+					utype = uidType;
+				} else {
+					utype = UniqueIdType.valueOf(rset.getString("TAG_TYPE"));
+				}
 				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("XUID")), rset.getString("NAME"));
 				meta.setCreated(mstou(rset.getTimestamp("CREATED").getTime()));
 				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
@@ -1366,13 +1439,55 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		return uidMetas;
 	}
 	
+	/** A comma splitting pattern */
+	private static final Pattern COMMA_SPLITTER = Pattern.compile(",");
+	
 	/**
-	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
-	 * @param rset The result set to read from
-	 * @return a [possibly empty] collection of UIDMetas
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getTSMetas(boolean, boolean, java.lang.String)
+	 */
+	@Override
+	public String getTSMetas(boolean byFqn, boolean deep, String ids) {
+		StringBuilder sql = new StringBuilder("SELECT * FROM TSD_TSMETA WHERE ");
+		String[] tsuids = COMMA_SPLITTER.split(ids);
+		if(byFqn) {
+			sql.append(" FQNID IN (");			
+		} else {
+			sql.append(" TSUID IN (");			
+		}
+		for(int i = 0; i < tsuids.length; i++) {
+			tsuids[i] = tsuids[i].trim();
+			sql.append("?,");				
+		}		
+		sql.deleteCharAt(sql.length()-1).append(")");
+		ResultSet rset = null;
+		try {
+			rset = sqlWorker.executeQuery(sql.toString(), false, (Object[])tsuids);
+			List<TSMeta> tsMetas = readTSMetas(rset, deep);
+			return JSON.serializeToString(tsMetas);
+		} catch (Exception ex) {
+			log.error("Failed to getTSMetas", ex);
+			throw new RuntimeException("Failed to getTSMetas", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception x) { /* No Op */ }
+		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#readTSMetas(java.sql.ResultSet)
 	 */
 	@Override
 	public List<TSMeta> readTSMetas(ResultSet rset) {
+		return readTSMetas(rset, false);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#readTSMetas(java.sql.ResultSet, boolean)
+	 */
+	@Override
+	public List<TSMeta> readTSMetas(ResultSet rset, boolean includeUIDs) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<TSMeta> tsMetas = new ArrayList<TSMeta>();
 		try {
@@ -1387,18 +1502,50 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				meta.setMin(rset.getDouble("MIN_VALUE"));
 				meta.setRetention(rset.getInt("RETENTION"));
 				meta.setUnits(rset.getString("UNITS"));
+				final long fqnId = rset.getLong("FQNID");
 				Map<String, String> custom = meta.getCustom();
 				if(custom==null) {
 					custom = new HashMap<String, String>(3);
-					custom.put(PK_KEY, rset.getString("FQNID"));
+					custom.put(PK_KEY, "" + fqnId);
 				}
-				custom.put(TSMETA_METRIC_KEY, rset.getString("METRIC_UID"));
+				if(includeUIDs) {
+					loadUIDs(rset.isClosed() ? null : rset.getStatement().getConnection(), meta, rset.getString("METRIC_UID"), fqnId);
+				}
 				tsMetas.add(meta);
 			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to read TSMetas from ResultSet", ex);
 		}
 		return tsMetas;
+	}
+	
+	/** The SQL to retrieve the tags for a TSMeta */
+	public static final String TSMETA_TAGS_SQL = "SELECT 'TAGK' as TAG_TYPE, F.PORDER, K.* FROM TSD_TAGK K, TSD_FQN_TAGPAIR F, TSD_TAGPAIR P WHERE F.XUID = P.XUID AND K.XUID = P.TAGK AND F.FQNID = ? " + 
+												 "UNION ALL " + 
+												 "SELECT 'TAGV' as TAG_TYPE, F.PORDER, V.* FROM TSD_TAGV V, TSD_FQN_TAGPAIR F, TSD_TAGPAIR P WHERE F.XUID = P.XUID AND V.XUID = P.TAGV AND F.FQNID = ? " + 
+												 "ORDER BY 1,2";
+	
+	/**
+	 * Deep loads the metric and tag UIDs into the passed TSMeta
+	 * @param conn The connection
+	 * @param tsMeta The TSMeta to load
+	 * @param metricUid The TSMeta's metric UID
+	 * @param fqnid The TSMeta's DB PK
+	 */
+	protected void loadUIDs(Connection conn, TSMeta tsMeta, String metricUid, long fqnid) {
+		final boolean newConn = conn==null;
+		try {
+			if(newConn) conn = dataSource.getConnection();
+			ResultSet rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_METRIC WHERE XUID = ?", true, metricUid);
+			UIDMeta metric = readUIDMetas(rset, UniqueIdType.METRIC).iterator().next();
+			rset.close();
+			ArrayList<UIDMeta> tags = (ArrayList<UIDMeta>)readUIDMetas(sqlWorker.executeQuery(conn, TSMETA_TAGS_SQL, true, fqnid, fqnid), "");
+			setUIDs(tsMeta, tags, metric);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to load UIDs for TSMeta [" + tsMeta + "]", ex);
+		} finally {
+			if(newConn && conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
+		}
 	}
 	
 	/**
@@ -1612,11 +1759,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}	
 	}
 	
-	protected static final ObjectMapper jsonMapper = new ObjectMapper();
-	
-	static {
-		jsonMapper.enable(SerializationFeature.INDENT_OUTPUT);
-	}
+
 	 
 
 	
@@ -1762,10 +1905,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     		final HashMap<String, Object> map = 
 	    			new HashMap<String, Object>(3);
 	    	map.put("tsuid", meta.getTSUID());
-	    	String name = sqlWorker.sqlForString("SELECT NAME FROM TSD_METRIC WHERE XUID = ?", meta.getCustom().remove(TSMETA_METRIC_KEY));
-	    	if(name!=null) {
-	    		map.put("metric", name);
-	    	}
+//	    	String name = sqlWorker.sqlForString("SELECT NAME FROM TSD_METRIC WHERE XUID = ?", meta.getCustom().remove(TSMETA_METRIC_KEY));
+//	    	if(name!=null) {
+//	    		map.put("metric", name);
+//	    	}
+	    	map.put("metric", meta.getMetric().getName());
 	    	ResultSet rset = sqlWorker.executeQuery("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER", true, Long.parseLong(meta.getCustom().get(PK_KEY)));
 	    	final Map<String, String> tags = 
 	    			new LinkedHashMap<String, String>();

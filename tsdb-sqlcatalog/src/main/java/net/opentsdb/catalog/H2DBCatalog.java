@@ -48,6 +48,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.h2.fulltext.FullTextLucene;
 import org.h2.tools.Server;
@@ -265,7 +266,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setInt(3, query.getStartIndex());
 				ps.setString(4, "TSD_TAGK");
 				rset = ps.executeQuery();
-				matches.addAll(readUIDMetas(rset));
+				matches.addAll(readUIDMetas(rset, UniqueIdType.TAGK));
 				rset.close(); ps.close();
 
 				ps = conn.prepareStatement("SELECT * FROM TSD_TAGV T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
@@ -274,7 +275,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setInt(3, query.getStartIndex());
 				ps.setString(4, "TSD_TAGV");
 				rset = ps.executeQuery();
-				matches.addAll(readUIDMetas(rset));
+				matches.addAll(readUIDMetas(rset, UniqueIdType.TAGV));
 				rset.close(); ps.close();
 
 				ps = conn.prepareStatement("SELECT * FROM TSD_METRIC T , (SELECT * FROM FTL_SEARCH_DATA(?, ?, ?) WHERE TABLE = ?) F  WHERE T.XUID = F.KEYS[0]");
@@ -283,7 +284,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 				ps.setInt(3, query.getStartIndex());
 				ps.setString(4, "TSD_METRIC");
 				rset = ps.executeQuery();
-				matches.addAll(readUIDMetas(rset));
+				matches.addAll(readUIDMetas(rset, UniqueIdType.METRIC));
 				rset.close(); ps.close();				
 				results = matches;	
 				break;

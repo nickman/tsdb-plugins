@@ -287,6 +287,14 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 */
 	public Map<String, String> getNamesForUIDs(String tsuid);
 	
+	/**
+	 * Retrieves a list of TSMetas in JSON format
+	 * @param byFqn Indicates if the query will be by FQNID, otherwise by TSUID.
+	 * @param deep true to retrieve "deep" TSMetas with fully resolved metric and tag UIDs, false for "shallow" TSMetas.
+	 * @param ids A string of comma separated ids
+	 * @return The JSON containing the retrieved TSMetas
+	 */
+	public String getTSMetas(boolean byFqn, boolean deep, String ids);
 	
 	
 	

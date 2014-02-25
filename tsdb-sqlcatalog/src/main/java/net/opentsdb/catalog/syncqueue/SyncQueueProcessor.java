@@ -24,6 +24,7 @@
  */
 package net.opentsdb.catalog.syncqueue;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -262,7 +263,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		log.info("Starting TSDB Sync Run....");
 		final long startTime = System.currentTimeMillis();
 		// First retry the failures
-//		Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
+		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
 		Deferred<ArrayList<Object>> processNewDeferred = processNewSyncs();
 		final Runnable scheduledTask = this;
@@ -272,7 +273,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			public Deferred<Object> call(ArrayList<Object> arg) throws Exception {
 				long elapsed = System.currentTimeMillis() - startTime;
 				log.info("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
-				new MetaSynchronizer(tsdb).process(true);
+//				new MetaSynchronizer(tsdb).process(true);
 				if(taskHandle!=null) {
 					taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
 					log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
@@ -362,7 +363,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 									.addCallback(new Callback<Void, Boolean>() {
 										public Void call(Boolean exists) throws Exception {
 											if(exists) {
-												dbMeta.syncToStorage(tsdb, false)
+												dbMeta.syncToStorage(tsdb, true)
 												.addCallback(new Callback<Object, Boolean>() {
 													public Object call(Boolean success) throws Exception {	
 														log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
@@ -405,13 +406,18 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 										}
 									});
 									dbMeta.syncToStorage(tsdb, true).addBoth(new Callback<Object, Boolean>() {
+										@SuppressWarnings("cast")
 										public Object call(Boolean success) throws Exception {	
 											if(success) {
 												log.info("Sync Callback for [{}] -->  [{}]", dbObject, success);
 											} else {
-												sqlWorker.execute("INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", table.name(), table.ti.getBindablePK(dbMeta), 1, SystemClock.getTimestamp());
-												log.info("First Sync Fail for {}.{}", "TSMeta", table.ti.getBindablePK(dbMeta));
-												
+//												sqlWorker.execute("INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", table.name(), table.ti.getPk(null, dbMeta), 1, SystemClock.getTimestamp());
+//												log.info("First Sync Fail for {}.{}", "TSMeta", table.ti.getBindablePK(dbMeta));
+												try {
+													startTSMetaUpdateLoop((TSMeta)dbMeta, new AtomicInteger(0));
+												} catch (Exception ex) {
+													ex.printStackTrace(System.err);
+												}
 											}
 											
 											return dbMeta;
@@ -467,6 +473,42 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 		}
 		return Deferred.group(allDeferreds);
+	}
+	
+	
+	
+	protected void startTSMetaUpdateLoop(final TSMeta tMeta, final AtomicInteger retryCount) {
+		final SyncQueueProcessor SQP = this;
+		final TSMeta tsMeta = dbInterface.readTSMetas(sqlWorker.executeQuery("SELECT * FROM TSD_TSMETA WHERE TSUID = ?", true, tMeta.getTSUID())).iterator().next();
+		try {
+			tsMeta.syncToStorage(tsdb, true).addCallback(new Callback<Void, Boolean>(){
+				public Void call(Boolean success) throws Exception {
+					if(success) {
+						log.info("TSMeta Update Successful [{}] after [{}] retries", tsMeta, retryCount.get());
+					} else {
+						int retries = retryCount.incrementAndGet();
+						if(retries>=20) {
+							log.error("Exhausted retries updating TSMeta [{}]", tsMeta);
+						} else {
+							log.error("TSMeta update retry failed for [{}]. Next retry: [{}]", tsMeta, retries);
+							scheduler.schedule(new Runnable() {
+								public void run() {
+									SQP.startTSMetaUpdateLoop(tsMeta, retryCount);
+								}
+							}, 500, TimeUnit.MILLISECONDS);
+						}
+					}
+					return null;
+				}
+			}).addErrback(new Callback<Void, Exception>(){
+				public Void call(Exception ex) throws Exception {
+					log.error("TSMeta update for [{}] FAILED:", tsMeta, ex);				
+					return null;
+				}
+			});
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
 	}
 	
 	protected Deferred<ArrayList<Boolean>> ensureUIDsExist(final TSMeta tsMeta) {
@@ -531,51 +573,61 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	    return byteKeys;
 	   }
 	  
+	protected void flagTSMeta(TSMeta tsMeta) {
+		try {
+			Field f = TSMeta.class.getDeclaredField("changed");
+			f.setAccessible(true);
+			HashMap<String, Boolean> changed  = (HashMap<String, Boolean>)f.get(tsMeta);
+			changed.put("I Changed !", true);
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+			/* No Op */
+		}
+	}
 	
-	
-//	/**
-//	 * Retries all the prior synch failures 
-//	 * @return A deferred indicating the completion of all table syncs
-//	 */
-//	protected Deferred<ArrayList<Void>> retryPriorFails() {
-//		Connection conn = null;
-//		ResultSet rset = null;
-//		final List<Deferred<Void>> allDeferreds = new ArrayList<Deferred<Void>>();
-//		try {
-//			conn = dataSource.getConnection();
-//			for(final TSDBTable table: TSDBTable.values()) {
-//				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
-//				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT DESC", false, table.name());
-//				log.info("Retrying failed syncs for {}", table.name());
-//				int cnt = 0;
-//				while(rset.next()) {
-//					String tableName = rset.getString(1);
-//					String objectId = rset.getString(2);
-//					int attempts = rset.getInt(3);
-//					Object failedObject = getDBObject(conn, tableName, objectId);
-//					log.info("Submitting Failed Sync [{}]", failedObject);
+	/**
+	 * Retries all the prior synch failures 
+	 * @return A deferred indicating the completion of all table syncs
+	 */
+	protected Deferred<ArrayList<Void>> retryPriorFails() {
+		Connection conn = null;
+		ResultSet rset = null;
+		final List<Deferred<Void>> allDeferreds = new ArrayList<Deferred<Void>>();
+		try {
+			conn = dataSource.getConnection();
+			for(final TSDBTable table: TSDBTable.values()) {
+				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
+				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT DESC", false, table.name());
+				log.info("Retrying failed syncs for {}", table.name());
+				int cnt = 0;
+				while(rset.next()) {
+					String tableName = rset.getString(1);
+					String objectId = rset.getString(2);
+					int attempts = rset.getInt(3);
+					Object failedObject = getDBObject(conn, tableName, objectId);
+					log.info("Submitting Failed Sync [{}]", failedObject);
 //					tableDeferreds.add(table.ti.sync(failedObject, tsdb).addBoth(syncCompletionHandler(failedObject, objectId, attempts)));
-//					pendingOps.incrementAndGet();
-//					cnt++;
-//				}
-//				log.info("Retried [{}] failed syncs", cnt);
-//				allDeferreds.add(Deferred.group(tableDeferreds).addBoth(new Callback<Void, ArrayList<Void>>() {
-//					public Void call(ArrayList<Void> arg) throws Exception {
-//						return null;
-//					}
-//				}));
-//				rset.close();
-//				rset = null;				
-//			}
-//			conn.commit();
-//		} catch (Exception ex) {
-//			log.error("Unexpected SynQueueProcessor Error", ex);
-//		} finally {
-//			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
-//			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
-//		}
-//		return Deferred.group(allDeferreds);
-//	}
+					pendingOps.incrementAndGet();
+					cnt++;
+				}
+				log.info("Retried [{}] failed syncs", cnt);
+				allDeferreds.add(Deferred.group(tableDeferreds).addBoth(new Callback<Void, ArrayList<Void>>() {
+					public Void call(ArrayList<Void> arg) throws Exception {
+						return null;
+					}
+				}));
+				rset.close();
+				rset = null;				
+			}
+			conn.commit();
+		} catch (Exception ex) {
+			log.error("Unexpected SynQueueProcessor Error", ex);
+		} finally {
+			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
+			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
+		}
+		return Deferred.group(allDeferreds);
+	}
 	
 	
 	/**

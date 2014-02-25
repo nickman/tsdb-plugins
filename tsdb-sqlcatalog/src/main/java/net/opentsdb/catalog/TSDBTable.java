@@ -305,6 +305,7 @@ public enum TSDBTable {
 		 * @param table The actual table (METRIC, TAGK or TAGV)
 		 */
 		public UIDTableInfo(TSDBTable table) {
+			XX:  Need to add TAG_TYPE virtual column here.
 			sql = String.format("SELECT * FROM %s WHERE XUID = ?", table.name());
 		}
 
@@ -331,7 +332,7 @@ public enum TSDBTable {
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getObjects(java.sql.ResultSet, net.opentsdb.catalog.CatalogDBInterface)
 		 */
 		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
-			return dbInterface.readUIDMetas(rset);
+			return dbInterface.readUIDMetas(rset, "");
 		}
 		
 		/**

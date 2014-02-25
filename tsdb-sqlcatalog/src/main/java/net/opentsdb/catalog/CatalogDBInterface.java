@@ -38,6 +38,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
@@ -284,20 +285,47 @@ public interface CatalogDBInterface {
 	// Object Unmarshalling (i.e. ResultSet to collection of Objects)
 	// ===================================================================================================
 
+	/**
+	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @param uidType The UIDMeta type name we're reading
+	 * @return a [possibly empty] collection of UIDMetas
+	 */
+	public List<UIDMeta> readUIDMetas(ResultSet rset, String uidType);
+	
 	
 	/**
 	 * Returns a collection of {@link UIDMeta}s read from the passed {@link ResultSet}.
 	 * @param rset The result set to read from
+	 * @param uidType The UIDMeta type we're reading
 	 * @return a [possibly empty] collection of UIDMetas
 	 */
-	public List<UIDMeta> readUIDMetas(ResultSet rset);
+	public List<UIDMeta> readUIDMetas(ResultSet rset, UniqueIdType uidType);
 	
 	/**
-	 * Returns a collection of {@link TSMeta}s read from the passed {@link ResultSet}.
+	 * Returns a collection of shallow (no UIDMetas for the metric or tags) {@link TSMeta}s read from the passed {@link ResultSet}.
 	 * @param rset The result set to read from
 	 * @return a [possibly empty] collection of TSMetas
 	 */
 	public List<TSMeta> readTSMetas(ResultSet rset);
+	
+	/**
+	 * Returns a collection of {@link TSMeta}s read from the passed {@link ResultSet}.
+	 * @param rset The result set to read from
+	 * @param includeUIDs If true, the metric and tags will be loaded, otherwise shallow TSMetas will be returned
+	 * @return a [possibly empty] collection of TSMetas
+	 */
+	public List<TSMeta> readTSMetas(ResultSet rset, boolean includeUIDs);
+	
+	/**
+	 * Retrieves a list of TSMetas in JSON format
+	 * @param byFqn Indicates if the query will be by FQNID, otherwise by TSUID.
+	 * @param deep true to retrieve "deep" TSMetas with fully resolved metric and tag UIDs, false for "shallow" TSMetas.
+	 * @param ids A string of comma separated ids
+	 * @return The JSON containing the retrieved TSMetas
+	 */
+	public String getTSMetas(boolean byFqn, boolean deep, String ids);
+	
 	
 	/**
 	 * Returns a collection of {@link Annotation}s read from the passed {@link ResultSet}.

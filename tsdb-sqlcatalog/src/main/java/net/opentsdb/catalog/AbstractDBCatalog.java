@@ -105,6 +105,10 @@ import com.google.common.cache.CacheBuilder;
 import com.jolbox.bonecp.StatisticsMBean;
 import com.stumbleupon.async.Deferred;
 
+import com.sun.jmx.mbeanserver.DefaultMXBeanMappingFactory;
+import com.sun.jmx.mbeanserver.MXBeanMapping;
+
+
 /**
  * <p>Title: AbstractDBCatalog</p>
  * <p>Description: Base abstract class for implementing concrete DB catalogs for different JDBC supporting databases.</p> 
@@ -133,6 +137,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/** The SQLWorker to manage JDBC Ops */
 	protected SQLWorker sqlWorker = null;
+	
+	/** The MXBean mapper for TSMetas */
+	protected static final MXBeanMapping tsMetaMXBeanMapping;
+	/** The MXBean mapper for UIDMetas */
+	protected static final MXBeanMapping uidMetaMXBeanMapping;
 	
 
 	// ========================================================================================
@@ -308,6 +317,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to read TSMeta fields", ex);
 		}
+		
+		// FIXME: This can be implemented one we sumit patch to fix TSMeta to not return impl types for Map and List.
+		
+		try {
+			tsMetaMXBeanMapping = null; //DefaultMXBeanMappingFactory.DEFAULT.mappingForType(TSMeta.class, DefaultMXBeanMappingFactory.DEFAULT);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to create MXBean mapping for TSMeta", ex);
+		}
+		try {
+			uidMetaMXBeanMapping = DefaultMXBeanMappingFactory.DEFAULT.mappingForType(UIDMeta.class, DefaultMXBeanMappingFactory.DEFAULT);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to create MXBean mapping for TSMeta", ex);
+		}
+		
 	}
 	
 	/**
@@ -1446,10 +1469,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#getTSMetas(boolean, boolean, java.lang.String)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#getTSMetasJSON(boolean, boolean, java.lang.String)
 	 */
 	@Override
-	public String getTSMetas(boolean byFqn, boolean deep, String ids) {
+	public String getTSMetasJSON(boolean byFqn, boolean deep, String ids) {
 		StringBuilder sql = new StringBuilder("SELECT * FROM TSD_TSMETA WHERE ");
 		String[] tsuids = COMMA_SPLITTER.split(ids);
 		if(byFqn) {
@@ -1624,7 +1647,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public boolean exists(Connection conn, TSMeta tsMeta) {
 		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
-		HashMap<String, String> map = tsMeta.getCustom(); 
+		Map<String, String> map = tsMeta.getCustom(); 
 //		if(map!=null && map.containsKey(PK_KEY)) {
 //			long fqnid = -1;
 //			try {

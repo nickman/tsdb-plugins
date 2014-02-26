@@ -300,7 +300,7 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 * @param ids A string of comma separated ids
 	 * @return The JSON containing the retrieved TSMetas
 	 */
-	public String getTSMetas(boolean byFqn, boolean deep, String ids);
+	public String getTSMetasJSON(boolean byFqn, boolean deep, String ids);
 	
 	
 	

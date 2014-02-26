@@ -61,13 +61,13 @@ public enum TSDBTable {
 	/** The annotation meta table  */
 	TSD_ANNOTATION(Annotation.class, new AnnotationTableInfo());
 	
-	private TSDBTable(Class<?> type, TableInfo ti) {
+	private <T> TSDBTable(Class<T> type, TableInfo<T> ti) {
 		this.type = type;
 		this.ti = ti!=null ? ti : new UIDTableInfo(this);
 	}
 	
 	/** The table-info instance for this enum */
-	public final TableInfo ti;
+	public final TableInfo<?> ti;
 	
 	/** The type of the object stored in this table */
 	public final Class<?> type;
@@ -97,8 +97,9 @@ public enum TSDBTable {
 	 * <p>Company: Helios Development Group LLC</p>
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>net.opentsdb.catalog.TSDBTable.TableInfo</code></p>
+	 * @param <T> The object type managed by this TableInfo
 	 */
-	public interface TableInfo {
+	public interface TableInfo<T> {
 		/**
 		 * Returns the SQL to select an object from its table by the PK
 		 * @return a sql string
@@ -117,7 +118,7 @@ public enum TSDBTable {
 		 * @param dbInterface The DB interface to get the objects from
 		 * @return a list of Objects composed from the result set
 		 */
-		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface);
+		public List<T> getObjects(ResultSet rset, CatalogDBInterface dbInterface);
 		
 		/**
 		 * Syncs the passed object to the TSDB
@@ -125,7 +126,7 @@ public enum TSDBTable {
 		 * @param tsdb The TSDB to sync to
 		 * @return The callback deferral
 		 */
-		public Deferred<Boolean> sync(Object obj, TSDB tsdb);
+		public Deferred<Boolean> sync(T obj, TSDB tsdb);
 		
 		/**
 		 * Returns the DB PK for the passed object
@@ -134,6 +135,16 @@ public enum TSDBTable {
 		 * @return the pk
 		 */
 		public Object getPk(Connection conn, Object obj);
+		
+		/**
+		 * Returns the managed object instance identified by the passed pk
+		 * @param conn The DB connection to use
+		 * @param sqlWorker The database SQLWorker
+		 * @param pk The managed object identifier
+		 * @param dbInterface The DB interface to resolve the result set into a T
+		 * @return The retrieved object
+		 */
+		public T get(Connection conn, SQLWorker sqlWorker, Object pk, CatalogDBInterface dbInterface);
 	}
 	
 	/**
@@ -143,7 +154,7 @@ public enum TSDBTable {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>net.opentsdb.catalog.TSDBTable.TSTableInfo</code></p>
 	 */
-	public static class TSTableInfo implements TableInfo {
+	public static class TSTableInfo implements TableInfo<TSMeta> {
 		/** The select SQL */
 		private final String sql;
 		/** Instance logger */
@@ -177,7 +188,7 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getObjects(java.sql.ResultSet, net.opentsdb.catalog.CatalogDBInterface)
 		 */
-		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
+		public List<TSMeta> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
 			return dbInterface.readTSMetas(rset);
 		}
 		
@@ -185,13 +196,12 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(final Object obj, final TSDB tsdb) {
-			final TSMeta tsMeta = (TSMeta)obj;
+		public Deferred<Boolean> sync(final TSMeta tsMeta, final TSDB tsdb) {
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				tsMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){
 					public Deferred<Void> call(Boolean syncSuccess) throws Exception {
-						log.info("Callback on [{}] with arg [{}]", obj, syncSuccess);
+						log.info("Callback on [{}] with arg [{}]", tsMeta, syncSuccess);
 						completion.callback(syncSuccess);
 						return Deferred.fromResult(null);
 					}
@@ -207,12 +217,17 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getPk(java.sql.Connection, java.lang.Object)
 		 */
-		public Object getPk(Connection conn, Object obj) {
-			TSMeta ts = (TSMeta)obj;
-//			try {
-//				return Long.parseLong(ts.getCustom().get(CatalogDBInterface.PK_KEY));
-//			} catch (Exception ex) {/* No Op */}
-			return H2Support.fqnId(conn, ts.getTSUID());
+		public Long getPk(Connection conn, Object tsMeta) {
+			return H2Support.fqnId(conn, ((TSMeta)tsMeta).getTSUID());
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#get(java.sql.Connection, net.opentsdb.catalog.SQLWorker, java.lang.Object, net.opentsdb.catalog.CatalogDBInterface)
+		 */
+		@Override
+		public TSMeta get(Connection conn, SQLWorker sqlWorker, Object pk, CatalogDBInterface dbInterface) {
+			return getObjects(sqlWorker.executeQuery(conn, getByPKSql(), true, pk), dbInterface).iterator().next();
 		}
 	}
 	
@@ -224,7 +239,7 @@ public enum TSDBTable {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>net.opentsdb.catalog.TSDBTable.AnnotationTableInfo</code></p>
 	 */
-	public static class AnnotationTableInfo implements TableInfo {
+	public static class AnnotationTableInfo implements TableInfo<Annotation> {
 		/** The select SQL */
 		private final String sql;
 		/** Instance logger */
@@ -259,7 +274,7 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getObjects(java.sql.ResultSet, net.opentsdb.catalog.CatalogDBInterface)
 		 */
-		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
+		public List<Annotation> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
 			return dbInterface.readAnnotations(rset);
 		}
 		
@@ -267,20 +282,26 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Object obj, TSDB tsdb) {
-			return ((Annotation)obj).syncToStorage(tsdb, false);
+		public Deferred<Boolean> sync(Annotation ann, TSDB tsdb) {
+			return ann.syncToStorage(tsdb, false);
 		}
 		
 		/**
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getPk(java.sql.Connection, java.lang.Object)
 		 */
-		public Object getPk(Connection conn, Object obj) {
-			Annotation ann  = (Annotation)obj;
-//			try {
-//				return Long.parseLong(ann.getCustom().get(CatalogDBInterface.PK_KEY));
-//			} catch (Exception ex) {/* No Op */}
+		public Object getPk(Connection conn, Object annotation) {
+			Annotation ann = (Annotation)annotation;
 			return H2Support.annotationId(conn, ann.getStartTime(), ann.getTSUID());
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#get(java.sql.Connection, net.opentsdb.catalog.SQLWorker, java.lang.Object, net.opentsdb.catalog.CatalogDBInterface)
+		 */
+		@Override
+		public Annotation get(Connection conn, SQLWorker sqlWorker, Object pk, CatalogDBInterface dbInterface) {
+			return getObjects(sqlWorker.executeQuery(conn, getByPKSql(), true, pk), dbInterface).iterator().next();
 		}
 		
 		
@@ -294,7 +315,7 @@ public enum TSDBTable {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>net.opentsdb.catalog.TSDBTable.UIDTableInfo</code></p>
 	 */
-	public static class UIDTableInfo implements TableInfo {
+	public static class UIDTableInfo implements TableInfo<UIDMeta> {
 		/** The select SQL */
 		private final String sql;
 		/** The UniqueIdType of the UIDMetas */
@@ -334,7 +355,7 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getObjects(java.sql.ResultSet, net.opentsdb.catalog.CatalogDBInterface)
 		 */
-		public List<?> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
+		public List<UIDMeta> getObjects(ResultSet rset, CatalogDBInterface dbInterface) {
 			return dbInterface.readUIDMetas(rset, type);
 		}
 		
@@ -342,13 +363,12 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(final Object obj, final TSDB tsdb) {
-			final UIDMeta uidMeta = (UIDMeta)obj;
+		public Deferred<Boolean> sync(final UIDMeta uidMeta, final TSDB tsdb) {
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				uidMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){
 					public Deferred<Void> call(Boolean syncSuccess) throws Exception {
-						log.info("Errback on [{}] with arg [{}]", obj, syncSuccess);
+						log.info("Errback on [{}] with arg [{}]", uidMeta, syncSuccess);
 						completion.callback(syncSuccess);
 						return Deferred.fromResult(null);
 					}
@@ -364,8 +384,17 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#getPk(java.sql.Connection, java.lang.Object)
 		 */
-		public Object getPk(Connection conn, Object obj) {
-			return ((UIDMeta)obj).getUID();
+		public String getPk(Connection conn, Object uidMeta) {
+			return ((UIDMeta)uidMeta).getUID();
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#get(java.sql.Connection, net.opentsdb.catalog.SQLWorker, java.lang.Object, net.opentsdb.catalog.CatalogDBInterface)
+		 */
+		@Override
+		public UIDMeta get(Connection conn, SQLWorker sqlWorker, Object pk, CatalogDBInterface dbInterface) {
+			return getObjects(sqlWorker.executeQuery(conn, getByPKSql(), true, pk), dbInterface).iterator().next();
 		}
 		
 		

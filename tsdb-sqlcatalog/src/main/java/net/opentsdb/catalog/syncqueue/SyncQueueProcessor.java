@@ -60,7 +60,6 @@ import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
 
-import org.helios.tsdb.plugins.meta.MetaSynchronizer;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
@@ -313,25 +312,41 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					log.info("Submitting New Sync [{}]", dbObject);
 					if(dbObject instanceof UIDMeta) {
 						final UIDMeta dbMeta = (UIDMeta)dbObject;
+						final TSDBTable tsdbTable;
 						Deferred<byte[]> deferredDbMetaKey = null;
 						try {
 							switch(dbMeta.getType()) {
 								case METRIC:
 									deferredDbMetaKey = tagMunik.getOrCreateIdAsync(dbMeta.getName());
+									tsdbTable = TSDBTable.TSD_METRIC;
 									break;
 								case TAGK:
 									deferredDbMetaKey = tagKunik.getOrCreateIdAsync(dbMeta.getName());
+									tsdbTable = TSDBTable.TSD_TAGK;
 									break;
 								case TAGV:
 									deferredDbMetaKey = tagVunik.getOrCreateIdAsync(dbMeta.getName());
+									tsdbTable = TSDBTable.TSD_TAGV;
 									break;
 								default:
 									throw new Error("Should not reach here");								
 							}
 							
+							
+							final Object pk = tsdbTable.ti.getPk(conn, dbMeta);
+							final SyncCallbackContainer<UIDMeta, byte[]> scc = new SyncCallbackContainer<UIDMeta, byte[]>(tsdbTable, dbMeta, pk);
+							
+							final Callback<SyncCallbackContainer<UIDMeta, byte[]>, byte[]> cb = syncCompletionHandler(scc);
+							final Callback<SyncCallbackContainer<UIDMeta, byte[]>, Exception> ce = syncExceptionHandler(scc);
+							
+							
+							deferredDbMetaKey.addCallbacks(cb, ce);
+									// SyncCallbackContainer, byte[])
+							
 							deferredDbMetaKey.addCallback(new Callback<UIDMeta, byte[]>() {
 								public UIDMeta call(byte[] arg) throws Exception {
-									log.info("Updating [{}]/[{}] with Notes:[{}] and Custom:[{}]", dbMeta, dbMeta.getName(), dbMeta.getNotes(), dbMeta.getCustom());
+									log.info("Updating [{}]/[{}]", dbMeta, dbMeta.getName());
+									
 									dbMeta.syncToStorage(tsdb, false)
 										.addCallback(new Callback<Object, Boolean>() {
 											public Object call(Boolean success) throws Exception {
@@ -698,10 +713,227 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 * @return the re-constituted sync-failed object
 	 */
 	protected Object getDBObject(Connection conn, String tableName, String objectId) {
-		TableInfo ti = TSDBTable.valueOf(tableName).ti;
+		TableInfo<?> ti = TSDBTable.valueOf(tableName).ti;
 		ResultSet r = sqlWorker.executeQuery(conn, ti.getByPKSql(), true, ti.getBindablePK(objectId));
 		return ti.getObjects(r, dbInterface).iterator().next();
 	}
+	
+	/**
+	 * <p>Title: SyncCallbackContainer</p>
+	 * <p>Description: A container for passing a context up and down the async callback chain</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.syncqueue.SyncQueueProcessor.SyncCallbackContainer</code></p>
+	 */
+	public static class SyncCallbackContainer<T, F> implements Callback<Void, F> {
+		/** The enum identifying the type of the object */
+		protected final TSDBTable table;
+		/** The object to be synced */
+		protected final T syncObject;
+		/** The pk field of the object to be synced */
+		protected final Object syncObjectPk;
+		/** An exception thrown somewhere in the callback chain */
+		protected Exception ex = null;
+		/** A counter of failed sync attempts */
+		protected int attempts = 0;
+		/** The current callback depth */
+		protected int currentDepth = 0;
+		/** The max callback depth */
+		protected int maxDepth = 0;
+		
+		/** The value passed by the most recent callback */
+		protected F lastCallback = null;
+		
+		/**
+		 * Creates a new SyncCallbackContainer
+		 * @param table The enum identifying the type of the object
+		 * @param syncObject The object to be synced
+		 * @param syncObjectPk The pk field of the object to be synced 
+		 */
+		public SyncCallbackContainer(TSDBTable table, T syncObject, Object syncObjectPk) {
+			this.table = table;
+			this.syncObject = syncObject;
+			this.syncObjectPk = syncObjectPk;
+		}
+		
+		public <N> SyncCallbackContainer<T, N> pivot(Class<N> callbackType) {
+			return (SyncCallbackContainer<T, N>) this;
+		}
+		
+		/**
+		 * {@inheritDoc}
+		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+		 */
+		@Override
+		public Void call(F f) throws Exception {
+			return null;
+		}		
+		
+		/**
+		 * @param callbackValue
+		 * @return
+		 */
+		public SyncCallbackContainer<T, F> callback(F callbackValue) {
+			lastCallback = callbackValue;
+			return this;
+		}
+		
+		/**
+		 * @return
+		 */
+		public F getLastCallbackValue() {
+			return lastCallback;
+		}
+		
+		
+
+		/**
+		 * Returns the set exception
+		 * @return the callback exception
+		 */
+		public Exception getEx() {
+			return ex;
+		}
+
+		/**
+		 * Sets the callback exception
+		 * @param ex the exception to set
+		 * @return this SyncCallbackContainer
+		 */
+		public SyncCallbackContainer<T, F> setEx(Exception ex) {
+			if(this.ex!=null) throw new IllegalStateException("The exception is already set");
+			this.ex = ex;
+			return this;
+		}
+
+		/**
+		 * Returns the enum identifying the type of the object 
+		 * @return the enum identifying the type of the object
+		 */
+		public TSDBTable getTable() {
+			return table;
+		}
+
+		/**
+		 * Returns the object to be synced
+		 * @return the syncObject
+		 */
+		public Object getSyncObject() {
+			return syncObject;
+		}
+
+		/**
+		 * Returns the pk of the object to be synced
+		 * @return the syncObjectPk
+		 */
+		public Object getSyncObjectPk() {
+			return syncObjectPk;
+		}
+		
+		/**
+		 * Returns the  current callback depth
+		 * @return the currentDepth
+		 */
+		public int getCurrentDepth() {
+			return currentDepth;
+		}
+
+	
+
+		/**
+		 * Returns the max callback depth 
+		 * @return the maxDepth
+		 */
+		public int getMaxDepth() {
+			return maxDepth;
+		}
+		
+		/**
+		 * Increments the current depth and celings the max depth
+		 * @return this SyncCallbackContainer
+		 */
+		public SyncCallbackContainer<T, F> incrDepth() {
+			currentDepth++;
+			maxDepth = currentDepth;
+			return this;
+		}
+		
+		/**
+		 * Decrements the current depth
+		 * @return this SyncCallbackContainer
+		 */
+		public SyncCallbackContainer<T, F> decrDepth() {
+			currentDepth--;
+			return this;
+		}
+		
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("SyncCallbackContainer [");
+			if (table != null) {
+				builder.append("table=");
+				builder.append(table);
+				builder.append(", ");
+			}
+			if (syncObject != null) {
+				builder.append("syncObject=");
+				builder.append(syncObject);
+				builder.append(", ");
+			}
+			if (syncObjectPk != null) {
+				builder.append("syncObjectPk=");
+				builder.append(syncObjectPk);
+				builder.append(", ");
+			}
+			if (ex != null) {
+				builder.append("ex=");
+				builder.append(ex);
+				builder.append(", ");
+			}
+			builder.append("attempts=");
+			builder.append(attempts);
+			builder.append(", currentDepth=");
+			builder.append(currentDepth);
+			builder.append(", maxDepth=");
+			builder.append(maxDepth);
+			builder.append("]");
+			return builder.toString();
+		}
+
+
+
+
+		
+	}
+	
+	protected <T, F> Callback<SyncCallbackContainer<T, F>, Exception> syncExceptionHandler(final SyncCallbackContainer<T, F> scc) {		
+		return new Callback<SyncCallbackContainer<T, F>, Exception>() {
+			public SyncCallbackContainer<T, F> call(Exception ex) throws Exception {				
+				return scc.setEx(ex).incrDepth();
+			}
+			public String toString() {
+				return "syncExceptionHandler->" + scc.toString();
+			}
+		};
+	}
+	
+	protected <T, F> Callback<SyncCallbackContainer<T, F>, F> syncCompletionHandler(final SyncCallbackContainer<T, F> scc) {
+		return new Callback<SyncCallbackContainer<T, F>, F>() {
+			public SyncCallbackContainer<T, F> call(F callbackObject) throws Exception {				
+				return scc.callback(callbackObject).incrDepth();
+			}
+			public String toString() {
+				return "syncCompletionHandler->" + scc.toString();
+			}
+		};
+	}
+	
 	
 	/**
 	 * Creates a sync complete handler for a synchronize-to-tsdb request
@@ -710,7 +942,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 * @param attempts The number of attempts tried so far
 	 * @return the completion callback
 	 */
-	protected Callback<Deferred<Object>, Boolean> syncCompletionHandler(final Object syncedObject, final Object pk, final int attempts) {
+	protected Callback<Deferred<Object>, Boolean> syncCompletionHandlerX(final SyncCallbackContainer scc,  final Object syncedObject, final Object pk, final int attempts) {
 		return new Callback<Deferred<Object>, Boolean>() {
 			@Override
 			public Deferred<Object> call(Boolean success) throws Exception {
@@ -741,6 +973,5 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	public long getPendingSynchOps() {
 		return pendingOps.get();
 	}
-	
 	
 }

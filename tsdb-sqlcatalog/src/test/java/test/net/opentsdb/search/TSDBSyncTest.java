@@ -17,7 +17,7 @@ import javax.management.ObjectName;
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.core.TSDB;
-import net.opentsdb.core.UniqueIdRegistry;
+import net.opentsdb.core.WritableDataPoints;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -61,6 +61,11 @@ public class TSDBSyncTest extends CatalogBaseTest {
 		for(Map.Entry<String, String> tag: on.getKeyPropertyList().entrySet()) {
 			tags.put(tag.getKey(), tag.getValue().replace(" ", ""));
 		}
+		short bufferingTime = 1;
+		WritableDataPoints wdp = tsdb.newDataPoints();
+		wdp.setSeries(mn, tags);
+		wdp.addPoint(TimeUnit.SECONDS.convert(timestamp, TimeUnit.MILLISECONDS), value);
+		wdp.setBufferingTime(bufferingTime);
 		return tsdb.addPoint(mn, timestamp, value, tags);
 	}
 	
@@ -77,11 +82,11 @@ public class TSDBSyncTest extends CatalogBaseTest {
 			objectNames.add(on);
 			final long timestamp = SystemClock.rtime();
 			//addPoint(on, tsdb, 1, timestamp);
-			TSMeta tsMeta = fromUids(objectNameToUIDMeta(on));
-			final long createTimeMs = SystemClock.rtime();
-			final long createTimeSec = mstou(createTimeMs);
-			
-			tsMeta.setCreated(createTimeSec);
+//			TSMeta tsMeta = fromUids(objectNameToUIDMeta(on));
+//			final long createTimeMs = SystemClock.rtime();
+//			final long createTimeSec = mstou(createTimeMs);
+//			
+//			tsMeta.setCreated(createTimeSec);
 			//tsdb.indexTSMeta(tsMeta);
 			addPoint(on, tsdb, 1, timestamp);
 			

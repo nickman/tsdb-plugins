@@ -209,9 +209,9 @@ public enum TSDBTable {
 		 */
 		public Object getPk(Connection conn, Object obj) {
 			TSMeta ts = (TSMeta)obj;
-			try {
-				return Long.parseLong(ts.getCustom().get(CatalogDBInterface.PK_KEY));
-			} catch (Exception ex) {/* No Op */}
+//			try {
+//				return Long.parseLong(ts.getCustom().get(CatalogDBInterface.PK_KEY));
+//			} catch (Exception ex) {/* No Op */}
 			return H2Support.fqnId(conn, ts.getTSUID());
 		}
 	}
@@ -277,9 +277,9 @@ public enum TSDBTable {
 		 */
 		public Object getPk(Connection conn, Object obj) {
 			Annotation ann  = (Annotation)obj;
-			try {
-				return Long.parseLong(ann.getCustom().get(CatalogDBInterface.PK_KEY));
-			} catch (Exception ex) {/* No Op */}
+//			try {
+//				return Long.parseLong(ann.getCustom().get(CatalogDBInterface.PK_KEY));
+//			} catch (Exception ex) {/* No Op */}
 			return H2Support.annotationId(conn, ann.getStartTime(), ann.getTSUID());
 		}
 		

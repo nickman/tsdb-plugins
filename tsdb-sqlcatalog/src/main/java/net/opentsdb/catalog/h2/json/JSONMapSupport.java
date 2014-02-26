@@ -102,7 +102,7 @@ public class JSONMapSupport {
 	 * @return the JSON representation of the passed map
 	 */
 	public static String nokToString(Map<String, String> map) {
-		return map==null ? EMPTY_MAP : JSON.serializeToString(nvl("Map", map));		
+		return map==null ? null : JSON.serializeToString(nvl("Map", map));		
 	}
 
 	private static final ObjectMapper jsonMapper = new ObjectMapper();

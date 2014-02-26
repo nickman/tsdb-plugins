@@ -43,7 +43,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -940,11 +939,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the insertion binding values
 	 */
 	protected Object[] getInsertBinds(UIDMeta uidMeta) {
-		int version = incrementVersion(uidMeta);
+//		int version = incrementVersion(uidMeta);
 		long created = uidMeta.getCreated();
 		Timestamp ts = created>0 ? new Timestamp(utoms(created)) : SystemClock.getTimestamp();
 		return new Object[]{
-				uidMeta.getUID(), version, uidMeta.getName(), 
+				uidMeta.getUID(), 1, uidMeta.getName(), 
 				ts,
 				ts,
 				uidMeta.getDescription(),
@@ -960,9 +959,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @return the update binding values
 	 */
 	protected Object[] getUpdateBinds(UIDMeta uidMeta) {
-		int version = incrementVersion(uidMeta);					
+//		int version = incrementVersion(uidMeta);					
 		return new Object[]{
-			version, uidMeta.getName(),
+			1, uidMeta.getName(),
 			uidMeta.getDescription(),
 			uidMeta.getDisplayName(),
 			uidMeta.getNotes(),
@@ -993,63 +992,63 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		);
 	}
 	
-	/**
-	 * Increments or sets the version key on an annotation
-	 * @param a The annotation to version increment 
-	 * @return the new version
-	 */
-	protected int incrementVersion(Annotation a) {
-		HashMap<String, String> custom = a.getCustom();
-		if(custom==null) {
-			custom = new HashMap<String, String>(1);
-			a.setCustom(custom);
-		}
-		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);		
-	}
+//	/**
+//	 * Increments or sets the version key on an annotation
+//	 * @param a The annotation to version increment 
+//	 * @return the new version
+//	 */
+//	protected int incrementVersion(Annotation a) {
+//		HashMap<String, String> custom = a.getCustom();
+//		if(custom==null) {
+//			custom = new HashMap<String, String>(1);
+//			a.setCustom(custom);
+//		}
+//		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);		
+//	}
 	
-	/**
-	 * Increments or sets the version key on a TSMeta
-	 * @param tsmeta The TSMeta to version increment 
-	 * @return the new version
-	 */
-	protected int incrementVersion(TSMeta tsmeta) {
-		HashMap<String, String> custom = tsmeta.getCustom();
-		if(custom==null) {
-			custom = new HashMap<String, String>(1);
-			tsmeta.setCustom(custom);
-		}
-		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
-	}
+//	/**
+//	 * Increments or sets the version key on a TSMeta
+//	 * @param tsmeta The TSMeta to version increment 
+//	 * @return the new version
+//	 */
+//	protected int incrementVersion(TSMeta tsmeta) {
+//		HashMap<String, String> custom = tsmeta.getCustom();
+//		if(custom==null) {
+//			custom = new HashMap<String, String>(1);
+//			tsmeta.setCustom(custom);
+//		}
+//		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
+//	}
 	
-	/**
-	 * Sets the version key and PK on a TSMeta's custom map
-	 * @param tsmeta The TSMeta to version and pk increment 
-	 * @return the new version
-	 */
-	protected int incrementVersion(TSMeta tsmeta, long pk) {
-		HashMap<String, String> custom = tsmeta.getCustom();
-		if(custom==null) {
-			custom = new HashMap<String, String>(1);
-			tsmeta.setCustom(custom);
-		}
-		JSONMapSupport.set(PK_KEY, pk, custom);		
-		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
-	}
+//	/**
+//	 * Sets the version key and PK on a TSMeta's custom map
+//	 * @param tsmeta The TSMeta to version and pk increment 
+//	 * @return the new version
+//	 */
+//	protected int incrementVersion(TSMeta tsmeta, long pk) {
+//		HashMap<String, String> custom = tsmeta.getCustom();
+//		if(custom==null) {
+//			custom = new HashMap<String, String>(1);
+//			tsmeta.setCustom(custom);
+//		}
+//		JSONMapSupport.set(PK_KEY, pk, custom);		
+//		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);
+//	}
 	
 	
-	/**
-	 * Increments or sets the version key on a UIDMeta
-	 * @param uidmeta The UIDMeta to version increment 
-	 * @return the new version
-	 */
-	protected int incrementVersion(UIDMeta uidmeta) {
-		Map<String, String> custom = uidmeta.getCustom();
-		if(custom==null) {
-			custom = new HashMap<String, String>(1);
-			uidmeta.setCustom((HashMap<String, String>)custom);
-		}
-		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
-	}
+//	/**
+//	 * Increments or sets the version key on a UIDMeta
+//	 * @param uidmeta The UIDMeta to version increment 
+//	 * @return the new version
+//	 */
+//	protected int incrementVersion(UIDMeta uidmeta) {
+//		Map<String, String> custom = uidmeta.getCustom();
+//		if(custom==null) {
+//			custom = new HashMap<String, String>(1);
+//			uidmeta.setCustom((HashMap<String, String>)custom);
+//		}
+//		return JSONMapSupport.incrementAndGet(custom, 1, VERSION_KEY);				
+//	}
 	
 	
 	/**
@@ -1061,7 +1060,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		long annId = getAnnIdForAnnotation(conn, a);
 		Long tsuid = a.getTSUID()==null ? null : getFqnIdForTsUid(conn, a.getTSUID());
 		annotationsUpdatePs = sqlWorker.batch(conn, annotationsUpdatePs, TSD_UPDATE_ANNOTATION, 
-				incrementVersion(a),
+				1,
 				new Timestamp(utoms(a.getStartTime())),
 				a.getDescription(),
 				a.getNotes(),
@@ -1090,11 +1089,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			annotation.setStartTime(startTime);
 		}
 		long annId = annSequence.next();		
-		int version = incrementVersion(annotation);
+//		int version = incrementVersion(annotation);
 		fillInCustom(annotation.getCustom(), annId);
 		long endTime = annotation.getEndTime();
 		annotationsPs = sqlWorker.batch(conn, annotationsPs, TSD_INSERT_ANNOTATION, 
-				annId, version,
+				annId, 1,
 				startTs,
 				startTs,
 				annotation.getDescription(),
@@ -1134,9 +1133,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	protected void updateTSMeta(Connection conn, TSMeta tsMeta) {		
 		long fqnId = getFqnIdForTsUid(conn, tsMeta.getTSUID());
-		int version = incrementVersion(tsMeta);
+//		int version = incrementVersion(tsMeta);
 		tsMetaFqnUpdatePs = sqlWorker.batch(conn, tsMetaFqnUpdatePs, TSUID_UPDATE_SQL, 
-				version,
+				1,
 				tsMeta.getMetric().getUID(),
 				getFQN(tsMeta),
 				isNaNToNull() && Double.isNaN(tsMeta.getMax()) ? null : tsMeta.getMax(),
@@ -1228,10 +1227,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		}
 		fqn.deleteCharAt(fqn.length()-1);
 		long fqnSeq = fqnSequence.next();		
-		int version = incrementVersion(tsMeta, fqnSeq);
+//		int version = incrementVersion(tsMeta, fqnSeq);
 		Timestamp createdTs = new Timestamp(utoms(tsMeta.getCreated()));
 		tsMetaFqnPs = sqlWorker.batch(conn, tsMetaFqnPs, TSUID_INSERT_SQL, 
-				fqnSeq,	version,
+				fqnSeq,	1,
 				tsMeta.getMetric().getUID(),
 				fqn.toString(),
 				tsMeta.getTSUID(),
@@ -1314,12 +1313,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void deleteAnnotation(Connection conn, Annotation annotation) {		
-		String pk = annotation.getCustom().get(PK_KEY);
-		if(pk!=null) {
-			long annId = Long.parseLong(pk);
-			sqlWorker.executeUpdate(conn, "DELETE FROM TSD_ANNOTATION WHERE ANNID = ?", annId);
-			return;
-		}
+//		String pk = annotation.getCustom().get(PK_KEY);
+//		if(pk!=null) {
+//			long annId = Long.parseLong(pk);
+//			sqlWorker.executeUpdate(conn, "DELETE FROM TSD_ANNOTATION WHERE ANNID = ?", annId);
+//			return;
+//		}
 		sqlWorker.executeUpdate(conn, TSD_DELETE_ANNOTATION, 						
 				new Timestamp(utoms(annotation.getStartTime())),
 				annotation.getTSUID()==null ? null : 
@@ -1427,7 +1426,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				}
 				UIDMeta meta = new UIDMeta(utype, UniqueId.stringToUid(rset.getString("XUID")), rset.getString("NAME"));
 				meta.setCreated(mstou(rset.getTimestamp("CREATED").getTime()));
-				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
+				String mapStr = rset.getString("CUSTOM");
+				if(mapStr!=null) {
+					meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
+				}
 				meta.setDescription(rset.getString("DESCRIPTION"));
 				meta.setNotes(rset.getString("NOTES"));
 				meta.setDisplayName(rset.getString("DISPLAY_NAME"));
@@ -1493,7 +1495,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		try {
 			while(rset.next()) {
 				TSMeta meta = new TSMeta(UniqueId.stringToUid(rset.getString("TSUID")), mstou(rset.getTimestamp("CREATED").getTime()));
-				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
+				String mapStr = rset.getString("CUSTOM");
+				if(mapStr!=null) {
+					meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
+				}
 				meta.setDescription(rset.getString("DESCRIPTION"));
 				meta.setNotes(rset.getString("NOTES"));
 				meta.setDisplayName(rset.getString("DISPLAY_NAME"));
@@ -1503,11 +1508,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				meta.setRetention(rset.getInt("RETENTION"));
 				meta.setUnits(rset.getString("UNITS"));
 				final long fqnId = rset.getLong("FQNID");
-				Map<String, String> custom = meta.getCustom();
-				if(custom==null) {
-					custom = new HashMap<String, String>(3);
-					custom.put(PK_KEY, "" + fqnId);
-				}
+//				if(custom==null) {
+//					custom = new HashMap<String, String>(3);
+//					custom.put(PK_KEY, "" + fqnId);
+//				}
 				if(includeUIDs) {
 					loadUIDs(rset.isClosed() ? null : rset.getStatement().getConnection(), meta, rset.getString("METRIC_UID"), fqnId);
 				}
@@ -1587,6 +1591,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				if(ts!=null) {
 					meta.setEndTime(mstou(ts.getTime()));
 				}
+				String mapStr = rset.getString("CUSTOM");
+				if(mapStr!=null) {
+					meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
+				}
+				
 				annotations.add(meta);
 			}
 		} catch (Exception ex) {
@@ -1616,13 +1625,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public boolean exists(Connection conn, TSMeta tsMeta) {
 		if(tsMeta==null) throw new IllegalArgumentException("The passed TSMeta was null");
 		HashMap<String, String> map = tsMeta.getCustom(); 
-		if(map!=null && map.containsKey(PK_KEY)) {
-			long fqnid = -1;
-			try {
-				fqnid = Long.parseLong(map.get(PK_KEY));
-				return sqlWorker.sqlForBool(conn, TSUID_EXISTS_BY_PK_SQL, fqnid);
-			} catch (Exception ex) { /* No Op */ }
-		}
+//		if(map!=null && map.containsKey(PK_KEY)) {
+//			long fqnid = -1;
+//			try {
+//				fqnid = Long.parseLong(map.get(PK_KEY));
+//				return sqlWorker.sqlForBool(conn, TSUID_EXISTS_BY_PK_SQL, fqnid);
+//			} catch (Exception ex) { /* No Op */ }
+//		}
 		return sqlWorker.sqlForBool(conn, TSUID_EXISTS_SQL, tsMeta.getTSUID());
 	}
 	
@@ -1885,12 +1894,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		if(customMap!=null) {
 			_customMap.putAll(customMap);
 		}
-		if(_customMap.containsKey(VERSION_KEY)) {
-			_customMap.put(VERSION_KEY, "" + (Integer.parseInt(customMap.get(VERSION_KEY))+1));
-		} else {
-			_customMap.put(VERSION_KEY, "1");
-		}
-		_customMap.put(PK_KEY, "" + pk);
+//		if(_customMap.containsKey(VERSION_KEY)) {
+//			_customMap.put(VERSION_KEY, "" + (Integer.parseInt(customMap.get(VERSION_KEY))+1));
+//		} else {
+//			_customMap.put(VERSION_KEY, "1");
+//		}
+//		_customMap.put(PK_KEY, "" + pk);
 		return _customMap;
 	}	
 	
@@ -1910,15 +1919,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 //	    		map.put("metric", name);
 //	    	}
 	    	map.put("metric", meta.getMetric().getName());
-	    	ResultSet rset = sqlWorker.executeQuery("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER", true, Long.parseLong(meta.getCustom().get(PK_KEY)));
-	    	final Map<String, String> tags = 
-	    			new LinkedHashMap<String, String>();
-
-	    	while(rset.next()) {
-	    		String[] pair = rset.getString(1).split("=");
-	    		tags.put(pair[0], pair[1]);	    		
-	    	}
-	    	map.put("tags", tags);
+	    	// ====================================================================
+	    	// ====================================================================
+	    	//		FIXME:
+	    	// ====================================================================
+	    	// ====================================================================
+//	    	ResultSet rset = sqlWorker.executeQuery("SELECT NAME FROM TSD_TAGPAIR T ,TSD_FQN_TAGPAIR F WHERE F.XUID = T.XUID AND F.FQNID = ? ORDER BY PORDER", true, Long.parseLong(meta.getCustom().get(PK_KEY)));
+//	    	final Map<String, String> tags = 
+//	    			new LinkedHashMap<String, String>();
+//
+//	    	while(rset.next()) {
+//	    		String[] pair = rset.getString(1).split("=");
+//	    		tags.put(pair[0], pair[1]);	    		
+//	    	}
+//	    	map.put("tags", tags);
 	    	return map;
     	} catch (Exception ex) {
     		throw new RuntimeException("Failed to summarize TSMeta list", ex);

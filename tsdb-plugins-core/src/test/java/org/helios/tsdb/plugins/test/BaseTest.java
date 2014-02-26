@@ -236,6 +236,13 @@ public class BaseTest {
 		try {
 			tsdb = new TSDB(getConfig(configName));
 			tsdb.getConfig().overrideConfig("helios.config.name", configName);
+			Config config = tsdb.getConfig();
+			StringBuilder b = new StringBuilder("\n\t=============================================\n\tTSDB Config\n\t=============================================");
+			for(Map.Entry<String, String> entry: config.getMap().entrySet()) {
+				b.append("\n\t").append(entry.getKey()).append("\t:[").append(entry.getValue()).append("]");
+			}
+			b.append("\n\t=============================================\n");
+			log(b.toString());
 			tsdb.initializePlugins(true);
 			tagKunik = UniqueIdRegistry.getInstance().getTagKUniqueId();
 			tagVunik = UniqueIdRegistry.getInstance().getTagVUniqueId();

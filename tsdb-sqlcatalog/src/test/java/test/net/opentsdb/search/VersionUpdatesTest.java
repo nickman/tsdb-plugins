@@ -66,10 +66,10 @@ public class VersionUpdatesTest extends CatalogBaseTest {
 	 * 
 	 */
 	
-	/** The custom map key for the version number */
-	public static final String VERSION_KEY = AbstractDBCatalog.VERSION_KEY;
-	/** The custom map key for the internal pk id */
-	public static final String PK_KEY = AbstractDBCatalog.PK_KEY;
+//	/** The custom map key for the version number */
+//	public static final String VERSION_KEY = AbstractDBCatalog.VERSION_KEY;
+//	/** The custom map key for the internal pk id */
+//	public static final String PK_KEY = AbstractDBCatalog.PK_KEY;
 	
 	/** The installed catalog service */
 	protected CatalogDBInterface dbInterface = null;
@@ -102,8 +102,8 @@ public class VersionUpdatesTest extends CatalogBaseTest {
 		Object[][] rows = jdbcHelper.query("SELECT * FROM TSD_TSMETA WHERE TSUID = '" + tsMeta.getTSUID() + "'");
 		Map<String, String> customMap = JSONMapSupport.read(rows[0][TSMETA_CUSTOM].toString()); 
 		Assert.assertEquals("The VERSION value", 1,  rows[0][TSMETA_VERSION]);
-		Assert.assertEquals("The custom map V value", "1",  customMap.get(VERSION_KEY));
-		Assert.assertEquals("The custom map PK value", "" + rows[0][TSMETA_FQNID],  customMap.get(PK_KEY));
+//		Assert.assertEquals("The custom map V value", "1",  customMap.get(VERSION_KEY));
+//		Assert.assertEquals("The custom map PK value", "" + rows[0][TSMETA_FQNID],  customMap.get(PK_KEY));
 		Assert.assertEquals("The create time vs last update", rows[0][TSMETA_CREATED],  rows[0][TSMETA_LAST_UPDATE]);		
 		Assert.assertEquals("The create time vs the time we set", createTimeMs, ((Timestamp)rows[0][TSMETA_CREATED]).getTime());
 		Thread.currentThread().join();

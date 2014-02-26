@@ -62,12 +62,12 @@ public interface CatalogDBInterface {
 	 * jdbc:h2:tcp://localhost:9092/mem:tsdb
 	 */
 	
-	/** The custom map key to specify the version of the object */
-	public static final String VERSION_KEY = "v";
-	/** The custom map key to specify the DB pk of the object */
-	public static final String PK_KEY = "p";
-	/** The custom map key to specify the TSD_METRIC pk of a TSMeta object */
-	public static final String TSMETA_METRIC_KEY = "t";
+//	/** The custom map key to specify the version of the object */
+//	public static final String VERSION_KEY = "v";
+//	/** The custom map key to specify the DB pk of the object */
+//	public static final String PK_KEY = "p";
+//	/** The custom map key to specify the TSD_METRIC pk of a TSMeta object */
+//	public static final String TSMETA_METRIC_KEY = "t";
 	
 	// ========================================================================================
 	//	FQN Sequence Related Constants

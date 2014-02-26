@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.ObjectName;
 
-import net.opentsdb.catalog.AbstractDBCatalog;
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
 import net.opentsdb.core.TSDB;
@@ -40,10 +39,6 @@ import com.stumbleupon.async.Deferred;
  */
 
 public class TSDBSyncTest extends CatalogBaseTest {
-	/** The custom map key for the version number */
-	public static final String VERSION_KEY = AbstractDBCatalog.VERSION_KEY;
-	/** The custom map key for the internal pk id */
-	public static final String PK_KEY = AbstractDBCatalog.PK_KEY;
 	
 	/** The installed catalog service */
 	protected CatalogDBInterface dbInterface = null;
@@ -77,7 +72,7 @@ public class TSDBSyncTest extends CatalogBaseTest {
 	public <T> void testNewTSMetaInsertCustom() throws Exception {
 		Set<ObjectName> objectNames = new HashSet<ObjectName>();
 		List<Deferred<T>> defs = new ArrayList<Deferred<T>>();
-		dbInterface.setTSDBSyncPeriodAndHighwater(10);
+//		dbInterface.setTSDBSyncPeriodAndHighwater(10);
 		for(ObjectName on: ManagementFactory.getPlatformMBeanServer().queryNames(null, null)) {
 			objectNames.add(on);
 			final long timestamp = SystemClock.rtime();
@@ -92,8 +87,8 @@ public class TSDBSyncTest extends CatalogBaseTest {
 			
 		}
 		waitForProcessingQueue(name.getMethodName(), 3000000, TimeUnit.MILLISECONDS);
-		
-		UniqueIdRegistry.getInstance().purgeAllCaches();
+		dbInterface.setTSDBSyncPeriodAndHighwater(10);
+//		UniqueIdRegistry.getInstance().purgeAllCaches();
 		Thread.currentThread().join();
 		
 		

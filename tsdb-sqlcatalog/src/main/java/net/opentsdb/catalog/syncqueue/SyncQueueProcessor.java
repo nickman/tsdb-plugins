@@ -332,7 +332,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 							deferredDbMetaKey.addCallback(new Callback<UIDMeta, byte[]>() {
 								public UIDMeta call(byte[] arg) throws Exception {
 									log.info("Updating [{}]/[{}] with Notes:[{}] and Custom:[{}]", dbMeta, dbMeta.getName(), dbMeta.getNotes(), dbMeta.getCustom());
-									dbMeta.syncToStorage(tsdb, true)
+									dbMeta.syncToStorage(tsdb, false)
 										.addCallback(new Callback<Object, Boolean>() {
 											public Object call(Boolean success) throws Exception {
 												if(success) {
@@ -374,7 +374,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 										public Void call(Boolean exists) throws Exception {
 											if(exists) {
 												try {
-													dbMeta.syncToStorage(tsdb, true)
+													dbMeta.syncToStorage(tsdb, false)
 													.addCallback(new Callback<Object, Boolean>() {
 														public Object call(Boolean success) throws Exception {	
 															log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
@@ -535,7 +535,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			UIDMeta.getUIDMeta(tsdb, uidMeta.getType(), uniques.get(uidMeta.getType()).getId(uidMeta.getName())).addCallback(new Callback<Void, UIDMeta>() {
 				public Void call(UIDMeta casMeta) throws Exception {
 					casMeta.setNotes(uidMeta.getNotes());
-					casMeta.syncToStorage(tsdb, true).addCallback(new Callback<Void, Boolean>(){
+					casMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
+//					uidMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
 						public Void call(Boolean success) throws Exception {
 							if(success) {
 								log.info("UIDMeta Update Successful [{}] after [{}] retries", uidMeta, retryCount.get());
@@ -544,7 +545,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 								if(retries>=20) {
 									log.error("Exhausted retries updating UIDMeta [{}]", uidMeta);
 								} else {
-									log.error("UIDMeta update retry failed for [{}]. Next retry: [{}]", uidMeta, retries);
+									log.error("UIDMeta update retry failed for [{}]/[{}]. Next retry: [{}]", uidMeta, uidMeta.getCreated(), retries);
 									scheduler.schedule(new Runnable() {
 										public void run() {
 											SQP.startUIDMetaUpdateLoop(uidMeta, retryCount);

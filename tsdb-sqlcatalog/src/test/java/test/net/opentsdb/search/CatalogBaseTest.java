@@ -127,6 +127,7 @@ public class CatalogBaseTest extends BaseTest {
 	protected static void configureTSDB() {
 		cleanH2FileDir("CatalogSearchConfig");
 		tsdb = newTSDB("CatalogSearchConfig");
+		
 	}
 	
 	/**

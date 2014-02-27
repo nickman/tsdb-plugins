@@ -88,10 +88,10 @@ public class TSDBSyncTest extends CatalogBaseTest {
 //			
 //			tsMeta.setCreated(createTimeSec);
 			//tsdb.indexTSMeta(tsMeta);
-			addPoint(on, tsdb, 1, timestamp);
+//			addPoint(on, tsdb, 1, timestamp);
 			
 		}
-		waitForProcessingQueue(name.getMethodName(), 3000000, TimeUnit.MILLISECONDS);
+//		waitForProcessingQueue(name.getMethodName(), 3000000, TimeUnit.MILLISECONDS);
 		dbInterface.setTSDBSyncPeriodAndHighwater(10);
 //		UniqueIdRegistry.getInstance().purgeAllCaches();
 		Thread.currentThread().join();

@@ -570,5 +570,23 @@ public interface CatalogDBInterface {
 	 */
 	public void recordSyncQueueFailure(Annotation ann);
 	
+	/**
+	 * Clears a UIDMeta sync failure from TSD_LASTSYNC_FAILS.
+	 * @param uidMeta The UIDMeta to clear the sync failure for
+	 * @param tsdbTable The tsdb table for the passed UIDMeta
+	 */
+	public void clearSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable);
+	
+	/**
+	 * Clears a TSMeta sync failure from TSD_LASTSYNC_FAILS.
+	 * @param tsMeta The TSMeta to clear the sync failure for
+	 */
+	public void clearSyncQueueFailure(TSMeta tsMeta);
+	
+	/**
+	 * Clears an Annotation sync failure from TSD_LASTSYNC_FAILS.
+	 * @param ann The Annotation to clear the sync failure for
+	 */
+	public void clearSyncQueueFailure(Annotation ann);
 	
 }

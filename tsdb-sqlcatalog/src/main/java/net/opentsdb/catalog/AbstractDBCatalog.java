@@ -104,7 +104,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.jolbox.bonecp.StatisticsMBean;
 import com.stumbleupon.async.Deferred;
-
 import com.sun.jmx.mbeanserver.DefaultMXBeanMappingFactory;
 import com.sun.jmx.mbeanserver.MXBeanMapping;
 
@@ -1599,8 +1598,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			
 			while(rset.next()) {
 				Annotation meta = new Annotation();
-				
-				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(rset.getString("CUSTOM")));
 				meta.setDescription(rset.getString("DESCRIPTION"));
 				meta.setNotes(rset.getString("NOTES"));
 				if(hasTsUid) {
@@ -2528,6 +2525,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public long getPendingSynchOps() {
 		return synker.getPendingSynchOps();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 */
+	public void clearSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
+		sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", tsdbTable.name(), uidMeta.getUID());
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 */
+	public void clearSyncQueueFailure(TSMeta tsMeta) {
+		sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", "TSD_TSMETA", tsMeta.getTSUID());
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 */
+	public void clearSyncQueueFailure(Annotation ann) {
+		String tsuid = ann.getTSUID();
+		String annKey = String.format("%s/%s", ann.getStartTime(), tsuid==null ? "" : tsuid);		
+		sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", "TSD_ANNOTATION", annKey);
 	}
 	
 }

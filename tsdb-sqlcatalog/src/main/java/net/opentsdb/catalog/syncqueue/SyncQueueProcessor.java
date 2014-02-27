@@ -24,7 +24,6 @@
  */
 package net.opentsdb.catalog.syncqueue;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -56,6 +55,7 @@ import net.opentsdb.catalog.TSDBTable.TableInfo;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.core.UniqueIdRegistry;
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
@@ -265,25 +265,24 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
-		Deferred<ArrayList<Object>> processNewDeferred = processNewSyncs();
+		Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs();
 		final Runnable scheduledTask = this;
-		processNewDeferred.addBothDeferring(new Callback<Deferred<Object>, ArrayList<Object>>() {
-
-			@Override
-			public Deferred<Object> call(ArrayList<Object> arg) throws Exception {
+		processNewDeferred.addCallback(new Callback<Void, ArrayList<ArrayList<Object>>>() {
+			public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
 				long elapsed = System.currentTimeMillis() - startTime;
-				log.debug("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
+				log.info("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
 //				new MetaSynchronizer(tsdb).process(true);
 				if(taskHandle!=null) {
 					taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
-					log.debug("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+					log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
 				}
 				syncInProgress.set(false);
 				return null;
 			}
-			
+			public String toString() {
+				return "GroupedDeferred for all Table Groups";
+			}
 		});
-		
 	}
 	
 	/**
@@ -293,205 +292,242 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 * FIXME: Need to specify order of tables processed
 	 * @return A deferred indicating the completion of all table syncs
 	 */
-	protected Deferred<ArrayList<Object>> processNewSyncs() {
+	protected  Deferred<ArrayList<ArrayList<Object>>> processNewSyncs() {
 		Connection conn = null;
 		ResultSet rset = null;
-		final List<Deferred<Object>> allDeferreds = new ArrayList<Deferred<Object>>();
+		final List<Deferred<ArrayList<Object>>> allDeferreds = new ArrayList<Deferred<ArrayList<Object>>>();
 		try {
 			conn = dataSource.getConnection();
-			ResultSet dis = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", false);
-			
-			while(dis.next()) {
-				final TSDBTable table = TSDBTable.valueOf(dis.getString(1));
-				final List<Deferred<Boolean>> tableDeferreds = new ArrayList<Deferred<Boolean>>();
-				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), dis.getTimestamp(2));
+			ResultSet disx = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", true);			
+			while(disx.next()) {
+				final TSDBTable table = TSDBTable.valueOf(disx.getString(1));
+				final List<Deferred<Object>> tableDeferreds = new ArrayList<Deferred<Object>>();
+				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), disx.getTimestamp(2));
 				String sqlText = String.format("SELECT '%s' as TAG_TYPE,* FROM %s WHERE LAST_UPDATE > ?", table.name().replace("TSD_", ""), table.name());
-				rset = sqlWorker.executeQuery(sqlText, false, dis.getTimestamp(2));
+				rset = sqlWorker.executeQuery(sqlText, false, disx.getTimestamp(2));
 				int cnt = 0;
 				for(final Object dbObject: table.ti.getObjects(rset, dbInterface)) {
 					log.info("Submitting New Sync [{}]", dbObject);
+					cnt++;
 					if(dbObject instanceof UIDMeta) {
 						final UIDMeta dbMeta = (UIDMeta)dbObject;
-						
-						//  Callback<Void, byte[]>(List<Deferred<Boolean>> tableDeferreds, UIDMeta, TSDBTable, )
-						
 						try {
 							switch(dbMeta.getType()) {
-								case METRIC:
-									tagMunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_METRIC));
-									break;
-								case TAGK:
-									tagKunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGK));
-									break;
-								case TAGV:
-									tagVunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGV));
-									break;
-								default:
-									throw new Error("Should not reach here");								
+							case METRIC:
+								tagMunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_METRIC));
+								break;
+							case TAGK:
+								tagKunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGK));
+								break;
+							case TAGV:
+								tagVunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGV));
+								break;
+							default:
+								throw new Error("Should not reach here");								
 							}
-							
-							deferredDbMetaKey.addCallbacks(cb, ce);
-									// SyncCallbackContainer, byte[])
-							
-							deferredDbMetaKey.addCallback(new Callback<UIDMeta, byte[]>() {
-								public UIDMeta call(byte[] arg) throws Exception {
-									log.info("Updating [{}]/[{}]", dbMeta, dbMeta.getName());
-									
-									dbMeta.syncToStorage(tsdb, false)
-										.addCallback(new Callback<Object, Boolean>() {
-											public Object call(Boolean success) throws Exception {
-												if(success) {
-													log.info("UID Sync Callback for [{}] -->  [{}]", dbObject, success);
-												} else {
-													log.info("UID Sync CAS Failure for UIDMeta [{}]. Starting Update Loop", dbObject);
-													startUIDMetaUpdateLoop(dbMeta, new AtomicInteger(0));
-												}
-												return dbMeta;
-											}
-										})
-										.addErrback(new Callback<Object, Boolean>() {
-											public Object call(Boolean success) throws Exception {	
-												log.error("Failed to synch [{}]", dbObject);
-												return dbMeta;
-											}
-										});																		
-									return dbMeta;
-								}
-							}).addErrback(new Callback<Void, Exception>() {
-								public Void call(Exception ex) throws Exception {
-									log.error("Failed to get byte[] for UIDMeta [{}]", dbMeta, ex);
-									return null;
-								}
-							});
 						} catch (Exception ex) {
-							log.error("Unexpected exception processing UIDMeta", ex);
+							log.error("Failed to sync UISMeta [{}]", dbMeta, ex);
+							try { 
+								dbInterface.recordSyncQueueFailure(dbMeta, table);
+							} catch (Exception ex2) {
+								log.error("Failed to record UIDMeta [{}] SyncQueueFailure", dbMeta, ex2);
+							}
 						}
 					} else if(dbObject instanceof TSMeta) {
-						final TSMeta dbMeta = (TSMeta)dbObject;
+						final TSMeta tsMeta = (TSMeta)dbObject;
 						try {
-							
-							
-							
-							ensureUIDsExist(dbMeta).addCallback(new Callback<Void, ArrayList<Boolean>>() {
-								public Void call(ArrayList<Boolean> success) throws Exception {
-									TSMeta.metaExistsInStorage(tsdb, dbMeta.getTSUID())
-									.addCallback(new Callback<Void, Boolean>() {
-										public Void call(Boolean exists) throws Exception {
-											if(exists) {
-												try {
-													dbMeta.syncToStorage(tsdb, false)
-													.addCallback(new Callback<Object, Boolean>() {
-														public Object call(Boolean success) throws Exception {	
-															log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
-															return dbMeta;
-														}
-													})
-													.addErrback(new Callback<Object, Boolean>() {
-														public Object call(Boolean success) throws Exception {	
-															log.error("Failed to synch [{}]", dbObject);
-															return dbMeta;
-														}
-													});
-												} catch (IllegalStateException ise) {
-													/* No Op. Means no changes detected */
-												}
-											} else {
-												log.info("TSMeta [{}] does not exist. Need to create.....", dbMeta.getTSUID());
-												//dbMeta.storeNew(tsdb).joinUninterruptibly(5000);
-												dbMeta.storeNew(tsdb)
-													.addCallback(new Callback<Void, Boolean>(){
-														public Void call(Boolean createdOk) throws Exception {
-															if(createdOk) {
-																log.info("TSMeta [{}] Created", dbMeta);
-															} else {
-																log.info("TSMeta [{}] Not Created", dbMeta);
-															}
-															return null;
-														}
-													}).addErrback(new Callback<Void, Exception>(){
-														public Void call(Exception ex) throws Exception {
-															log.error("TSMeta [{}] Creation Error", dbMeta, ex);
-															return null;
-														}
-													});
-											}
-											return null;
-										}
-									})
-									.addErrback(new Callback<Void, Exception>() {
-										public Void call(Exception ex) throws Exception {
-											log.error("Failed to get byte[] for UIDMeta [{}]", dbMeta, ex);
-											return null;
-										}
-									});
-									dbMeta.syncToStorage(tsdb, true).addBoth(new Callback<Object, Boolean>() {
-										@SuppressWarnings("cast")
-										public Object call(Boolean success) throws Exception {	
-											if(success) {
-												log.info("TSUID Sync Callback for [{}] -->  [{}]", dbObject, success);
-											} else {
-//												sqlWorker.execute("INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", table.name(), table.ti.getPk(null, dbMeta), 1, SystemClock.getTimestamp());
-//												log.info("First Sync Fail for {}.{}", "TSMeta", table.ti.getBindablePK(dbMeta));
-												try {
-													startTSMetaUpdateLoop((TSMeta)dbMeta, new AtomicInteger(0));
-												} catch (Exception ex) {
-													ex.printStackTrace(System.err);
-												}
-											}
-											
-											return dbMeta;
-										}
-									});									
-									return null;
-								}
-
-								
-							});
-						} catch (Throwable t) {
-							log.error("Failed to sync UIDMeta", t);
+							TSMeta.metaExistsInStorage(tsdb, tsMeta.getTSUID()).addCallback(new ValidateTSMetaCallback(tableDeferreds, tsMeta));
+						} catch (Exception ex) {
+							log.error("Failed to sync TSMeta [{}]", tsMeta, ex);
+							try { 
+								dbInterface.recordSyncQueueFailure(tsMeta);								
+							} catch (Exception ex2) {
+								log.error("Failed to record TSMeta [{}] SyncQueueFailure", tsMeta, ex2);
+							}							
 						}
+					} else if(dbObject instanceof Annotation) {
+						Annotation ann = (Annotation)dbObject;
+						try {
+							ann.syncToStorage(tsdb, false).addBoth(new SyncAnnotationCallback(tableDeferreds, ann));							
+						} catch (Exception ex) {
+							log.error("Failed to sync Annotation [{}]", ann, ex);
+							try { 
+								dbInterface.recordSyncQueueFailure(ann);
+							} catch (Exception ex2) {
+								log.error("Failed to record Annotation [{}] SyncQueueFailure", ann, ex2);								
+							}							
+						}
+					} else {
+						log.error("Unrecognized Meta Object [{}]:[{}]", dbObject.getClass().getName(), dbObject);
 					}
 
-					
-//					table.ti.sync(dbObject, tsdb).addBoth(new Callback<Object, Boolean>() {
-//						public Object call(Boolean success) throws Exception {	
-//							log.info("Sync Callback for [{}] -->  [{}]", dbObject, success);
-//							return dbObject;
-//						}
-//					});
-//					Deferred<Boolean> syncDeferred = table.ti.sync(dbObject, tsdb);
-//					syncDeferred.addBothDeferring(syncCompletionHandler(dbObject, table.ti.getPk(conn, dbObject), 0));
-//					tableDeferreds.add(syncDeferred);
-					pendingOps.incrementAndGet();
-					cnt++;
-				}				
-				log.debug("Processed [{}] New Syncs from [{}]", cnt, table.name());
+				}								
 				rset.close();
-				rset = null;
-				allDeferreds.add(Deferred.group(tableDeferreds).addBothDeferring(new Callback<Deferred<Object>, ArrayList<Boolean>>() {
-					/**
-					 * {@inheritDoc}
-					 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
-					 */
-					@Override
-					public Deferred<Object> call(ArrayList<Boolean> arg) throws Exception {
-						long currentTime = SystemClock.time();
-						Timestamp ts = new Timestamp(currentTime);
-						sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());
-						log.debug("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
-						return null;
-					}
-				}));
-			}			
-			dis.close();
-			conn.commit();
-		} catch (Exception ex) {
+				rset = null;				
+				conn.commit();				
+				log.info("Processed [{}] New Syncs from [{}].", cnt, table.name());
+				Deferred<ArrayList<Object>> groupedTableDeferred = Deferred.group(tableDeferreds); 
+				allDeferreds.add(groupedTableDeferred);				
+				if(cnt>0) {
+					groupedTableDeferred.addCallback(new Callback<Void, ArrayList<Object>>() {
+						public Void call(ArrayList<Object> arg) throws Exception {
+							long currentTime = SystemClock.time();
+							Timestamp ts = new Timestamp(currentTime);
+							sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());
+							log.info("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
+							return null;
+						}
+						public String toString() {
+							return "GroupedTable Completion Callback for [" + table.name() + "]"; 
+						}
+					});
+				}
+			}
+			log.info("Completed check of all tables for pending synchs");
+		} catch (Throwable ex) {
 			log.error("Unexpected SynQueueProcessor Error", ex);
 		} finally {
 			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 		}
 		return Deferred.group(allDeferreds);
+	}
+	
+	/**
+	 * <p>Title: SyncAnnotationCallback</p>
+	 * <p>Description: Handles the callback to store an Annotation to storage</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.syncqueue.SyncProcessorQueue.ValidateTSMetaCallback</code></p>
+	 */
+	class SyncAnnotationCallback implements Callback<Void, Boolean> {
+		/** The Annotation to be synced */
+		final Annotation annotation;
+		/** The accumulated list of Meta sync deferred completions */
+		final List<Deferred<Object>> tableDeferreds;
+		/** The sync completion deferred */
+		final Deferred<Object> done = new Deferred<Object>();
+		
+		
+
+		/**
+		 * Creates a new SyncAnnotationCallback
+		 * @param tableDeferreds The accumulated list of UIDMeta sync deferred completions
+		 * @param annotation The Annotation to be synced
+		 */
+		public SyncAnnotationCallback(List<Deferred<Object>> tableDeferreds, Annotation annotation) {
+			this.tableDeferreds = tableDeferreds;
+			this.annotation = annotation;
+			tableDeferreds.add(done);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+		 */
+		@Override
+		public Void call(final Boolean successful) throws Exception {
+			if(successful) {
+				log.info("Annotation [{}] successfully synced", annotation);
+				dbInterface.clearSyncQueueFailure(annotation);								
+			} else {
+				log.warn("Annotation [{}] CAS Update Failure", annotation);
+				dbInterface.recordSyncQueueFailure(annotation);
+			}
+			done.callback(successful);
+			return null;
+		}
+		
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		public String toString() {
+			return getClass().getSimpleName() + "-" + annotation;
+		}
+	}
+
+	
+	/**
+	 * <p>Title: ValidateTSMetaCallback</p>
+	 * <p>Description: Handles the callback of the call to validate a TSMeta id exists and completes the TSMeta sync to storage</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.syncqueue.SyncProcessorQueue.ValidateTSMetaCallback</code></p>
+	 */
+	class ValidateTSMetaCallback implements Callback<Void, Boolean> {
+		/** The TSMeta to be synced */
+		final TSMeta tsMeta;
+		/** The accumulated list of UIDMeta sync deferred completions */
+		final List<Deferred<Object>> tableDeferreds;
+		/** The sync completion deferred */
+		final Deferred<Object> done = new Deferred<Object>();
+		
+		
+
+		/**
+		 * Creates a new ValidateTSMetaCallback
+		 * @param tableDeferreds The accumulated list of UIDMeta sync deferred completions
+		 * @param tsMeta The TSMeta to be synced
+		 */
+		public ValidateTSMetaCallback(List<Deferred<Object>> tableDeferreds, TSMeta tsMeta) {
+			this.tableDeferreds = tableDeferreds;
+			this.tsMeta = tsMeta;
+			tableDeferreds.add(done);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+		 */
+		@Override
+		public Void call(final Boolean tsUIDExists) throws Exception {
+			log.debug("Validated TSMeta [{}] Exists: [{}]", tsMeta, tsUIDExists);
+			final String op = tsUIDExists ? "syncToStorage" : "storeNew";
+			final Deferred<Boolean> d = tsUIDExists ? tsMeta.syncToStorage(tsdb, false) : tsMeta.storeNew(tsdb);
+			d.addCallbacks(
+					new Callback<Void, Boolean>() {
+						public Void call(Boolean successful) throws Exception {
+							if(successful) {
+								log.info("TSMeta [{}] successfully sync op:[{}]", tsMeta, op);
+								dbInterface.clearSyncQueueFailure(tsMeta);								
+							} else {
+								if(tsUIDExists) {
+									log.warn("TSMeta [{}] CAS Update Failure", tsMeta);
+									dbInterface.recordSyncQueueFailure(tsMeta);
+								} else {
+									log.warn("TSMeta [{}] Store CAS Failure. Not registering for retry.", tsMeta);
+								}
+							}
+							done.callback(successful);
+							return null;
+						}
+						public String toString() {
+							return "TSMeta Sync Callback Handler for [" + tsMeta + "]:" + op;
+						}						
+					},
+					new Callback<Void, Exception>() {
+						public Void call(Exception ex) throws Exception {
+							log.error("Failed to [{}] TSMeta [{}]", op, tsMeta, ex);
+							dbInterface.recordSyncQueueFailure(tsMeta);
+							done.callback(ex);							
+							return null;
+						}
+						public String toString() {
+							return "TSMeta Sync Errback Handler for [" + tsMeta + "]:" + op;
+						}						
+					}
+			);			
+			return null;
+		}
+		
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		public String toString() {
+			return getClass().getSimpleName() + "-TSMETA:" + tsMeta;
+		}
 	}
 		
 	/**
@@ -503,11 +539,13 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 */
 	class ValidateUIDCallback implements Callback<Void, byte[]> {
 		/** The accumulated list of UIDMeta sync deferred completions */
-		final List<Deferred<Boolean>> tableDeferreds;
+		final List<Deferred<Object>> tableDeferreds;
 		/** The UIDMeta to be synced */
 		final UIDMeta uidMeta;
 		/** The TSDBTable type of the passed UIDMeta */
 		final TSDBTable table;
+		/** The sync completion deferred */
+		final Deferred<Object> done = new Deferred<Object>();
 		
 		/**
 		 * Creates a new ValidateUIDCallback
@@ -515,10 +553,11 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		 * @param uidMeta The UIDMeta to be synced
 		 * @param table The TSDBTable type of the passed UIDMeta
 		 */
-		public ValidateUIDCallback(List<Deferred<Boolean>> tableDeferreds, UIDMeta uidMeta, TSDBTable table) {
+		public ValidateUIDCallback(List<Deferred<Object>> tableDeferreds, UIDMeta uidMeta, TSDBTable table) {
 			this.tableDeferreds = tableDeferreds;
 			this.uidMeta = uidMeta;
 			this.table = table;
+			tableDeferreds.add(done);
 		}
 		
 		/**
@@ -532,11 +571,13 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					new Callback<Void, Boolean>() {
 						public Void call(Boolean success) throws Exception {
 							if(success) {
-								log.info("UIDMeta [{}] successfully synced to store");
+								log.info("UIDMeta [{}] successfully synced to store", uidMeta);
+								dbInterface.clearSyncQueueFailure(uidMeta, table);
 							} else {
-								log.warn("UIDMeta [{}] CAS Update Failure");
+								log.warn("UIDMeta [{}] CAS Update Failure", uidMeta);
+								dbInterface.recordSyncQueueFailure(uidMeta, table);
 							}
-							d.callback(success);							
+							done.callback(success);						
 							return null;
 						}
 						public String toString() {
@@ -546,7 +587,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					new Callback<Void, Exception>() {
 						public Void call(Exception ex) throws Exception {
 							log.error("Failed to update UIDMeta [{}]", uidMeta, ex);
-							d.callback(ex);
+							dbInterface.recordSyncQueueFailure(uidMeta, table);
+							done.callback(ex);
 							return null;
 						}
 						public String toString() {
@@ -554,7 +596,6 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 						}							
 					}
 			);
-			tableDeferreds.add(d);
 			return null;
 		}
 		/**
@@ -568,79 +609,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	
 	
 	
-	protected Deferred<ArrayList<Boolean>> ensureUIDsExist(final TSMeta tsMeta) {
-		tsMeta.setRetention(tsMeta.getRetention()+1);
-		log.info("Ensuring UIDs exist for TSMeta [{}]", tsMeta);
-		List<Deferred<Boolean>> defs = new ArrayList<Deferred<Boolean>>();
-		for(final Map.Entry<String, String> entry: dbInterface.getNamesForUIDs(tsMeta.getTSUID()).entrySet()) {
-			final String name = entry.getKey();
-			final UniqueId.UniqueIdType utype = UniqueId.UniqueIdType.valueOf(entry.getValue());
-			final UniqueId u = uniques.get(utype);
-			log.info("Resolved Name:---------------------------[{}]", name);
-			defs.add(u.getOrCreateIdAsync(name).addCallback(new Callback<Boolean, byte[]>(){
-				public Boolean call(byte[] arg) throws Exception {
-					log.info("Checked UID [{}] for TSMeta [{}]", name, tsMeta);
-					return true;
-				}
-			}));								
-		}
-		return Deferred.group(defs);
-	}
-	
-	
-	  /**
-	   * Extracts a map of tagk/tagv pairs from a tsuid
-	   * @param tsuid The tsuid to parse
-	   * @param metric_width The width of the metric tag in bytes
-	   * @param tagk_width The width of tagks in bytes
-	   * @param tagv_width The width of tagvs in bytes
-	   * @return A map of byte keys for tge metric/tagk/tagv keys with the enum type as the value 
-	   * @throws IllegalArgumentException if the TSUID is malformed
-	   */
-	   public static Map<byte[], UniqueId.UniqueIdType> getTagPairsFromTSUID(final String tsuid,
-	      final short metric_width, final short tagk_width, 
-	      final short tagv_width) {
-		   
-		   
-		   
-	    if (tsuid == null || tsuid.isEmpty()) {
-	      throw new IllegalArgumentException("Missing TSUID");
-	    }
-	    if (tsuid.length() <= metric_width * 2) {
-	      throw new IllegalArgumentException(
-	          "TSUID is too short, may be missing tags");
-	    }
-	    Map<byte[], UniqueId.UniqueIdType> byteKeys = new HashMap<byte[], UniqueId.UniqueIdType>();
-	    final int pair_width = (tagk_width * 2) + (tagv_width * 2);
-	    
-	    
-	    byteKeys.put(UniqueId.stringToUid(tsuid.substring(0, (metric_width * 2))), UniqueId.UniqueIdType.METRIC);
-	    
-	    // start after the metric then iterate over each tagk/tagv pair
-	    for (int i = metric_width * 2; i < tsuid.length(); i+= pair_width) {
-	      if (i + pair_width > tsuid.length()){
-	        throw new IllegalArgumentException(
-	            "The TSUID appears to be malformed, improper tag width");
-	      }
-	      String tag = tsuid.substring(i, i + (tagk_width * 2));
-	      byteKeys.put(UniqueId.stringToUid(tag), UniqueId.UniqueIdType.TAGK);
-	      tag = tsuid.substring(i + (tagk_width * 2), i + pair_width);
-	      byteKeys.put(UniqueId.stringToUid(tag), UniqueId.UniqueIdType.TAGV);	     
-	    }
-	    return byteKeys;
-	   }
 	  
-	protected void flagTSMeta(TSMeta tsMeta) {
-		try {
-			Field f = TSMeta.class.getDeclaredField("changed");
-			f.setAccessible(true);
-			HashMap<String, Boolean> changed  = (HashMap<String, Boolean>)f.get(tsMeta);
-			changed.put("I Changed !", true);
-		} catch (Exception ex) {
-			ex.printStackTrace(System.err);
-			/* No Op */
-		}
-	}
+
 	
 	/**
 	 * Retries all the prior synch failures 
@@ -654,7 +624,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			conn = dataSource.getConnection();
 			for(final TSDBTable table: TSDBTable.values()) {
 				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
-				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT DESC", false, table.name());
+				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT", false, table.name());
 				log.info("Retrying failed syncs for {}", table.name());
 				int cnt = 0;
 				while(rset.next()) {
@@ -740,36 +710,6 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	}
 	
 	
-	/**
-	 * Creates a sync complete handler for a synchronize-to-tsdb request
-	 * @param syncedObject The object that was synched
-	 * @param pk The pk of the synched object
-	 * @param attempts The number of attempts tried so far
-	 * @return the completion callback
-	 */
-	protected Callback<Deferred<Object>, Boolean> syncCompletionHandlerX(final SyncCallbackContainer scc,  final Object syncedObject, final Object pk, final int attempts) {
-		return new Callback<Deferred<Object>, Boolean>() {
-			@Override
-			public Deferred<Object> call(Boolean success) throws Exception {
-				TSDBTable tab = TSDBTable.getTableFor(syncedObject);
-				pendingOps.decrementAndGet();
-				if(success) {					
-					sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", tab.name(), tab.ti.getBindablePK(pk));
-					log.info("Sync Complete for {}.{}", tab.name(), pk);
-				} else {
-					if(attempts<1) {
-						sqlWorker.execute("INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", tab.name(), pk.toString(), 1, SystemClock.getTimestamp());
-						log.info("First Sync Fail for {}.{}", tab.name(), pk);
-					} else {
-						sqlWorker.executeUpdate("UPDATE TSD_LASTSYNC_FAILS SET ATTEMPTS = ?, LAST_ATTEMPT  = ? WHERE TABLE_NAME = ? AND OBJECT_ID = ?", attempts+1, SystemClock.getTimestamp(), tab.name(), pk.toString());
-						log.info("Sync Fail #{} for {}.{}", attempts+1, tab.name(), pk);
-					}
-				}
-				return Deferred.fromResult(syncedObject);
-			}
-		};
-	}
-
 
 	/**
 	 * Returns the number of pending Sync ops we're waiting on 

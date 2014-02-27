@@ -35,6 +35,9 @@ import javax.sql.DataSource;
 
 import net.opentsdb.catalog.sequence.LocalSequenceCache;
 import net.opentsdb.catalog.sequence.PostgresLocalSequenceCache;
+import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
 
 /**
@@ -128,6 +131,36 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 			if(rset!=null) try { rset.close(); } catch (Exception x) {/* No Op */}
 			if(st!=null) try { st.close(); } catch (Exception x) {/* No Op */}			
 		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 */
+	@Override
+	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 */
+	@Override
+	public void recordSyncQueueFailure(TSMeta tsMeta) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 */
+	@Override
+	public void recordSyncQueueFailure(Annotation ann) {
+		// TODO Auto-generated method stub
+		
 	}	
 
 

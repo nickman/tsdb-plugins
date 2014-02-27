@@ -50,6 +50,20 @@ import org.helios.tsdb.plugins.util.JMXHelper;
 public class H2Support {
 	
 	/**
+	 * Causes the current thread to sleep for the specified amount of time in ms.
+	 * @param sleepTime The time to sleep for in ms.
+	 * @return The time we slept for
+	 */
+	public static long sleep(long sleepTime) {
+		try {
+			Thread.currentThread().join(sleepTime);
+			return sleepTime;
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	
+	/**
 	 * Returns the named value from the map
 	 * @param key The key to retrieve the value for
 	 * @param jsonMap The JSON map source

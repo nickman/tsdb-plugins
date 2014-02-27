@@ -510,9 +510,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
 	 */
 	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
-		// MERGE INTO TEST KEY(ID) VALUES(2, 'World')
-		// "INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", tab.name(), pk.toString(), 1, SystemClock.getTimestamp()
-		sqlWorker.executeUpdate("MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) VALUES (?, ?, ATTEMPTS+1, SYSDATE))", tsdbTable.name(), uidMeta.getUID());
+		String sqlText = "MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) "
+				+ "VALUES(?, ?, COALESCE((SELECT ATTEMPTS + 1 FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?), 1), SYSDATE)";
+		sqlWorker.executeUpdate(sqlText, tsdbTable.name(), uidMeta.getUID(), tsdbTable.name(), uidMeta.getUID());
 	}
 	
 	/**
@@ -520,7 +520,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.TSMeta)
 	 */
 	public void recordSyncQueueFailure(TSMeta tsMeta) {
-		
+		String sqlText = "MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) "
+				+ "VALUES(?, ?, COALESCE((SELECT ATTEMPTS + 1 FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?), 1), SYSDATE)";
+		sqlWorker.executeUpdate(sqlText, "TSD_TSMETA", tsMeta.getTSUID(), "TSD_TSMETA", tsMeta.getTSUID());		
 	}
 	
 	/**
@@ -528,8 +530,11 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.Annotation)
 	 */
 	public void recordSyncQueueFailure(Annotation ann) {
-		
+		String tsuid = ann.getTSUID();
+		String annKey = String.format("%s/%s", ann.getStartTime(), tsuid==null ? "" : tsuid);
+		String sqlText = "MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) "
+				+ "VALUES(?, ?, COALESCE((SELECT ATTEMPTS + 1 FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?), 1), SYSDATE)";
+		sqlWorker.executeUpdate(sqlText, "TSD_ANNOTATION", annKey, "TSD_ANNOTATION", annKey);	
 	}
-	
 	
 }

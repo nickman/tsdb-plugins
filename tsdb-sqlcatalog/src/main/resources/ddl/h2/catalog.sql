@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS TSD_TAGK (
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag key',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGK',
-    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TAGK',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the TAGK',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag key',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag key',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag key',
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS TSD_TAGV (
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGV',
-    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TAGV',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the TAGV',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this tag value',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this tag value',
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS TSD_METRIC (
     VERSION INT NOT NULL COMMENT 'The version of this instance',
     NAME VARCHAR2(60) NOT NULL COMMENT 'The metric name',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the METRIC',
-    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the METRIC',
+    LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the METRIC',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this metric',
     DISPLAY_NAME VARCHAR2(60) COMMENT 'An optional display name for this metric',
     NOTES VARCHAR2(120) COMMENT 'Optional notes for this metric',
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS TSD_TSMETA (
 	FQN VARCHAR(4000) NOT NULL COMMENT 'The fully qualified metric name',
 	TSUID VARCHAR(120) NOT NULL COMMENT 'The TSUID as a hex encoded string',
 	CREATED TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the creation of the TSMeta',
-	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the TSMETA',
+	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the TSMETA',
 	MAX_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional max value for the timeseries',
 	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional min value for the timeseries',
 	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 	ANNID BIGINT NOT NULL COMMENT 'The synthetic unique identifier for this annotation',
 	VERSION INT NOT NULL COMMENT 'The version of this instance',
 	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
-	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSTIME COMMENT 'The timestamp of the last update of the Annotation',
+	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the Annotation',
 	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
     NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',
 	FQNID BIGINT COMMENT 'An optional reference to the associated TSMeta. If null, this will be a global annotation',
@@ -194,6 +194,7 @@ CREATE TRIGGER IF NOT EXISTS TSD_TSMETA_UPDATED_A_TRG BEFORE UPDATE ON TSD_TSMET
 --  User Defined Functions
 -- ==============================================================================================
 
+CREATE ALIAS IF NOT EXISTS SLEEP FOR "net.opentsdb.catalog.h2.H2Support.sleep";
 
 CREATE ALIAS IF NOT EXISTS TAGVNAME FOR "net.opentsdb.catalog.h2.H2Support.tagvName";
 CREATE ALIAS IF NOT EXISTS TAGKNAME FOR "net.opentsdb.catalog.h2.H2Support.tagkName";

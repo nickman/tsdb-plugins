@@ -505,6 +505,31 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 */
+	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
+		// MERGE INTO TEST KEY(ID) VALUES(2, 'World')
+		// "INSERT INTO TSD_LASTSYNC_FAILS (TABLE_NAME, OBJECT_ID, ATTEMPTS, LAST_ATTEMPT) VALUES (?,?,?,?)", tab.name(), pk.toString(), 1, SystemClock.getTimestamp()
+		sqlWorker.executeUpdate("MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) VALUES (?, ?, ATTEMPTS+1, SYSDATE))", tsdbTable.name(), uidMeta.getUID());
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 */
+	public void recordSyncQueueFailure(TSMeta tsMeta) {
+		
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 */
+	public void recordSyncQueueFailure(Annotation ann) {
+		
+	}
 	
 	
 }

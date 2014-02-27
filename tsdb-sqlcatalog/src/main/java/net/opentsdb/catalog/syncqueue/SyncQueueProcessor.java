@@ -312,33 +312,23 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					log.info("Submitting New Sync [{}]", dbObject);
 					if(dbObject instanceof UIDMeta) {
 						final UIDMeta dbMeta = (UIDMeta)dbObject;
-						final TSDBTable tsdbTable;
-						Deferred<byte[]> deferredDbMetaKey = null;
+						
+						//  Callback<Void, byte[]>(List<Deferred<Boolean>> tableDeferreds, UIDMeta, TSDBTable, )
+						
 						try {
 							switch(dbMeta.getType()) {
 								case METRIC:
-									deferredDbMetaKey = tagMunik.getOrCreateIdAsync(dbMeta.getName());
-									tsdbTable = TSDBTable.TSD_METRIC;
+									tagMunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_METRIC));
 									break;
 								case TAGK:
-									deferredDbMetaKey = tagKunik.getOrCreateIdAsync(dbMeta.getName());
-									tsdbTable = TSDBTable.TSD_TAGK;
+									tagKunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGK));
 									break;
 								case TAGV:
-									deferredDbMetaKey = tagVunik.getOrCreateIdAsync(dbMeta.getName());
-									tsdbTable = TSDBTable.TSD_TAGV;
+									tagVunik.getOrCreateIdAsync(dbMeta.getName()).addCallback(new ValidateUIDCallback(tableDeferreds, dbMeta, TSDBTable.TSD_TAGV));
 									break;
 								default:
 									throw new Error("Should not reach here");								
 							}
-							
-							
-							final Object pk = tsdbTable.ti.getPk(conn, dbMeta);
-							final SyncCallbackContainer<UIDMeta, byte[]> scc = new SyncCallbackContainer<UIDMeta, byte[]>(tsdbTable, dbMeta, pk);
-							
-							final Callback<SyncCallbackContainer<UIDMeta, byte[]>, byte[]> cb = syncCompletionHandler(scc);
-							final Callback<SyncCallbackContainer<UIDMeta, byte[]>, Exception> ce = syncExceptionHandler(scc);
-							
 							
 							deferredDbMetaKey.addCallbacks(cb, ce);
 									// SyncCallbackContainer, byte[])
@@ -503,87 +493,79 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}
 		return Deferred.group(allDeferreds);
 	}
-	
-	
-	
-	protected void startTSMetaUpdateLoop(final TSMeta tMeta, final AtomicInteger retryCount) {
-		final SyncQueueProcessor SQP = this;
-		final TSMeta tsMeta = dbInterface.readTSMetas(sqlWorker.executeQuery("SELECT * FROM TSD_TSMETA WHERE TSUID = ?", true, tMeta.getTSUID())).iterator().next();
-		try {
-			tsMeta.syncToStorage(tsdb, true).addCallback(new Callback<Void, Boolean>(){
-				public Void call(Boolean success) throws Exception {
-					if(success) {
-						log.info("TSMeta Update Successful [{}] after [{}] retries", tsMeta, retryCount.get());
-					} else {
-						int retries = retryCount.incrementAndGet();
-						if(retries>=20) {
-							log.error("Exhausted retries updating TSMeta [{}]", tsMeta);
-						} else {
-							log.error("TSMeta update retry failed for [{}]. Next retry: [{}]", tsMeta, retries);
-							scheduler.schedule(new Runnable() {
-								public void run() {
-									SQP.startTSMetaUpdateLoop(tsMeta, retryCount);
-								}
-							}, 500, TimeUnit.MILLISECONDS);
-						}
-					}
-					return null;
-				}
-			}).addErrback(new Callback<Void, Exception>(){
-				public Void call(Exception ex) throws Exception {
-					log.error("TSMeta update for [{}] FAILED:", tsMeta, ex);				
-					return null;
-				}
-			});
-		} catch (Exception ex) {
-			ex.printStackTrace(System.err);
-		}
-	}
-	
-	protected void startUIDMetaUpdateLoop(final UIDMeta uMeta, final AtomicInteger retryCount) {
-		final SyncQueueProcessor SQP = this;
-		final TSDBTable table = TSDBTable.valueOf("TSD_" + uMeta.getType().name());
 		
-		final UIDMeta uidMeta = (UIDMeta) table.ti.getObjects(sqlWorker.executeQuery(table.ti.getByPKSql(), true, uMeta.getUID()), dbInterface).iterator().next();
-		try {
-			//uidMeta.setCustom(null);
-			UIDMeta.getUIDMeta(tsdb, uidMeta.getType(), uniques.get(uidMeta.getType()).getId(uidMeta.getName())).addCallback(new Callback<Void, UIDMeta>() {
-				public Void call(UIDMeta casMeta) throws Exception {
-					casMeta.setNotes(uidMeta.getNotes());
-					casMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
-//					uidMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
+	/**
+	 * <p>Title: ValidateUIDCallback</p>
+	 * <p>Description: Handles the callback of the call to validate a UIDMeta id exists and completes the UIDMeta sync to storage</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>net.opentsdb.catalog.syncqueue.SyncProcessorQueue.ValidateUIDCallback</code></p>
+	 */
+	class ValidateUIDCallback implements Callback<Void, byte[]> {
+		/** The accumulated list of UIDMeta sync deferred completions */
+		final List<Deferred<Boolean>> tableDeferreds;
+		/** The UIDMeta to be synced */
+		final UIDMeta uidMeta;
+		/** The TSDBTable type of the passed UIDMeta */
+		final TSDBTable table;
+		
+		/**
+		 * Creates a new ValidateUIDCallback
+		 * @param tableDeferreds The accumulated list of UIDMeta sync deferred completions
+		 * @param uidMeta The UIDMeta to be synced
+		 * @param table The TSDBTable type of the passed UIDMeta
+		 */
+		public ValidateUIDCallback(List<Deferred<Boolean>> tableDeferreds, UIDMeta uidMeta, TSDBTable table) {
+			this.tableDeferreds = tableDeferreds;
+			this.uidMeta = uidMeta;
+			this.table = table;
+		}
+		
+		/**
+		 * {@inheritDoc}
+		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+		 */
+		public Void call(byte[] uidByteId) throws Exception {
+			log.debug("Validated UIDMeta [{}] Exists", uidMeta);
+			final Deferred<Boolean> d = uidMeta.syncToStorage(tsdb, false);
+			d.addCallbacks(
+					new Callback<Void, Boolean>() {
 						public Void call(Boolean success) throws Exception {
 							if(success) {
-								log.info("UIDMeta Update Successful [{}] after [{}] retries", uidMeta, retryCount.get());
+								log.info("UIDMeta [{}] successfully synced to store");
 							} else {
-								int retries = retryCount.incrementAndGet();
-								if(retries>=20) {
-									log.error("Exhausted retries updating UIDMeta [{}]", uidMeta);
-								} else {
-									log.error("UIDMeta update retry failed for [{}]/[{}]. Next retry: [{}]", uidMeta, uidMeta.getCreated(), retries);
-									scheduler.schedule(new Runnable() {
-										public void run() {
-											SQP.startUIDMetaUpdateLoop(uidMeta, retryCount);
-										}
-									}, 500, TimeUnit.MILLISECONDS);
-								}
+								log.warn("UIDMeta [{}] CAS Update Failure");
 							}
+							d.callback(success);							
 							return null;
 						}
-					}).addErrback(new Callback<Void, Exception>(){
+						public String toString() {
+							return "UIDMeta Sync Callback Handler for [" + uidMeta + "]";
+						}
+					},
+					new Callback<Void, Exception>() {
 						public Void call(Exception ex) throws Exception {
-							log.error("UIDMeta update for [{}] FAILED:", uidMeta, ex);				
+							log.error("Failed to update UIDMeta [{}]", uidMeta, ex);
+							d.callback(ex);
 							return null;
 						}
-					});
-					
-					return null;
-				}
-			});
-		} catch (Exception ex) {
-			ex.printStackTrace(System.err);
+						public String toString() {
+							return "UIDMeta Sync Errback Handler for [" + uidMeta + "]";
+						}							
+					}
+			);
+			tableDeferreds.add(d);
+			return null;
+		}
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#toString()
+		 */
+		public String toString() {
+			return getClass().getSimpleName() + "-" + uidMeta;
 		}
 	}
+	
 	
 	
 	protected Deferred<ArrayList<Boolean>> ensureUIDsExist(final TSMeta tsMeta) {
@@ -718,199 +700,14 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		return ti.getObjects(r, dbInterface).iterator().next();
 	}
 	
-	/**
-	 * <p>Title: SyncCallbackContainer</p>
-	 * <p>Description: A container for passing a context up and down the async callback chain</p> 
-	 * <p>Company: Helios Development Group LLC</p>
-	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
-	 * <p><code>net.opentsdb.catalog.syncqueue.SyncQueueProcessor.SyncCallbackContainer</code></p>
-	 */
-	public static class SyncCallbackContainer<T, F> implements Callback<Void, F> {
-		/** The enum identifying the type of the object */
-		protected final TSDBTable table;
-		/** The object to be synced */
-		protected final T syncObject;
-		/** The pk field of the object to be synced */
-		protected final Object syncObjectPk;
-		/** An exception thrown somewhere in the callback chain */
-		protected Exception ex = null;
-		/** A counter of failed sync attempts */
-		protected int attempts = 0;
-		/** The current callback depth */
-		protected int currentDepth = 0;
-		/** The max callback depth */
-		protected int maxDepth = 0;
-		
-		/** The value passed by the most recent callback */
-		protected F lastCallback = null;
-		
-		/**
-		 * Creates a new SyncCallbackContainer
-		 * @param table The enum identifying the type of the object
-		 * @param syncObject The object to be synced
-		 * @param syncObjectPk The pk field of the object to be synced 
-		 */
-		public SyncCallbackContainer(TSDBTable table, T syncObject, Object syncObjectPk) {
-			this.table = table;
-			this.syncObject = syncObject;
-			this.syncObjectPk = syncObjectPk;
-		}
-		
-		public <N> SyncCallbackContainer<T, N> pivot(Class<N> callbackType) {
-			return (SyncCallbackContainer<T, N>) this;
-		}
-		
-		/**
-		 * {@inheritDoc}
-		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
-		 */
-		@Override
-		public Void call(F f) throws Exception {
-			return null;
-		}		
-		
-		/**
-		 * @param callbackValue
-		 * @return
-		 */
-		public SyncCallbackContainer<T, F> callback(F callbackValue) {
-			lastCallback = callbackValue;
-			return this;
-		}
-		
-		/**
-		 * @return
-		 */
-		public F getLastCallbackValue() {
-			return lastCallback;
-		}
-		
-		
-
-		/**
-		 * Returns the set exception
-		 * @return the callback exception
-		 */
-		public Exception getEx() {
-			return ex;
-		}
-
-		/**
-		 * Sets the callback exception
-		 * @param ex the exception to set
-		 * @return this SyncCallbackContainer
-		 */
-		public SyncCallbackContainer<T, F> setEx(Exception ex) {
-			if(this.ex!=null) throw new IllegalStateException("The exception is already set");
-			this.ex = ex;
-			return this;
-		}
-
-		/**
-		 * Returns the enum identifying the type of the object 
-		 * @return the enum identifying the type of the object
-		 */
-		public TSDBTable getTable() {
-			return table;
-		}
-
-		/**
-		 * Returns the object to be synced
-		 * @return the syncObject
-		 */
-		public Object getSyncObject() {
-			return syncObject;
-		}
-
-		/**
-		 * Returns the pk of the object to be synced
-		 * @return the syncObjectPk
-		 */
-		public Object getSyncObjectPk() {
-			return syncObjectPk;
-		}
-		
-		/**
-		 * Returns the  current callback depth
-		 * @return the currentDepth
-		 */
-		public int getCurrentDepth() {
-			return currentDepth;
-		}
-
 	
-
-		/**
-		 * Returns the max callback depth 
-		 * @return the maxDepth
-		 */
-		public int getMaxDepth() {
-			return maxDepth;
-		}
-		
-		/**
-		 * Increments the current depth and celings the max depth
-		 * @return this SyncCallbackContainer
-		 */
-		public SyncCallbackContainer<T, F> incrDepth() {
-			currentDepth++;
-			maxDepth = currentDepth;
-			return this;
-		}
-		
-		/**
-		 * Decrements the current depth
-		 * @return this SyncCallbackContainer
-		 */
-		public SyncCallbackContainer<T, F> decrDepth() {
-			currentDepth--;
-			return this;
-		}
-		
-
-		/**
-		 * {@inheritDoc}
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("SyncCallbackContainer [");
-			if (table != null) {
-				builder.append("table=");
-				builder.append(table);
-				builder.append(", ");
-			}
-			if (syncObject != null) {
-				builder.append("syncObject=");
-				builder.append(syncObject);
-				builder.append(", ");
-			}
-			if (syncObjectPk != null) {
-				builder.append("syncObjectPk=");
-				builder.append(syncObjectPk);
-				builder.append(", ");
-			}
-			if (ex != null) {
-				builder.append("ex=");
-				builder.append(ex);
-				builder.append(", ");
-			}
-			builder.append("attempts=");
-			builder.append(attempts);
-			builder.append(", currentDepth=");
-			builder.append(currentDepth);
-			builder.append(", maxDepth=");
-			builder.append(maxDepth);
-			builder.append("]");
-			return builder.toString();
-		}
-
-
-
-
-		
-	}
+	
+//	final Object pk = tsdbTable.ti.getPk(conn, dbMeta);
+//	final SyncCallbackContainer<UIDMeta, byte[]> scc = new SyncCallbackContainer<UIDMeta, byte[]>(tsdbTable, dbMeta, pk);
+//	
+//	final Callback<SyncCallbackContainer<UIDMeta, byte[]>, byte[]> cb = syncCompletionHandler(scc);
+//	final Callback<SyncCallbackContainer<UIDMeta, byte[]>, Exception> ce = syncExceptionHandler(scc);
+	
 	
 	protected <T, F> Callback<SyncCallbackContainer<T, F>, Exception> syncExceptionHandler(final SyncCallbackContainer<T, F> scc) {		
 		return new Callback<SyncCallbackContainer<T, F>, Exception>() {
@@ -925,12 +722,20 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	
 	protected <T, F> Callback<SyncCallbackContainer<T, F>, F> syncCompletionHandler(final SyncCallbackContainer<T, F> scc) {
 		return new Callback<SyncCallbackContainer<T, F>, F>() {
-			public SyncCallbackContainer<T, F> call(F callbackObject) throws Exception {				
-				return scc.callback(callbackObject).incrDepth();
-			}
+//			public SyncCallbackContainer<T, F> call(F callbackObject) throws Exception {				
+//				return scc.callback(callbackObject).incrDepth();
+//			}
 			public String toString() {
 				return "syncCompletionHandler->" + scc.toString();
 			}
+
+			@Override
+			public SyncCallbackContainer<T, F> call(F callbackValue) throws Exception {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+	
 		};
 	}
 	
@@ -975,3 +780,84 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	}
 	
 }
+
+
+//protected void startTSMetaUpdateLoop(final TSMeta tMeta, final AtomicInteger retryCount) {
+//	final SyncQueueProcessor SQP = this;
+//	final TSMeta tsMeta = dbInterface.readTSMetas(sqlWorker.executeQuery("SELECT * FROM TSD_TSMETA WHERE TSUID = ?", true, tMeta.getTSUID())).iterator().next();
+//	try {
+//		tsMeta.syncToStorage(tsdb, true).addCallback(new Callback<Void, Boolean>(){
+//			public Void call(Boolean success) throws Exception {
+//				if(success) {
+//					log.info("TSMeta Update Successful [{}] after [{}] retries", tsMeta, retryCount.get());
+//				} else {
+//					int retries = retryCount.incrementAndGet();
+//					if(retries>=20) {
+//						log.error("Exhausted retries updating TSMeta [{}]", tsMeta);
+//					} else {
+//						log.error("TSMeta update retry failed for [{}]. Next retry: [{}]", tsMeta, retries);
+//						scheduler.schedule(new Runnable() {
+//							public void run() {
+//								SQP.startTSMetaUpdateLoop(tsMeta, retryCount);
+//							}
+//						}, 500, TimeUnit.MILLISECONDS);
+//					}
+//				}
+//				return null;
+//			}
+//		}).addErrback(new Callback<Void, Exception>(){
+//			public Void call(Exception ex) throws Exception {
+//				log.error("TSMeta update for [{}] FAILED:", tsMeta, ex);				
+//				return null;
+//			}
+//		});
+//	} catch (Exception ex) {
+//		ex.printStackTrace(System.err);
+//	}
+//}
+//
+//protected void startUIDMetaUpdateLoop(final UIDMeta uMeta, final AtomicInteger retryCount) {
+//	final SyncQueueProcessor SQP = this;
+//	final TSDBTable table = TSDBTable.valueOf("TSD_" + uMeta.getType().name());
+//	
+//	final UIDMeta uidMeta = (UIDMeta) table.ti.getObjects(sqlWorker.executeQuery(table.ti.getByPKSql(), true, uMeta.getUID()), dbInterface).iterator().next();
+//	try {
+//		//uidMeta.setCustom(null);
+//		UIDMeta.getUIDMeta(tsdb, uidMeta.getType(), uniques.get(uidMeta.getType()).getId(uidMeta.getName())).addCallback(new Callback<Void, UIDMeta>() {
+//			public Void call(UIDMeta casMeta) throws Exception {
+//				casMeta.setNotes(uidMeta.getNotes());
+//				casMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
+////				uidMeta.syncToStorage(tsdb, false).addCallback(new Callback<Void, Boolean>(){
+//					public Void call(Boolean success) throws Exception {
+//						if(success) {
+//							log.info("UIDMeta Update Successful [{}] after [{}] retries", uidMeta, retryCount.get());
+//						} else {
+//							int retries = retryCount.incrementAndGet();
+//							if(retries>=20) {
+//								log.error("Exhausted retries updating UIDMeta [{}]", uidMeta);
+//							} else {
+//								log.error("UIDMeta update retry failed for [{}]/[{}]. Next retry: [{}]", uidMeta, uidMeta.getCreated(), retries);
+//								scheduler.schedule(new Runnable() {
+//									public void run() {
+//										SQP.startUIDMetaUpdateLoop(uidMeta, retryCount);
+//									}
+//								}, 500, TimeUnit.MILLISECONDS);
+//							}
+//						}
+//						return null;
+//					}
+//				}).addErrback(new Callback<Void, Exception>(){
+//					public Void call(Exception ex) throws Exception {
+//						log.error("UIDMeta update for [{}] FAILED:", uidMeta, ex);				
+//						return null;
+//					}
+//				});
+//				
+//				return null;
+//			}
+//		});
+//	} catch (Exception ex) {
+//		ex.printStackTrace(System.err);
+//	}
+//}
+//

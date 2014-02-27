@@ -126,7 +126,7 @@ public enum TSDBTable {
 		 * @param tsdb The TSDB to sync to
 		 * @return The callback deferral
 		 */
-		public Deferred<Boolean> sync(T obj, TSDB tsdb);
+		public Deferred<Boolean> sync(Object obj, TSDB tsdb);
 		
 		/**
 		 * Returns the DB PK for the passed object
@@ -196,7 +196,8 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(final TSMeta tsMeta, final TSDB tsdb) {
+		public Deferred<Boolean> sync(final Object ts, final TSDB tsdb) {
+			final TSMeta tsMeta = (TSMeta)ts;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				tsMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){
@@ -282,8 +283,9 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(Annotation ann, TSDB tsdb) {
-			return ann.syncToStorage(tsdb, false);
+		public Deferred<Boolean> sync(Object ann, TSDB tsdb) {
+			Annotation a = (Annotation)ann;
+			return a.syncToStorage(tsdb, false);
 		}
 		
 		/**
@@ -363,7 +365,8 @@ public enum TSDBTable {
 		 * {@inheritDoc}
 		 * @see net.opentsdb.catalog.TSDBTable.TableInfo#sync(java.lang.Object, net.opentsdb.core.TSDB)
 		 */
-		public Deferred<Boolean> sync(final UIDMeta uidMeta, final TSDB tsdb) {
+		public Deferred<Boolean> sync(final Object uid, final TSDB tsdb) {
+			final UIDMeta uidMeta = (UIDMeta)uid;
 			final Deferred<Boolean> completion = new Deferred<Boolean>();
 			try {
 				uidMeta.syncToStorage(tsdb, false).addBothDeferring(new Callback<Deferred<Void>, Boolean>(){

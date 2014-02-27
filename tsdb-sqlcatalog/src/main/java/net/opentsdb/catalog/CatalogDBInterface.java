@@ -547,5 +547,28 @@ public interface CatalogDBInterface {
 	 */
 	public Map<String, String> getNamesForUIDs(String tsuid);
 	
+	// ========================================================================================================
+	//    SynQueue Operations, defined here since they may be DB specific.
+	// ========================================================================================================
+	
+	/**
+	 * Records a UIDMeta sync from the DB Catalog failure by inserting or updating the UIDMeta's row in TSD_LASTSYNC_FAILS.
+	 * @param uidMeta The UIDMeta that failed sync
+	 * @param tsdbTable The tsdb table for the passed UIDMeta
+	 */
+	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable);
+	
+	/**
+	 * Records a TSMeta sync from the DB Catalog failure by inserting or updating the TSMeta's row in TSD_LASTSYNC_FAILS.
+	 * @param tsMeta The TSMeta that failed sync
+	 */
+	public void recordSyncQueueFailure(TSMeta tsMeta);
+	
+	/**
+	 * Records an Annotation sync from the DB Catalog failure by inserting or updating the Annotation's row in TSD_LASTSYNC_FAILS.
+	 * @param ann The Annotation that failed sync
+	 */
+	public void recordSyncQueueFailure(Annotation ann);
+	
 	
 }

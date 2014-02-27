@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +76,14 @@ import com.stumbleupon.async.Deferred;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.catalog.syncqueue.SyncQueueProcessor</code></p>
+ * TODO:
+ * Limit number of syncs in one batch
+ * Total Elapsed time histogram
+ * Counts by type synced
+ * Elapsed time by type histogram
+ * CAS Fails by type count
+ * Exceptions by type count
+ * JMX Management Interface
  */
 
 public class SyncQueueProcessor extends AbstractService implements Runnable, ThreadFactory {
@@ -104,14 +111,20 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected final AtomicBoolean syncInProgress = new AtomicBoolean(false);
 	/** The SQLWorker to manage JDBC Ops */
 	protected SQLWorker sqlWorker = null;
-	/** Tracks the number of pending ops */
-	protected final AtomicLong pendingOps = new AtomicLong(0);
 	/** The uniqueid for tag keys */
 	protected final UniqueId tagKunik;
 	/** The uniqueid for tag values */
 	protected final UniqueId tagVunik;
 	/** The uniqueid for metric names */
-	protected final UniqueId tagMunik;
+	protected final UniqueId tagMunik;	
+	/** The configured maximum number of sync ops to execute per batch */
+	protected int maxSyncOps = DEFAULT_CONFIG_MAX_SYNC_OPS;
+	/** Flag indicating if there are remaining pending sync ops after a call to processNew or retryPriorFails by incrementing when a batch loop starts and decrementing when it finishes */
+	protected final AtomicInteger hasRemainingOps = new AtomicInteger(0);
+	/** Tracks the number of pending ops */
+	protected final AtomicLong pendingOps = new AtomicLong(0);
+	/** Tracks whether or not the current batch loop has hit the max ops threshold and left incomplete sync ops on the table */
+	protected final AtomicBoolean syncBatchHitMax = new AtomicBoolean(false);
 	
 	/** A map of UniqueIds keyed by the UniqueId.UniqueIdType */
 	private final Map<UniqueId.UniqueIdType, UniqueId> uniques = new EnumMap<UniqueId.UniqueIdType, UniqueId>(UniqueId.UniqueIdType.class);
@@ -129,6 +142,11 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	/** Custom tag to place in a meta custom map to make sure the fake meta is ignored */
 	public static final String IGNORE_TAG_NAME = "syncqueue.processor.ignore";
 
+	/** The config property name for the maximum number of sync operations to call in one batch */
+	public static final String CONFIG_MAX_SYNC_OPS = "helios.search.catalog.seq.fqn.incr";
+	/** The default maximum number of sync operations to call in one batch */
+	public static final int DEFAULT_CONFIG_MAX_SYNC_OPS = 1024;
+	
 	
 	/** A set of the UIDMeta type tables */
 	public static final Set<String> UIDMETA_TABLES = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
@@ -154,6 +172,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		dbInterface = pluginContext.getResource(CatalogDBInterface.class.getSimpleName(), CatalogDBInterface.class);
 		sqlWorker = SQLWorker.getInstance(dataSource);
 		syncDisabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(CatalogDBInterface.TSDB_DISABLE_SYNC, CatalogDBInterface.DEFAULT_TSDB_DISABLE_SYNC, pluginContext.getExtracted());
+		maxSyncOps = ConfigurationHelper.getIntSystemThenEnvProperty(CONFIG_MAX_SYNC_OPS, DEFAULT_CONFIG_MAX_SYNC_OPS, pluginContext.getExtracted());
 	}
 
 
@@ -262,27 +281,35 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}
 		log.debug("Starting TSDB Sync Run....");
 		final long startTime = System.currentTimeMillis();
+		hasRemainingOps.set(0);
+		do {
+			final int currentBatchSeq = hasRemainingOps.incrementAndGet();
+			log.info("Running SyncOp Loop #{}", currentBatchSeq);
+			Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs();
+			final Runnable scheduledTask = this;
+			processNewDeferred.addCallback(new Callback<Void, ArrayList<ArrayList<Object>>>() {
+				public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
+					long elapsed = System.currentTimeMillis() - startTime;
+					log.info("\n\t------------------> Completed SyncOp Loop #{} in [{}] ms.", currentBatchSeq, elapsed);
+					if(taskHandle!=null) {
+						taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+						log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+					}
+					int remainingOps = hasRemainingOps.decrementAndGet();
+					if(remainingOps==0) {
+						syncInProgress.set(false);
+						log.info("\n\t------------------> Completed SyncOp in [{}] ms.", elapsed);
+					}
+					return null;
+				}
+				public String toString() {
+					return "GroupedDeferred for all Table Groups";
+				}
+			});
+		} while(syncBatchHitMax.get());
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
-		Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs();
-		final Runnable scheduledTask = this;
-		processNewDeferred.addCallback(new Callback<Void, ArrayList<ArrayList<Object>>>() {
-			public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
-				long elapsed = System.currentTimeMillis() - startTime;
-				log.info("\n\t------------------> Completed Sync in [{}] ms.", elapsed);
-//				new MetaSynchronizer(tsdb).process(true);
-				if(taskHandle!=null) {
-					taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
-					log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
-				}
-				syncInProgress.set(false);
-				return null;
-			}
-			public String toString() {
-				return "GroupedDeferred for all Table Groups";
-			}
-		});
 	}
 	
 	/**
@@ -295,11 +322,15 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected  Deferred<ArrayList<ArrayList<Object>>> processNewSyncs() {
 		Connection conn = null;
 		ResultSet rset = null;
+		final int maxops = maxSyncOps;	// a constant snapshot of the configured max sync ops
+		int executedOps = 0; 			// the number of ops executed in the current batch
+		syncBatchHitMax.set(false);
 		final List<Deferred<ArrayList<Object>>> allDeferreds = new ArrayList<Deferred<ArrayList<Object>>>();
 		try {
 			conn = dataSource.getConnection();
 			ResultSet disx = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", true);			
 			while(disx.next()) {
+				if(syncBatchHitMax.get()) break; // we already hit the max so eject
 				final TSDBTable table = TSDBTable.valueOf(disx.getString(1));
 				final List<Deferred<Object>> tableDeferreds = new ArrayList<Deferred<Object>>();
 				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), disx.getTimestamp(2));
@@ -309,6 +340,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				for(final Object dbObject: table.ti.getObjects(rset, dbInterface)) {
 					log.info("Submitting New Sync [{}]", dbObject);
 					cnt++;
+					executedOps++;
 					if(dbObject instanceof UIDMeta) {
 						final UIDMeta dbMeta = (UIDMeta)dbObject;
 						try {
@@ -360,8 +392,11 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					} else {
 						log.error("Unrecognized Meta Object [{}]:[{}]", dbObject.getClass().getName(), dbObject);
 					}
-
-				}								
+					if(executedOps==maxops) {
+						syncBatchHitMax.set(true);
+						break;
+					}
+				}	// end of table loop. if max ops is hit, we'll break to here, finish the post table loop and eject.								
 				rset.close();
 				rset = null;				
 				conn.commit();				
@@ -382,7 +417,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 						}
 					});
 				}
-			}
+			}  // end of batch loop
 			log.info("Completed check of all tables for pending synchs");
 		} catch (Throwable ex) {
 			log.error("Unexpected SynQueueProcessor Error", ex);
@@ -390,6 +425,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			if(rset!=null) try { rset.close(); } catch (Exception ex) {/* No Op */}
 			if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 		}
+		
 		return Deferred.group(allDeferreds);
 	}
 	
@@ -717,6 +753,24 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 */
 	public long getPendingSynchOps() {
 		return pendingOps.get();
+	}
+
+
+	/**
+	 * Returns the maximum number of sync ops to execute per batch 
+	 * @return the maxSyncOps
+	 */
+	public int getMaxSyncOps() {
+		return maxSyncOps;
+	}
+
+
+	/**
+	 * Sets the maximum number of sync ops to execute per batch 
+	 * @param maxSyncOps the maxSyncOps to set
+	 */
+	public void setMaxSyncOps(int maxSyncOps) {
+		this.maxSyncOps = maxSyncOps;
 	}
 	
 }

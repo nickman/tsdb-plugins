@@ -123,8 +123,6 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	protected final AtomicInteger hasRemainingOps = new AtomicInteger(0);
 	/** Tracks the number of pending ops */
 	protected final AtomicLong pendingOps = new AtomicLong(0);
-	/** Tracks whether or not the current batch loop has hit the max ops threshold and left incomplete sync ops on the table */
-	protected final AtomicBoolean syncBatchHitMax = new AtomicBoolean(false);
 	
 	/** A map of UniqueIds keyed by the UniqueId.UniqueIdType */
 	private final Map<UniqueId.UniqueIdType, UniqueId> uniques = new EnumMap<UniqueId.UniqueIdType, UniqueId>(UniqueId.UniqueIdType.class);
@@ -282,21 +280,29 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		log.debug("Starting TSDB Sync Run....");
 		final long startTime = System.currentTimeMillis();
 		hasRemainingOps.set(0);
+		pendingOps.set(0);		
+		final AtomicBoolean keepRunning = new AtomicBoolean(false);
 		do {
+			keepRunning.set(false);
 			final int currentBatchSeq = hasRemainingOps.incrementAndGet();
+			final AtomicBoolean syncBatchHitMax = new AtomicBoolean(false);
 			log.info("Running SyncOp Loop #{}", currentBatchSeq);
-			Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs();
+			Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs(syncBatchHitMax);
+			if(syncBatchHitMax.get()) {
+				keepRunning.set(true);
+			}
 			final Runnable scheduledTask = this;
 			processNewDeferred.addCallback(new Callback<Void, ArrayList<ArrayList<Object>>>() {
 				public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
 					long elapsed = System.currentTimeMillis() - startTime;
-					log.info("\n\t------------------> Completed SyncOp Loop #{} in [{}] ms.", currentBatchSeq, elapsed);
-					if(taskHandle!=null) {
-						taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
-						log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
-					}
 					int remainingOps = hasRemainingOps.decrementAndGet();
-					if(remainingOps==0) {
+					log.info("\n\t------------------> Completed SyncOp Loop.\n\tLoop #{}.\n\tElapsed: [{}] ms.\n\tRemaining Ops: [{}]", currentBatchSeq, elapsed, remainingOps);
+					
+					if(remainingOps <= 0) {
+						if(taskHandle!=null) {
+							taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
+							log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+						}
 						syncInProgress.set(false);
 						log.info("\n\t------------------> Completed SyncOp in [{}] ms.", elapsed);
 					}
@@ -306,7 +312,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					return "GroupedDeferred for all Table Groups";
 				}
 			});
-		} while(syncBatchHitMax.get());
+		} while(keepRunning.get());
+		log.info("SyncOps Outer Loop Complete.");
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
@@ -317,9 +324,10 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	 * FIXME:  Fail or no, the LAST_UPDATE should be updated.
 	 * FIXME: Need to handle non-callback exceptions in SYNC
 	 * FIXME: Need to specify order of tables processed
+	 * @param syncBatchHitMax Tracks whether or not the current batch loop has hit the max ops threshold and left incomplete sync ops on the table 
 	 * @return A deferred indicating the completion of all table syncs
 	 */
-	protected  Deferred<ArrayList<ArrayList<Object>>> processNewSyncs() {
+	protected  Deferred<ArrayList<ArrayList<Object>>> processNewSyncs(final AtomicBoolean syncBatchHitMax) {
 		Connection conn = null;
 		ResultSet rset = null;
 		final int maxops = maxSyncOps;	// a constant snapshot of the configured max sync ops
@@ -330,6 +338,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			conn = dataSource.getConnection();
 			ResultSet disx = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", true);			
 			while(disx.next()) {
+//				hasRemainingOps.incrementAndGet();
 				if(syncBatchHitMax.get()) break; // we already hit the max so eject
 				final TSDBTable table = TSDBTable.valueOf(disx.getString(1));
 				final List<Deferred<Object>> tableDeferreds = new ArrayList<Deferred<Object>>();
@@ -357,6 +366,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 							default:
 								throw new Error("Should not reach here");								
 							}
+							pendingOps.incrementAndGet();
 						} catch (Exception ex) {
 							log.error("Failed to sync UISMeta [{}]", dbMeta, ex);
 							try { 
@@ -369,6 +379,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 						final TSMeta tsMeta = (TSMeta)dbObject;
 						try {
 							TSMeta.metaExistsInStorage(tsdb, tsMeta.getTSUID()).addCallback(new ValidateTSMetaCallback(tableDeferreds, tsMeta));
+							pendingOps.incrementAndGet();
 						} catch (Exception ex) {
 							log.error("Failed to sync TSMeta [{}]", tsMeta, ex);
 							try { 
@@ -380,7 +391,8 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					} else if(dbObject instanceof Annotation) {
 						Annotation ann = (Annotation)dbObject;
 						try {
-							ann.syncToStorage(tsdb, false).addBoth(new SyncAnnotationCallback(tableDeferreds, ann));							
+							ann.syncToStorage(tsdb, false).addBoth(new SyncAnnotationCallback(tableDeferreds, ann));
+							pendingOps.incrementAndGet();
 						} catch (Exception ex) {
 							log.error("Failed to sync Annotation [{}]", ann, ex);
 							try { 
@@ -405,7 +417,11 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				allDeferreds.add(groupedTableDeferred);				
 				if(cnt>0) {
 					groupedTableDeferred.addCallback(new Callback<Void, ArrayList<Object>>() {
-						public Void call(ArrayList<Object> arg) throws Exception {
+						public Void call(ArrayList<Object> completedTasks) throws Exception {
+							for(int x = 0; x < completedTasks.size(); x++) {
+								pendingOps.decrementAndGet();
+							}
+									
 							long currentTime = SystemClock.time();
 							Timestamp ts = new Timestamp(currentTime);
 							sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());

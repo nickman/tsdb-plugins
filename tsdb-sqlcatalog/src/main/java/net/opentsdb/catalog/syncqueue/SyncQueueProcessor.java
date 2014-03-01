@@ -61,6 +61,7 @@ import net.opentsdb.uid.UniqueId;
 
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ import com.stumbleupon.async.Deferred;
  * JMX Management Interface
  */
 
-public class SyncQueueProcessor extends AbstractService implements Runnable, ThreadFactory {
+public class SyncQueueProcessor extends AbstractService implements Runnable, ThreadFactory, SyncQueueProcessorMXBean {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/** The plugin context to provide the processor's configuration */
@@ -126,6 +127,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 	
 	/** A map of UniqueIds keyed by the UniqueId.UniqueIdType */
 	private final Map<UniqueId.UniqueIdType, UniqueId> uniques = new EnumMap<UniqueId.UniqueIdType, UniqueId>(UniqueId.UniqueIdType.class);
+
 
 	
 	
@@ -171,6 +173,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		sqlWorker = SQLWorker.getInstance(dataSource);
 		syncDisabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(CatalogDBInterface.TSDB_DISABLE_SYNC, CatalogDBInterface.DEFAULT_TSDB_DISABLE_SYNC, pluginContext.getExtracted());
 		maxSyncOps = ConfigurationHelper.getIntSystemThenEnvProperty(CONFIG_MAX_SYNC_OPS, DEFAULT_CONFIG_MAX_SYNC_OPS, pluginContext.getExtracted());
+		JMXHelper.registerMBean(this, OBJECT_NAME);
 	}
 
 
@@ -267,7 +270,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		return t;
 	}
 	
-	/**
+	/**notification
 	 * <p>The implementation of the scheduled polling event</p>.
 	 * {@inheritDoc}
 	 * @see java.lang.Runnable#run()
@@ -279,6 +282,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		}
 		log.debug("Starting TSDB Sync Run....");
 		final long startTime = System.currentTimeMillis();
+		pluginContext.publishNotification(JMX_NOTIF_SYNC_STARTED, "SyncLoop started", null, OBJECT_NAME);
 		hasRemainingOps.set(0);
 		pendingOps.set(0);		
 		final AtomicBoolean keepRunning = new AtomicBoolean(false);
@@ -296,7 +300,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
 					long elapsed = System.currentTimeMillis() - startTime;
 					int remainingOps = hasRemainingOps.decrementAndGet();
-					log.info("\n\t------------------> Completed SyncOp Loop.\n\tLoop #{}.\n\tElapsed: [{}] ms.\n\tRemaining Ops: [{}]", currentBatchSeq, elapsed, remainingOps);
+					log.info("\n\t-----------------elapsed:" + elapsed + " ms.-> Completed SyncOp Loop.\n\tLoop #{}.\n\tElapsed: [{}] ms.\n\tRemaining Ops: [{}]", currentBatchSeq, elapsed, remainingOps);
 					
 					if(remainingOps <= 0) {
 						if(taskHandle!=null) {
@@ -313,10 +317,21 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				}
 			});
 		} while(keepRunning.get());
+		final long elapsed = SystemClock.time() - startTime;
+		pluginContext.publishNotification(JMX_NOTIF_SYNC_ENDED, "SyncLoop elapsed:" + elapsed + " ms.", null, OBJECT_NAME);
 		log.info("SyncOps Outer Loop Complete.");
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.syncqueue.SyncQueueProcessorMXBean#getState()
+	 */
+	public String getState() {
+		return this.state().name();
 	}
 	
 	/**
@@ -336,7 +351,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		final List<Deferred<ArrayList<Object>>> allDeferreds = new ArrayList<Deferred<ArrayList<Object>>>();
 		try {
 			conn = dataSource.getConnection();
-			ResultSet disx = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", true);			
+			ResultSet disx = sqlWorker.executeQuery(conn, "SELECT TABLE_NAME, LAST_SYNC FROM TSD_LASTSYNC ORDER BY ORDERING", true);
+			int cnt = 0;
+			int totalCnt = 0;
 			while(disx.next()) {
 //				hasRemainingOps.incrementAndGet();
 				if(syncBatchHitMax.get()) break; // we already hit the max so eject
@@ -345,9 +362,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), disx.getTimestamp(2));
 				String sqlText = String.format("SELECT '%s' as TAG_TYPE,* FROM %s WHERE LAST_UPDATE > ?", table.name().replace("TSD_", ""), table.name());
 				rset = sqlWorker.executeQuery(sqlText, false, disx.getTimestamp(2));
-				int cnt = 0;
+				cnt = 0;
 				for(final Object dbObject: table.ti.getObjects(rset, dbInterface)) {
-					log.info("Submitting New Sync [{}]", dbObject);
+					log.debug("Submitting New Sync [{}]", dbObject);
 					cnt++;
 					executedOps++;
 					if(dbObject instanceof UIDMeta) {
@@ -412,7 +429,9 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				rset.close();
 				rset = null;				
 				conn.commit();				
-				log.info("Processed [{}] New Syncs from [{}].", cnt, table.name());
+				totalCnt += cnt;
+				log.info("Processed [{}] New Syncs from [{}]. Total ops this loop: [{}]", cnt, table.name(), totalCnt);
+				
 				Deferred<ArrayList<Object>> groupedTableDeferred = Deferred.group(tableDeferreds); 
 				allDeferreds.add(groupedTableDeferred);				
 				if(cnt>0) {

@@ -10,18 +10,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.Notification;
+import javax.management.NotificationListener;
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.CatalogDBInterface;
 import net.opentsdb.catalog.TSDBCatalogSearchEventHandler;
+import net.opentsdb.catalog.syncqueue.SyncQueueProcessorMXBean;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.core.WritableDataPoints;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
 
+import org.helios.tsdb.plugins.service.PluginContextImplMBean;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.junit.Assert;
@@ -92,7 +98,30 @@ public class TSDBSyncTest extends CatalogBaseTest {
 			
 		}
 		waitForProcessingQueue(name.getMethodName(), 3000000, TimeUnit.MILLISECONDS);
+		// ===========================
+		final CountDownLatch latch = new CountDownLatch(1);
+		final NotificationListener listener = new NotificationListener() {
+			@Override
+			public void handleNotification(Notification notification, Object handback) {
+				if(SyncQueueProcessorMXBean.JMX_NOTIF_SYNC_ENDED.equals(notification.getType())) {
+					latch.countDown();
+				}
+			}
+			
+		};
+		SyncQueueProcessorMXBean syncQ = MBeanServerInvocationHandler.newProxyInstance(JMXHelper.getHeliosMBeanServer(), SyncQueueProcessorMXBean.OBJECT_NAME, SyncQueueProcessorMXBean.class, false);
 		dbInterface.setTSDBSyncPeriodAndHighwater(10);
+		// ===============================================		
+		JMXHelper.getHeliosMBeanServer().addNotificationListener(PluginContextImplMBean.OBJECT_NAME, listener, null, null);
+		syncQ.setMaxSyncOps(20);
+		jdbcHelper.executeUpdate("UPDATE TSD_TAGV SET NOTES = NAME");
+		if(!latch.await(12000, TimeUnit.MILLISECONDS)) {
+			throw new RuntimeException("Timed Out Waiting for Sync Queue End Event");
+		}
+		log("Sync Queue Completed TAGV Syncs");
+		
+		
+		
 //		UniqueIdRegistry.getInstance().purgeAllCaches();
 		Thread.currentThread().join();
 		

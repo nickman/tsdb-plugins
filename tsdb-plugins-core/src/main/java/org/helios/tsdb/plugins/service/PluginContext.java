@@ -75,6 +75,23 @@ public interface PluginContext {
 	 * @param listener The listener to remove
 	 */
 	public void removeResourceListener(IPluginContextResourceListener listener);
+	
+	/**
+	 * Publishes a notification on behalf of a non-mbean service
+	 * @param type The message type
+	 * @param message The notification message
+	 * @param userData The optional user data
+	 * @param source The optional source of the notification
+	 */
+	public void publishNotification(String type, String message, Object userData, Object source);
+	
+	/**
+	 * Publishes a notification on behalf of a non-mbean service
+	 * @param type The message type
+	 * @param message The notification message
+	 */
+	public void publishNotification(String type, String message);
+	
 
 
 }

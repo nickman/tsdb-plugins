@@ -53,6 +53,7 @@
 		<elastic-search.version>0.90.5</elastic-search.version>
 		<lucene.version>4.4.0</lucene.version>
 		<bonecp.version>0.8.0.RELEASE</bonecp.version>
+		<hbase-test.version>0.94.16</hbase-test.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -65,6 +66,7 @@
     </properties>
     
     
+
 <!--
 <repositories>
     <repository>
@@ -103,6 +105,13 @@
 		    <version>${powermock.version}</version>
 		    <scope>test</scope>
 		</dependency>
+		<dependency>
+		  <groupId>org.apache.hbase</groupId>
+		  <artifactId>hbase</artifactId>
+		  <version>${hbase-test.version}</version>
+		  <classifier>tests</classifier>
+		  <scope>test</scope>
+		</dependency>    
 		
 
       <!-- ==========================================================

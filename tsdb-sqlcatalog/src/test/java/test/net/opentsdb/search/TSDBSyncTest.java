@@ -62,17 +62,19 @@ public class TSDBSyncTest extends CatalogBaseTest {
 	}
 	
 	protected Deferred<Object> addPoint(ObjectName on, TSDB tsdb, long value, long timestamp) {
-		String mn = on.getDomain().replace(" ", "");
-		Map<String, String> tags = new HashMap<String, String>();
-		for(Map.Entry<String, String> tag: on.getKeyPropertyList().entrySet()) {
-			tags.put(tag.getKey(), tag.getValue().replace(" ", ""));
+		for(int i = 0; i < 100; i++) {
+			for(String s: JMXHelper.getAttributeNames(on)) {
+				String mn = on.getDomain().replace(" ", "");
+				Map<String, String> tags = new HashMap<String, String>();
+				for(Map.Entry<String, String> tag: on.getKeyPropertyList().entrySet()) {
+					tags.put(tag.getKey(), tag.getValue().replace(" ", ""));
+				}
+				tags.put("host", "host-" + i);
+				tags.put("attr", s);
+				tsdb.addPoint(mn, timestamp, value, tags);
+			}
 		}
-		short bufferingTime = 1;
-		WritableDataPoints wdp = tsdb.newDataPoints();
-		wdp.setSeries(mn, tags);
-		wdp.addPoint(TimeUnit.SECONDS.convert(timestamp, TimeUnit.MILLISECONDS), value);
-		wdp.setBufferingTime(bufferingTime);
-		return tsdb.addPoint(mn, timestamp, value, tags);
+		return null;
 	}
 	
 	/**

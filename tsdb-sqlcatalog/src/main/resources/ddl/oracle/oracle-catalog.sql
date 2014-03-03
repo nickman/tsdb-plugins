@@ -93,7 +93,7 @@ COMMENT ON COLUMN TSD_METRIC.XUID IS 'The metric names UID as a hex encoded stri
 COMMENT ON COLUMN TSD_METRIC.VERSION IS 'The version of this instance';
 COMMENT ON COLUMN TSD_METRIC.NAME IS 'The metric name';
 COMMENT ON COLUMN TSD_METRIC.CREATED IS 'The timestamp of the creation of the metric';
-COMMENT ON COLUMN TSD_METRIC.LAST_UPDATE IS 'The timestamp of the last update to this METRIC';
+COMMENT ON COLUMN TSD_METRIC.LAST_UPDATE IS 'The timestamp of the last update to this metric';
 COMMENT ON COLUMN TSD_METRIC.DESCRIPTION IS 'An optional description for this metric name';
 COMMENT ON COLUMN TSD_METRIC.DISPLAY_NAME IS 'An optional display name for this metric name';
 COMMENT ON COLUMN TSD_METRIC.NOTES IS 'Optional notes for this metric name';

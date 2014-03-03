@@ -33,6 +33,7 @@ import java.util.Set;
 import net.opentsdb.core.Const;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
 
 import org.hbase.async.Bytes;
@@ -84,13 +85,75 @@ public class MetaSynchronizer {
 		this.tsdb = tsdb;
 	}
 	
+	public int getTSMetaCount() {
+		Scanner scanner = null;
+		final Set<String> seenids = new HashSet<String>();
+		try {
+			
+			scanner = tsdb.getClient().newScanner(tsdb.dataTable());
+			while(true) {
+				ArrayList<ArrayList<KeyValue>> arr = scanner.nextRows().joinUninterruptibly(1000);
+				if(arr==null) break;
+				for(ArrayList<KeyValue> kv: arr) {
+	    		    byte[] tsuid = UniqueId.getTSUIDFromKey(kv.get(0).key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);    
+	    		    String tsuid_string = UniqueId.uidToString(tsuid);
+	    		    seenids.add(tsuid_string);
+				}
+			}
+			return seenids.size();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		} finally {
+			if(scanner!=null) try { scanner.close(); } catch (Exception x) {}
+		}
+		
+	}
+	
+	public long process(final boolean dumpOnly) {
+		Scanner scanner = null;
+		final Set<String> seenids = new HashSet<String>();
+		final Set<String> seenuids = new HashSet<String>();
+		try {
+			
+			scanner = tsdb.getClient().newScanner(tsdb.dataTable());
+			while(true) {
+				ArrayList<ArrayList<KeyValue>> arr = scanner.nextRows().joinUninterruptibly(1000);
+				if(arr==null) break;
+				for(ArrayList<KeyValue> kv: arr) {
+	    		    byte[] tsuid = UniqueId.getTSUIDFromKey(kv.get(0).key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);    
+	    		    String tsuid_string = UniqueId.uidToString(tsuid);
+	    		    if(seenids.add(tsuid_string)) {
+	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
+	    		    	for(UIDMeta uidMeta: tsMeta.getTags()) {
+	    		    		if(seenuids.add(uidMeta.toString())) {
+	    		    			tsdb.indexUIDMeta(uidMeta);
+	    		    		}
+	    		    	}
+	    		    	UIDMeta uidMeta = tsMeta.getMetric();
+    		    		if(seenuids.add(uidMeta.toString())) {
+    		    			tsdb.indexUIDMeta(uidMeta);
+    		    		}
+	    		    	tsdb.indexTSMeta(tsMeta);
+	    		    }
+	    		    
+				}
+			}
+			return seenids.size();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		} finally {
+			if(scanner!=null) try { scanner.close(); } catch (Exception x) {}
+		}
+
+	}
+	
 	
 	/**
 	 * Runs the meta synchronization
 	 * @param dumpOnly If true, only dumps the TSMeta data to the logger, otherwise processes the synch
 	 * @return the number of TSMeta objects processed
 	 */
-	public long process(final boolean dumpOnly) {
+	public long processX(final boolean dumpOnly) {
 		long max_id = getMaxMetricID(tsdb);
 		if(max_id==0) return 0L;
 		start_time = SystemClock.unixTime();
@@ -147,7 +210,7 @@ public class MetaSynchronizer {
 	    		    byte[] tsuid = UniqueId.getTSUIDFromKey(kv.get(0).key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);    
 	    		    String tsuid_string = UniqueId.uidToString(tsuid);
 	    		    if(seenTSUids.add(tsuid_string)) {
-	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
+	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);	    		    	
 	    		    	if(dumpOnly) {
 	    		    		if(tsMeta!=null) {
 	    		    			print(tsMeta);
@@ -156,6 +219,10 @@ public class MetaSynchronizer {
 	    		    		}
 	    		    		continue;
 	    		    	}
+	    		    	for(UIDMeta uidMeta: tsMeta.getTags()) {
+	    		    		tsdb.indexUIDMeta(uidMeta);
+	    		    	}
+	    		    	tsdb.indexUIDMeta(tsMeta.getMetric());	    		    	
 	    		    	tsdb.indexTSMeta(tsMeta);
 	    		    	tsMetaCount++;
 	    		    }

@@ -94,6 +94,11 @@ public interface CatalogDBMXBean extends LoggerManager {
 	 */
 	public int getAnnotationCount();
 	
+	/**
+	 * Returns the number of TSMetas in HBase
+	 * @return the number of TSMetas in HBase
+	 */
+	public int getHBaseTSMetaCount();
 	
 	
 	

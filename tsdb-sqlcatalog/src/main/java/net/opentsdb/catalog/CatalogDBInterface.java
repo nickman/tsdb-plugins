@@ -547,6 +547,12 @@ public interface CatalogDBInterface {
 	 */
 	public Map<String, String> getNamesForUIDs(String tsuid);
 	
+	/**
+	 * Returns the number of TSMetas in HBase
+	 * @return the number of TSMetas in HBase
+	 */
+	public int getHBaseTSMetaCount();
+	
 	// ========================================================================================================
 	//    SynQueue Operations, defined here since they may be DB specific.
 	// ========================================================================================================

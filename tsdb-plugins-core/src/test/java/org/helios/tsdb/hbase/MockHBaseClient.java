@@ -24,16 +24,20 @@
  */
 package org.helios.tsdb.hbase;
 
+import javax.sql.DataSource;
+
 /**
  * <p>Title: MockHBaseClient</p>
- * <p>Description: </p> 
+ * <p>Description: HBaseClient mock that CRUDs to a JDBC data store</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.hbase.MockHBaseClient</code></p>
  */
 
 public class MockHBaseClient {
-
+	/** The data source used by the mock hbase client */
+	public static DataSource ds = null;
+	
 	/**
 	 * Creates a new MockHBaseClient
 	 */

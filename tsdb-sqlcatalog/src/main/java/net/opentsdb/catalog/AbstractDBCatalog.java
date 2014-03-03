@@ -2211,11 +2211,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void setTSDBSyncPeriodAndHighwater(final long newPeriod) {
-		sqlWorker.executeUpdate("UPDATE TSD_LASTSYNC SET LAST_SYNC = SYSTIMESTAMP");
+		sqlWorker.executeUpdate("UPDATE TSD_LASTSYNC SET LAST_SYNC = ?", SystemClock.getTimestamp());
 		setTSDBSyncPeriod(newPeriod);
 	}
 	
 
+	public int getHBaseTSMetaCount() {
+		return new MetaSynchronizer(tsdb).getTSMetaCount();
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.catalog.CatalogDBMXBean#getMetricInsertCount()

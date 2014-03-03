@@ -16,6 +16,7 @@
 		<module>tsdb-elastic</module>
 		<module>tsdb-jdbc</module>
 		<module>tsdb-sqlcatalog</module>
+		<module>tsdb-websockets</module>
 	</modules>
 	
     <properties>    	 

@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS TSD_TSMETA (
 	MIN_VALUE DOUBLE DEFAULT DOUBLE_NAN COMMENT 'Optional min value for the timeseries',
 	DATA_TYPE VARCHAR(20) COMMENT 'An optional and arbitrary data type designation for the time series, e.g. COUNTER or GAUGE',
 	DESCRIPTION VARCHAR(60) COMMENT 'An optional description for the time-series',
-	DISPLAY_NAME VARCHAR(20) COMMENT 'An optional name for the time-series',
+	DISPLAY_NAME VARCHAR(60) COMMENT 'An optional name for the time-series',
 	NOTES VARCHAR(120) COMMENT 'Optional notes for the time-series',
 	UNITS VARCHAR(20) COMMENT 'Optional units designation for the time-series',
 	RETENTION INTEGER DEFAULT 0 COMMENT 'Optional retention time for the time-series in days where 0 is indefinite',

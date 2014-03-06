@@ -124,16 +124,18 @@ public class MetaSynchronizer {
 	    		    String tsuid_string = UniqueId.uidToString(tsuid);
 	    		    if(seenids.add(tsuid_string)) {
 	    		    	TSMeta tsMeta = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
-	    		    	for(UIDMeta uidMeta: tsMeta.getTags()) {
+	    		    	if(tsMeta!=null) {
+		    		    	for(UIDMeta uidMeta: tsMeta.getTags()) {
+		    		    		if(seenuids.add(uidMeta.toString())) {
+		    		    			tsdb.indexUIDMeta(uidMeta);
+		    		    		}
+		    		    	}
+		    		    	UIDMeta uidMeta = tsMeta.getMetric();
 	    		    		if(seenuids.add(uidMeta.toString())) {
 	    		    			tsdb.indexUIDMeta(uidMeta);
 	    		    		}
+		    		    	tsdb.indexTSMeta(tsMeta);
 	    		    	}
-	    		    	UIDMeta uidMeta = tsMeta.getMetric();
-    		    		if(seenuids.add(uidMeta.toString())) {
-    		    			tsdb.indexUIDMeta(uidMeta);
-    		    		}
-	    		    	tsdb.indexTSMeta(tsMeta);
 	    		    }
 	    		    
 				}

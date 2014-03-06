@@ -77,6 +77,8 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	protected SimpleApplicationEventMulticaster eventMulticaster;
 	/** The asynch dispatcher's executor */
 	protected ThreadPoolExecutor asyncExecutor;
+	/** The parent TSDB instance */
+	protected TSDB tsdb = null;
 	
 	
 	/** The config property name for the resource path of the spring bootstrap xml */
@@ -104,6 +106,7 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 			synchronized(lock) {
 				if(instance==null) {
 					instance = new SpringContainerService(pc);
+					instance.tsdb = pc.getTsdb();
 				}
 			}
 		}
@@ -357,6 +360,16 @@ public class SpringContainerService extends AbstractTSDBPluginService {
 	 */
 	public GenericXmlApplicationContext getAppContext() {
 		return appContext;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.ITSDBPluginService#getTSDB()
+	 */
+	@Override
+	public TSDB getTSDB() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 

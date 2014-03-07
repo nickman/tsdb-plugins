@@ -55,7 +55,11 @@
 	  <groupId>org.helios.tsdb</groupId>
 	  <artifactId>tsdb-plugins-core</artifactId>      
 	  <version>${project.version}</version>
-        </dependency>
+	  <!--
+	  	Need to implement plugin support path to get rid of this 
+	  <scope>provided</scope>
+	  -->
+    </dependency>
 
 	<!--
 	  ========================================

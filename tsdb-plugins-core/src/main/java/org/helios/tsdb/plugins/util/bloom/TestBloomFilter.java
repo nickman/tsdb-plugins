@@ -50,25 +50,20 @@ import com.google.common.hash.PrimitiveSink;
 
 public class TestBloomFilter {
 
-	/**
-	 * Creates a new TestBloomFilter
-	 */
-	public TestBloomFilter() {
-		// TODO Auto-generated constructor stub
-	}
+	static final int unique = 10000000;
+	static final int totalMultiplier = 3;
+	static final int intoFilterDiv = 5;
+	static final double prob = 0.0000001;
+	static final int warmupLoops = 3;
+	
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		System.setProperty("unsafe.allocations.track", "true");
-		System.setProperty("unsafe.allocations.align", "true");
+//		System.setProperty("unsafe.allocations.align", "true");
 		log("BloomFilter Test");
-		int unique = 10000000;
-		int totalMultiplier = 3;
-		int intoFilterDiv = 5;
-		double prob = 0.0000001;
-		int warmupLoops = 3;
 //		double prob = 0.0001;
 		Funnel<UUID> funnel = new Funnel<UUID>() {
 			private static final long serialVersionUID = -2177915412707545905L;
@@ -131,7 +126,7 @@ public class TestBloomFilter {
 		
 		if(printResults) {
 			et = et.stopClock();
-			log("UNSAFE: Nos: %s, Maybes: %s, Expected: %s, [%s]", noMatch, maybeMatch, containedUuids.size(), et.printAvg("rate", uuids.size()));			
+			log("UNSAFE: Nos: %s, Maybes: %s, Expected: %s, [%s]", noMatch, maybeMatch, containedUuids.size() * totalMultiplier, et.printAvg("rate", uuids.size()));			
 		}
 	}
 
@@ -153,7 +148,7 @@ public class TestBloomFilter {
 		
 		if(printResults) {
 			et = et.stopClock();
-			log("STANDARD: Nos: %s, Maybes: %s, Expected: %s, [%s]", noMatch, maybeMatch, containedUuids.size(), et.printAvg("rate", uuids.size()));			
+			log("STANDARD: Nos: %s, Maybes: %s, Expected: %s, [%s]", noMatch, maybeMatch, containedUuids.size() * totalMultiplier, et.printAvg("rate", uuids.size()));			
 		}		
 	}
 

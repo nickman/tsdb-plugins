@@ -36,8 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.helios.jmx.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.helios.tsdb.plugins.util.SystemClock;
-import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

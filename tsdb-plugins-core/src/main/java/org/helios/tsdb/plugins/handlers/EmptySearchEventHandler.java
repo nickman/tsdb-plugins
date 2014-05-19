@@ -24,19 +24,16 @@
  */
 package org.helios.tsdb.plugins.handlers;
 
-import java.util.Properties;
-
-import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.cliffc.high_scale_lib.Counter;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
+import org.helios.jmx.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
-import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;

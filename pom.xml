@@ -27,6 +27,7 @@
  		<!-- Dependencies -->
  		<junit.version>4.11</junit.version>
  		<trove.version>3.0.2</trove.version>
+ 		<jmx-tools.version>1.0-SNAPSHOT</jmx-tools.version>
 		<http-client.version>4.2.3</http-client.version>
 		<opentsdb.version>2.0.0</opentsdb.version>
 		<async.version>1.4.0</async.version>
@@ -291,6 +292,14 @@
 		  <artifactId>jmxremote_optional</artifactId>
 		  <version>${jmx-optional.version}</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.helios.jmx-tools</groupId>
+			<artifactId>jmx-core</artifactId>
+		  	<version>${jmx-tools.version}</version>
+		</dependency>
+
+
 
 	      <!-- ==========================================================
 		Byte Code Injection

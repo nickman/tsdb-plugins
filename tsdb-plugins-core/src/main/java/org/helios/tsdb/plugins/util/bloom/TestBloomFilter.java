@@ -62,6 +62,7 @@ public class TestBloomFilter {
 	 */
 	public static void main(String[] args) {
 		System.setProperty("unsafe.allocations.track", "true");
+		System.setProperty("unsafe.allocations.align", "true");
 		log("BloomFilter Test");
 		int unique = 10000000;
 		int totalMultiplier = 3;

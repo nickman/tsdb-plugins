@@ -34,12 +34,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
-import net.opentsdb.catalog.h2.H2Support;
-
 import org.h2.api.Trigger;
+import org.helios.jmx.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
-import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

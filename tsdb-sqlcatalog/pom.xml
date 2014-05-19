@@ -61,6 +61,12 @@
 	  -->
     </dependency>
 
+   	<dependency>
+		<groupId>org.helios.jmx-tools</groupId>
+		<artifactId>jmx-core</artifactId>
+	</dependency>
+    
+
 	<!--
 	  ========================================
 	  H2 Artifacts

@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.meta.query;
 
+import java.io.Closeable;
 import java.util.Map;
 
 import javax.management.ObjectName;
@@ -47,10 +48,11 @@ import net.opentsdb.meta.TSMeta;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.meta.query.IMetaQuery</code></p>
- * @param <R>  The type of the returned objects
+ * @param <R, T>  The type of the returned objects
+ * @param <T> The type of the raw objects returned by the MetaQuery's impl and converted to instances of R
  */
 
-public interface IMetaQuery<R> {
+public interface IMetaQuery<R, T> extends Closeable {
 	/** The default timeout for the entire query (ms)*/
 	public static long TOTAL_TIMEOUT_DEFAULT = 60000;
 	/** The default timeout while waiting for the first result (ms) */
@@ -91,11 +93,26 @@ public interface IMetaQuery<R> {
 	public CancelableIterator<R> query(CharSequence metric, Map<String, String> tags, Class<R> returnType);
 
 	/**
+	 * Indicates if the query is open, in which case it may still return more results.
+	 * Otherwise it is closed and any resources have been deallocated.
+	 * @return true if open, false otherwise
+	 */
+	public boolean isOpen();
+	
+	/**
+	 * Converts a raw object provided by the query impl to the requested type 
+	 * @param t The raw object
+	 * @return the converted object
+	 */
+	public R convert(T t);
+	
+	
+	/**
 	 * Sets the query timeout in ms.
 	 * @param timeout The timeout in ms.
 	 * @return this IMetaQuery
 	 */
-	public IMetaQuery<R> timeout(long timeout);
+	public IMetaQuery<R, T> timeout(long timeout);
 	
 	/**
 	 * Returns the query timeout in ms.
@@ -108,7 +125,7 @@ public interface IMetaQuery<R> {
 	 * @param maxWait next row max wait time in ms.
 	 * @return this IMetaQuery
 	 */
-	public IMetaQuery<R> maxWaitNext(long maxWait);
+	public IMetaQuery<R, T> maxWaitNext(long maxWait);
 	
 	/**
 	 * Returns the query next row max wait time in ms.
@@ -121,7 +138,7 @@ public interface IMetaQuery<R> {
 	 * @param maxWait first row max wait time in ms.
 	 * @return this IMetaQuery
 	 */
-	public IMetaQuery<R> maxWaitFirst(long maxWait);
+	public IMetaQuery<R, T> maxWaitFirst(long maxWait);
 
 	/**
 	 * Returns the query first row max wait time in ms.
@@ -134,7 +151,7 @@ public interface IMetaQuery<R> {
 	 * @param maxResults the max results limit
 	 * @return this IMetaQuery
 	 */
-	public IMetaQuery<R> maxResults(long maxResults);
+	public IMetaQuery<R, T> maxResults(long maxResults);
 	
 	/**
 	 * Returns the max results limit

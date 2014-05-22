@@ -2,7 +2,7 @@
  * Helios, OpenSource Monitoring
  * Brought to you by the Helios Development Group
  *
- * Copyright 2007, Helios Development Group and individual contributors
+ * Copyright 2014, Helios Development Group and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -24,18 +24,50 @@
  */
 package org.helios.tsdb.plugins.meta.query;
 
-import java.util.Iterator;
-
 /**
- * <p>Title: CancelableIterator</p>
- * <p>Description: An iterator for retrieving the results from an {@link IMetaQuery} that supports cancelling and timeouts which will
- * relay the respective events back to the underlying query implementation so the resources can be closed/released.</p> 
+ * <p>Title: MetaQueryTimeoutException</p>
+ * <p>Description: Exception thrown when an {@link IMetaQuery} or its child {@link CancelableIterator} timeout.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.meta.query.CancelableIterator</code></p>
- * @param <T> The return type of the iterator
+ * <p><code>org.helios.tsdb.plugins.meta.query.MetaQueryTimeoutException</code></p>
  */
 
-public interface CancelableIterator<T> extends Iterator<T> {
+public class MetaQueryTimeoutException extends RuntimeException {
+
+	/**  */
+	private static final long serialVersionUID = -8572283512075716787L;
+
+	/**
+	 * Creates a new MetaQueryTimeoutException
+	 */
+	public MetaQueryTimeoutException() {
+
+	}
+
+	/**
+	 * Creates a new MetaQueryTimeoutException
+	 * @param message The exception message
+	 */
+	public MetaQueryTimeoutException(String message) {
+		super(message);
+	}
+
+	/**
+	 * Creates a new MetaQueryTimeoutException
+	 * @param cause The exception underlying cause
+	 */
+	public MetaQueryTimeoutException(Throwable cause) {
+		super(cause);
+	}
+
+	/**
+	 * Creates a new MetaQueryTimeoutException
+	 * @param message The exception message
+	 * @param cause The exception underlying cause
+	 */
+	public MetaQueryTimeoutException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 
 }

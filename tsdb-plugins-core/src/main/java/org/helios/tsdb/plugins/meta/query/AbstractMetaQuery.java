@@ -24,11 +24,11 @@
  */
 package org.helios.tsdb.plugins.meta.query;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -41,6 +41,8 @@ import javax.management.ObjectName;
 import net.opentsdb.meta.TSMeta;
 
 import org.helios.jmx.util.helpers.JMXHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>Title: AbstractMetaQuery</p>
@@ -49,9 +51,10 @@ import org.helios.jmx.util.helpers.JMXHelper;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.meta.query.AbstractMetaQuery</code></p>
  * @param <R> The type to be returned by the query
+ * @param <T> The type of the raw objects returned by the MetaQuery's impl and converted to instances of R
  */
 
-public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
+public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 	/** A set of allowed return type classes */
 	@SuppressWarnings("unchecked")
 	protected static final Set<Class<?>> allowedReturnTypes = Collections.unmodifiableSet(new HashSet<Class<?>>(Arrays.asList(
@@ -70,8 +73,10 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	protected long maxResults = MAX_RESULTS_DEFAULT;	
 	/** The result buffering queue */
 	protected final ArrayBlockingQueue<R> bufferQueue;
-	/** Indicates if the query is still open (i.e. still retruning results) */
+	/** Indicates if the query is still open (i.e. still retruning results). If it's not open, it's closed (duh!) and has been disconnected */
 	protected final AtomicBoolean open = new AtomicBoolean(false);
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	
 	static {
@@ -97,6 +102,15 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 		this(QUEUE_SIZE_DEFAULT);
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#isOpen()
+	 */
+	@Override
+	public boolean isOpen() {
+		return open.get();
+	}
+	
 
 	/**
 	 * {@inheritDoc}
@@ -117,6 +131,12 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 		return query(JMXHelper.objectName(metric, new Hashtable<String, String>(tags)), getReturnTypeFor(returnType));
 	}
 	
+	void closeMe() {
+		if(open.compareAndSet(true, false)) {
+			try { close(); } catch (IOException e) { /* No Op */ }
+		}
+	}
+	
 	/**
 	 * <p>Title: ResultIterator</p>
 	 * <p>Description: The cancelable iterator implementation</p> 
@@ -124,18 +144,24 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.meta.query.AbstractMetaQuery.ResultIterator</code></p>
 	 */
-	protected class ResultIterator implements CancelableIterator<R>, Iterator<R> {
+	protected class ResultIterator implements CancelableIterator<R> {
 		/** The results read count */
 		protected final AtomicLong resultCount = new AtomicLong(0L);
+		/** The query timeout */
+		protected final long qTimeout = queryTimeout;
 		/** The future timestamp by when the query will timeout */
-		protected final long timeoutBy = System.currentTimeMillis() + queryTimeout;
+		protected final long timeoutBy = System.currentTimeMillis() + qTimeout;
 		/** The current row wait timeout in ms. */
 		protected long waitTimeout = maxWaitFirst;
+		/** The max results count limit */
+		protected final long maxRez = maxResults;
+		/** a saved timeout exception used if the last result comes in at or slightly after the timeout */
+		protected volatile MetaQueryTimeoutException queryTimeoutException = null;
+		/** A flag indicating a deliberate interrupt */
+		protected final AtomicBoolean interrupt = new AtomicBoolean(false);
+		/** A thread tracker of threads waiting on the queue */
+		protected final ThreadTracker tracker = new ThreadTracker();
 		
-		@Override
-		public Iterator<R> iterator() {
-			return this;
-		}
 
 		/**
 		 * {@inheritDoc}
@@ -143,7 +169,10 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 		 */
 		@Override
 		public boolean hasNext() {
-			return !bufferQueue.isEmpty() || open.get();
+			if(!isOpen()) return false;
+			boolean hasnext = !bufferQueue.isEmpty() || open.get();
+			if(!hasnext) closeMe(); closeMe();
+			return hasnext;
 		}
 
 		/**
@@ -152,15 +181,54 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 		 */
 		@Override
 		public R next() {
+			if(queryTimeoutException!=null) throw queryTimeoutException;
+			if(!isOpen()) throw new IllegalStateException("MetaQuery Result Iterator Is Closed");
 			final long rCount = resultCount.incrementAndGet(); 
 			if(rCount==1L) waitTimeout = maxWaitNext;
 			R r = null;
 			try {
-				r = bufferQueue.poll(waitTimeout, TimeUnit.MILLISECONDS);
+				tracker.add();
+				try {
+					if(waitTimeout<0) {
+						r = bufferQueue.poll();	// Instant timeout
+					} else if(waitTimeout==0) {
+						r = bufferQueue.take();  // Indefinite timeout
+					} else {
+						r = bufferQueue.poll(waitTimeout, TimeUnit.MILLISECONDS); // Specified timeout
+					}
+				} finally {
+					tracker.remove();
+				}
+				if(r==null) {
+					// we timed out so close and throw.
+					closeMe();
+					throw new MetaQueryTimeoutException(String.format("Timed out waiting for [%s] result after [%s] ms.", rCount==1 ? "first" : "next", waitTimeout));					
+				}
+				// result is good, but we might have timed out
+				if(System.currentTimeMillis() >= timeoutBy) {
+					queryTimeoutException = new MetaQueryTimeoutException(String.format("Query Timeout after [%s] ms.", qTimeout));
+					closeMe();
+				}
+				// or... we might have reached the max.
+				if(rCount >= maxRez) {
+					closeMe();
+				}				
+				return r;
 			} catch (InterruptedException iex) {
+				if(interrupt.get()) {
+					closeMe();
+					if(queryTimeoutException!=null) throw queryTimeoutException;
+				}
+				// close ?
 				throw new RuntimeException("Thread interrupted while waiting for next result", iex);
 			}
-			return null;
+		}
+		
+		void timeout() {
+			if(interrupt.compareAndSet(false, true)) {
+				queryTimeoutException = new MetaQueryTimeoutException(String.format("Query Timeout after [%s] ms.", qTimeout));
+				tracker.interrupt();
+			}
 		}
 
 		/**
@@ -180,7 +248,7 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#timeout(long)
 	 */
 	@Override
-	public IMetaQuery<R> timeout(long timeout) {
+	public IMetaQuery<R, T> timeout(long timeout) {
 		queryTimeout = timeout;
 		return this;
 	}
@@ -199,7 +267,7 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#maxWaitNext(long)
 	 */
 	@Override
-	public IMetaQuery<R> maxWaitNext(long maxWait) {
+	public IMetaQuery<R, T> maxWaitNext(long maxWait) {
 		maxWaitNext = maxWait;
 		return this;
 	}
@@ -218,7 +286,7 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#maxWaitFirst(long)
 	 */
 	@Override
-	public IMetaQuery<R> maxWaitFirst(long maxWait) {
+	public IMetaQuery<R, T> maxWaitFirst(long maxWait) {
 		maxWaitFirst = maxWait;
 		return this;
 	}
@@ -237,7 +305,7 @@ public abstract class AbstractMetaQuery<R> implements IMetaQuery<R> {
 	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#maxResults(long)
 	 */
 	@Override
-	public IMetaQuery<R> maxResults(long maxResults) {
+	public IMetaQuery<R, T> maxResults(long maxResults) {
 		this.maxResults = maxResults;
 		return this;
 	}

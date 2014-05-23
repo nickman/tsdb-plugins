@@ -277,6 +277,7 @@ public class MetaSynchronizer {
 	    	    		ArrayList<ArrayList<KeyValue>> scanResult = scanner.nextRows().joinUninterruptibly(15000);
 	    	    		if(scanResult==null) {
 	    	    			log.warn("ScanResult for segment [{}] for segments between [{}] and [{}] was null", i, segments[i][0], segments[i][1]);
+	    	    			return;
 	    	    		}
 	    	    		int size = scanResult.size();
 	    	    		log.info("Processing Segment [{}] with [{}] KeyValues", i, size);

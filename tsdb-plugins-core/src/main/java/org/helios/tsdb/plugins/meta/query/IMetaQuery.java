@@ -48,11 +48,11 @@ import net.opentsdb.meta.TSMeta;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.meta.query.IMetaQuery</code></p>
- * @param <R, T>  The type of the returned objects
+ * @param <R>  The type of the returned objects
  * @param <T> The type of the raw objects returned by the MetaQuery's impl and converted to instances of R
  */
 
-public interface IMetaQuery<R, T> extends Closeable {
+public interface IMetaQuery<R, T> {
 	/** The default timeout for the entire query (ms)*/
 	public static long TOTAL_TIMEOUT_DEFAULT = 60000;
 	/** The default timeout while waiting for the first result (ms) */
@@ -63,6 +63,8 @@ public interface IMetaQuery<R, T> extends Closeable {
 	public static long MAX_RESULTS_DEFAULT = Long.MAX_VALUE;
 	/** The default queue size where results are buffered for the iterator */
 	public static int QUEUE_SIZE_DEFAULT = 100;
+	/** The default buffer queue put timeout (ms) */
+	public static long PUT_TIMEOUT_DEFAULT = 100;
 	
 	/**
 	 * Executes a query to find all matching TSDB metrics matching the pattern expressed in the supplied objectname.
@@ -147,6 +149,23 @@ public interface IMetaQuery<R, T> extends Closeable {
 	public long getMaxWaitFirst();
 	
 	/**
+	 * Sets the bufer queue put timeout, used when the meta-query processes a returned
+	 * raw object, converts it to the requested return type and attempts to enqueue it
+	 * on the buffer queue. This is intended to prevent a slow consumer from keeping
+	 * a meta-query data resource open indefinitely.
+	 * @param timeout the buffer queue put timeout in ms.
+	 * @return this IMetaQuery
+	 */
+	public IMetaQuery<R, T> bufferQueuePutTimeout(long timeout);
+
+	/**
+	 * Returns the buffer queue put timeout in ms.
+	 * @return the buffer queue put timeout in ms.
+	 */
+	public long getBufferQueuePutTimeout();
+	
+	
+	/**
 	 * Sets the max results limit
 	 * @param maxResults the max results limit
 	 * @return this IMetaQuery
@@ -159,6 +178,17 @@ public interface IMetaQuery<R, T> extends Closeable {
 	 */
 	public long getMaxResults();
 	
+	/**
+	 * Sets the buffering queue size
+	 * @param queueSize the buffering queue size
+	 * @return this IMetaQuery
+	 */
+	public IMetaQuery<R, T> queueSize(int queueSize);
 	
+	/**
+	 * Returns the buffering queue size
+	 * @return the buffering queue size
+	 */
+	public int getQueueSize();
 	
 }

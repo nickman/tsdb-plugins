@@ -35,6 +35,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.ObjectName;
 
@@ -70,11 +71,12 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 	/** The max wait time for the next row in ms. */
 	protected long maxWaitNext = NEXT_TIMEOUT_DEFAULT;
 	/** The maximum result count limit */
-	protected long maxResults = MAX_RESULTS_DEFAULT;	
-	/** The result buffering queue */
-	protected final ArrayBlockingQueue<R> bufferQueue;
-	/** Indicates if the query is still open (i.e. still retruning results). If it's not open, it's closed (duh!) and has been disconnected */
-	protected final AtomicBoolean open = new AtomicBoolean(false);
+	protected long maxResults = MAX_RESULTS_DEFAULT;
+	/** The buffering queue size */
+	protected int queueSize = QUEUE_SIZE_DEFAULT;	
+	/** The buffer queue put timeout in ms. */
+	protected long bufferQueuePutTimeout = PUT_TIMEOUT_DEFAULT;
+	
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -87,31 +89,6 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 		allowedReturnTypeMessage = b.deleteCharAt(b.length()-1).append("]").toString();
 	}
 	
-	/**
-	 * Creates a new AbstractMetaQuery
-	 * @param queueSize The buffer queue size
-	 */
-	protected AbstractMetaQuery(int queueSize) {
-		bufferQueue = new ArrayBlockingQueue<R>(queueSize, false);
-	}
-	
-	/**
-	 * Creates a new AbstractMetaQuery with the default queue size ({@value IMetaQuery#QUEUE_SIZE_DEFAULT}.)
-	 */
-	protected AbstractMetaQuery() {
-		this(QUEUE_SIZE_DEFAULT);
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#isOpen()
-	 */
-	@Override
-	public boolean isOpen() {
-		return open.get();
-	}
-	
-
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#query(java.lang.CharSequence, java.lang.Class)
@@ -131,11 +108,6 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 		return query(JMXHelper.objectName(metric, new Hashtable<String, String>(tags)), getReturnTypeFor(returnType));
 	}
 	
-	void closeMe() {
-		if(open.compareAndSet(true, false)) {
-			try { close(); } catch (IOException e) { /* No Op */ }
-		}
-	}
 	
 	/**
 	 * <p>Title: ResultIterator</p>
@@ -144,7 +116,7 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.meta.query.AbstractMetaQuery.ResultIterator</code></p>
 	 */
-	protected class ResultIterator implements CancelableIterator<R> {
+	protected class ResultIterator implements Runnable, CancelableIterator<R> {
 		/** The results read count */
 		protected final AtomicLong resultCount = new AtomicLong(0L);
 		/** The query timeout */
@@ -155,12 +127,29 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 		protected long waitTimeout = maxWaitFirst;
 		/** The max results count limit */
 		protected final long maxRez = maxResults;
+		/** The buffer queue put timeout */
+		protected final long putTimeout = bufferQueuePutTimeout;
 		/** a saved timeout exception used if the last result comes in at or slightly after the timeout */
 		protected volatile MetaQueryTimeoutException queryTimeoutException = null;
 		/** A flag indicating a deliberate interrupt */
 		protected final AtomicBoolean interrupt = new AtomicBoolean(false);
 		/** A thread tracker of threads waiting on the queue */
 		protected final ThreadTracker tracker = new ThreadTracker();
+		/** The result buffering queue */
+		protected final ArrayBlockingQueue<R> bufferQueue;
+		/** Indicates if the query is still open (i.e. still retruning results). If it's not open, it's closed (duh!) and has been disconnected */
+		protected final AtomicBoolean open = new AtomicBoolean(false);
+		
+		/** The raw iterator returning raw results from the meta query */
+		protected final IMetaQueryRawIterator<T> rawIterator;
+		
+		/** The raw processor thread puts itself in here while running */
+		protected final AtomicReference<Thread> rawProcessor = new AtomicReference<Thread>(null);
+		
+		ResultIterator(int queueSize, IMetaQueryRawIterator<T> rawData) {
+			bufferQueue = new ArrayBlockingQueue<R>(queueSize, false);
+			rawIterator = rawData;
+		}
 		
 
 		/**
@@ -173,6 +162,35 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 			boolean hasnext = !bufferQueue.isEmpty() || open.get();
 			if(!hasnext) closeMe(); closeMe();
 			return hasnext;
+		}
+		
+		void closeMe() {
+			if(open.compareAndSet(true, false)) {
+				try { rawIterator.close(); } catch (IOException e) { /* No Op */ }
+			}
+		}
+
+		/**
+		 * <p>Executes the raw data iterator process</p>
+		 * {@inheritDoc}
+		 * @see java.lang.Runnable#run()
+		 */
+		public void run() {
+			try {
+				rawProcessor.set(Thread.currentThread());
+				while(rawIterator.hasNext()) {
+					T rawData = rawIterator.next();
+					R convertedData = convert(rawData);
+					try {
+						bufferQueue.offer(convertedData, putTimeout, TimeUnit.MILLISECONDS);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			} finally {
+				rawProcessor.set(null);
+			}
 		}
 
 		/**
@@ -318,6 +336,45 @@ public abstract class AbstractMetaQuery<R, T> implements IMetaQuery<R, T> {
 	public long getMaxResults() {
 		return maxResults;
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#queueSize(int)
+	 */
+	@Override
+	public IMetaQuery<R, T> queueSize(int size) {
+		this.queueSize = size;
+		return this;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#getQueueSize()
+	 */
+	@Override
+	public int getQueueSize() {
+		return queueSize;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#bufferQueuePutTimeout(long)
+	 */
+	@Override
+	public IMetaQuery<R, T> bufferQueuePutTimeout(long timeout) {
+		bufferQueuePutTimeout = timeout;
+		return this;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.meta.query.IMetaQuery#getBufferQueuePutTimeout()
+	 */
+	@Override
+	public long getBufferQueuePutTimeout() {
+		return bufferQueuePutTimeout;
+	}
+
 	
 	
 	/**

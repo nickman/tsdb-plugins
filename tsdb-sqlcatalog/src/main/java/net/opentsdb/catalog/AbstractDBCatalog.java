@@ -696,11 +696,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			}
 			
 			// Execute batch inserts for TSMetas
-			log.info("Executing [{}] Batched TSMeta Inserts", batchedtsMetaInserts);
-			if(tsMetaFqnPs!=null) {
-				executeBatch(tsMetaFqnPs);
-				tsMetaFqnPs.clearBatch();				
-				batchedtsMetaInserts = 0;
+			if(batchedtsMetaInserts>0) {
+				log.info("Executing [{}] Batched TSMeta Inserts", batchedtsMetaInserts);
+				if(tsMetaFqnPs!=null) {
+					executeBatch(tsMetaFqnPs);
+					tsMetaFqnPs.clearBatch();				
+					batchedtsMetaInserts = 0;
+				}
 			}
 			// Execute batch inserts for FQN TAG Pairs
 			if(uidMetaTagPairFQNPs!=null) {

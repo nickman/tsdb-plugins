@@ -53,7 +53,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
-import org.helios.tsdb.plugins.util.unsafe.collections.ConcurrentLongSlidingWindow;
+import org.helios.jmx.util.unsafe.collections.ConcurrentLongSlidingWindow;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;

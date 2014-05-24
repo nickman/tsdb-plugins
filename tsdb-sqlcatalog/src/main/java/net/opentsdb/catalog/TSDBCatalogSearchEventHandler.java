@@ -38,6 +38,9 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.management.Notification;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
 import javax.sql.DataSource;
 
 import net.opentsdb.search.SearchQuery;
@@ -188,25 +191,69 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
 		//processingQueue = new ArrayBlockingQueue<TSDBSearchEvent>(queueSize, false);
 		dbInterface = loadDB(initerClassName);
+		Connection conn = null;
+		
+		boolean inMem = false;
+		try {
+			conn = dbInterface.getDataSource().getConnection();
+			String jdbcUrl = conn.getMetaData().getURL();
+			inMem = jdbcUrl!=null && jdbcUrl.contains("jdbc:h2:mem");
+		} catch (Exception ex) {
+			/* No Op */
+		} finally {
+			if(conn!=null) try { conn.close(); } catch (Exception ex) {}
+		}
 		dataSource = dbInterface.getDataSource();
 		log.info("Acquired DataSource");	
 		queueProcessorThread = new Thread(this, "TSDBCatalogQueueProcessor");
 		queueProcessorThread.setDaemon(true);
 		queueProcessorThread.start();
 		log.info("\n\t==================================\n\tStarted TSDBCatalogQueueProcessor\n\t==================================");
-		latch.countDown();
-		boolean autoSync = ConfigurationHelper.getBooleanSystemThenEnvProperty("sqlCatalog.autoSyncOnStart", false);
-		log.info("AutoSync On Start:{}", autoSync);
-		if(autoSync) {
-			try {
-				Thread.sleep(500);
-				long synched = dbInterface.synchronizeFromStore(false);
-				log.info("\n\t*****************\n\tAutoSynced [{}] TSMetas\n\t*****************\n", synched);
-			} catch (Exception e) {
-				log.error("Failed to autosync", e);
-			}
-		}
-		
+		addBootNotificationListener(inMem);
+		latch.countDown();		
+	}
+	
+	/**
+	 * Adds a listener on the plugin context boot event (type: <b></code>plugin.service.booted</code></b>) 
+	 * When the boot event is fired and the listener is notified,
+	 * it will check the <b></code>sqlCatalog.autoSyncOnStart</code></b> sys/env property.
+	 * If that is true, or the SQL Catalog is using the in-memory H2 database, a new thread
+	 * will be spawned to read all the metric meta-data from TSDB and writes it to the DB.
+	 * @param inMem true if the SQL Catalog is using the in-memory H2 database, false otherwise
+	 */
+	protected void addBootNotificationListener(final boolean inMem) {
+		pluginContext.addNotificationListener(
+				new NotificationListener() {
+					@Override
+					public void handleNotification(Notification notification, Object handback) {
+						Thread t = new Thread("AutoSyncThread") {
+							public void run() {
+								boolean autoSync = ConfigurationHelper.getBooleanSystemThenEnvProperty("sqlCatalog.autoSyncOnStart", false);								
+								if(autoSync || inMem) {
+									log.info("\n\t*****************\n\tStarting AutoSync Thread\n\tAutoSync Config:{}\n\tInMem DB:{}\n\t*****************\n", autoSync, inMem);
+									try {
+										long start = System.currentTimeMillis();
+										long synched = dbInterface.synchronizeFromStore();
+										long elapsed = System.currentTimeMillis()-start;
+										log.info("\n\t************************\n\tAutoSynced [{}] TSMetas\n\tElapsed:{} ms.\n\t************************\n", synched, elapsed);
+									} catch (Exception e) {
+										log.error("Failed to autosync", e);
+									}
+								}								
+							}
+						};
+						t.setDaemon(true);
+						t.start();
+					}
+				}, 
+				new NotificationFilter() {
+					/**  */
+					private static final long serialVersionUID = 8512090158027219164L;
+					@Override
+					public boolean isNotificationEnabled(Notification notification) {
+						return "plugin.service.booted".equals(notification.getType());
+					}}, 
+				null);
 	}
 	
 	/**

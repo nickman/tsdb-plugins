@@ -2418,13 +2418,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
-	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBMXBean#synchronizeFromStore()
+	 * @return
+	 * @throws Exception
 	 */
-	@Override
-	public long synchronizeFromStore(boolean dumpOnly) throws Exception {
+	public long synchronizeFromStore() throws Exception {
 		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-		return ms.process(dumpOnly);
+		return ms.metasync();
 	}
 	
 	

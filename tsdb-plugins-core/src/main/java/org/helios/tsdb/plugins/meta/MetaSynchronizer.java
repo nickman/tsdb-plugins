@@ -214,10 +214,9 @@ public class MetaSynchronizer {
 	
 	/**
 	 * Runs the meta synchronization
-	 * @param dumpOnly If true, only dumps the TSMeta data to the logger, otherwise processes the synch
 	 * @return the number of TSMeta objects processed
 	 */
-	public long process(final boolean dumpOnly) {
+	public long metasync() {
 		final Set<String> seenTSUids = new HashSet<String>();
 		final Set<String> seenUids = new HashSet<String>();
 
@@ -322,6 +321,7 @@ public class MetaSynchronizer {
 	    	});
 	    }
 	    try {
+	    	// FIXME: Make this configurable. Might need longer.
 	    	if(!latch.await(5, TimeUnit.MINUTES)) {
 	    		throw new RuntimeException("Sync timed out");
 	    	}

@@ -2,7 +2,7 @@ package org.helios.tsdb.plugins.service;
 
 import java.util.Properties;
 
-import javax.sql.DataSource;
+import javax.management.NotificationEmitter;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
@@ -14,7 +14,7 @@ import net.opentsdb.utils.Config;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.service.PluginContext</code></p>
  */
-public interface PluginContext {
+public interface PluginContext extends NotificationEmitter {
 
 	/**
 	 * Returns the parent TSDB instance

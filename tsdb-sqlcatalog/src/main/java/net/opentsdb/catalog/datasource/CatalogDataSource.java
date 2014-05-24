@@ -298,15 +298,18 @@ public class CatalogDataSource implements ICatalogDataSource {
 	//============================================================================================
 	
 	private void preShutdownWorkAround() {
-		try {
-			BoneCP bcp = connectionPool.getPool();
-			Object obj = refQueueField.get(bcp);
-			if(obj!=null) {
-				refQueueCleanup.invoke(obj);
-				refQueueField.set(bcp, null);
+		if(guavaPatchRequired) {
+			try {
+				@SuppressWarnings("resource")
+				BoneCP bcp = connectionPool.getPool();
+				Object obj = refQueueField.get(bcp);
+				if(obj!=null) {
+					refQueueCleanup.invoke(obj);
+					refQueueField.set(bcp, null);
+				}
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
 			}
-		} catch (Exception ex) {
-			ex.printStackTrace(System.err);
 		}
 	}
 	
@@ -315,24 +318,31 @@ public class CatalogDataSource implements ICatalogDataSource {
 	private static final Field refQueueField;
 	/** The ref queue cleanup method */
 	private static final Method refQueueCleanup;
+	/** Indicates if the guava patch is needed */
+	private static final boolean guavaPatchRequired;
 	
 	static {
 		try {
 			log.info("Class Search Starting");
-			Class<?>[] classes = LocalAgentInstaller.getInstrumentation().getAllLoadedClasses();
-			for(Class<?> clazz: classes) {
-				if("com.google.common.base.FinalizableReferenceQueue".equals(clazz.getName())) {
-					log.info("FRQ ClassLoader: [{}]", clazz.getClassLoader());
-				}
+			Class<?> refQueueClazz = Class.forName("com.google.common.base.FinalizableReferenceQueue", true, TSDB.class.getClassLoader());
+			boolean pReq;
+			try {
+				refQueueClazz.getDeclaredMethod("close");
+				pReq = false;
+			} catch (Exception ex) {
+				pReq = true;
 			}
-			log.info("Class Search Done");
-			log.info("Loading FinalizableReferenceQueue using classloader [{}]", TSDB.class.getClassLoader());
-			Class<?> refQueueClazz = Class.forName("com.google.common.base.FinalizableReferenceQueue", true, TSDB.class.getClassLoader()); 
-					//BoneCP.class.getClassLoader().getParent());
-			refQueueField = BoneCP.class.getDeclaredField("finalizableRefQueue");
-			refQueueField.setAccessible(true);
-			refQueueCleanup = refQueueClazz.getDeclaredMethod("cleanUp");
-			refQueueCleanup.setAccessible(true);
+			guavaPatchRequired = pReq;
+			log.info("BoneCP Guava (Version: {}) Patch Required:{}", refQueueClazz.getPackage().getImplementationVersion(), guavaPatchRequired);
+			if(guavaPatchRequired) {
+				refQueueField = BoneCP.class.getDeclaredField("finalizableRefQueue");
+				refQueueField.setAccessible(true);
+				refQueueCleanup = refQueueClazz.getDeclaredMethod("cleanUp");
+				refQueueCleanup.setAccessible(true);
+			} else {
+				refQueueField = null;
+				refQueueCleanup = null;
+			}
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -411,7 +421,16 @@ public class CatalogDataSource implements ICatalogDataSource {
 		public DelegatingDriver(PluginContext pc) {
 			try {
 				String driverName = ConfigurationHelper.getSystemThenEnvProperty(JDBC_POOL_JDBCDRIVER, DEFAULT_JDBC_POOL_JDBCDRIVER, pc.getExtracted()).trim();
-				Class<Driver> clazz = (Class<Driver>) Class.forName(driverName, true, pc.getSupportClassLoader());
+				Class<Driver> clazz = null;
+				try {
+					clazz = (Class<Driver>) Class.forName(driverName, true, pc.getSupportClassLoader());
+				} catch (Exception ex) {
+					try {
+						clazz = (Class<Driver>) Class.forName(driverName, true, getClass().getClassLoader());
+					} catch (Exception ex2) {
+						clazz = (Class<Driver>) Class.forName(driverName, true, ClassLoader.getSystemClassLoader());
+					}
+				}
 				driver = clazz.newInstance();
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to create delegating driver", ex);

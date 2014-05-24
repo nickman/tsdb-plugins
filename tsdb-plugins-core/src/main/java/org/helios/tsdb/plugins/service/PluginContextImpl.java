@@ -51,6 +51,8 @@ import net.opentsdb.utils.Config;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>Title: PluginContextImpl</p>
@@ -60,7 +62,7 @@ import org.helios.tsdb.plugins.util.SystemClock;
  * <p><code>org.helios.tsdb.plugins.service.PluginContextImpl</code></p>
  */
 
-public class PluginContextImpl implements PluginContext, PluginContextImplMBean, NotificationBroadcaster {
+public class PluginContextImpl implements PluginContext, PluginContextImplMBean {
 	/** The parent TSDB instance */
 	protected final TSDB tsdb;
 	/** The parent TSDB instance config */
@@ -82,6 +84,8 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean,
 	protected final ThreadPoolExecutor tpe = new AsyncDispatcherExecutor("PluginContext", 2, 5, 60000, 128);	
 	/** The delegate NotificationBroadcaster */
 	protected final NotificationBroadcasterSupport notificationBroadcaster;
+	/** Instance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
 	
 
@@ -264,13 +268,14 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean,
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.service.PluginContextImplMBean#publishNotification(java.lang.String, java.lang.String, java.lang.Object)
+	 * @see org.helios.tsdb.plugins.service.PluginContext#publishNotification(java.lang.String, java.lang.String, java.lang.Object, java.lang.Object)
 	 */
 	public void publishNotification(String type, String message, Object userData, Object source) {
 		Notification notification = new Notification(type, source==null ? OBJECT_NAME : source, sequence.incrementAndGet(), SystemClock.time(), message);
 		if(userData!=null) {
 			notification.setUserData(userData);
 		}
+//		log.info("\n\t@@@@@@@@@@@@@@@@\n\tNOTIF:\n\t{}\n\t@@@@@@@@@@@@@@@@\n", notification);
 		sendNotification(notification);
 	}
 	

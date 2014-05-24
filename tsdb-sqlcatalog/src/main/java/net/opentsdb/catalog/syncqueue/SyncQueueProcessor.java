@@ -290,7 +290,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			keepRunning.set(false);
 			final int currentBatchSeq = hasRemainingOps.incrementAndGet();
 			final AtomicBoolean syncBatchHitMax = new AtomicBoolean(false);
-			log.info("Running SyncOp Loop #{}", currentBatchSeq);
+			log.debug("Running SyncOp Loop #{}", currentBatchSeq);
 			Deferred<ArrayList<ArrayList<Object>>> processNewDeferred = processNewSyncs(syncBatchHitMax);
 			if(syncBatchHitMax.get()) {
 				keepRunning.set(true);
@@ -300,15 +300,15 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				public Void call(ArrayList<ArrayList<Object>> arg) throws Exception {
 					long elapsed = System.currentTimeMillis() - startTime;
 					int remainingOps = hasRemainingOps.decrementAndGet();
-					log.info("\n\t-----------------elapsed:" + elapsed + " ms.-> Completed SyncOp Loop.\n\tLoop #{}.\n\tElapsed: [{}] ms.\n\tRemaining Ops: [{}]", currentBatchSeq, elapsed, remainingOps);
+					log.debug("\n\t-----------------elapsed:" + elapsed + " ms.-> Completed SyncOp Loop.\n\tLoop #{}.\n\tElapsed: [{}] ms.\n\tRemaining Ops: [{}]", currentBatchSeq, elapsed, remainingOps);
 					
 					if(remainingOps <= 0) {
 						if(taskHandle!=null) {
 							taskHandle = scheduler.schedule(scheduledTask, getTSDBSyncPeriod(), TimeUnit.SECONDS);
-							log.info("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
+							log.debug("Rescheduled Sync Task:{} sec.", getTSDBSyncPeriod());
 						}
 						syncInProgress.set(false);
-						log.info("\n\t------------------> Completed SyncOp in [{}] ms.", elapsed);
+						log.debug("\n\t------------------> Completed SyncOp in [{}] ms.", elapsed);
 					}
 					return null;
 				}
@@ -319,7 +319,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		} while(keepRunning.get());
 		final long elapsed = SystemClock.time() - startTime;
 		pluginContext.publishNotification(JMX_NOTIF_SYNC_ENDED, "SyncLoop elapsed:" + elapsed + " ms.", null, OBJECT_NAME);
-		log.info("SyncOps Outer Loop Complete.");
+		log.debug("SyncOps Outer Loop Complete.");
 		// First retry the failures
 		//Deferred<ArrayList<Void>> priorFailsDeferred = retryPriorFails();
 		// Now look for new syncs
@@ -430,7 +430,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				rset = null;				
 				conn.commit();				
 				totalCnt += cnt;
-				log.info("Processed [{}] New Syncs from [{}]. Total ops this loop: [{}]", cnt, table.name(), totalCnt);
+				log.debug("Processed [{}] New Syncs from [{}]. Total ops this loop: [{}]", cnt, table.name(), totalCnt);
 				
 				Deferred<ArrayList<Object>> groupedTableDeferred = Deferred.group(tableDeferreds); 
 				allDeferreds.add(groupedTableDeferred);				
@@ -444,7 +444,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 							long currentTime = SystemClock.time();
 							Timestamp ts = new Timestamp(currentTime);
 							sqlWorker.execute("UPDATE TSD_LASTSYNC SET LAST_SYNC = ? WHERE TABLE_NAME = ?", ts, table.name());
-							log.info("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
+							log.debug("Set Highwater on [{}] to [{}]", table.name(), new Date(currentTime));
 							return null;
 						}
 						public String toString() {
@@ -453,7 +453,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					});
 				}
 			}  // end of batch loop
-			log.info("Completed check of all tables for pending synchs");
+			log.debug("Completed check of all tables for pending synchs");
 		} catch (Throwable ex) {
 			log.error("Unexpected SynQueueProcessor Error", ex);
 		} finally {
@@ -499,7 +499,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		@Override
 		public Void call(final Boolean successful) throws Exception {
 			if(successful) {
-				log.info("Annotation [{}] successfully synced", annotation);
+				log.debug("Annotation [{}] successfully synced", annotation);
 				dbInterface.clearSyncQueueFailure(annotation);								
 			} else {
 				log.warn("Annotation [{}] CAS Update Failure", annotation);
@@ -560,7 +560,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					new Callback<Void, Boolean>() {
 						public Void call(Boolean successful) throws Exception {
 							if(successful) {
-								log.info("TSMeta [{}] successfully sync op:[{}]", tsMeta, op);
+								log.debug("TSMeta [{}] successfully sync op:[{}]", tsMeta, op);
 								dbInterface.clearSyncQueueFailure(tsMeta);								
 							} else {
 								if(tsUIDExists) {
@@ -642,7 +642,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 					new Callback<Void, Boolean>() {
 						public Void call(Boolean success) throws Exception {
 							if(success) {
-								log.info("UIDMeta [{}] successfully synced to store", uidMeta);
+								log.debug("UIDMeta [{}] successfully synced to store", uidMeta);
 								dbInterface.clearSyncQueueFailure(uidMeta, table);
 							} else {
 								log.warn("UIDMeta [{}] CAS Update Failure", uidMeta);
@@ -696,19 +696,19 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 			for(final TSDBTable table: TSDBTable.values()) {
 				final List<Deferred<Void>> tableDeferreds = new ArrayList<Deferred<Void>>();
 				rset = sqlWorker.executeQuery(conn, "SELECT * FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? ORDER BY LAST_ATTEMPT", false, table.name());
-				log.info("Retrying failed syncs for {}", table.name());
+				log.debug("Retrying failed syncs for {}", table.name());
 				int cnt = 0;
 				while(rset.next()) {
 					String tableName = rset.getString(1);
 					String objectId = rset.getString(2);
 					int attempts = rset.getInt(3);
 					Object failedObject = getDBObject(conn, tableName, objectId);
-					log.info("Submitting Failed Sync [{}]", failedObject);
+					log.debug("Submitting Failed Sync [{}]", failedObject);
 //					tableDeferreds.add(table.ti.sync(failedObject, tsdb).addBoth(syncCompletionHandler(failedObject, objectId, attempts)));
 					pendingOps.incrementAndGet();
 					cnt++;
 				}
-				log.info("Retried [{}] failed syncs", cnt);
+				log.debug("Retried [{}] failed syncs", cnt);
 				allDeferreds.add(Deferred.group(tableDeferreds).addBoth(new Callback<Void, ArrayList<Void>>() {
 					public Void call(ArrayList<Void> arg) throws Exception {
 						return null;

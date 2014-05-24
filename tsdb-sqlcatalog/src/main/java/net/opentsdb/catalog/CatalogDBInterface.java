@@ -478,11 +478,10 @@ public interface CatalogDBInterface {
 	
 	/**
 	 * A cleanup operation that flushes all meta objects from the store to the search plugin
-	 * @param dumpOnly If true, only dumps the TSMeta data to the logger, otherwise processes the synch
 	 * @return The number of TSMetas written
 	 * @throws Exception throw on any error
 	 */
-	public long synchronizeFromStore(boolean dumpOnly) throws Exception;	
+	public long synchronizeFromStore() throws Exception;	
 	
 	/**
 	 * Returns the catalog data source's total created connections

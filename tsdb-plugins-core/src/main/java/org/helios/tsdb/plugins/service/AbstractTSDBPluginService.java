@@ -242,6 +242,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 			jmxServer.start();
 			groovyService = new GroovyService(pluginContext);
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
+			pluginContext.publishNotification("plugin.service.booted", "Plugin Service Booted");
 		} catch (Exception ex) {
 			forceShutdown(ex);
 			if(ex instanceof IllegalArgumentException) {

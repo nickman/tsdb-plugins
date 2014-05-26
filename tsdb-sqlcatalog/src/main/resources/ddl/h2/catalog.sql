@@ -61,7 +61,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGV_AK ON TSD_TAGV (NAME ASC);
 CREATE TABLE IF NOT EXISTS TSD_METRIC (
     XUID CHAR(6) NOT NULL COMMENT 'The metric UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
-    NAME VARCHAR2(60) NOT NULL COMMENT 'The metric name',
+    NAME VARCHAR2(200) NOT NULL COMMENT 'The metric name',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the METRIC',
     LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the METRIC',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this metric',

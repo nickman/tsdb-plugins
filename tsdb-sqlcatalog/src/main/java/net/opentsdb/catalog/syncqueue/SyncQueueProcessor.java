@@ -270,7 +270,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 		return t;
 	}
 	
-	/**notification
+	/**
 	 * <p>The implementation of the scheduled polling event</p>.
 	 * {@inheritDoc}
 	 * @see java.lang.Runnable#run()

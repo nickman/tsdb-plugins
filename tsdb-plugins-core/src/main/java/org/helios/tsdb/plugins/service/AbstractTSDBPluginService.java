@@ -146,6 +146,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		this.tsdb = pc.getTsdb();
 		this.config = pc.getExtracted();
 		this.supportClassLoader = pc.getSupportClassLoader();
+		pluginContext.setResource("scheduler", scheduler);
 		log.info("Created TSDBPluginService [{}]", getClass().getName());
 	}
 	

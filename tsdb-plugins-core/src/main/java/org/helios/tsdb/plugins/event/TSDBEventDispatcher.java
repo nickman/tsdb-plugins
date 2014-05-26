@@ -69,8 +69,7 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 			log.error(errMsg);
 			throw new IllegalArgumentException(errMsg);						
 		}
-		String eventHandlerNames = ConfigurationHelper.getSystemThenEnvProperty(Constants.EVENT_HANDLERS, null, config);
-	
+		String eventHandlerNames = ConfigurationHelper.getSystemThenEnvProperty(Constants.EVENT_HANDLERS, null, config);		
 		if(eventHandlerNames==null || eventHandlerNames.trim().isEmpty()) {
 			errMsg = "No event handler names configured in property [" + Constants.EVENT_HANDLERS + "]";
 			log.error(errMsg);
@@ -91,7 +90,7 @@ public class TSDBEventDispatcher extends AbstractTSDBPluginService {
 		log.info("Async Dispatcher [{}] Initialized.", asyncDispatcher.getClass().getSimpleName());
 		for(IEventHandler handler: allHandlers) {
 			handler.initialize(pluginContext);
-		}
+		}		
 	}
 	
 	/**

@@ -141,7 +141,6 @@
 		  <groupId>org.apache.lucene</groupId>
 		  <artifactId>lucene-codecs</artifactId>
 		</dependency>				
-
 		-->
         
       <dependency>

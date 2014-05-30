@@ -284,7 +284,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		CatalogDBInterface idb = null;
 		try {
 			Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName, true, getClass().getClassLoader());
-			//Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName);
+//			Class<CatalogDBInterface> clazz = (Class<CatalogDBInterface>)Class.forName(initerClassName);
 			idb = clazz.newInstance();
 			idb.initialize(pluginContext);
 			log.info("Catalog DB Initializer [{}] Created and Run", initerClassName);

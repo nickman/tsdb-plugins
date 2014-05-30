@@ -33,18 +33,18 @@
 		<opentsdb.version>2.0.0</opentsdb.version>
 		<async.version>1.4.0</async.version>
 		<jackson-annotations.version>2.1.4</jackson-annotations.version>
-		<slf4j.version>1.7.2</slf4j.version>
+		<slf4j.version>1.7.7</slf4j.version>
 		<disruptor.version>3.2.0</disruptor.version>
 		<esper.version>4.10.0</esper.version>
 		<logback.version>1.0.9</logback.version>
 		<high-scale-lib.version>1.1.4</high-scale-lib.version>
 		<jmx-optional.version>1.0_01-ea</jmx-optional.version>
 		<chronicle.version>1.7.2</chronicle.version>
-		<guava.version>13.0.1</guava.version>		
+		<guava.version>17.0</guava.version>		
 		<mockito.version>1.9.5</mockito.version>
 		<powermock.version>1.5.1</powermock.version>
 		<javassist.version>3.18.0-GA</javassist.version>
-		<asynchbase.version>1.4.1</asynchbase.version>
+		<asynchbase.version>1.5.0</asynchbase.version>
 		<spring.version>3.2.4.RELEASE</spring.version>
 		<httpcomponents.version>4.2.3</httpcomponents.version>
 		<httpfailover.version>1.0</httpfailover.version>

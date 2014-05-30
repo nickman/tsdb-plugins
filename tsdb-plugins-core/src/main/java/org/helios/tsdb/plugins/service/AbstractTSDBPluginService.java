@@ -201,12 +201,12 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		log.info("All handlers stopped");
 		log.info("Stopping RPCServices");
 		for(IRPCService rpcService: rpcServices) {
-			rpcService.stop();
+			rpcService.stopAsync();
 		}
 		rpcServices.clear();
 		plugins.clear();
 		log.info("All RPCServices stopped");
-		try {jmxServer.stop(); } catch (Exception x) {/* No Op */}
+		try {jmxServer.stopAsync(); } catch (Exception x) {/* No Op */}
 		jmxServer = null;
 		doPostShutdown();
 		log.info("\n\t====================================\n\tStopped PluginService [{}]\n\t====================================", getClass().getSimpleName());
@@ -240,7 +240,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 				log.info("Started Stats Collector Scheduling");
 			}
 			jmxServer = new JMXMPConnectionServer(config);			
-			jmxServer.start();
+			jmxServer.startAsync();
 			groovyService = new GroovyService(pluginContext);
 			log.info("\n\t====================================\n\tPluginService [{}] Configuration Complete\n\t====================================", getClass().getSimpleName());
 			pluginContext.publishNotification("plugin.service.booted", "Plugin Service Booted");
@@ -542,7 +542,7 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 		log.info("Loaded [{}] RPC Services", rpcServices.size());
 		if(!rpcServices.isEmpty()) {
 			for(IRPCService rpc: rpcServices) {
-				rpc.startAndWait();
+				rpc.startAsync();
 				log.info("Started [{}]", rpc.getClass().getSimpleName());
 			}
 		}

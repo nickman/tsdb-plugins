@@ -44,9 +44,9 @@
       <attribute value="jar:file:/home/nwhitehead/.m2/repository/io/netty/netty/3.5.8.Final/netty-3.5.8.Final-javadoc.jar!/" name="javadoc_location"/>
     </attributes>
   </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.7.2/slf4j-api-1.7.2.jar" sourcepath="M2_REPO/org/slf4j/slf4j-api/1.7.2/slf4j-api-1.7.2-sources.jar">
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar" sourcepath="M2_REPO/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7-sources.jar">
     <attributes>
-      <attribute value="jar:file:/home/nwhitehead/.m2/repository/org/slf4j/slf4j-api/1.7.2/slf4j-api-1.7.2-javadoc.jar!/" name="javadoc_location"/>
+      <attribute value="jar:file:/home/nwhitehead/.m2/repository/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7-javadoc.jar!/" name="javadoc_location"/>
     </attributes>
   </classpathentry>
   <classpathentry kind="var" path="M2_REPO/ch/qos/logback/logback-core/1.0.9/logback-core-1.0.9.jar" sourcepath="M2_REPO/ch/qos/logback/logback-core/1.0.9/logback-core-1.0.9-sources.jar">
@@ -59,9 +59,9 @@
       <attribute value="jar:file:/home/nwhitehead/.m2/repository/ch/qos/logback/logback-classic/1.0.9/logback-classic-1.0.9-javadoc.jar!/" name="javadoc_location"/>
     </attributes>
   </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/com/google/guava/guava/13.0.1/guava-13.0.1.jar" sourcepath="M2_REPO/com/google/guava/guava/13.0.1/guava-13.0.1-sources.jar">
+  <classpathentry kind="var" path="M2_REPO/com/google/guava/guava/17.0/guava-17.0.jar" sourcepath="M2_REPO/com/google/guava/guava/17.0/guava-17.0-sources.jar">
     <attributes>
-      <attribute value="jar:file:/home/nwhitehead/.m2/repository/com/google/guava/guava/13.0.1/guava-13.0.1-javadoc.jar!/" name="javadoc_location"/>
+      <attribute value="jar:file:/home/nwhitehead/.m2/repository/com/google/guava/guava/17.0/guava-17.0-javadoc.jar!/" name="javadoc_location"/>
     </attributes>
   </classpathentry>
   <classpathentry kind="var" path="M2_REPO/com/stumbleupon/async/1.4.0/async-1.4.0.jar" sourcepath="M2_REPO/com/stumbleupon/async/1.4.0/async-1.4.0-sources.jar">

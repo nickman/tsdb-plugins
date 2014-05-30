@@ -514,7 +514,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				}
 		);		
 		synker = new SyncQueueProcessor(pluginContext);
-		synker.start();
+		synker.startAsync();
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 	}
 	

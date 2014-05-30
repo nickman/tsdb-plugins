@@ -1,0 +1,17 @@
+TSDB SQLCatalog Plugin
+Whitehead, 2014
+On The Fly Bug List
+===================================
+5/29/2014:
+	* File based (fully persisted) H2 DB: Sequences jump huge values on JVM recycle
+	* For fully persisted DB, TSD_* tables get AK violation for legit new XUID but with existing name.
+		e.g.  
+		t0: XUID: 000003, NAME: combined
+		followed on a later instance
+		t5: XUID: 000078, NAME: combined
+		Only an issue if baseline HBase instance changes or is reset.
+	* Auto Enable/Disable Text Search, JMX Enable/Disable, Remoting Enable/Disable
+	* TSDB Plugin Support Classpath
+		Refine impl: scan directories for jars, support simple class directories
+		Print contents on load
+	* Need to handle meta deletes (trigger store into deleted table)

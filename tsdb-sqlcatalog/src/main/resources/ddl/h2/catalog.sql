@@ -30,7 +30,7 @@ CREATE CONSTANT IF NOT EXISTS DOUBLE_NAN VALUE DNAN();
 CREATE TABLE IF NOT EXISTS TSD_TAGK (
     XUID CHAR(6) NOT NULL COMMENT 'The tag key UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
-    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag key',
+    NAME VARCHAR2(200) NOT NULL COMMENT 'The tag key',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGK',
     LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the TAGK',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag key',
@@ -46,7 +46,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS TSD_TAGK_AK ON TSD_TAGK (NAME ASC);
 CREATE TABLE IF NOT EXISTS TSD_TAGV (
     XUID CHAR(6) NOT NULL COMMENT 'The tag value UID as a hex encoded string',
     VERSION INT NOT NULL COMMENT 'The version of this instance',
-    NAME VARCHAR2(60) NOT NULL COMMENT 'The tag value',
+    NAME VARCHAR2(200) NOT NULL COMMENT 'The tag value',
     CREATED TIMESTAMP NOT NULL COMMENT 'The timestamp of the creation of the TAGV',
     LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the TAGV',
     DESCRIPTION VARCHAR2(120) COMMENT 'An optional description for this tag value',

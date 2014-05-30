@@ -94,7 +94,7 @@ public class JMXMPConnectionServer extends AbstractService {
 			final JMXMPConnectionServer _this = this;
 			Thread shutdown = new Thread("JMXServerShutdownHook") {
 				public void run() {
-					_this.stop();
+					_this.stopAsync();
 				}
 			};
 			shutdown.setDaemon(true);

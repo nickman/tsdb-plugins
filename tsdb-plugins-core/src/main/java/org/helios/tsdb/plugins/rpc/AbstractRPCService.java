@@ -26,6 +26,8 @@ package org.helios.tsdb.plugins.rpc;
 
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.management.ObjectName;
 
@@ -42,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.Service;
 
 /**
  * <p>Title: AbstractRPCService</p>
@@ -155,7 +158,9 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	 * @see com.google.common.util.concurrent.AbstractService#startAndWait()
 	 */
 	public State startAndWait() {
-		return abstractService.startAndWait();
+		abstractService.startAsync();
+		abstractService.awaitRunning();
+		return abstractService.state();
 	}
 
 	/**
@@ -164,7 +169,9 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	 * @see com.google.common.util.concurrent.AbstractService#stopAndWait()
 	 */
 	public State stopAndWait() {
-		return abstractService.stopAndWait();
+		abstractService.stopAsync();
+		abstractService.awaitTerminated();
+		return abstractService.state();
 	}
 
 	/**
@@ -181,8 +188,8 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	 * @see com.google.common.util.concurrent.Service#start()
 	 */
 	@Override
-	public ListenableFuture<State> start() {
-		return abstractService.start();
+	public Service startAsync() {
+		return abstractService.startAsync();
 	}
 
 	/**
@@ -208,8 +215,8 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	 * @see com.google.common.util.concurrent.Service#stop()
 	 */
 	@Override
-	public ListenableFuture<State> stop() {
-		return abstractService.stop();
+	public Service stopAsync() {
+		return abstractService.stopAsync();
 	}
 
 	/**
@@ -254,6 +261,57 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	@Override
 	public void setLoggerLevel(String level) {
 		loggerManager.setLoggerLevel(level);
+	}
+
+
+	/**
+	 * 
+	 * @see com.google.common.util.concurrent.AbstractService#awaitRunning()
+	 */
+	public final void awaitRunning() {
+		abstractService.awaitRunning();
+	}
+
+
+	/**
+	 * @param timeout
+	 * @param unit
+	 * @throws TimeoutException
+	 * @see com.google.common.util.concurrent.AbstractService#awaitRunning(long, java.util.concurrent.TimeUnit)
+	 */
+	public final void awaitRunning(long timeout, TimeUnit unit)
+			throws TimeoutException {
+		abstractService.awaitRunning(timeout, unit);
+	}
+
+
+	/**
+	 * 
+	 * @see com.google.common.util.concurrent.AbstractService#awaitTerminated()
+	 */
+	public final void awaitTerminated() {
+		abstractService.awaitTerminated();
+	}
+
+
+	/**
+	 * @param timeout
+	 * @param unit
+	 * @throws TimeoutException
+	 * @see com.google.common.util.concurrent.AbstractService#awaitTerminated(long, java.util.concurrent.TimeUnit)
+	 */
+	public final void awaitTerminated(long timeout, TimeUnit unit)
+			throws TimeoutException {
+		abstractService.awaitTerminated(timeout, unit);
+	}
+
+
+	/**
+	 * @return
+	 * @see com.google.common.util.concurrent.AbstractService#failureCause()
+	 */
+	public final Throwable failureCause() {
+		return abstractService.failureCause();
 	}
 	
 }

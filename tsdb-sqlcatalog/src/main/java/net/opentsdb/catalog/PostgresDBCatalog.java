@@ -24,12 +24,10 @@
  */
 package net.opentsdb.catalog;
 
-import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Set;
 
 import javax.sql.DataSource;
 

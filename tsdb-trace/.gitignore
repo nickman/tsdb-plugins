@@ -1,0 +1,8 @@
+/hs_err_pid*.log
+/dependency-reduced-pom.xml
+/target
+/.settings
+/.classpath
+/.project
+/tmp-plugins
+/26079845-fb84-4081-9ec8-85f2ae641af2-a90a5b77895c5-probes.ocs

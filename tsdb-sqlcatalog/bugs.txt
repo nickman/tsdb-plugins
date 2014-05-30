@@ -15,3 +15,29 @@ On The Fly Bug List
 		Refine impl: scan directories for jars, support simple class directories
 		Print contents on load
 	* Need to handle meta deletes (trigger store into deleted table)
+	
+	
+	
+Notes:
+=====================================
+
+$.getJSON('/api/query?start=10m-ago&m=avg:15s-avg:sys.cpu{cpu=0,type=combined}', 
+	function(data) { 
+		console.info(JSON.stringify(data));
+	},
+	function(err) { 
+		console.dir(err); 
+	}	
+);
+====
+first = function(object) { for(i in object) return object[i]; }
+$.getJSON('/api/query?start=15s-ago&m=avg:15s-avg:sys.cpu{type=combined}', 
+	function(data) { 
+		console.info("Avg CPU: %s", first(data[0].dps));
+	},
+	function(err) { 
+		console.dir(err); 
+	}	
+);
+
+

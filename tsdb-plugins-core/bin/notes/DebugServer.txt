@@ -1,7 +1,0 @@
-Class: net.opentsdb.tools.TSDMain
-Arguments:
---port=4242 
---config=/home/nwhitehead/3projects/opentsdb/src/opentsdb.conf 
---staticroot=/home/nwhitehead/3projects/opentsdb/build/staticroot 
---auto-metric 
---cachedir=/tmp/tsd

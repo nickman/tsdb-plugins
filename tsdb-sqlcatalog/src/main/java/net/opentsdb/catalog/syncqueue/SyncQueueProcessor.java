@@ -360,7 +360,7 @@ public class SyncQueueProcessor extends AbstractService implements Runnable, Thr
 				final TSDBTable table = TSDBTable.valueOf(disx.getString(1));
 				final List<Deferred<Object>> tableDeferreds = new ArrayList<Deferred<Object>>();
 				log.debug("Looking for New Syncs in [{}] with LAST_UPDATES > [{}]", table.name(), disx.getTimestamp(2));
-				String sqlText = String.format("SELECT '%s' as TAG_TYPE,* FROM %s WHERE LAST_UPDATE > ?", table.name().replace("TSD_", ""), table.name());
+				String sqlText = String.format("SELECT '%s' as TAG_TYPE,%s FROM %s WHERE LAST_UPDATE > ?", table.name().replace("TSD_", ""), table.columns, table.name());
 				rset = sqlWorker.executeQuery(sqlText, false, disx.getTimestamp(2));
 				cnt = 0;
 				for(final Object dbObject: table.ti.getObjects(rset, dbInterface)) {

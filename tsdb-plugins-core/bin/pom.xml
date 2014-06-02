@@ -1,0 +1,218 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+      <groupId>org.helios.tsdb</groupId>
+      <artifactId>tsdb-plugins</artifactId>      
+      <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <groupId>org.helios.tsdb</groupId>
+    <artifactId>tsdb-plugins-core</artifactId>      
+    
+    <name>TSDB-Plugins :: Core</name>
+    <description>TSDB-Plugins</description>
+    <url>https://github.com/nickman/tsdb-plugins</url>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        
+		<dependency>
+		  <groupId>org.mockito</groupId>
+		  <artifactId>mockito-all</artifactId>
+		</dependency>
+
+<!-- 
+		<dependency>
+		  <groupId>org.apache.hbase</groupId>
+		  <artifactId>hbase</artifactId>
+		  <classifier>tests</classifier>
+		  <exclusions>
+		  	<exclusion>
+				<groupId>io.netty</groupId>
+				<artifactId>netty</artifactId>
+		  	</exclusion>
+		  </exclusions>
+		</dependency>    
+-->
+
+        <dependency>
+	  <groupId>net.sf.trove4j</groupId>
+	  <artifactId>trove4j</artifactId>
+	</dependency>            
+	
+	<dependency>
+	  <groupId>org.helios.tsdb</groupId>
+	  <artifactId>tsdb-attach</artifactId>      
+	  <version>${project.version}</version>
+    </dependency>
+	
+      <dependency>
+		<groupId>org.codehaus.groovy</groupId>
+		<artifactId>groovy-all</artifactId>
+      </dependency>
+      
+      <dependency>
+		<groupId>org.codehaus.groovy</groupId>
+		<artifactId>groovy-all</artifactId>
+		<classifier>indy</classifier>
+      </dependency>
+     
+	
+
+		<dependency>
+		  <groupId>org.javassist</groupId>
+		  <artifactId>javassist</artifactId>
+		</dependency>
+	
+		<dependency>
+		  <groupId>com.github.stephenc.high-scale-lib</groupId>
+		  <artifactId>high-scale-lib</artifactId>
+		</dependency>
+		<dependency>
+		  <groupId>org.jvnet.opendmk</groupId>
+		  <artifactId>jmxremote_optional</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.helios.jmx-tools</groupId>
+			<artifactId>jmx-core</artifactId>
+		</dependency>
+
+	
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+	
+    <dependency>
+      <groupId>org.hbase</groupId>
+      <artifactId>asynchbase</artifactId>      
+    </dependency>
+	
+	
+        <dependency>
+            <groupId>net.opentsdb</groupId>
+            <artifactId>opentsdb</artifactId>
+        </dependency>
+        
+    <dependency>
+      <groupId>com.stumbleupon</groupId>
+      <artifactId>async</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    
+	<dependency>
+	  <groupId>com.fasterxml.jackson.core</groupId>
+	  <artifactId>jackson-core</artifactId>
+	</dependency>
+    
+	<dependency>
+	  <groupId>com.fasterxml.jackson.core</groupId>
+	  <artifactId>jackson-databind</artifactId>
+	</dependency>
+    
+    
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    
+    <dependency>
+	  <groupId>com.lmax</groupId>
+	  <artifactId>disruptor</artifactId>
+	</dependency>            
+    
+	
+    </dependencies>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>2.5.3-SNAPSHOT</version>
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+        </configuration>        
+      </plugin>
+    </plugins>
+  </reporting>
+
+
+        <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+	    <plugin>
+	      <groupId>org.apache.maven.plugins</groupId>
+	      <artifactId>maven-source-plugin</artifactId>
+	    </plugin>
+		    <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+		       <executions>
+		         <execution>
+		           <goals>
+		             <goal>test-jar</goal>
+		           </goals>
+		         </execution>
+		       </executions>       				
+		    </plugin>
+		    
+		    <!-- 
+		    	Shade Plugin.
+		    	This thing is a PITA, but it's all there is
+		     -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+			  	<artifactId>maven-shade-plugin</artifactId>
+	        	<executions>
+	          		<execution>
+	            		<phase>package</phase>
+			            <goals>
+			              <goal>shade</goal>
+			            </goals>
+			            <configuration>
+			              <artifactSet>
+			                <excludes>
+			                </excludes>
+			              </artifactSet>
+					    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+					    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						<includePluginDependencies>false</includePluginDependencies>
+						<transformers>
+			            	<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">			                	
+			                </transformer>
+			              </transformers>
+			            </configuration>
+			          </execution>
+			        </executions>
+			      </plugin>
+		     
+        </plugins>
+    </build>
+
+</project>

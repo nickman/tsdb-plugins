@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * <p><code>net.opentsdb.catalog.LocalSequenceCache</code></p>
  */
 
-public class LocalSequenceCache {
+public class LocalSequenceCache implements ISequenceCache {
 	/** The local sequence increment */
 	protected final int increment;
 	/** The DB Sequence name, fully qualified if necessary  */
@@ -84,8 +84,10 @@ public class LocalSequenceCache {
 	}
 	
 	/**
-	 * Resets this sequence cache (but not the underlying DB sequence)
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.sequence.ISequenceCache#reset()
 	 */
+	@Override
 	public void reset() {
 		currentValue.set(0);
 		ceiling.set(0);
@@ -101,9 +103,10 @@ public class LocalSequenceCache {
 	}
 	
 	/**
-	 * Returns the next value in the sequence, refreshing the sequence range if necessary
-	 * @return the next value in the sequence
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.sequence.ISequenceCache#next()
 	 */
+	@Override
 	public long next() {
 		long next = -1;
 		for(;;) {

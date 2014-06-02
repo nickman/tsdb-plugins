@@ -132,7 +132,10 @@ public class CatalogDataSource implements ICatalogDataSource {
 	 */
 	public void initialize(PluginContext pc) {
 		try {			
+			
 			log.info("Initializing CatalogDataSource. CL:[{}]  ThreadCL:[{}]", getClass().getClassLoader(), Thread.currentThread().getContextClassLoader());
+//			Class<?> protoBufClazz = Class.forName("com.google.protobuf.HBaseZeroCopyByteString", true, Thread.currentThread().getContextClassLoader());
+//			log.info("PROTOBUF---->" + protoBufClazz.getProtectionDomain().getCodeSource().getLocation());
 			Properties dsProps = configure(pc.getExtracted());
 			if(ConfigurationHelper.getBooleanSystemThenEnvProperty(JDBC_POOL_DMLOGGING, DEFAULT_JDBC_POOL_DMLOGGING, pc.getExtracted())) {
 				DriverManager.setLogWriter(dmLog);

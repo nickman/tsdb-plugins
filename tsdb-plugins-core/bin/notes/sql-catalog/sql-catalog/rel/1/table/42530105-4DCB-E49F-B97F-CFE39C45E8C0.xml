@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Table" id="42530105-4DCB-E49F-B97F-CFE39C45E8C0" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="true" entitytype="" splittedTableID="" allow_type_substitution="true" minVolumes="0" expectedVolumes="0" maxVolumes="9999999" growthPercent="0" growthType="Year" normalForm="Third" adequatelyNormalized="NO" abbreviation="" oid_is_pk="false" use_default_color="false" background_color="-10053121" foreground_color="null">
+		<name>TSD_TAGPAIR</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:57</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 13:00:43</timestamp>
+		</alter>
+		<properties>
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+			<parameter name="property.comment.rdbms" value="Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta" />
+			<parameter name="schema" value="TSDB" />
+		</properties>
+		<include_in_ddl value="false" />
+		<beforeDrop value="" />
+		<beforeCreate value="" />
+		<beforeAlter value="" />
+		<afterCreate value="" />
+		<afterAlter value="" />
+		<endOfScript value="" />
+		<spatial_table value="false" />
+		<oid_pk_columns />
+		<engineering should="true" />
+		<des_obj_version version="1.0" />
+		<fonts>
+			<font_object>
+				<parameter name="fo_type" value="Title" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="1" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Column" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Datatype" />
+				<parameter name="font_color" value="-16744448" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="PK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="FK Element" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="UK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Not Null" />
+				<parameter name="font_color" value="-65536" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Key" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+		</fonts>
+		<documents />
+		<parties />
+		<changerequests />
+		<measurements />
+		<contained>
+			<object type="Column" id="9C7F2260-F926-55CD-3239-0AAB9BE72FA3" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>XUID</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The unique identifier of a tag pair which is the concatenation of the tag key and value UIDs." />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="fixed" size="12 BYTE" typename="CHAR" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="CHAR" oid="LOGDT025" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="0F1CCD5B-2312-934F-8916-46CDC7F0E8E0" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="true" beforeDrop="">
+				<name>TAGK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The pair tag key" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="fixed" size="6 BYTE" typename="CHAR" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="CHAR" oid="LOGDT025" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<is_previous_column value="true" />
+				<associations>
+					<associated tableid="CB0039B8-4449-F28C-C58C-413C04E39E3B" indexid="7070AB34-8939-A87F-9263-AE5BB5167349" references="19DDA35D-A043-18A6-A23C-6F9447810F45" fkassid="8FF07B2B-436E-12F1-EC2E-8304EFB50E19" />
+				</associations>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="59C02144-9250-319B-74C9-538578D8A765" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="true" beforeDrop="">
+				<name>TAGV</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The pair tag value" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="fixed" size="6 BYTE" typename="CHAR" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="CHAR" oid="LOGDT025" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<is_previous_column value="true" />
+				<associations>
+					<associated tableid="F1D557DE-E34B-9E0B-EB00-4702ECC62B44" indexid="A73B12A7-72C0-22E7-FAFD-4710D40D28A2" references="A78F5752-4424-6FA1-D9FC-8E6EBF4536B9" fkassid="BAA59C54-BEC5-B156-A26F-5F814D4CEEA8" />
+				</associations>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="A4C112D1-9107-1045-188D-8E00C67F94F0" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>NAME</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The tag pair name expressed as T=V" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="120 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</contained>
+		<key>
+			<object type="Index" id="79E529A5-802D-6482-337B-63ACAA865FAA" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Unique Plain Index">
+				<name>TSD_TAGPAIR_AK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">0F1CCD5B-2312-934F-8916-46CDC7F0E8E0</contains>
+				<contains type="Column" sortorder="ASC">59C02144-9250-319B-74C9-538578D8A765</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="5F62976F-5826-D7DE-3D43-E3B0C3B64F11" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Plain Index">
+				<name>TSD_TAGPAIR_K_IDX</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">0F1CCD5B-2312-934F-8916-46CDC7F0E8E0</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="6F346D31-A917-B300-728A-8C5B7E85F65E" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Plain Index">
+				<name>TSD_TAGPAIR_V_IDX</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">59C02144-9250-319B-74C9-538578D8A765</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="42EBF21C-E81F-F31F-C37B-B920EF392B53" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Plain Index">
+				<name>TSD_TAGPAIR_NAME_IDX</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">A4C112D1-9107-1045-188D-8E00C67F94F0</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="B73EFF2E-B862-560B-9341-00601D035CEF" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="true" indexstate="Primary Constraint">
+				<name>TSD_TAGPAIR_PK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">9C7F2260-F926-55CD-3239-0AAB9BE72FA3</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="6AF975E8-7043-A2B0-3198-807E4A852540" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Plain Index">
+				<name>SYS_C00495582</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column">0F1CCD5B-2312-934F-8916-46CDC7F0E8E0</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Index" id="8DF4BA24-F0C3-A1A2-0016-E9A46526D652" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="false" indexstate="Plain Index">
+				<name>SYS_C00495583</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column">59C02144-9250-319B-74C9-538578D8A765</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</key>
+	</object>
+</metadatadoc>

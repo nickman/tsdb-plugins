@@ -57,6 +57,7 @@
 		<lucene.version>4.4.0</lucene.version>
 		<bonecp.version>0.8.0.RELEASE</bonecp.version>
 		<hbase-test.version>0.94.16</hbase-test.version>
+		<phoenix.version>4.0.0-incubating</phoenix.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -301,6 +302,23 @@
 		</dependency>
 
 
+	      <!-- ==========================================================
+			Apache Phoenix (HBase JDBC)
+		  ========================================================== -->		
+
+		<dependency>
+		  <groupId>org.apache.phoenix</groupId>
+		  <artifactId>phoenix</artifactId>
+		  <version>${phoenix.version}</version>
+		  <classifier>incubating</classifier>
+		</dependency>
+
+		<dependency>
+		  <groupId>org.apache.phoenix</groupId>
+		  <artifactId>phoenix</artifactId>
+		  <version>${phoenix.version}</version>
+		  <classifier>client</classifier>
+		</dependency>
 
 	      <!-- ==========================================================
 		Byte Code Injection

@@ -70,7 +70,7 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 	/** The extracted TSDB instance config properties */
 	protected final Properties extracted;
 	/** The plugin support classloader */
-	protected final ClassLoader supportClassLoader;
+	protected ClassLoader supportClassLoader;
 	/** Miscellaneous named resources set for sharing across plugins */
 	protected final Map<String, Object> namedResources = new ConcurrentHashMap<String, Object>();
 	/** The registered resource listeners */
@@ -113,6 +113,10 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 			MLet mlet = new MLet(urlClassLoader.getURLs(), TSDB.class.getClassLoader());
 			JMXHelper.registerMBean(mlet, supportClassLoaderObjectName);			
 		}
+	}
+	
+	public void setSupportClassLoader(ClassLoader loader) {
+		this.supportClassLoader = loader;
 	}
 
 	/**

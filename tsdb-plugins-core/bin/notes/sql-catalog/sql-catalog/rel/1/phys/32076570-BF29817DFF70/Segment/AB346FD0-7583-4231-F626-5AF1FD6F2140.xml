@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Segment" id="AB346FD0-7583-4231-F626-5AF1FD6F2140">
+		<name>Segment9</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<properties>
+			<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+			<parameter name="object.property.auto.Initrans" value="2" />
+			<parameter name="object.property.auto.Logging" value="YES" />
+			<parameter name="object.property.auto.LongName" value="Segment9" />
+			<parameter name="object.property.auto.MarkedGenerate" value="true" />
+			<parameter name="object.property.auto.MaxTrans" value="255" />
+			<parameter name="object.property.auto.Name" value="Segment9" />
+			<parameter name="object.property.auto.NameHasQuotes" value="false" />
+			<parameter name="object.property.auto.PCTFree" value="10" />
+			<parameter name="object.property.auto.PCTUsed" value="40" />
+			<parameter name="object.property.auto.RawObject" value="false" />
+			<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+			<parameter name="object.property.auto.SCFreeLists" value="1" />
+			<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+			<parameter name="object.property.auto.SCInitialExtent" value="0" />
+			<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+			<parameter name="object.property.auto.SCMinExtents" value="1" />
+			<parameter name="object.property.auto.SCNextExtent" value="0" />
+			<parameter name="object.property.auto.SCPctIncrease" value="0" />
+			<parameter name="object.property.auto.TableSpace" value="NO_OBJECT" />
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+		</properties>
+	</object>
+</metadatadoc>

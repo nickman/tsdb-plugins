@@ -51,19 +51,20 @@ import com.stumbleupon.async.Deferred;
 
 public enum TSDBTable {
 	/** The tag key meta table  */
-	TSD_TAGK(UIDMeta.class, null),
+	TSD_TAGK(UIDMeta.class, null, "XUID,VERSION,NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM"),
 	/** The tag value meta table  */
-	TSD_TAGV(UIDMeta.class, null),
+	TSD_TAGV(UIDMeta.class, null, "XUID,VERSION,NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM"),
 	/** The metric meta table */
-	TSD_METRIC(UIDMeta.class, null),
+	TSD_METRIC(UIDMeta.class, null, "XUID,VERSION,NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM"),
 	/** The time series meta table */
-	TSD_TSMETA(TSMeta.class, new TSTableInfo()),	
+	TSD_TSMETA(TSMeta.class, new TSTableInfo(), "FQNID,VERSION,METRIC_UID,FQN,TSUID,CREATED,LAST_UPDATE,MAX_VALUE,MIN_VALUE,DATA_TYPE,DESCRIPTION,DISPLAY_NAME,NOTES,UNITS,RETENTION,CUSTOM"),	
 	/** The annotation meta table  */
-	TSD_ANNOTATION(Annotation.class, new AnnotationTableInfo());
+	TSD_ANNOTATION(Annotation.class, new AnnotationTableInfo(), "ANNID,VERSION,START_TIME,LAST_UPDATE,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM");
 	
-	private <T> TSDBTable(Class<T> type, TableInfo<T> ti) {
+	private <T> TSDBTable(Class<T> type, TableInfo<T> ti, String columns) {
 		this.type = type;
 		this.ti = ti!=null ? ti : new UIDTableInfo(this);
+		this.columns = columns;
 	}
 	
 	/** The table-info instance for this enum */
@@ -71,6 +72,9 @@ public enum TSDBTable {
 	
 	/** The type of the object stored in this table */
 	public final Class<?> type;
+
+	/** The comma separated columns for this table */
+	public final String columns;
 	
 	/**
 	 * Returns the corresponding TSDBTable for the passed object

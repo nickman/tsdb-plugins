@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="Table" id="10EF2AEE-B687-4D8F-0291-F0514989D699" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="true" entitytype="" splittedTableID="" allow_type_substitution="true" minVolumes="0" expectedVolumes="0" maxVolumes="9999999" growthPercent="0" growthType="Year" normalForm="Third" adequatelyNormalized="NO" abbreviation="" oid_is_pk="false" use_default_color="false" background_color="-26215" foreground_color="null">
+		<name>SYNC_QUEUE</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:57</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 13:01:38</timestamp>
+		</alter>
+		<properties>
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+			<parameter name="property.comment.rdbms" value="A queue and status summary of snchronizations back to the TSDB when updates are made directly to the DB" />
+			<parameter name="schema" value="TSDB" />
+		</properties>
+		<include_in_ddl value="false" />
+		<beforeDrop value="" />
+		<beforeCreate value="" />
+		<beforeAlter value="" />
+		<afterCreate value="" />
+		<afterAlter value="" />
+		<endOfScript value="" />
+		<spatial_table value="false" />
+		<oid_pk_columns />
+		<engineering should="true" />
+		<des_obj_version version="1.0" />
+		<fonts>
+			<font_object>
+				<parameter name="fo_type" value="Title" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="1" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Column" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Datatype" />
+				<parameter name="font_color" value="-16744448" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="PK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="FK Element" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="UK Element" />
+				<parameter name="font_color" value="-16776961" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Not Null" />
+				<parameter name="font_color" value="-65536" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+			<font_object>
+				<parameter name="fo_type" value="Key" />
+				<parameter name="font_color" value="-16777216" />
+				<parameter name="font_name" value="Dialog" />
+				<parameter name="font_size" value="10" />
+				<parameter name="font_style" value="0" />
+			</font_object>
+		</fonts>
+		<documents />
+		<parties />
+		<changerequests />
+		<measurements />
+		<contained>
+			<object type="Column" id="F4CB6A4F-272B-5788-A323-D5D67078249C" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>QID</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The synthetic identifier for this sync operation" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="packed" precision="" scale="" typename="NUMBER" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="NUMERIC" oid="LOGDT019" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="189F1145-2852-B198-14E1-1E19B1065649" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" constraint_name="EVENT_TYPE_ISVALID" usedomainconstraints="false" is_oid="false" structured_attribute_id="" avt_sort_order="0" fk="false">
+				<name>EVENT_TYPE</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The source of the update that triggered this sync operation" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<constraint type="check constraint">
+					<properties>
+						<parameter name="Oracle Database 11g" value="EVENT_TYPE IN (&apos;TSD_ANNOTATION&apos;, &apos;TSD_FQN&apos;, &apos;TSD_METRIC&apos;, &apos;TSD_TAGK&apos;, &apos;TSD_TAGV&apos;)" />
+					</properties>
+				</constraint>
+				<avt>
+					<beginvalue></beginvalue>
+					<endvalue></endvalue>
+					<description></description>
+				</avt>
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="20 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="AC18F3D9-0D2E-EDD1-F3C8-14F57F39AFC0" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>EVENT_ID</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The PK of the event that triggered this Sync Operation" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="var" size="40 BYTE" typename="VARCHAR2" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="VARCHAR" oid="LOGDT024" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="66E1D6E0-6753-C61E-AE3E-03D1C70918F4" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="false" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>EVENT_TIME</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="object.property.defaultvalue" value="SYSDATE " />
+					<parameter name="property.comment.rdbms" value="The timestamp when the sync event occured" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="packed" precision="6" scale="" typename="TIMESTAMP" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="Timestamp" oid="LOGDT015" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="E3FA8CF4-A6D1-071A-4092-34EEBC0AFD59" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>LAST_SYNC_ATTEMPT</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The last [failed] sync operation attempt timestamp" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="packed" precision="6" scale="" typename="TIMESTAMP" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="Timestamp" oid="LOGDT015" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+			<object type="Column" id="B7594858-A5CB-8BB9-7E82-59E8D6B23BB3" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" unique="false" allownull="true" usedomainconstraints="true" is_oid="false" structured_attribute_id="" fk="false">
+				<name>LAST_SYNC_ERROR</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+					<parameter name="property.comment.rdbms" value="The exception trace of the last failed sync operation" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<domain oid="DOM3000004" file="defaultdomains" />
+				<datatype dttype="builtin" typename="CLOB" />
+				<abbreviation />
+				<reference value="false" />
+				<logicaltype dttype="CLOB" oid="LOGDT028" />
+				<use value="logical type" />
+				<sourcetype sort="" />
+				<computed value="false" />
+				<formula desc="" />
+				<subtypeSubstitution value="true" />
+				<restricted_substitution value="false" />
+				<security />
+				<ui_defaults readOnly="false" displayedOnReports="true" displayedOnForms="true" displayAs="Text" />
+				<eng_attribute_id eng_id="none" />
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</contained>
+		<key>
+			<object type="Index" id="6D2737FC-F1B6-2BA8-D82F-EE63348EC838" rep_oid="null" rep_ovid="null" is_checkedout="false" checkedout_by="" visible_in_main_view="false" use_default_color="true" background_color="null" foreground_color="null" pk="true" indexstate="Primary Constraint">
+				<name>SYNC_QUEUE_PK</name>
+				<comment></comment>
+				<notes></notes>
+				<alter type="created">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:57</timestamp>
+				</alter>
+				<alter type="changed">
+					<user>nwhitehe</user>
+					<timestamp>2013-11-12 12:47:58</timestamp>
+				</alter>
+				<properties>
+					<parameter name="design.owner" value="sql-catalog" />
+					<parameter name="object.existsinrepository" value="true" />
+				</properties>
+				<engineering should="true" />
+				<des_obj_version version="1.0" />
+				<functional></functional>
+				<contains type="Column" sortorder="ASC">F4CB6A4F-272B-5788-A323-D5D67078249C</contains>
+				<documents />
+				<parties />
+				<changerequests />
+				<measurements />
+			</object>
+		</key>
+	</object>
+</metadatadoc>

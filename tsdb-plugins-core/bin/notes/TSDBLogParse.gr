@@ -1,0 +1,53 @@
+import java.util.regex.*;
+
+uidp = Pattern.compile("\\[\\'(?:(.*)?:(.*)?)\\'\\]\$");
+tsp = Pattern.compile("TSMeta \\[(.*)?\\]\$");
+bytep = Pattern.compile("(\\d\\d\\d\\d\\d\\d)");
+
+uids = [:];
+types = [:];
+types.put("TAGK", new LinkedHashSet<String>());
+types.put("TAGV", new LinkedHashSet<String>());
+types.put("METRIC", new LinkedHashSet<String>());
+tsuids = new LinkedHashSet<String>();
+
+new File("c:\\temp\\tsdb.log").eachLine() {
+    if(it.contains("EB Indexing UIDMeta")) {
+        m = uidp.matcher(it);
+        if(m.find()) {
+            uids.put(m.group(2), m.group(1));
+            types.get(m.group(1)).add(m.group(2));
+        }
+    } else if (it.contains("EB Index TSMeta")) {
+        m = tsp.matcher(it);
+        if(m.find()) {
+            tsuids.add(m.group(1));
+        } else {
+            println "Miss:${it}";
+        }  
+    }
+}
+
+types.each() {k, v ->
+    println "$k: ${v.size()}";
+    ts = new TreeSet();
+    v.each() {
+        ts.add(Integer.parseInt(it, 16));
+    }
+    println ts;
+}
+println "TSUID: ${tsuids.size()}";
+/*
+tsuids.each() {
+    print "[$it]  --->  [";
+    m = bytep.matcher(it);
+    
+    while(m.find()) {
+        code = m.group(1);
+        type = uids.get(code);
+        print "<${type}>";
+    }
+    println "]";
+}
+*/
+return null;

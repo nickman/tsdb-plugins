@@ -31,7 +31,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import net.opentsdb.catalog.sequence.LocalSequenceCache;
+import net.opentsdb.catalog.sequence.ISequenceCache;
 import net.opentsdb.catalog.sequence.PostgresLocalSequenceCache;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -77,7 +77,11 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 		return null;
 	}	
 	
-	protected LocalSequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.AbstractDBCatalog#createLocalSequenceCache(int, java.lang.String, javax.sql.DataSource)
+	 */
+	public ISequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
 		return new PostgresLocalSequenceCache(increment, sequenceName, dataSource);
 	}
 	/**

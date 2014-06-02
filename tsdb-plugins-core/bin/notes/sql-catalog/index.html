@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
+<style>
+      .table {
+        background-color:#F5F5FF;
+        border-left:4px solid gray;
+        border-bottom:4px solid gray;
+        border-top:4px solid gray;
+        border-right:4px solid gray;
+        margin-bottom:3em;
+        margin-left:2em;
+        margin-right:2em;
+        padding:1em;
+      }
+      .tableNameHeading h1 {
+          display: inline;
+        font-family: Segoe UI, Arial, sans-serif;
+        font-size:125%;
+        font-weight:bold;
+      }
+        
+      .tableNameHeading h2 {
+        display: inline;
+        font-family: Segoe UI, Arial, sans-serif;
+        font-size:115%;
+        font-weight:normal;
+      }
+      
+      .tableComment { 
+        background-color:#e4efff; margin-bottom:20px;
+      }
+      
+      .tableDefinition { 
+        padding:2px;
+        border-collapse:collapse;
+        margin-top:1em;
+      }
+
+      .tdTableDefinition {
+        padding-right:10px;
+        vertical-align:top;
+        border-top:1px solid #C0C0C0;
+      }
+
+      .tdLogicalColName {
+        width:20em;
+      }
+      
+      .tdPhysicalColName {
+        width:20em;
+      }
+      
+      .tdDataType {
+        width:10em;
+      }
+
+      .tdPkFlag {
+        width:4em;
+      }
+
+      .tdNullFlag {
+        width:9em;
+      }
+
+      .tdTableHeading {
+        padding:2px;
+        font-family: Segoe UI, Arial, sans-serif;
+        font-weight: bold;
+        vertical-align:top;
+        border-bottom: 1px solid #C0C0C0;
+        background-color: rgb(240,240,240);
+      }
+      
+      .subTitle {
+        font-family: Segoe UI, Arial, sans-serif;
+        font-weight: bold;
+      }
+
+      .references {
+      }
+      .comment {
+        color:#666666;
+        margin-left:3em;
+        padding:0.25em;
+      }
+    </style>
+<title>sql-catalog-model</title>
+</head>
+<body>
+<center>
+<h2>sql-catalog-model</h2>
+</center>
+<h3>List of tables</h3>
+<ul>
+<li>
+<a href="#TSD_FQN">TSD_FQN</a>
+</li>
+<li>
+<a href="#TSD_FQN_TAGPAIR">TSD_FQN_TAGPAIR</a>
+</li>
+<li>
+<a href="#TSD_METRIC">TSD_METRIC</a>
+</li>
+<li>
+<a href="#TSD_TAGK">TSD_TAGK</a>
+</li>
+<li>
+<a href="#TSD_TAGPAIR">TSD_TAGPAIR</a>
+</li>
+<li>
+<a href="#TSD_TAGV">TSD_TAGV</a>
+</li>
+</ul>
+<div class="tableNameHeading">
+<h1>TSD_FQN<a name="TSD_FQN"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_FQN)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">FQNID (PK)</td><td class="tdTableDefinition">FQNID</td><td class="tdTableDefinition">BIGINT</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">METRIC_UID
+                &nbsp;(<a href="#TSD_METRIC">FK</a>)
+              </td><td class="tdTableDefinition">METRIC_UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">FQN</td><td class="tdTableDefinition">FQN</td><td class="tdTableDefinition">VARCHAR(4000)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">TSUID</td><td class="tdTableDefinition">TSUID</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">References</p>
+<ul>
+<li>
+<a href="#TSD_METRIC">TSD_METRIC</a> through (METRIC_UID)</li>
+</ul>
+<p class="subTitle">Referenced By</p>
+<ul>
+<li>
+<a href="#TSD_FQN_TAGPAIR">TSD_FQN_TAGPAIR</a> referencing (FQNID)</li>
+</ul>
+</div>
+</div>
+<div class="tableNameHeading">
+<h1>TSD_FQN_TAGPAIR<a name="TSD_FQN_TAGPAIR"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_FQN_TAGPAIR)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">FQN_TP_ID (PK)</td><td class="tdTableDefinition">FQN_TP_ID</td><td class="tdTableDefinition">BIGINT</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">FQNID
+                &nbsp;(<a href="#TSD_FQN">FK</a>)
+              </td><td class="tdTableDefinition">FQNID</td><td class="tdTableDefinition">BIGINT</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">UID
+                &nbsp;(<a href="#TSD_TAGPAIR">FK</a>)
+              </td><td class="tdTableDefinition">UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">PORDER</td><td class="tdTableDefinition">PORDER</td><td class="tdTableDefinition">TINYINT</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">References</p>
+<ul>
+<li>
+<a href="#TSD_FQN">TSD_FQN</a> through (FQNID)</li>
+<li>
+<a href="#TSD_TAGPAIR">TSD_TAGPAIR</a> through (UID)</li>
+</ul>
+</div>
+</div>
+<div class="tableNameHeading">
+<h1>TSD_METRIC<a name="TSD_METRIC"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_METRIC)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">UID (PK)</td><td class="tdTableDefinition">UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">TIMESTAMP</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">Referenced By</p>
+<ul>
+<li>
+<a href="#TSD_FQN">TSD_FQN</a> referencing (UID)</li>
+</ul>
+</div>
+</div>
+<div class="tableNameHeading">
+<h1>TSD_TAGK<a name="TSD_TAGK"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_TAGK)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">UID (PK)</td><td class="tdTableDefinition">UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">TIMESTAMP</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">Referenced By</p>
+<ul>
+<li>
+<a href="#TSD_TAGPAIR">TSD_TAGPAIR</a> referencing (UID)</li>
+</ul>
+</div>
+</div>
+<div class="tableNameHeading">
+<h1>TSD_TAGPAIR<a name="TSD_TAGPAIR"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_TAGPAIR)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">UID (PK)</td><td class="tdTableDefinition">UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">TAGK
+                &nbsp;(<a href="#TSD_TAGK">FK</a>)
+              </td><td class="tdTableDefinition">TAGK</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">TAGV
+                &nbsp;(<a href="#TSD_TAGV">FK</a>)
+              </td><td class="tdTableDefinition">TAGV</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">References</p>
+<ul>
+<li>
+<a href="#TSD_TAGK">TSD_TAGK</a> through (TAGK)</li>
+<li>
+<a href="#TSD_TAGV">TSD_TAGV</a> through (TAGV)</li>
+</ul>
+<p class="subTitle">Referenced By</p>
+<ul>
+<li>
+<a href="#TSD_FQN_TAGPAIR">TSD_FQN_TAGPAIR</a> referencing (UID)</li>
+</ul>
+</div>
+</div>
+<div class="tableNameHeading">
+<h1>TSD_TAGV<a name="TSD_TAGV"></a>
+</h1>
+<h2>
+      (Physical Name: TSD_TAGV)
+      </h2>
+</div>
+<div class="table">
+<table class="tableDefinition" width="100%">
+<tr>
+<td class="tdTableHeading tdLogicalColName">Logical Column Name</td><td class="tdTableHeading tdPhysicalColName">Physical Column Name</td><td class="tdTableHeading tdDataType">Type</td><td class="tdTableHeading tdPkFlag">PK</td><td class="tdTableHeading tdNullFlag">Nullable</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">UID (PK)</td><td class="tdTableDefinition">UID</td><td class="tdTableDefinition">CHAR</td><td class="tdTableDefinition" nowrap>PK</td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">CREATED</td><td class="tdTableDefinition">TIMESTAMP</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap>NOT NULL</td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">DESCRIPTION</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">DISPLAY_NAME</td><td class="tdTableDefinition">VARCHAR(60)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">NOTES</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+<tr valign="top">
+<td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">CUSTOM</td><td class="tdTableDefinition">VARCHAR(120)</td><td class="tdTableDefinition" nowrap></td><td class="tdTableDefinition" nowrap></td>
+</tr>
+</table>
+<div class="references">
+<p class="subTitle">Referenced By</p>
+<ul>
+<li>
+<a href="#TSD_TAGPAIR">TSD_TAGPAIR</a> referencing (UID)</li>
+</ul>
+</div>
+</div>
+</body>
+</html>

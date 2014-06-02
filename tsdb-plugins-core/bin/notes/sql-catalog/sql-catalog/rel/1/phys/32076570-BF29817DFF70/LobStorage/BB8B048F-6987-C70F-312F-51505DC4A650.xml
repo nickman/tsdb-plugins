@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<metadatadoc version="2.0">
+	<object type="LobStorage" id="BB8B048F-6987-C70F-312F-51505DC4A650">
+		<name>SYS_LOB0000361768C00006$$</name>
+		<comment></comment>
+		<notes></notes>
+		<alter type="created">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<alter type="changed">
+			<user>nwhitehe</user>
+			<timestamp>2013-11-12 12:47:58</timestamp>
+		</alter>
+		<properties>
+			<parameter name="object.property.auto.Cache" value="NOCACHE" />
+			<parameter name="object.property.auto.Chunk" value="8192" />
+			<parameter name="object.property.auto.Column" value="LAST_SYNC_ERROR" />
+			<parameter name="object.property.auto.Freepools" value="0" />
+			<parameter name="object.property.auto.GeneratedInRDBMS" value="false" />
+			<parameter name="object.property.auto.ListPartition" value="NO_OBJECT" />
+			<parameter name="object.property.auto.ListTemplatePartition" value="NO_OBJECT" />
+			<parameter name="object.property.auto.LobSegmentName" value="" />
+			<parameter name="object.property.auto.Logging" value="YES" />
+			<parameter name="object.property.auto.LongName" value="SYS_LOB0000361768C00006$$" />
+			<parameter name="object.property.auto.MarkedGenerate" value="true" />
+			<parameter name="object.property.auto.Name" value="SYS_LOB0000361768C00006$$" />
+			<parameter name="object.property.auto.NameHasQuotes" value="false" />
+			<parameter name="object.property.auto.OldVersions" value="RETENTION" />
+			<parameter name="object.property.auto.PCTVersion" value="0" />
+			<parameter name="object.property.auto.Partition" value="NO_OBJECT" />
+			<parameter name="object.property.auto.RawObject" value="false" />
+			<parameter name="object.property.auto.SCBufferPool" value="DEFAULT" />
+			<parameter name="object.property.auto.SCFreeLists" value="1" />
+			<parameter name="object.property.auto.SCFreelistGroups" value="1" />
+			<parameter name="object.property.auto.SCInitialExtent" value="0" />
+			<parameter name="object.property.auto.SCMaxExtents" value="UNLIMITED" />
+			<parameter name="object.property.auto.SCMinExtents" value="1" />
+			<parameter name="object.property.auto.SCNextExtent" value="0" />
+			<parameter name="object.property.auto.SCPctIncrease" value="0" />
+			<parameter name="object.property.auto.Snapshot" value="NO_OBJECT" />
+			<parameter name="object.property.auto.StorageInRow" value="ENABLE" />
+			<parameter name="object.property.auto.Table" value="10EF2AEE-B687-4D8F-0291-F0514989D699" />
+			<parameter name="object.property.auto.TableSpace" value="397459DC-13D4-E0F1-4D95-D0BD4C2E5094" />
+			<parameter name="design.owner" value="sql-catalog" />
+			<parameter name="object.existsinrepository" value="true" />
+		</properties>
+	</object>
+</metadatadoc>

@@ -59,6 +59,7 @@ import javax.sql.DataSource;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
+import net.opentsdb.catalog.sequence.ISequenceCache;
 import net.opentsdb.catalog.sequence.LocalSequenceCache;
 import net.opentsdb.catalog.syncqueue.SyncQueueProcessor;
 import net.opentsdb.core.TSDB;
@@ -184,11 +185,11 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//	The local sequence managers
 	// ========================================================================================
 	/** The sequence for the FQN PK */
-	protected LocalSequenceCache fqnSequence = null; // FQN_SEQ
+	protected ISequenceCache fqnSequence = null; // FQN_SEQ
 	/** The sequence for the FQN Tag Pairs PK */
-	protected LocalSequenceCache fqnTpSequence = null; // FQN_TP_SEQ
+	protected ISequenceCache fqnTpSequence = null; // FQN_TP_SEQ
 	/** The sequence for the Annotation PK */
-	protected LocalSequenceCache annSequence = null; // ANN_SEQ
+	protected ISequenceCache annSequence = null; // ANN_SEQ
 
 	// ========================================================================================
 	//	Some informational database meta-data for the JMX interface
@@ -240,18 +241,18 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	//	Object INSERT and UPDATE SQL
 	// ========================================================================================
 	/** The UIDMeta indexing SQL template */	
-	public static final String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?,?)";
+	protected String UID_INDEX_SQL_TEMPLATE = "INSERT INTO %s (XUID,VERSION, NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?,?)";
 	/** The UIDMeta update SQL template */	
-	public static final String UID_UPDATE_SQL_TEMPLATE = "UPDATE %s SET VERSION = ?, NAME = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, CUSTOM = ? WHERE XUID = ?";
+	protected String UID_UPDATE_SQL_TEMPLATE = "UPDATE %s SET VERSION = ?, NAME = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, CUSTOM = ? WHERE XUID = ?";
 	
 	
 	/** The SQL to insert a TSMeta TSD_TSMETA */
-	public static final String TSUID_INSERT_SQL = "INSERT INTO TSD_TSMETA " + 
+	protected String TSUID_INSERT_SQL = "INSERT INTO TSD_TSMETA " + 
 			"(FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, LAST_UPDATE, MAX_VALUE, MIN_VALUE, " + 
 			"DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM) " + 
 			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	/** The SQL to update TSD_TSMETA with a changed TSMeta */
-	public static final String TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA SET " +
+	protected String TSUID_UPDATE_SQL = "UPDATE TSD_TSMETA SET " +
 			"VERSION = ?, METRIC_UID = ?, FQN = ?, MAX_VALUE = ?, MIN_VALUE = ?," +
 			"DATA_TYPE = ?, DESCRIPTION = ?, DISPLAY_NAME = ?, NOTES = ?, UNITS = ?," +
 			"RETENTION = ?, CUSTOM = ?" + 
@@ -261,16 +262,16 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	
 	/** The SQL to insert the TSMeta UID pairs */
-	public static final  String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
+	protected String TSD_FQN_TAGPAIR_SQL = "INSERT INTO TSD_FQN_TAGPAIR (FQN_TP_ID, FQNID, XUID, PORDER, NODE) VALUES (?,?,?,?,?)";
 	/** The SQL to insert an Annotation */
-	public static final String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,LAST_UPDATE,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	protected String TSD_INSERT_ANNOTATION = "INSERT INTO TSD_ANNOTATION (ANNID,VERSION,START_TIME,LAST_UPDATE,DESCRIPTION,NOTES,FQNID,END_TIME,CUSTOM) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	/** The SQL to update an Annotation */
-	public static final String TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
+	protected String TSD_UPDATE_ANNOTATION = "UPDATE TSD_ANNOTATION SET VERSION = ?, START_TIME = ?, DESCRIPTION = ?, NOTES = ?, FQNID = ?, END_TIME = ?, CUSTOM = ? WHERE ANNID = ?";
 	
 	
 	
 	/** The SQL to insert a Tag Pair */
-	public static final String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
+	public String INSERT_TAGPAIR_SQL = "INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?)";
 
 	// ========================================================================================
 	//	Object DELETE SQL
@@ -475,13 +476,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		tsdb = pluginContext.getTsdb();
 		extracted = pluginContext.getExtracted();
 		textIndexingDisabled = ConfigurationHelper.getBooleanSystemThenEnvProperty(DB_DISABLE_TEXT_INDEXING, DEFAULT_DB_DISABLE_TEXT_INDEXING, extracted);
-		
+		final ClassLoader original = pluginContext.getSupportClassLoader();
+		preWorker();
+		final ClassLoader modified = pluginContext.getSupportClassLoader();
+		if(modified!=original) {
+			Thread.currentThread().setContextClassLoader(modified);
+		}
 		cds = CatalogDataSource.getInstance();
 		cds.initialize(pluginContext);
 		dataSource = cds.getDataSource();
 		dataSourceStats = cds.getStatisticsMBean();
-		
 		sqlWorker = SQLWorker.getInstance(dataSource);
+		if(modified!=original) {
+			Thread.currentThread().setContextClassLoader(original);
+		}
 		popDbInfo();
 		doInitialize();
 		extracted = pluginContext.getExtracted();
@@ -519,6 +527,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	
+	protected void preWorker() {}
+	
 	/**
 	 * Validates that the <b><code>TSD_LASTSYNC</code></b> is correctly populated.
 	 */
@@ -530,7 +540,8 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			for(TSDBTable table: TSDBTable.values()) {				
 				log.info("Checking TSD_LASTSYNC.{} Status", table.name());
 				if(!sqlWorker.sqlForBool(conn, "SELECT COUNT(*) FROM TSD_LASTSYNC WHERE TABLE_NAME = ?", table.name())) {
-					sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", table.name(), table.ordinal(), jvmStartTime);
+					addLastSyncEntry(conn, table.name(), table.ordinal(), jvmStartTime.getTime());
+//					sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", table.name(), table.ordinal(), jvmStartTime);
 					log.info("Initialized TSD_LASTSYNC.{}", table.name());
 				}
 			}
@@ -540,6 +551,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		} finally {
 			if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
 		}
+	}
+	
+	/**
+	 * Adds a last sync entry
+	 * @param conn The connection
+	 * @param tableName The table name
+	 * @param tableOrdinal The table ordinal
+	 * @param time The time to set
+	 */
+	protected void addLastSyncEntry(Connection conn, String tableName, int tableOrdinal, long time) {
+		sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", tableName, tableOrdinal, time);
 	}
 	
 	/**
@@ -577,7 +599,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param dataSource The datasource to provide connections to refresh the sequence cache
 	 * @return the created local sequence cache
 	 */
-	protected LocalSequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
+	protected ISequenceCache createLocalSequenceCache(int increment, String sequenceName, DataSource dataSource) {
 		return new LocalSequenceCache(increment, sequenceName, dataSource);
 	}
 	

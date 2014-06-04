@@ -11,7 +11,6 @@
 	
 	<modules>
 		<module>tsdb-plugins-core</module>
-		<module>tsdb-attach</module>
 		<module>spring-plugin</module>
 		<module>tsdb-elastic</module>
 		<module>tsdb-jdbc</module>

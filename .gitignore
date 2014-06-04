@@ -9,4 +9,5 @@ snapshot.*
 /*.ocs
 /jxinsight.aspectj.cache
 /nohup.out
+bin
 

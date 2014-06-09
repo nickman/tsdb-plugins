@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -188,22 +189,47 @@ public class TSDBPluginServiceLoader {
 		ClassLoader DEFAULT = Thread.currentThread().getContextClassLoader();
 		Properties p = new Properties();
 		p.putAll(tsdbConfig.getMap());
-		String[] supportClassPaths = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.CONFIG_PLUGIN_SUPPORT_PATH, "", p);
-		
+		String[] supportClassPaths = ConfigurationHelper.getSystemThenEnvPropertyArray(Constants.CONFIG_PLUGIN_SUPPORT_PATH, "", p);		
+		String corePluginPath = null;
+		try {
+			corePluginPath = tsdbConfig.getString("tsd.core.plugin_path");
+		} catch (Exception ex) {}
 		if(supportClassPaths==null ||supportClassPaths.length==0) return DEFAULT;
+		LOG.info("Plugin Support Classpaths:[{}]", Arrays.toString(supportClassPaths));
 		Set<URL> urls = new HashSet<URL>(supportClassPaths.length);
 		for(String path: supportClassPaths) {
 			if(path==null || path.trim().isEmpty()) continue;
 			path = path.trim();
+			LOG.info("Plugin Support Path: [{}]", path);
+			File f = new File(path);
+			if(f.exists() && f.isDirectory()) {
+				LOG.info("Plugin Support Directory: [{}]", path);
+				for(File jar: f.listFiles()) {
+					if(jar.getName().toLowerCase().endsWith(".jar")) {
+						LOG.info("Plugin Support JAR: [{}]", path);
+						urls.add(URLHelper.toURL(jar));
+					}
+				}
+			}
 			if(URLHelper.isValidURL(path)) {
 				urls.add(URLHelper.toURL(path));
 				continue;
 			}
-			File f = new File(path);
+			
 			if(f.exists()) {
 				urls.add(URLHelper.toURL(f));
 				continue;
 			} 
+		}
+		if(corePluginPath!=null) {
+			File corePluginPathFile = new File(corePluginPath);
+			if(corePluginPathFile.exists() && corePluginPathFile.isDirectory()) {
+				for(File f: corePluginPathFile.listFiles()) {
+					if(f.getName().toLowerCase().endsWith(".jar")) {
+						urls.add(URLHelper.toURL(f));
+					}
+				}
+			}
 		}
 		if(urls.isEmpty()) return DEFAULT;
 		URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), DEFAULT); 

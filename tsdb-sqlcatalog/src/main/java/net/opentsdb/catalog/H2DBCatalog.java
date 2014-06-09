@@ -99,7 +99,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	/** The config property name for the H2 TCP Listener port */
 	public static final String DB_H2_TCP_PORT = "helios.search.catalog.h2.port.tcp";
 	/** The default H2 TCP Listener port*/
-	public static final int DEFAULT_DB_H2_TCP_PORT = 9092;
+	public static final int DEFAULT_DB_H2_TCP_PORT = 8083;
 	/** The config property name for the H2 TCP Listener accessibility from other hosts */
 	public static final String DB_H2_TCP_ALLOW_OTHERS = "helios.search.catalog.h2.allowothers.tcp";
 	/** The default H2 TCP Listener port*/

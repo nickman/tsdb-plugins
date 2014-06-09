@@ -561,7 +561,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @param time The time to set
 	 */
 	protected void addLastSyncEntry(Connection conn, String tableName, int tableOrdinal, long time) {
-		sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", tableName, tableOrdinal, time);
+		sqlWorker.execute(conn, "INSERT INTO TSD_LASTSYNC (TABLE_NAME, ORDERING, LAST_SYNC) VALUES (?,?,?)", tableName, tableOrdinal, new java.sql.Date(time));
 	}
 	
 	/**

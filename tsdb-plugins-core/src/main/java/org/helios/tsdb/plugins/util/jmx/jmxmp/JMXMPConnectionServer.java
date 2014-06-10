@@ -94,12 +94,24 @@ public class JMXMPConnectionServer extends AbstractService {
 			final JMXMPConnectionServer _this = this;
 			Thread shutdown = new Thread("JMXServerShutdownHook") {
 				public void run() {
-					_this.stopAsync();
+					//_this.stopAsync();
+					doStop();
 				}
 			};
-			shutdown.setDaemon(true);
+			shutdown.setDaemon(false);
 			Runtime.getRuntime().addShutdownHook(shutdown);
-			server.start();
+			Thread startup = new Thread("JMXServerStarter") {
+				public void run() {
+					try {
+						server.start();
+					} catch (Exception ex) {
+						log.error("Unexpected error starting JMXMP Connector Server", ex);
+					}
+				}
+			};
+			startup.setDaemon(true);
+			startup.start();
+			
 		} catch (Exception ex) {
 			log.error("Failed to start JMXMP Connector Server", ex);
 		}
@@ -114,7 +126,11 @@ public class JMXMPConnectionServer extends AbstractService {
 	@Override
 	protected void doStop() {
 		log.info("\n\t==========================================\n\tStopping JMXMP Connector Server\n\t==========================================");
-		
+		try {
+			server.stop();
+		} catch (Exception ex) {
+			log.warn("Unexpected error stopping JMXMP Connector Server", ex);
+		}
 		log.info("\n\t==========================================\n\tJMXMP Connector Server Stopped\n\t==========================================");
 
 	}

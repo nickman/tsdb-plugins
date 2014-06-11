@@ -49,7 +49,7 @@ import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.heliosapm.shorthand.attach.vm.agent.LocalAgentInstaller;
+
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;

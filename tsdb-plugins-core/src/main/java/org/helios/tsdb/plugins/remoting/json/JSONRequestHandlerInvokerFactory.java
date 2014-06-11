@@ -119,7 +119,7 @@ public class JSONRequestHandlerInvokerFactory {
 				invokerMethod.setBody("{this.typedTarget." + m.getName() + "($1);}");
 				invokerMethod.setModifiers(invokerMethod.getModifiers() & ~Modifier.ABSTRACT);
 				invokerClass.addMethod(invokerMethod);
-				Class<?> clazz = invokerClass.toClass();
+				Class<?> clazz = invokerClass.toClass(handlerInstance.getClass().getClassLoader(), handlerInstance.getClass().getProtectionDomain());
 				Constructor<?> ctor = null;
 				AbstractJSONRequestHandlerInvoker invokerInstance = null;
 				if(sub) {

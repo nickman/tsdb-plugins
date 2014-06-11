@@ -99,12 +99,21 @@ public class NettyRPCService extends AbstractRPCService {
 			return;
 		}
 		try {
+			log.info("Initializing NettyRPCService BossPool");
 			bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
+			log.info("Initializing NettyRPCService WorkerPool");
 			workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
 			nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
-			pipelineFactory = RemotingPipelineFactory.getInstance();
+			log.info("Created NioServerSocketChannelFactory");
+			try {
+				pipelineFactory = RemotingPipelineFactory.getInstance();
+				log.info("Acquired Pipeline Factory");
+			} catch (Throwable t) {
+				log.error("Failed to create pipeline factory", t);
+			}
 			serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
 			serverBootstrap.setPipelineFactory(pipelineFactory);
+			log.info("Binding to [{}]", ipSocketAddress);
 			serverBootstrap.bind(ipSocketAddress);
 			log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
 		} catch (Exception ex) {

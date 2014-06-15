@@ -1,0 +1,6 @@
+@font-face {
+  font-family: 'Rancho';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Rancho'), url(http://themes.googleusercontent.com/static/fonts/rancho/v3/puZHhCfWV5yqA8Qtz4KZUg.woff) format('woff');
+}

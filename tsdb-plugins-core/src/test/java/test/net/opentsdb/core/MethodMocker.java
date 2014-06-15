@@ -47,12 +47,12 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.utils.Config;
 
+import org.helios.vm.attach.agent.LocalAgentInstaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.heliosapm.shorthand.attach.vm.agent.LocalAgentInstaller;
 
 /**
  * <p>Title: MethodMocker</p>

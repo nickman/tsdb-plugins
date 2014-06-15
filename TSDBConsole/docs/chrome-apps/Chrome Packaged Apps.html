@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<!-- saved from url=(0038)https://gist.github.com/maicki/7622137 -->
+<html style="" class=" js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths filereader"><head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# githubog: http://ogp.me/ns/fb/githubog#"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <title>Chrome Packaged Apps</title>
+
+  <meta content="authenticity_token" name="csrf-param">
+<meta content="YpvDGiEJWeXoV+eisCxssfuOClP8GTirUn5mrlIhHRc=" name="csrf-token">
+  <meta name="viewport" content="width=960">
+
+
+  <link type="text/plain" rel="author" href="https://github.com/humans.txt">
+  <meta content="gist" name="octolytics-app-id"><meta content="collector.githubapp.com" name="octolytics-host"><meta content="collector-cdn.github.com" name="octolytics-script-host"><meta content="597608" name="octolytics-actor-id"><meta content="nickman" name="octolytics-actor-login"><meta content="c7433ef68be4686a9503e05f089a002425fb63375cfcbafed9e00d050a8b8675" name="octolytics-actor-hash">
+
+  <link href="https://gist.github.com/assets/application-f6bf3a5349dfa2309c4382f45ce7de96.css" media="screen, print" rel="stylesheet">
+  <script src="./Chrome Packaged Apps_files/application-c429177e8c2cee849797e1b9ff206ce2.js"></script><script type="text/javascript" async="" src="./Chrome Packaged Apps_files/ga.js"></script>
+
+    <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@github">
+  <meta property="og:title" content="maicki/ChromePackagedApps.md">
+  <meta property="og:type" content="githubog:gist">
+  <meta property="og:url" content="https://gist.github.com//maicki/7622137">
+  <meta property="og:image" content="https://0.gravatar.com/avatar/1fd855c4e922ee031d4f2d6e469ca6a3?d=https%3A%2F%2Fidenticons.github.com%2Fb6f05a7baab2fe0eea07e59bd5b0b317.png&amp;s=140">
+  <meta property="og:site_name" content="GitHub Gists">
+  <meta property="og:description" content="Chrome Packaged Apps - Gist is a simple way to share snippets of text and code with others.">
+  <meta name="description" content="Chrome Packaged Apps - Gist is a simple way to share snippets of text and code with others.">
+
+<script src="./Chrome Packaged Apps_files/api.js"></script></head>
+
+<body class="logged_in " style="">
+
+  <div id="wrapper">
+    
+
+    <div id="header" class="header header-logged-in">
+      <div class="container clearfix">
+        <a class="header-logo-wordmark" href="https://gist.github.com/">
+          <span class="octicon octicon-logo-github"></span>
+          <span class="octicon-logo octicon-logo-gist"></span>
+        </a>
+
+        <div class="divider-vertical"></div>
+        <div class="topsearch">
+  <form id="top_search_form" action="https://gist.github.com/search" data-pjax-remote="push" accept-charset="UTF-8">
+    <div class="search">
+      <input type="text" class="search js-search js-navigation-enable" name="q" placeholder="Search…" data-hotkey="/" autocomplete="off" autocorrect="off" value="">
+
+      <div class="search-results js-search-results js-navigation-container"></div>
+    </div>
+    <div class="divider-vertical"></div>
+  </form>
+  <ul class="top-nav">
+    <li class="explore"><a href="https://gist.github.com/discover/">Discover Gists</a></li>
+  </ul>
+</div>
+
+        <ul id="user-links">
+  <li>
+    <a href="https://gist.github.com/nickman" class="name">
+      <img src="./Chrome Packaged Apps_files/04cbb3bd2ef7caf6f6342cd54fb3a997" width="20" height="20"> nickman
+    </a>
+  </li>
+  <li>
+    <a href="https://gist.github.com/" id="new_gist" class="tooltipped downwards" title="Create a New Gist">
+      <span class="octicon octicon-gist-new"></span>
+    </a>
+  </li>
+  <li>
+    <a href="https://github.com/" class="tooltipped downwards" title="Go to GitHub" data-skip-pjax="">
+      <span class="octicon octicon-octoface"></span>
+    </a>
+  </li>
+  <li>
+    <form action="https://gist.github.com/logout" method="post">
+      <input name="authenticity_token" type="hidden" value="YpvDGiEJWeXoV+eisCxssfuOClP8GTirUn5mrlIhHRc=">
+      <button class="logout-button tooltipped downwards" id="logout" type="submit" title="Log Out">
+        <span class="octicon octicon-log-out"></span>
+      </button>
+    </form>
+  </li>
+</ul>
+
+      </div>
+    </div>
+
+    <div class="site-content" id="js-pjax-container" data-pjax-container="">
+      <div class=" site-container js-site-container" data-url="/maicki/7622137">
+  
+  <meta content="true" name="octolytics-dimension-public"><meta content="7622137" name="octolytics-dimension-gist_id"><meta content="7622137" name="octolytics-dimension-gist_name"><meta content="false" name="octolytics-dimension-anonymous"><meta content="25288" name="octolytics-dimension-owner_id"><meta content="maicki" name="octolytics-dimension-owner_login"><meta content="false" name="octolytics-dimension-forked">
+
+<div class="pagehead repohead">
+  <div class="container">
+    <div class="title-actions-bar">
+      <ul class="pagehead-actions">
+            <li>
+              <div class="gist-advanced-options select-menu js-menu-container js-select-menu">
+
+                <span class="minibutton select-menu-button js-menu-target">
+                  <span class="octicon octicon-gear"></span>
+                </span>
+
+                <div class="select-menu-modal-holder js-menu-content js-navigation-container js-select-menu-pane">
+                  <div class="select-menu-modal">
+                    <div class="select-menu-header">
+                      <span class="select-menu-title">Advanced options</span>
+                      <span class="octicon octicon-remove-close js-menu-close"></span>
+                    </div> <!-- /.select-menu-header -->
+
+                    <div class="select-menu-list">
+
+                      <div class="select-menu-item js-navigation-item">
+                        <div class="select-menu-item-text js-navigation-open">
+                          <a href="https://gist.github.com/maicki/7622137/report" data-method="post" data-skip-pjax="">Report as Abuse</a>
+                        </div>
+                      </div> <!-- /.select-menu-item -->
+
+                    </div> <!-- /.select-menu-list -->
+
+                  </div> <!-- /.select-menu-modal -->
+                </div> <!-- /.select-menu-modal-holder -->
+              </div> <!-- /.select-menu -->
+            </li>
+          <li>
+              <form action="https://gist.github.com/maicki/7622137/star" data-pjax-remote="replace" method="post" accept-charset="UTF-8">
+                <input name="authenticity_token" type="hidden" value="YpvDGiEJWeXoV+eisCxssfuOClP8GTirUn5mrlIhHRc=">
+                <button class="minibutton with-count" type="submit"><span class="octicon octicon-star"></span>Star</button>
+                <span class="social-count">0</span>
+              </form>
+          </li>
+          <li>
+              <form action="https://gist.github.com/maicki/7622137/fork" data-method="post" method="post" accept-charset="UTF-8">
+                <button class="minibutton with-count fork-button" type="submit"><span class="octicon octicon-git-branch"></span>Fork</button>
+                <span class="social-count">0</span>
+              </form>
+          </li>
+
+
+      </ul>
+      <h1 itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb" class="entry-title public">
+        <span class="repo-label"><span>public</span></span>
+        <span class="mega-octicon octicon-gist"></span>
+        <div class="meta">
+          <div class="gist-author">
+            <img src="./Chrome Packaged Apps_files/1fd855c4e922ee031d4f2d6e469ca6a3" width="26" height="26">
+            <span class="author vcard">
+                <span itemprop="title"><a href="https://gist.github.com/maicki">maicki</a></span>
+            </span> /
+            <strong><a href="./Chrome Packaged Apps_files/Chrome Packaged Apps.html" class="js-current-repository">ChromePackagedApps.md</a></strong>
+          </div>
+          <div class="gist-timestamp">
+              <span class="datetime">Last active <time class="js-relative-date" title="2013-11-24T01:17:01Z" datetime="2013-11-24T01:17:01Z">a month ago</time></span>
+          </div>
+      </div></h1>
+    </div>
+
+  </div>
+</div>
+
+
+
+<div class="gist-description container">
+  <p>Chrome Packaged Apps</p>
+</div>
+
+<div class="gist container js-gist-container" data-version="ebc443540b9c0099a130a1aa6320074fa2990dd9">
+    <div class="root-pane">
+  <div class="menu-container">
+    <ul class="menu gisttabs">
+      <li>
+        <a href="./Chrome Packaged Apps_files/Chrome Packaged Apps.html" class="selected">
+          Gist Detail
+        </a>
+      </li>
+
+        <li class="revision-count">
+          <a href="https://gist.github.com/maicki/7622137/revisions">
+            Revisions
+            <span class="counter">2</span>
+          </a>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <ul class="export-references">
+    <li>
+      <a href="https://gist.github.com/maicki/7622137/download" class="minibutton" data-skip-pjax="true" rel="nofollow"><span class="octicon octicon-cloud-download"></span>Download Gist</a>
+    </li>
+    <li>
+      <label for="url-field"><strong>Clone</strong> this gist</label>
+      <input type="text" readonly="" spellcheck="false" class="url-field js-url-field js-cptoggle" name="url-field" value="https://gist.github.com/7622137.git" data-cptoggle-display="/maicki/7622137">
+    </li>
+    <li>
+      <label for="embed-field"><strong>Embed</strong> this gist</label>
+      <input type="text" readonly="" spellcheck="false" class="url-field js-url-field" name="embed-field" value="&lt;script src=&quot;https://gist.github.com/maicki/7622137.js&quot;&gt;&lt;/script&gt;">
+    </li>
+    <li>
+      <label for="link-field"><strong>Link to</strong> this gist</label>
+      <input type="text" readonly="" spellcheck="false" class="url-field js-url-field" name="link-field" value="https://gist.github.com/maicki/7622137">
+    </li>
+  </ul>
+</div>
+
+
+  <div class="column files">
+        <div id="file-chromepackagedapps-md" class="bubble">
+          <div class="file-box ">
+            <div class="meta">
+              <div class="file-info">
+                <span class="file-type-icon"><span class="octicon octicon-gist"></span></span>
+                <strong class="file-name js-selectable-text">ChromePackagedApps.md</strong>
+              </div>
+              <div class="file-actions">
+                <span class="file-language">Markdown</span>
+                <ul class="button-group">
+                  <li><a title="Permalink" href="https://gist.github.com/maicki/7622137#file-chromepackagedapps-md" class="file-actions-button tooltipped downwards permalink"><span class="octicon octicon-link"></span></a></li>
+                  <li><a title="View Raw" href="https://gist.github.com/maicki/7622137/raw/5060c7e529eaee92b3c6a20c9707c03b77888d69/ChromePackagedApps.md" data-skip-pjax="" class="file-actions-button tooltipped downwards raw-url"><span class="octicon octicon-code"></span></a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="suppressed">
+              <a class="js-show-suppressed-file">File suppressed. Click to show.</a>
+            </div>
+            
+
+    <div class="readme context-loader-container context-loader-overlay" id="readme">
+      <article class="markdown-body js-file " data-task-list-update-url="/maicki/7622137/file/ChromePackagedApps.md">
+        <h2>
+<a name="chrome-packaged-apps" class="anchor" href="https://gist.github.com/maicki/7622137#chrome-packaged-apps"><span class="mini-icon mini-icon-link"></span></a>Chrome Packaged Apps</h2>
+
+<h3>
+<a name="introduction" class="anchor" href="https://gist.github.com/maicki/7622137#introduction"><span class="mini-icon mini-icon-link"></span></a>Introduction</h3>
+
+<p>Introduced at <a href="http://www.youtube.com/watch?v=j8oFAr1YR-0">Google I/O 2012</a>, Chrome packaged apps are a new way to develop apps that are running 'natively' within Chrome on the desktop as well as on Chrome mobile in the near future. I'm currently in the middle of a project where I develop a Chrome packaged app and in this article I would like to share my experience with the development of packaged apps.</p>
+
+<p><strong>Please note:</strong> This article should give you a basic insight of topics that I think are helpful to know for developing packaged apps. Furthermore I will give links to each topic, so you can dive deeper into that specific topic if you want to. It's not the goal of this article to act as a complete introduction to Chrome packaged apps, for a much more detailed overview of packaged apps development, please look at the official packaged app <a href="http://developer.chrome.com/apps/about_apps.html">documentation</a>.</p>
+
+<h3>
+<a name="what-are-chrome-packaged-apps" class="anchor" href="https://gist.github.com/maicki/7622137#what-are-chrome-packaged-apps"><span class="mini-icon mini-icon-link"></span></a>What are Chrome Packaged Apps</h3>
+
+<p>Chrome packaged apps are applications that can run 'natively' within the Chrome browser and are developed in HTML5, CSS and JavaScript. It's only necessary to have Chrome installed on the system of choice, to be able to run packaged apps. No other dependencies are necessary. This has the advantage that it's theoretically possible to run packaged apps on Mac, Windows, Linux or Chrome OS in the same way and with no extra work for the developer. Furthermore, Google is planning to extend the platform support for packaged apps, to run also on mobile in the near future.</p>
+
+<h3>
+<a name="basic-project-structure" class="anchor" href="https://gist.github.com/maicki/7622137#basic-project-structure"><span class="mini-icon mini-icon-link"></span></a>Basic project structure</h3>
+
+<p>It's very easy to start developing a packaged app. The only necessary files in your project are a manifest file, an event page, also called background page, where you usually register listeners for specific app events, like a launch listener that opens the app's window and some kind of icon. A background page file can be a JavaScript or a HTML file.</p>
+
+<p>At the following is an overview of a very sample project with no tests or any MV* framework included. It's just to give you a quick overview, how the start can look like.</p>
+
+<p><strong>Project overview:</strong></p>
+
+<p><a href="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f33693241314730573146334333703055306730662f73616d706c652d70726f6a6563742d6f766572766965772e706e67" target="_blank"><img src="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f33693241314730573146334333703055306730662f73616d706c652d70726f6a6563742d6f766572766965772e706e67" alt="Sample Project Overview" style="max-width:100%;"></a></p>
+
+<p><strong>manifest.json:</strong></p>
+
+<div class="highlight"><pre><span class="p">{</span>
+  <span class="nt">"name"</span><span class="p">:</span> <span class="s2">"Sample App"</span><span class="p">,</span>
+  <span class="nt">"version"</span><span class="p">:</span> <span class="s2">"1"</span><span class="p">,</span>
+  <span class="nt">"manifest_version"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nt">"minimum_chrome_version"</span><span class="p">:</span> <span class="s2">"23"</span><span class="p">,</span>
+  <span class="nt">"icons"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">"128"</span><span class="p">:</span> <span class="s2">"icon_128.png"</span>
+  <span class="p">},</span>
+  <span class="nt">"app"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">"background"</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">"scripts"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"background.js"</span><span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">"permissions"</span><span class="p">:</span> <span class="p">[</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><strong>background.js:</strong></p>
+
+<div class="highlight"><pre><span class="cm">/**</span>
+<span class="cm"> * Listens for the app launching then creates the window</span>
+<span class="cm"> *</span>
+<span class="cm"> * @see http://developer.chrome.com/trunk/apps/app.runtime.html</span>
+<span class="cm"> * @see http://developer.chrome.com/trunk/apps/app.window.html</span>
+<span class="cm"> */</span>
+<span class="nx">chrome</span><span class="p">.</span><span class="nx">app</span><span class="p">.</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">onLaunched</span><span class="p">.</span><span class="nx">addListener</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">chrome</span><span class="p">.</span><span class="nx">app</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="s1">'app.html'</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">bounds</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">width</span><span class="o">:</span> <span class="mi">880</span><span class="p">,</span>
+      <span class="nx">height</span><span class="o">:</span> <span class="mi">480</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><strong>app.html:</strong></p>
+
+<div class="highlight"><pre><span class="cp">&lt;!doctype html&gt;</span>
+<span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;</span>
+  <span class="nt">&lt;meta</span> <span class="na">charset=</span><span class="s">"utf-8"</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;title&gt;</span>Sample App<span class="nt">&lt;/title&gt;</span>
+<span class="nt">&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+  Hello World!
+<span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>There are some steps to do to load your packaged app into Google Chrome. If you developed a Chrome extension before you may already familiar with the steps to do, if not, here is a quick overview from the <a href="http://goo.gl/UHCS8%EF%BB%BF">Chrome Packaged Apps Codelab guide</a>.</p>
+
+<p><a href="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f3256326e306c314b336b326233623267307331352f6c6f61642d7061636b616765642d6170702e706e67" target="_blank"><img src="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f3256326e306c314b336b326233623267307331352f6c6f61642d7061636b616765642d6170702e706e67" alt="Load Packaged App" style="max-width:100%;"></a></p>
+
+<ol>
+<li>Access chrome://extensions</li>
+<li>Activate the 'Developer mode' on the right top</li>
+<li>With 'Load unpacked extension...' you can load your packaged app from a directory</li>
+<li>Click on 'launch' within your packaged app entry in the extensions list to open the app</li>
+</ol><p>If you start the packaged app within Chrome, it just opens a new plain window with "Hello World!". Now you can build on that basic project and start developing your packaged app.</p>
+
+<p>You can find a lot of packaged app sample projects at the Google Chrome GitHub account in the <a href="https://github.com/GoogleChrome/chrome-app-samples">chrome-app-samples</a> repository.</p>
+
+<h3>
+<a name="offline-first" class="anchor" href="https://gist.github.com/maicki/7622137#offline-first"><span class="mini-icon mini-icon-link"></span></a>Offline first</h3>
+
+<p>One of the first sentences you hear in talks from Google engineers or in the documentation about packaged apps is:</p>
+
+<blockquote>
+<p>"You need to consider offline first: write your app as if it has no internet connection!"</p>
+</blockquote>
+
+<p>What this mean is that packaged apps should run the same way, whether the user is offline or online. Therefore all HTML, CSS and JavaScript files as well as all further needed data like images, user data etc. needs to be on the local disk.</p>
+
+<p>If you plan to develop an app that don't need any internet connection at all, you will be fine from the start on by just developing your packaged app and submit it to the Google Web Store. You don't have to loose so much thoughts how to run it offline. The reason is that the installation process of packaged apps via the Chrome Web Store downloads all the files bundled within your app to the local disk and the packaged app runs subsequently off of the local disk, in order to speed up performance and provide offline support. So all of your app files like HTML, CSS, JavaScript and fonts, plus other resources it needs (such as images) that are bundled within your application are already downloaded, no internet connection needed.</p>
+
+<p>If you plan to develop a packaged app that needs an internet connection or you have to load external resources before the app is ready for usage, you have to do something more, to provide the best possible user experience, online and offline. There are different ways how to solve this problem.</p>
+
+<ul>
+<li>Your app can save and optionally sync small amounts of data using the Chrome Storage API.</li>
+<li>Furthermore it's possible to store all needed data within IndexedDB</li>
+<li>or via the HTML5 Filesystem API on the local disk.</li>
+</ul><p>The next segments will go deeper into loading external resources like images or user data and persist it for offline usage.</p>
+
+<h3>
+<a name="get-external-resources" class="anchor" href="https://gist.github.com/maicki/7622137#get-external-resources"><span class="mini-icon mini-icon-link"></span></a><a></a>Get External Resources</h3>
+
+<p>One of the big challenges to provide the best user experience is to download and cache resources which are necessary for the app to run, but are not bundled within the app. This is not so trivial as it looks like, because packaged apps have strict security restrictions via the <a href="http://developer.chrome.com/apps/app_csp.html">CSP (Content Security Policy)</a>. It's a lot more effort to e.g. load images as just set the src attribute of an img element to the remote url directly in your HTML or dynamically via JavaScript. Instead you have to use XMLHttpRequest's to load the resource and then either refer to the data with a blob: URL or better, save and then load the data using the Filesystem API. The following code loads an image with a XMLHttpRequest object and refer the data in the img tag via a blob: URL.</p>
+
+<div class="highlight"><pre><span class="c1">// Take care of vendor prefixes</span>
+<span class="nb">window</span><span class="p">.</span><span class="nx">URL</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">URL</span> <span class="o">||</span> <span class="nb">window</span><span class="p">.</span><span class="nx">webkitURL</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">xhr</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">();</span>
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'http://server/path/to/image.png'</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">responseType</span> <span class="o">=</span> <span class="s1">'blob'</span><span class="p">;</span>
+
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">onload</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">blob</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">response</span><span class="p">;</span>
+
+    <span class="kd">var</span> <span class="nx">img</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s1">'img'</span><span class="p">);</span>
+    <span class="nx">img</span><span class="p">.</span><span class="nx">onload</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// Clean up after yourself</span>
+      <span class="nb">window</span><span class="p">.</span><span class="nx">URL</span><span class="p">.</span><span class="nx">revokeObjectURL</span><span class="p">(</span><span class="nx">img</span><span class="p">.</span><span class="nx">src</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="nx">img</span><span class="p">.</span><span class="nx">src</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
+
+    <span class="c1">// Do something with the img</span>
+    <span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">appendChild</span><span class="p">(</span><span class="nx">img</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">send</span><span class="p">();</span>
+</pre></div>
+
+<p>Luckily due to the reason that it's a common use case to load external resources, Google created a library to simplify that and it's called <a href="https://github.com/GoogleChrome/apps-resource-loader">apps-resource-loader</a>. What this library does is to check if the requested ressource is already offline available, if not, it downloads this resources via a XMLHttpRequest from the remote url and saves the data via the HTML5 Filesystem API. If the resource is already locally available, it loads this resource directly from the file system and no request to a server is needed anymore.</p>
+
+<p>To be able to use the apps-resource-loader, you have to download / clone the <a href="https://github.com/GoogleChrome/apps-resource-loader">apps-ressource-files repository</a> and add the apps-resource-loader ral.min.js file into your project. The following code snippet should show you, how to load images with the apps-resource-loader into your app.</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">remoteImage</span><span class="p">,</span>
+    <span class="nx">container</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="s1">'.imageContainer'</span><span class="p">),</span>
+    <span class="c1">// list of image URLs</span>
+    <span class="nx">toLoad</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">'images'</span><span class="o">:</span> <span class="p">[</span>
+       <span class="s1">'http://myserver.com/image1.png'</span><span class="p">,</span>
+       <span class="s1">'http://myserver.com/image2.png'</span>
+      <span class="p">]</span>
+    <span class="p">};</span>
+
+<span class="nx">toLoad</span><span class="p">.</span><span class="nx">images</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">imageToLoad</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">remoteImage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">RAL</span><span class="p">.</span><span class="nx">RemoteImage</span><span class="p">(</span><span class="nx">imageToLoad</span><span class="p">);</span>
+  <span class="nx">container</span><span class="p">.</span><span class="nx">appendChild</span><span class="p">(</span><span class="nx">remoteImage</span><span class="p">.</span><span class="nx">element</span><span class="p">);</span>
+  <span class="nx">RAL</span><span class="p">.</span><span class="nx">Queue</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="nx">remoteImage</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">RAL</span><span class="p">.</span><span class="nx">Queue</span><span class="p">.</span><span class="nx">setMaxConnections</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+<span class="nx">RAL</span><span class="p">.</span><span class="nx">Queue</span><span class="p">.</span><span class="nx">start</span><span class="p">();</span>
+</pre></div>
+
+<p>Furthermore to get this code running you need permission in the manifest.json to all domains you will be try to get the resource or if you don't know before where those resources will be hosted, you can ask permission for any url.</p>
+
+<div class="highlight"><pre><span class="err">permissions:</span> <span class="p">[</span><span class="err">'&lt;all_urls&gt;'</span><span class="p">]</span>
+</pre></div>
+
+<p>This is just one example where you need to add permissions to the manifest file. To use most chrome.* APIs, your app must declare its intent in the "permissions" field of the manifest but you will find further information what chrome.* API needs which permission in the correspondent <a href="http://developer.chrome.com/apps/api_index.html">chrome.* API</a> documentation.</p>
+
+<p>It's also worth mentioning that you can roll your own library, if the apps-resource-loader library does not suit you. A good starting point is to look at the apps-resource-loader library to get a general idea, how to load external resources via a XMLHttpRequest, refer the data with a blob: URL and save it afterwards on the file system. Another good article is on HTML5Rocks called <a href="http://www.html5rocks.com/en/tutorials/file/xhr2/">New Tricks in XMLHttpRequest2</a> that tells you more details about fetching data via XMLHttpRequest and the 'blob' responseType.</p>
+
+<h3>
+<a name="offline-storage" class="anchor" href="https://gist.github.com/maicki/7622137#offline-storage"><span class="mini-icon mini-icon-link"></span></a>Offline Storage</h3>
+
+<p>If you don't want to use the apps-resource-loader library mentioned above or you have to store other data then images or plain files, it's good to know what further possibilities HTML5 or Google APIs provides for you to store data. In general, how you save remote data locally is up to you, but the following list should give you quick overview, what you can use to store data for faster access and offline usage.</p>
+
+<h4>
+<a name="chrome-storage-api" class="anchor" href="https://gist.github.com/maicki/7622137#chrome-storage-api"><span class="mini-icon mini-icon-link"></span></a>Chrome Storage API</h4>
+
+<p>The <a href="http://developer.chrome.com/apps/storage.html">Chrome Storage API</a> comes in two flavors. You can use either the chrome.storage.sync or chrome.storage.local API. When using chrome.storage.sync, the stored data will automatically be synced to any Chrome browser that the user is logged into, provided the user has sync enabled. When Chrome is offline, Chrome stores the data locally. The next time the browser is online, Chrome syncs the data. Even if a user disables syncing, storage.sync will still work. In this case, it will behave identically to chrome.storage.local.</p>
+
+<div class="highlight"><pre><span class="c1">// Save data using the Chrome extension storage API.</span>
+<span class="kd">var</span> <span class="nx">theValue</span> <span class="o">=</span> <span class="p">...;</span>
+<span class="nx">chrome</span><span class="p">.</span><span class="nx">storage</span><span class="p">.</span><span class="nx">sync</span><span class="p">.</span><span class="nx">set</span><span class="p">({</span><span class="s1">'value'</span><span class="o">:</span> <span class="nx">theValue</span><span class="p">},</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="c1">// Saved successfully</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>The Chrome Storage API is great for saving user settings, application state or smaller chunks of data. It's not very good for large amount of data, due to quota limitations. For larger data, IndexedDB and the HTML5 Filesystem API is a better choice.</p>
+
+<h4>
+<a name="indexeddb" class="anchor" href="https://gist.github.com/maicki/7622137#indexeddb"><span class="mini-icon mini-icon-link"></span></a>IndexedDB</h4>
+
+<p>IndexedDB is a Web Database. Web Databases are hosted and persisted inside an user's browser. IndexedDB is an Object Store that means, that it's is not the same as a Relational Database, which has tables, with collections rows and columns. You don't have any tables within IndexedDB, you create an Object Store for a type of data and simply persist JavaScript Objects to that store. Each Object Store can have a collection of Indexes that make it efficient to query and iterate across. So IndexedDB is best used for storing structured data and it enables fast searches on data via Indexes.</p>
+
+<p>Using IndexedDB is much more complicated than using the Chrome Storage API. The following code is an example from the HTML5Rocks article <a href="http://www.html5rocks.com/en/tutorials/indexeddb/todo/">A Simple TODO list using HTML5 IndexedDB</a> that saves a to do text in an IndexedDB Object Store.</p>
+
+<div class="highlight"><pre><span class="nx">html5rocks</span><span class="p">.</span><span class="nx">indexedDB</span><span class="p">.</span><span class="nx">addTodo</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">todoText</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">db</span> <span class="o">=</span> <span class="nx">html5rocks</span><span class="p">.</span><span class="nx">indexedDB</span><span class="p">.</span><span class="nx">db</span><span class="p">;</span>
+  <span class="kd">var</span> <span class="nx">trans</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">transaction</span><span class="p">([</span><span class="s2">"todo"</span><span class="p">],</span> <span class="s2">"readwrite"</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">store</span> <span class="o">=</span> <span class="nx">trans</span><span class="p">.</span><span class="nx">objectStore</span><span class="p">(</span><span class="s2">"todo"</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">store</span><span class="p">.</span><span class="nx">put</span><span class="p">({</span>
+    <span class="s2">"text"</span><span class="o">:</span> <span class="nx">todoText</span><span class="p">,</span>
+    <span class="s2">"timeStamp"</span> <span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">()</span>
+  <span class="p">});</span>
+
+  <span class="nx">request</span><span class="p">.</span><span class="nx">onsuccess</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Re-render all the todo's</span>
+    <span class="nx">html5rocks</span><span class="p">.</span><span class="nx">indexedDB</span><span class="p">.</span><span class="nx">getAllTodoItems</span><span class="p">();</span>
+  <span class="p">};</span>
+
+  <span class="nx">request</span><span class="p">.</span><span class="nx">onerror</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+</pre></div>
+
+<p>A good starting point to get more information about IndexedDB, is the aforementioned HTML5Rocks article and an article on the Mozilla Developer Network: <a href="https://developer.mozilla.org/en-US/docs/IndexedDB/Basic_Concepts_Behind_IndexedDB">Basic Concepts Behind IndexedDB</a>.</p>
+
+<h4>
+<a name="html5-filesystem-api" class="anchor" href="https://gist.github.com/maicki/7622137#html5-filesystem-api"><span class="mini-icon mini-icon-link"></span></a>HTML5 Filesystem API</h4>
+
+<p>The HTML5 Filesystem API gives web applications controlled access to a private local filesystem 'sandbox' in which they can read / write files, create and list directories, and so on. You can find the File API: Directories and System working draft on the <a href="http://dev.w3.org/2009/dap/file-system/pub/FileSystem/">W3C website</a>. With the Filesystem API you can basically save all kinds of data to the local disk. The following code sample from the excellent article on HTML5Rocks called <a href="http://www.html5rocks%20provides%20a%20first%20insight%20in%20what%20the%20filesystem%20api%20looks%20like.%20the%20code%20creates%20an%20empty%20file%20called%20%22log.txt%22%20%28if%20it%20doesn%27t%20exist/">Exploring the FileSystem APIs</a> and fills it with the text 'Lorem Ipsum'.</p>
+
+<div class="highlight"><pre><span class="kd">function</span> <span class="nx">onInitFs</span><span class="p">(</span><span class="nx">fs</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="nx">fs</span><span class="p">.</span><span class="nx">root</span><span class="p">.</span><span class="nx">getFile</span><span class="p">(</span><span class="s1">'log.txt'</span><span class="p">,</span> <span class="p">{</span><span class="nx">create</span><span class="o">:</span> <span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">fileEntry</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// Create a FileWriter object for our FileEntry (log.txt).</span>
+    <span class="nx">fileEntry</span><span class="p">.</span><span class="nx">createWriter</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">fileWriter</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="nx">fileWriter</span><span class="p">.</span><span class="nx">onwriteend</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Write completed.'</span><span class="p">);</span>
+      <span class="p">};</span>
+
+      <span class="nx">fileWriter</span><span class="p">.</span><span class="nx">onerror</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Write failed: '</span> <span class="o">+</span> <span class="nx">e</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+      <span class="p">};</span>
+
+      <span class="c1">// Create a new Blob and write it to log.txt.</span>
+      <span class="kd">var</span> <span class="nx">blob</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Blob</span><span class="p">([</span><span class="s1">'Lorem Ipsum'</span><span class="p">],</span> <span class="p">{</span><span class="nx">type</span><span class="o">:</span> <span class="s1">'text/plain'</span><span class="p">});</span>
+
+      <span class="nx">fileWriter</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
+
+    <span class="p">},</span> <span class="nx">errorHandler</span><span class="p">);</span>
+
+  <span class="p">},</span> <span class="nx">errorHandler</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nb">window</span><span class="p">.</span><span class="nx">requestFileSystem</span><span class="p">(</span><span class="nb">window</span><span class="p">.</span><span class="nx">TEMPORARY</span><span class="p">,</span> <span class="mi">1024</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span> <span class="nx">onInitFs</span><span class="p">,</span> <span class="nx">errorHandler</span><span class="p">);</span>
+</pre></div>
+
+<p>One library I would like to mention within this context is <a href="https://github.com/ebidel/filer.js">filer.js</a>. Filer.js is a wrapper library for the HTML5 Filesystem API, what reuses UNIX commands (cp, mv, ls) for its API and is a huge help, if you want to interact with the HTML5 Filesystem API. For comparison, the following  code does the same as the code from above, but uses filer.js for that.</p>
+
+<div class="highlight"><pre><span class="c1">// Write string data.</span>
+<span class="nx">filer</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s1">'log.txt'</span><span class="p">,</span> <span class="p">{</span><span class="nx">data</span><span class="o">:</span> <span class="s1">'Lorem Ipsum'</span><span class="p">,</span> <span class="nx">type</span><span class="o">:</span> <span class="s1">'text/plain'</span><span class="p">},</span>
+  <span class="kd">function</span><span class="p">(</span><span class="nx">fileEntry</span><span class="p">,</span> <span class="nx">fileWriter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">...</span>
+  <span class="p">},</span>
+  <span class="nx">onError</span>
+<span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="embedding-external-content" class="anchor" href="https://gist.github.com/maicki/7622137#embedding-external-content"><span class="mini-icon mini-icon-link"></span></a><a></a>Embedding external content</h3>
+
+<p>With the tight restrictions of packaged apps via the CSP, it's not possible to run iframes within packaged apps. Maybe you will ask yourself now: but how can I embed external content like YouTube / Vimeo videos or social widgets in my packaged app then? For this functionality Google provides the <a href="http://developer.chrome.com/dev/apps/webview_tag.html">webview tag</a>.</p>
+
+<p>You can use the webview tag to embed any kind of 'guest' content (such as web pages, videos, social widgets) in your packaged app. The guest content is contained within the webview container; an embedder page within your packaged app controls how the guest content is laid out and rendered. One of the big differences between iframes and the webview tag is that the each webview runs in a separate process than your app, it doesn't have the same permissions as your app and all interactions between your app and embedded content will be asynchronous. This keeps your app safe from the embedded content.</p>
+
+<p>The following code loads an external page into the packaged app via the webview tag ...</p>
+
+<div class="highlight"><pre><span class="p">...</span>
+<span class="o">&lt;</span><span class="nx">webview</span> <span class="nx">src</span><span class="o">=</span><span class="s2">"http://google.com"</span> <span class="nx">style</span><span class="o">=</span><span class="s2">"width:640px; height:480px"</span><span class="o">&gt;&lt;</span><span class="err">/webview&gt;</span>
+<span class="p">...</span>
+</pre></div>
+
+<p>... and you can use the following code to embed a YouTube video within your app.</p>
+
+<div class="highlight"><pre><span class="p">...</span>
+<span class="o">&lt;</span><span class="nx">webview</span> <span class="nx">src</span><span class="o">=</span><span class="s2">"http://www.youtube.com/embed/a1Y73sPHKxw"</span> <span class="nx">style</span><span class="o">=</span><span class="s2">"width:640px; height:480px"</span><span class="o">&gt;&lt;</span><span class="err">/webview&gt;</span>
+<span class="p">...</span>
+</pre></div>
+
+<p>The webview tag was developed in a way so that you can have a lot of webviews at the same time within your app and it should not have a big influence on performance. So it's no problem for you, to embed multiple videos or guest sites into your app. You will find this information and a lot of further tips about the webview tag in the <a href="http://www.youtube.com/watch?v=cervjrVRLjA">Chrome Apps Office Hours - the WebView Control</a> video as well as in the documentation for the <a href="http://developer.chrome.com/dev/apps/webview_tag.html">webview tag</a>.</p>
+
+<h3>
+<a name="web-application-frameworks" class="anchor" href="https://gist.github.com/maicki/7622137#web-application-frameworks"><span class="mini-icon mini-icon-link"></span></a>Web Application Frameworks</h3>
+
+<p>For bigger packaged apps it may be clever to use a web framework. Within packaged apps, it's no problem at all, to use a web framework. Just to mention a few in this paragraph: <a href="http://angularjs.org/">AngularJS</a> is a web framework developed directly within Google. Unlike many other JavaScript MV* frameworks, AngularJS starting with version 1.1.0 and up requires no tweaks to work within a strict CSP like packaged apps have. Further frameworks are <a href="http://emberjs.com/">Ember.js</a> or <a href="http://backbonejs.org/">Backbone.js</a>.</p>
+
+<p>I will not go any further into web frameworks in this article as this article is not about web frameworks, I just wanted to mention that you should have no problem to use a web framework within a packaged app. Whatever, if you want a further overview of web frameworks, I would like to point you to <a href="http://todomvc.com/">TodoMVC</a>. TodoMVC compares and provides further information of the many many web frameworks that are out there at the moment.</p>
+
+<h3>
+<a name="restrictions" class="anchor" href="https://gist.github.com/maicki/7622137#restrictions"><span class="mini-icon mini-icon-link"></span></a>Restrictions</h3>
+
+<p>If you start developing a packaged app or try to convert a existing web app to a packaged app, you will stumble upon some things that will work differently in packaged apps as expected. Furthermore you will have restrictions that have something to do with the CSP that is very strict within the packaged app infrastructure. At the following are a couple of these restrictions and some short tips what you can use instead of. You will find a full list of all <a href="http://developer.chrome.com/apps/app_deprecated.html">Disabled Web Features</a> in packaged apps over at the corresponding documentation.</p>
+
+<h4>
+<a name="access-remote-resources" class="anchor" href="https://gist.github.com/maicki/7622137#access-remote-resources"><span class="mini-icon mini-icon-link"></span></a>Access remote resources</h4>
+
+<p>As often mentioned in this article, it's not allowed to access remote resources directly. You have to use cross-origin XMLHttpRequests to fetch these resources and then serve them via blob: URLs as described within the <a href="https://gist.github.com/maicki/7622137#get-external-resources">Get External Resources</a> segment in this article.</p>
+
+<h4>
+<a name="no-localstorage" class="anchor" href="https://gist.github.com/maicki/7622137#no-localstorage"><span class="mini-icon mini-icon-link"></span></a>No localStorage</h4>
+
+<p>The localStorage API is disabled by default. The main reason is that it's synchronously and this means, it can be slow in some circumstances. So if you want to save data that you would normally store into localStorage, you should use the <a href="http://developer.chrome.com/apps/storage.html">Chrome Storage API</a> and if you want to persists larger amount of data use IndexedDB or the HTML5 Filesystem API.</p>
+
+<h4>
+<a name="no-inline-scripts" class="anchor" href="https://gist.github.com/maicki/7622137#no-inline-scripts"><span class="mini-icon mini-icon-link"></span></a>No inline scripts</h4>
+
+<p>Another restriction from the CSP is no inline scripts. I think it's not so a big deal that it's not allowed to use inline scripts, because it's not so good practice anyway. Just extract all inline scripts from your app and port it to an external script.</p>
+
+<h4>
+<a name="no-string-to-javascript-methods-like-eval-and-function" class="anchor" href="https://gist.github.com/maicki/7622137#no-string-to-javascript-methods-like-eval-and-function"><span class="mini-icon mini-icon-link"></span></a>No string-to-JavaScript methods like eval() and function()</h4>
+
+<p>This is especially a problem, if you want to use certain templating languages that make use of eval() or function(). Maybe the best way to deal with this, is to use a library that offers precompiled templates and you should be all set. 
+You can still use a library that doesn't offer precompilation, but it will require some extra work on your part and there are further restrictions. You will need to use <a href="http://developer.chrome.com/apps/app_external.html#sandboxing">sandboxing</a> to isolate any content that you want to do 'eval' things to. Sandboxing lifts CSP on the content that you specify. If you want to use the very powerful Chrome APIs in your packaged app, your sandboxed content can't directly interact with these APIs.</p>
+
+<h4>
+<a name="embed-web-content" class="anchor" href="https://gist.github.com/maicki/7622137#embed-web-content"><span class="mini-icon mini-icon-link"></span></a>Embed web content</h4>
+
+<p>It's not allowed to use iframes within packaged apps. In this article, I already describe a way how to <a href="https://gist.github.com/maicki/7622137#embed-external-content">embed external content</a> via the webview tag. 
+Another way is to <a href="http://developer.chrome.com/apps/app_external.html#sandboxing">sandbox local content</a>. Sandboxing allows specified pages to be served in a sandboxed, unique origin. These pages are then exempt from their Content Security Policy. Sandboxed pages can use iframes, inline scripting, and eval().</p>
+
+<h4>
+<a name="no-alert-method" class="anchor" href="https://gist.github.com/maicki/7622137#no-alert-method"><span class="mini-icon mini-icon-link"></span></a>No alert() method</h4>
+
+<p>I think it's not so good to use the alert() method at all to provide any feedback to the user, but if you plan to do so, you have to find a better way. Within packaged apps it's not allowed to use alert(). A better way would be to have some kind of general notification component that can show different kind of notifications like errors, general informations etc. If it's a slider view from the top or any kind of popup that's totally up to you, you should know what's the best is for your app, but with such a component in place, you have a lot of opportunities to show the user notifications and information in a general way throughout the app.</p>
+
+<h4>
+<a name="no-html5-history-api" class="anchor" href="https://gist.github.com/maicki/7622137#no-html5-history-api"><span class="mini-icon mini-icon-link"></span></a>No HTML5 History API</h4>
+
+<p>The HTML 5 History API is not accessible within packaged apps. You have to find your own way how to handle the routing within your app as well as handle the application state.</p>
+
+<h4>
+<a name="scrolling" class="anchor" href="https://gist.github.com/maicki/7622137#scrolling"><span class="mini-icon mini-icon-link"></span></a>Scrolling</h4>
+
+<p>If you work on a packaged app maybe you will come to a point where you will ask yourself, why you cannot scroll within the packaged app window, although the content is longer then the window. The reason is that you have make the content scrollable. For most of you this it will be obvious to resolve this problem but if not, just add the following css to your stylesheet and you should be good to go on scrolling of your site.</p>
+
+<div class="highlight"><pre><span class="nt">html</span> <span class="p">{</span>
+  <span class="k">overflow-y</span><span class="o">:</span><span class="k">scroll</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Another restriction or problem if you are currently thinking of porting your web app to a packaged app is that you have to develop a packaged app in HTML, CSS and JavaScript. It's not possible to run any PHP, Python, Ruby etc. code within a packaged app. If you developed your web app with web frameworks like AngularJS or Ember.js or you used plain HTML, CSS and JavaScript without any framework, you are good to go else you need to to do some extra work to get your web app running as a packaged app. If you are currently starting or in the middle of developing your web app and plan to port it later to a packaged app, it's good to have some points in mind:</p>
+
+<h4>
+<a name="develop-against-your-public-api-from-the-start" class="anchor" href="https://gist.github.com/maicki/7622137#develop-against-your-public-api-from-the-start"><span class="mini-icon mini-icon-link"></span></a>Develop against your public API from the start</h4>
+
+<p>If you use some kind of backend component in your web app, don't use any PHP code to connect to your backend with your frontend. Develop your web app as you would develop a third party app that is connecting to your public API and use plain HTML, CSS and JavaScript or develop it with the help of a web framework.</p>
+
+<h4>
+<a name="try-to-develop-your-web-app-component-based" class="anchor" href="https://gist.github.com/maicki/7622137#try-to-develop-your-web-app-component-based"><span class="mini-icon mini-icon-link"></span></a>Try to develop your web app component based</h4>
+
+<p>That's especially good if you want to share code between your web and your packaged app. In your web app most of the time it's not so necessary to save any external resource to the hard drive or in a database. If you have a good app architecture it's very easy to share most of the code between the web and packaged app and just replace or add components that are specific for either one, like the syncing and offline storage component for the packaged app that maybe you will not need in your web app.</p>
+
+<h3>
+<a name="suggestions-for-improvements" class="anchor" href="https://gist.github.com/maicki/7622137#suggestions-for-improvements"><span class="mini-icon mini-icon-link"></span></a>Suggestions for Improvements</h3>
+
+<p>There is everytime and everywhere room for improvements. The following list includes a couple of thoughts from my side for packaged apps improvements.</p>
+
+<h4>
+<a name="installing-a-packaged-app--extension-with-one-click" class="anchor" href="https://gist.github.com/maicki/7622137#installing-a-packaged-app--extension-with-one-click"><span class="mini-icon mini-icon-link"></span></a>Installing a Packaged App + Extension with one click</h4>
+
+<p>If you plan or in the middle of developping a packaged app, it's very likely that you have some experience with developping of Chrome extensions before. As packaged apps as well as the Chrome extensions can be installed from the Chrome Web Store, a really good move from Google would be to provide a way for the user the decide, if the user wants to install not only the packaged app or extension separately but to combine both and with one click extension and packaged app gets installed on the users system.</p>
+
+<h4>
+<a name="native-window-frame" class="anchor" href="https://gist.github.com/maicki/7622137#native-window-frame"><span class="mini-icon mini-icon-link"></span></a>Native window frame</h4>
+
+<p>If you open a packaged app you will notice the white frame around the packaged app window.</p>
+
+<p><a href="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f31443351336832563375317433313054325933672f77686974652d746f6f6c6261722e706e67" target="_blank"><img src="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f31443351336832563375317433313054325933672f77686974652d746f6f6c6261722e706e67" alt="White Toolbar" style="max-width:100%;"></a></p>
+
+<p>To let packaged app feels more like a native running app on a system, it would be good to have a native looking window frame for packaged apps on each of the operating systems.</p>
+
+<h4>
+<a name="menu-entries-in-the-mac-menu-bar-should-be-the-packaged-app-specific" class="anchor" href="https://gist.github.com/maicki/7622137#menu-entries-in-the-mac-menu-bar-should-be-the-packaged-app-specific"><span class="mini-icon mini-icon-link"></span></a>Menu Entries in the Mac Menu Bar should be the packaged app specific</h4>
+
+<p>If you on a Mac, you know that within OS X, if you switch to an app, the menu bar entries at the top changes to app specific entries. If you switch to a packaged app at the moment, it's still the Chrome menu bar entries.</p>
+
+<p><a href="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f3035305830713255304a306e3247335a316430772f6f73782d6d656e752d6261722e706e67" target="_blank"><img src="./Chrome Packaged Apps_files/687474703a2f2f662e636c2e6c792f6974656d732f3035305830713255304a306e3247335a316430772f6f73782d6d656e752d6261722e706e67" alt="OSX Menubar" style="max-width:100%;"></a></p>
+
+<p>One great possibilities for developers would be, to be able define packaged app specific menu bar entries. I'm sure on Windows or Linux there is some similar as app specific menu entries.</p>
+
+<h3>
+<a name="conclusion" class="anchor" href="https://gist.github.com/maicki/7622137#conclusion"><span class="mini-icon mini-icon-link"></span></a>Conclusion</h3>
+
+<p>Google gives us developer a new possibility to create apps on top of Chrome. If you are familiar with development for the web, you are good to go to within minutes. The goal of this article was to give a quick overview of the architecture of packaged apps and provide some further notes about my experiences with packaged app development, Google's offer to write apps for the desktop. Chrome packaged apps are a new direction from Google to entering the desktop and mobile market and we will see what Google and the we developer will make with it in the future.</p>
+
+<h3>
+<a name="further-ressources" class="anchor" href="https://gist.github.com/maicki/7622137#further-ressources"><span class="mini-icon mini-icon-link"></span></a>Further ressources</h3>
+
+<ul>
+<li><a href="http://developer.chrome.com/apps/about_apps.html">What are Packaged Apps?</a></li>
+<li><a href="http://www.youtube.com/watch?v=f2tJRXDTMuY">Google I/O 2013 - The Chrome Packaged Apps State of the Nation</a></li>
+<li><a href="http://www.youtube.com/watch?v=e0W2szZ2qhg">Google I/O 2013 - Upgrading to a Chrome Packaged App</a></li>
+<li><a href="http://www.youtube.com/user/ChromeDevelopers">Chrome Developers YouTube Channel</a></li>
+</ul>
+      </article>
+    </div>
+
+
+
+          </div>
+        </div>
+    <div id="comments" class="new-comments">
+      
+    </div>
+      <form action="https://gist.github.com/maicki/7622137/comments" class="js-comment-form" data-pjax-remote="replace" method="post" accept-charset="UTF-8">
+  <input name="authenticity_token" type="hidden" value="YpvDGiEJWeXoV+eisCxssfuOClP8GTirUn5mrlIhHRc=">
+
+  <div class="discussion-bubble">
+    <img class="discussion-bubble-avatar" src="./Chrome Packaged Apps_files/04cbb3bd2ef7caf6f6342cd54fb3a997" width="48" height="48">
+    <div class="discussion-bubble-content bubble">
+      <div class="discussion-bubble-inner">
+
+        <div class="js-previewable-comment-form previewable-comment-form write-selected" data-preview-url="/preview">
+          <div class="comment-form-head tabnav">
+            <ul class="js-preview-tabs tabnav-tabs">
+              <li><a href="https://gist.github.com/maicki/7622137#" class="tabnav-tab js-write-tab write-tab selected" action="write">Write</a></li>
+              <li><a href="https://gist.github.com/maicki/7622137#" class="tabnav-tab js-preview-tab preview-tab" action="preview">Preview</a></li>
+            </ul>
+            <span class="tabnav-right">
+              <span class="tabnav-widget text">
+                Comments are parsed with <a href="http://github.github.com/github-flavored-markdown/" class="gfm-help" target="_blank">GitHub Flavored Markdown</a>
+              </span>
+            </span>
+          </div>
+
+          <div class="comment-form-error" style="display: none;">There has been an error.</div>
+
+          <div class="tab-content write-content js-write-content">
+            <div class="textarea-frame">
+              <textarea name="comment[body]" placeholder="Leave a comment" class="js-comment-field js-size-to-fit" style="height: 22px;"></textarea>
+            </div>
+          </div>
+
+          <div class="tab-content preview-content">
+            <div class="comment">
+              <div class="comment-header normal-comment-header">
+                <img class="comment-header-gravatar" src="./Chrome Packaged Apps_files/04cbb3bd2ef7caf6f6342cd54fb3a997" width="22" height="22">
+                <a href="https://gist.github.com/maicki/7622137#" class="comment-header-author">nickman</a>
+                <span class="comment-header-action-text"><a href="https://gist.github.com/maicki/7622137#">commented</a></span>
+                <span class="comment-header-right">
+                  <a href="https://gist.github.com/maicki/7622137#" class="comment-header-date"><time>just now</time></a>
+                </span>
+              </div>
+              <div class="comment-content">
+                <div class="edit-comment-hide">
+                  <div class="comment-body markdown-body markdown-format preview-content-body js-preview-content">
+                    <p>Nothing to preview</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button class="button primary js-comment-submit" type="submit" disabled="">Add Comment</button>
+  </div>
+</form>
+
+  </div>
+</div>
+
+  <div class="context-overlay"></div>
+</div>
+
+    </div>
+    <div class="slow-loading-overlay"></div>
+  </div>
+
+  <div id="ajax-error-message" class="flash flash-error">
+    <div class="container">
+      <span class="octicon octicon-alert"></span>
+      Something went wrong with that request. Please try again.
+      <a href="https://gist.github.com/maicki/7622137#" class="octicon octicon-remove-close ajax-error-dismiss"></a>
+    </div>
+  </div>
+
+  <footer>
+    <div id="footer">
+  <div class="container clearfix">
+
+    <!-- Served fresh by github-fe103-cp1-prd.iad.github.net -->
+    <p class="right">© 2013 GitHub Inc. All rights reserved.</p>
+    <a class="left" href="https://gist.github.com/">
+      <span class="mega-octicon octicon-mark-github"></span>
+    </a>
+    <ul id="legal">
+      <li><a href="https://github.com/blog">The GitHub Blog</a></li>
+      <li><a href="mailto:support@github.com">Support</a></li>
+      <li><a href="https://github.com/contact">Contact</a></li>
+    </ul>
+
+  </div><!-- /.container -->
+</div><!-- /.#footer -->
+
+  </footer>
+
+
+
+</body></html>

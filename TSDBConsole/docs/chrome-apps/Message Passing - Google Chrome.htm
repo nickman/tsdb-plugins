@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<!-- saved from url=(0053)http://developer.chrome.com/extensions/messaging.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Message Passing - Google Chrome</title>
+    
+    <link href="./Message Passing - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./Message Passing - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./Message Passing - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./Message Passing - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./Message Passing - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/extensions/" title="Google Chrome Extensions">
+          <img src="./Message Passing - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            extensions ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/extensions/samples.html" title="Sample Extensions (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-extensions" title="Google Chrome Extensions developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-extension/info" title="[google-chrome-extension] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar">
+        <ul class="level1 ">
+        <li class="level2">
+              <a href="http://developer.chrome.com/extensions/getstarted.html" class="level2 ">Getting Started</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/overview.html" class="level2 ">Overview</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/whats_new.html" class="level2 ">What's New?</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/devguide.html" class="level2 ">Developer's Guide</a>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser UI</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/browserAction.html" class="level4 ">Browser Actions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contextMenus.html" class="level4 ">Context Menus</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/desktop_notifications.html" class="level4 ">Desktop Notifications</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/omnibox.html" class="level4 ">Omnibox</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/options.html" class="level4 ">Options Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/override.html" class="level4 ">Override Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/pageAction.html" class="level4 ">Page Actions</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser Interaction</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/bookmarks.html" class="level4 ">Bookmarks</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/cookies.html" class="level4 ">Cookies</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/devtools.html" class="level4 ">Extending DevTools</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/events.html" class="level4 ">Events</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/history.html" class="level4 ">History</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/management.html" class="level4 ">Management</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/tabs.html" class="level4 ">Tabs</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/windows.html" class="level4 ">Windows</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Implementation</span>
+                <div class="toggleIndicator level3 toggled"></div>
+              </a>
+            <ul toggleable="" class="level3 ">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/a11y.html" class="level4 ">Accessibility</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/event_pages.html" class="level4 ">Event Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contentSecurityPolicy.html" class="level4 ">Content Security Policy</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/content_scripts.html" class="level4 ">Content Scripts</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/xhr.html" class="level4 ">Cross-Origin XHR</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/i18n.html" class="level4 ">Internationalization</a>
+            </li><li class="level4">
+                  <a class="level4 selected">Message Passing</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/permissions.html" class="level4 ">Optional Permissions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/npapi.html" class="level4 ">NPAPI Plugins</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Finishing</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/hosting.html" class="level4 ">Hosting</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/external_extensions.html" class="level4 ">Other Deployment Options</a>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/tutorials.html" class="level2 ">Tutorials</a>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_migration_to_manifest_v2.html" class="level3 ">Manifest V2</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_debugging.html" class="level3 ">Debugging</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_analytics.html" class="level3 ">Google Analytics</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_oauth.html" class="level3 ">OAuth</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Formats</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/manifest.html" class="level4 ">Manifest Files</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/match_patterns.html" class="level4 ">Match Patterns</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/permission_warnings.html" class="level3 ">Permission Warnings</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_index.html" class="level3 ">chrome.* APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_other.html" class="level3 ">Other APIs</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">More</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/webstore/docs/index.html" class="level3 ">Chrome Web Store</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/apps/docs/developers_guide.html" class="level3 ">Hosted Apps</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/themes.html" class="level3 ">Themes</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#simple" data-list-item="">Simple one-time requests</a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#connect" data-list-item="">Long-lived connections</a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#external" data-list-item="">Cross-extension messaging</a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#external-webpage" data-list-item="">Sending messages from web pages</a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#native-messaging" data-list-item="">Native messaging</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/messaging.html#native-messaging-host" data-list-item="">Native messaging host</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/messaging.html#native-messaging-client" data-list-item="">Connecting to a native application</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#security-considerations" data-list-item="">Security considerations</a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/messaging.html#examples" data-list-item="">Examples</a>
+    </li>
+  </ol>
+</div>
+
+<h1>Message Passing</h1>
+
+
+<p>
+Since content scripts run in the context of a web page and not the extension,
+they often need some way of communicating with the rest of the extension. For
+example, an RSS reader extension might use content scripts to detect the
+presence of an RSS feed on a page, then notify the background page in order to
+display a page action icon for that page.
+
+</p><p>
+Communication between extensions and their content scripts works by using
+message passing. Either side can listen for messages sent from the other end,
+and respond on the same channel. A message can contain any valid JSON object
+(null, boolean, number, string, array, or object). There is a simple API for
+<a href="http://developer.chrome.com/extensions/messaging.html#simple">one-time requests</a>
+and a more complex API that allows you to have
+<a href="http://developer.chrome.com/extensions/messaging.html#connect">long-lived connections</a>
+for exchanging multiple messages with a shared context. It is also possible to
+send a message to another extension if you know its ID, which is covered in
+the
+<a href="http://developer.chrome.com/extensions/messaging.html#external">cross-extension messages</a>
+section.
+
+
+</p><h2 id="simple">Simple one-time requests</h2>
+<p>
+If you only need to send a single message to another part of your extension
+(and optionally get a response back), you should use the simplified
+<a href="http://developer.chrome.com/extensions/runtime.html#method-sendMessage">runtime.sendMessage</a>
+or
+<a href="http://developer.chrome.com/extensions/tabs.html#method-sendMessage">tabs.sendMessage</a>
+methods. This lets you send a one-time JSON-serializable message from a
+content script to extension, or vice versa, respectively. An optional
+callback parameter allows you handle the response from the other side, if
+there is one.
+
+</p><p>
+Sending a request from a content script looks like this:
+</p><pre data-filename="contentscript.js" class="prettyprint"><div class="filename nocode">contentscript.js</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">({</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="pln">response</span><span class="pun">.</span><span class="pln">farewell</span><span class="pun">);</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<p>
+Sending a request from the extension to a content script looks very similar,
+except that you need to specify which tab to send it to. This example
+demonstrates sending a message to the content script in the selected tab.
+</p><pre data-filename="background.html" class="prettyprint"><div class="filename nocode">background.html</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">query</span><span class="pun">({</span><span class="pln">active</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">,</span><span class="pln"> currentWindow</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">tabs</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">tabs</span><span class="pun">[</span><span class="lit">0</span><span class="pun">].</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="pln">response</span><span class="pun">.</span><span class="pln">farewell</span><span class="pun">);</span><span class="pln">
+  </span><span class="pun">});</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<p>
+On the receiving end, you need to set up an
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onMessage">runtime.onMessage</a>
+event listener to handle the message. This looks the same from a content
+script or extension page.
+</p><pre class="prettyprint"><span class="pln">chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">onMessage</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">request</span><span class="pun">,</span><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="pln">sender</span><span class="pun">.</span><span class="pln">tab </span><span class="pun">?</span><span class="pln">
+                </span><span class="str">"from a content script:"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> sender</span><span class="pun">.</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">url </span><span class="pun">:</span><span class="pln">
+                </span><span class="str">"from the extension"</span><span class="pun">);</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">request</span><span class="pun">.</span><span class="pln">greeting </span><span class="pun">==</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">)</span><span class="pln">
+      sendResponse</span><span class="pun">({</span><span class="pln">farewell</span><span class="pun">:</span><span class="pln"> </span><span class="str">"goodbye"</span><span class="pun">});</span><span class="pln">
+  </span><span class="pun">});</span></pre>
+
+<p class="note">
+<b>Note:</b> If multiple pages are listening for onMessage events, only the
+first to call sendResponse() for a particular event will succeed in sending the
+response. All other responses to that event will be ignored.
+</p>
+
+
+<h2 id="connect">Long-lived connections</h2>
+<p>
+Sometimes it's useful to have a conversation that lasts longer than a single
+request and response. In this case, you can open a long-lived channel from
+your content script to an extension page, or vice versa, using
+<a href="http://developer.chrome.com/extensions/runtime.html#method-connect">runtime.connect</a>
+or
+<a href="http://developer.chrome.com/extensions/tabs.html#method-connect">tabs.connect</a> respectively. The
+channel can optionally have a name, allowing you to distinguish between
+different types of connections.
+
+</p><p>
+One use case might be an automatic form fill extension. The content script
+could open a channel to the extension page for a particular login, and send a
+message to the extension for each input element on the page to request the
+form data to fill in. The shared connection allows the extension to keep
+shared state linking the several messages coming from the content script.
+
+</p><p>
+When establishing a connection, each end is given a
+<a href="http://developer.chrome.com/extensions/runtime.html#type-Port">runtime.Port</a>
+object which is used for sending and receiving messages through that
+connection.
+
+</p><p>
+Here is how you open a channel from a content script, and send and listen for
+messages:
+</p><pre data-filename="contentscript.js" class="prettyprint"><div class="filename nocode">contentscript.js</div><span class="kwd">var</span><span class="pln"> port </span><span class="pun">=</span><span class="pln"> chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">connect</span><span class="pun">({</span><span class="pln">name</span><span class="pun">:</span><span class="pln"> </span><span class="str">"knockknock"</span><span class="pun">});</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">joke</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Knock knock"</span><span class="pun">});</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">onMessage</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">msg</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">msg</span><span class="pun">.</span><span class="pln">question </span><span class="pun">==</span><span class="pln"> </span><span class="str">"Who's there?"</span><span class="pun">)</span><span class="pln">
+    port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">answer</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Madame"</span><span class="pun">});</span><span class="pln">
+  </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">msg</span><span class="pun">.</span><span class="pln">question </span><span class="pun">==</span><span class="pln"> </span><span class="str">"Madame who?"</span><span class="pun">)</span><span class="pln">
+    port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">answer</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Madame... Bovary"</span><span class="pun">});</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<p>
+Sending a request from the extension to a content script looks very similar,
+except that you need to specify which tab to connect to. Simply replace the
+call to connect in the above example with
+<a href="http://developer.chrome.com/extensions/tabs.html#method-connect">tabs.connect</a>.
+
+</p><p>
+In order to handle incoming connections, you need to set up a
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onConnect">runtime.onConnect</a>
+event listener. This looks the same from a content script or an extension
+page. When another part of your extension calls "connect()", this event is
+fired, along with the
+<a href="http://developer.chrome.com/extensions/runtime.html#type-Port">runtime.Port</a>
+object you can use to send and receive messages through the connection. Here's
+what it looks like to respond to incoming connections:
+</p><pre class="prettyprint"><span class="pln">chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">onConnect</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">port</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  console</span><span class="pun">.</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">port</span><span class="pun">.</span><span class="pln">name </span><span class="pun">==</span><span class="pln"> </span><span class="str">"knockknock"</span><span class="pun">);</span><span class="pln">
+  port</span><span class="pun">.</span><span class="pln">onMessage</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">msg</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">msg</span><span class="pun">.</span><span class="pln">joke </span><span class="pun">==</span><span class="pln"> </span><span class="str">"Knock knock"</span><span class="pun">)</span><span class="pln">
+      port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">question</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Who's there?"</span><span class="pun">});</span><span class="pln">
+    </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">msg</span><span class="pun">.</span><span class="pln">answer </span><span class="pun">==</span><span class="pln"> </span><span class="str">"Madame"</span><span class="pun">)</span><span class="pln">
+      port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">question</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Madame who?"</span><span class="pun">});</span><span class="pln">
+    </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">msg</span><span class="pun">.</span><span class="pln">answer </span><span class="pun">==</span><span class="pln"> </span><span class="str">"Madame... Bovary"</span><span class="pun">)</span><span class="pln">
+      port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln">question</span><span class="pun">:</span><span class="pln"> </span><span class="str">"I don't get it."</span><span class="pun">});</span><span class="pln">
+  </span><span class="pun">});</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<p>
+You may want to find out when a connection is closed, for example if you are
+maintaining separate state for each open port. For this you can listen to the
+<a href="http://developer.chrome.com/extensions/runtime.html#property-Port-onDisconnect">runtime.Port.onDisconnect</a>
+event. This event is fired either when the other side of the channel manually
+calls
+<a href="http://developer.chrome.com/extensions/runtime.html#property-Port-disconnect">runtime.Port.disconnect</a>, or when the page
+containing the port is unloaded (for example if the tab is navigated).
+onDisconnect is guaranteed to be fired only once for any given port.
+
+
+</p><h2 id="external">Cross-extension messaging</h2>
+<p>
+In addition to sending messages between different components in your
+extension, you can use the messaging API to communicate with other extensions.
+This lets you expose a public API that other extensions can take advantage of.
+
+</p><p>
+Listening for incoming requests and connections is similar to the internal
+case, except you use the
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onMessageExternal">runtime.onMessageExternal</a>
+or
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onConnectExternal">runtime.onConnectExternal</a>
+methods. Here's an example of each:
+</p><pre class="prettyprint"><span class="com">// For simple requests:</span><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">onMessageExternal</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">request</span><span class="pun">,</span><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">sender</span><span class="pun">.</span><span class="pln">id </span><span class="pun">==</span><span class="pln"> blacklistedExtension</span><span class="pun">)</span><span class="pln">
+      </span><span class="kwd">return</span><span class="pun">;</span><span class="pln">  </span><span class="com">// don't allow this extension access</span><span class="pln">
+    </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">request</span><span class="pun">.</span><span class="pln">getTargetData</span><span class="pun">)</span><span class="pln">
+      sendResponse</span><span class="pun">({</span><span class="pln">targetData</span><span class="pun">:</span><span class="pln"> targetData</span><span class="pun">});</span><span class="pln">
+    </span><span class="kwd">else</span><span class="pln"> </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">request</span><span class="pun">.</span><span class="pln">activateLasers</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+      </span><span class="kwd">var</span><span class="pln"> success </span><span class="pun">=</span><span class="pln"> activateLasers</span><span class="pun">();</span><span class="pln">
+      sendResponse</span><span class="pun">({</span><span class="pln">activateLasers</span><span class="pun">:</span><span class="pln"> success</span><span class="pun">});</span><span class="pln">
+    </span><span class="pun">}</span><span class="pln">
+  </span><span class="pun">});</span><span class="pln">
+
+</span><span class="com">// For long-lived connections:</span><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">onConnectExternal</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">port</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  port</span><span class="pun">.</span><span class="pln">onMessage</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">msg</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="com">// See other examples for sample onMessage handlers.</span><span class="pln">
+  </span><span class="pun">});</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<p>
+Likewise, sending a message to another extension is similar to sending one
+within your extension. The only difference is that you must pass the ID of the
+extension you want to communicate with. For example:
+</p><pre class="prettyprint"><span class="com">// The ID of the extension we want to talk to.</span><span class="pln">
+</span><span class="kwd">var</span><span class="pln"> laserExtensionId </span><span class="pun">=</span><span class="pln"> </span><span class="str">"abcdefghijklmnoabcdefhijklmnoabc"</span><span class="pun">;</span><span class="pln">
+
+</span><span class="com">// Make a simple request:</span><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">laserExtensionId</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">getTargetData</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">},</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">targetInRange</span><span class="pun">(</span><span class="pln">response</span><span class="pun">.</span><span class="pln">targetData</span><span class="pun">))</span><span class="pln">
+      chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">laserExtensionId</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">activateLasers</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">});</span><span class="pln">
+  </span><span class="pun">});</span><span class="pln">
+
+</span><span class="com">// Start a long-running conversation:</span><span class="pln">
+</span><span class="kwd">var</span><span class="pln"> port </span><span class="pun">=</span><span class="pln"> chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">connect</span><span class="pun">(</span><span class="pln">laserExtensionId</span><span class="pun">);</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">(...);</span></pre>
+
+
+<h2 id="external-webpage">Sending messages from web pages</h2>
+<p>
+Similar to <a href="http://developer.chrome.com/extensions/messaging.html#external">cross-extension messaging</a>,
+your app or extension can receive and
+respond to messages from regular web pages.
+To use this feature, you must first
+specify in your manifest.json which web sites you want to communicate with. For
+example:
+
+</p><pre data-filename="manifest.json" class="prettyprint"><div class="filename nocode">manifest.json</div><span class="str">"externally_connectable"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="str">"matches"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">[</span><span class="str">"*://*.example.com/*"</span><span class="pun">]</span><span class="pln">
+</span><span class="pun">}</span></pre>
+
+<p>
+This will expose the messaging API to any page which matches the URL patterns
+you specify. The URL pattern must contain at least a
+<a href="http://en.wikipedia.org/wiki/Second-level_domain">second-level domain</a>
+- that is, hostname
+patterns like "*", "*.com", "*.co.uk", and "*.appspot.com" are prohibited.
+From the web page, use the
+<a href="http://developer.chrome.com/extensions/runtime.html#method-sendMessage">runtime.sendMessage</a>
+or
+<a href="http://developer.chrome.com/extensions/runtime.html#method-connect">runtime.connect</a>
+APIs to send a message to a specific app or extension. For example:
+</p><pre class="prettyprint"><span class="com">// The ID of the extension we want to talk to.</span><span class="pln">
+</span><span class="kwd">var</span><span class="pln"> editorExtensionId </span><span class="pun">=</span><span class="pln"> </span><span class="str">"abcdefghijklmnoabcdefhijklmnoabc"</span><span class="pun">;</span><span class="pln">
+
+</span><span class="com">// Make a simple request:</span><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">editorExtensionId</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">openUrlInEditor</span><span class="pun">:</span><span class="pln"> url</span><span class="pun">},</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(!</span><span class="pln">response</span><span class="pun">.</span><span class="pln">success</span><span class="pun">)</span><span class="pln">
+      handleError</span><span class="pun">(</span><span class="pln">url</span><span class="pun">);</span><span class="pln">
+  </span><span class="pun">});</span></pre>
+
+<p>
+From your app or extension, you may listen to messages from web pages via the
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onMessageExternal">runtime.onMessageExternal</a>
+or
+<a href="http://developer.chrome.com/extensions/runtime.html#event-onConnectExternal">runtime.onConnectExternal</a>
+APIs, similar to <a href="http://developer.chrome.com/extensions/messaging.html#external">cross-extension messaging</a>.
+Only the web page can initiate a connection.
+Here is an example:
+
+</p><pre class="prettyprint"><span class="pln">chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">onMessageExternal</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">request</span><span class="pun">,</span><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">sender</span><span class="pun">.</span><span class="pln">url </span><span class="pun">==</span><span class="pln"> blacklistedWebsite</span><span class="pun">)</span><span class="pln">
+      </span><span class="kwd">return</span><span class="pun">;</span><span class="pln">  </span><span class="com">// don't allow this web page access</span><span class="pln">
+    </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">request</span><span class="pun">.</span><span class="pln">openUrlInEditor</span><span class="pun">)</span><span class="pln">
+      openUrl</span><span class="pun">(</span><span class="pln">request</span><span class="pun">.</span><span class="pln">openUrlInEditor</span><span class="pun">);</span><span class="pln">
+  </span><span class="pun">});</span></pre>
+
+
+<h2 id="native-messaging">Native messaging</h2>
+<p>
+Extensions can exchange messages with native applications. Native
+applications that support this feature must register a <em>native messaging
+host</em> that knows how to communicate with the extension. Chrome starts the
+host in a separate process and communicates with it using standard input and
+standard output streams.
+
+</p><h3 id="native-messaging-host">Native messaging host</h3>
+<p>
+In order to register a native messaging host the application must install a
+manifest file that defines the native messaging host configuration. Below is an
+example of the manifest file:
+</p><pre data-filename="manifest.json" class="prettyprint"><div class="filename nocode">manifest.json</div><span class="pun">{</span><span class="pln">
+  </span><span class="str">"name"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"com.my_company.my_application"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"description"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"My Application"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"path"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"C:\\Program Files\\My Application\\chrome_native_messaging_host.exe"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"type"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"stdio"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"allowed_origins"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">[</span><span class="pln">
+    </span><span class="str">"chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"</span><span class="pln">
+  </span><span class="pun">]</span><span class="pln">
+</span><span class="pun">}</span></pre>
+
+<p>Native messaging host manifest file contains the following fields:
+</p><table class="simple">
+  <tbody><tr>
+    <th>Name</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td><code>name</code></td>
+    <td>Name of the native messaging host. Clients pass this string to
+    <a href="http://developer.chrome.com/extensions/runtime.html#method-connectNative">runtime.connectNative</a> or <a href="http://developer.chrome.com/extensions/runtime.html#method-sendNativeMessage">runtime.sendNativeMessage</a>.</td>
+  </tr>
+  <tr>
+    <td><code>description</code></td>
+    <td>Short application description.</td>
+  </tr>
+  <tr>
+    <td><code>path</code></td>
+    <td>Path to the native messaging host binary. On Linux and OSX the path must
+    be absolute. On Windows it can be relative to the directory in which the
+    manifest file is located.</td>
+  </tr>
+  <tr>
+    <td><code>type</code></td>
+    <td>Type of the interface used to communicate with the native messaging
+    host. Currently there is only one possible value for this parameter:
+    <code>stdio</code>. It indicates that Chrome should use <code>stdin</code>
+    and <code>stdout</code> to communicate with the host.</td>
+  </tr>
+  <tr>
+    <td><code>allowed_origins</code></td>
+    <td>List of extensions that should have access to the native messaging host.</td>
+  </tr>
+</tbody></table>
+
+<p>Location of the manifest file depends on the platform:
+
+</p><dl>
+  <dt>Windows:</dt>
+    <dd>The manifest file can be located anywhere in the file system.
+     The application installer must create registry key
+     <code>HKEY_LOCAL_MACHINE\SOFTWARE\Google\Chrome\NativeMessagingHosts\<em>com.my_company.my_application</em></code>
+     and set default value of that key to the full path to the manifest file.
+    </dd>
+
+  <dt>OSX:</dt>
+    <dd>The manifest file must be placed at
+    <code>/Library/Google/Chrome/NativeMessagingHosts/<em>com.my_company.my_application</em>.json</code>
+    </dd>
+  <dt>Linux:</dt>
+    <dd>The manifest file must be placed at
+    <code>/etc/opt/chrome/native-messaging-hosts/<em>com.my_company.my_application</em>.json</code>
+    </dd>
+</dl>
+
+<p>
+Chrome starts each native messaging host in a separate process and communicates
+with it using standard input (<code>stdin</code>) and standard output
+(<code>stdout</code>). The same format is used to send messages in both
+directions: each message is serialized using JSON, UTF-8 encoded
+and is preceded with 32-bit message length in native byte order.
+
+</p><p>
+When a messaging port is created using <a href="http://developer.chrome.com/extensions/runtime.html#method-connectNative">runtime.connectNative</a> Chrome
+starts native messaging host process and keeps it running until the port is
+destroyed. On the other hand, when a message is sent using
+<a href="http://developer.chrome.com/extensions/runtime.html#method-sendNativeMessage">runtime.sendNativeMessage</a>, without creating a messaging port, Chrome starts
+a new native messaging host process for each message. In that case the first
+message generated by the host process is handled as a response to the original
+request, i.e. Chrome will pass it to the response callback specified when
+<a href="http://developer.chrome.com/extensions/runtime.html#method-sendNativeMessage">runtime.sendNativeMessage</a> is called. All other messages generated by the
+native messaging host in that case are ignored.
+
+</p><h3 id="native-messaging-client">Connecting to a native application</h3>
+<p>
+Sending and receiving messages to and from a native application is very similar
+to cross-extension messaging. The main difference is that
+<a href="http://developer.chrome.com/extensions/runtime.html#method-connectNative">runtime.connectNative</a> is used instead of <a href="http://developer.chrome.com/extensions/runtime.html#method-connect">runtime.connect</a>,
+and <a href="http://developer.chrome.com/extensions/runtime.html#method-sendNativeMessage">runtime.sendNativeMessage</a> is used instead of <a href="http://developer.chrome.com/extensions/runtime.html#method-sendMessage">runtime.sendMessage</a>.
+
+</p><p>
+The Following example creates a <a href="http://developer.chrome.com/extensions/runtime.html#type-Port">runtime.Port</a> object that's connected to native
+messaging host <code>com.my_company.my_application</code>, starts listening for
+messages from that port and sends one outgoing message:
+</p><pre class="prettyprint"><span class="kwd">var</span><span class="pln"> port </span><span class="pun">=</span><span class="pln"> chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">connectNative</span><span class="pun">(</span><span class="str">'com.my_company.my_application'</span><span class="pun">);</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">onMessage</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">msg</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="str">"Received"</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> msg</span><span class="pun">);</span><span class="pln">
+</span><span class="pun">});</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">onDisconnect</span><span class="pun">.</span><span class="pln">addListener</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="str">"Disconnected"</span><span class="pun">);</span><span class="pln">
+</span><span class="pun">});</span><span class="pln">
+port</span><span class="pun">.</span><span class="pln">postMessage</span><span class="pun">({</span><span class="pln"> text</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Hello, my_application"</span><span class="pln"> </span><span class="pun">});</span></pre>
+
+<p>
+<a href="http://developer.chrome.com/extensions/runtime.html#method-sendNativeMessage">runtime.sendNativeMessage</a> can be used to send a message to native
+application without creating a port, e.g.:
+</p><pre class="prettyprint"><span class="pln">chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">sendNativeMessage</span><span class="pun">(</span><span class="str">'com.my_company.my_application'</span><span class="pun">,</span><span class="pln">
+  </span><span class="pun">{</span><span class="pln"> text</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Hello"</span><span class="pln"> </span><span class="pun">},</span><span class="pln">
+  </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    console</span><span class="pun">.</span><span class="pln">log</span><span class="pun">(</span><span class="str">"Received "</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> response</span><span class="pun">);</span><span class="pln">
+  </span><span class="pun">});</span></pre>
+
+<h2 id="security-considerations">Security considerations</h2>
+
+<p>
+When receiving a message from a content script or another extension, your
+background page should be careful not to fall victim to <a href="http://en.wikipedia.org/wiki/Cross-site_scripting">cross-site
+scripting</a>.  Specifically, avoid using dangerous APIs such as the
+below:
+</p>
+<pre data-filename="background.js" class="prettyprint"><div class="filename nocode">background.js</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="com">// WARNING! Might be evaluating an evil script!</span><span class="pln">
+  </span><span class="kwd">var</span><span class="pln"> resp </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">eval</span><span class="pun">(</span><span class="str">"("</span><span class="pln"> </span><span class="pun">+</span><span class="pln"> response</span><span class="pun">.</span><span class="pln">farewell </span><span class="pun">+</span><span class="pln"> </span><span class="str">")"</span><span class="pun">);</span><span class="pln">
+</span><span class="pun">});</span></pre>
+<pre data-filename="background.js" class="prettyprint"><div class="filename nocode">background.js</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="com">// WARNING! Might be injecting a malicious script!</span><span class="pln">
+  document</span><span class="pun">.</span><span class="pln">getElementById</span><span class="pun">(</span><span class="str">"resp"</span><span class="pun">).</span><span class="pln">innerHTML </span><span class="pun">=</span><span class="pln"> response</span><span class="pun">.</span><span class="pln">farewell</span><span class="pun">;</span><span class="pln">
+</span><span class="pun">});</span></pre>
+<p>
+Instead, prefer safer APIs that do not run scripts:
+</p>
+<pre data-filename="background.js" class="prettyprint"><div class="filename nocode">background.js</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="com">// JSON.parse does not evaluate the attacker's scripts.</span><span class="pln">
+  </span><span class="kwd">var</span><span class="pln"> resp </span><span class="pun">=</span><span class="pln"> JSON</span><span class="pun">.</span><span class="pln">parse</span><span class="pun">(</span><span class="pln">response</span><span class="pun">.</span><span class="pln">farewell</span><span class="pun">);</span><span class="pln">
+</span><span class="pun">});</span></pre>
+<pre data-filename="background.js" class="prettyprint"><div class="filename nocode">background.js</div><span class="pln">chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">sendMessage</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">greeting</span><span class="pun">:</span><span class="pln"> </span><span class="str">"hello"</span><span class="pun">},</span><span class="pln"> </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">response</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="com">// innerText does not let the attacker inject HTML elements.</span><span class="pln">
+  document</span><span class="pun">.</span><span class="pln">getElementById</span><span class="pun">(</span><span class="str">"resp"</span><span class="pun">).</span><span class="pln">innerText </span><span class="pun">=</span><span class="pln"> response</span><span class="pun">.</span><span class="pln">farewell</span><span class="pun">;</span><span class="pln">
+</span><span class="pun">});</span></pre>
+
+<h2 id="examples">Examples</h2>
+
+<p>
+You can find simple examples of communication via messages in the
+<a href="http://src.chromium.org/viewvc/chrome/trunk/src/chrome/common/extensions/docs/examples/api/messaging/">examples/api/messaging</a>
+directory.
+<a href="http://src.chromium.org/viewvc/chrome/trunk/src/chrome/common/extensions/docs/examples/api/nativeMessaging/">examples/api/nativeMessaging</a>
+contains an example application that uses native messaging.
+Also see the
+<a href="http://src.chromium.org/viewvc/chrome/trunk/src/chrome/common/extensions/docs/examples/howto/contentscript_xhr">contentscript_xhr</a> example,
+in which a content script and its parent extension exchange messages,
+so that the parent extension can perform
+cross-site requests on behalf of the content script.
+For more examples and for help in viewing the source code, see
+<a href="http://developer.chrome.com/extensions/samples.html">Samples</a>.
+</p>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./Message Passing - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./Message Passing - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./Message Passing - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./Message Passing - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./Message Passing - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./Message Passing - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./Message Passing - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

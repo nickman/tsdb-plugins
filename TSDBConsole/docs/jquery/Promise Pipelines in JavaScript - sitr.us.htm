@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<!-- saved from url=(0062)http://sitr.us/2012/07/31/promise-pipelines-in-javascript.html -->
+<html class="js video maskImage placeholder" lang="en"><!--<![endif]--><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <title>Promise Pipelines in JavaScript - sitr.us</title>
+  <meta name="author" content="Jesse Hallett">
+
+  
+  <meta name="description" content="This page has been translated into Spanish
+language by Maria Ramos from Webhostinghub.com. Promises, also know as deferreds or futures, are a …">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1">
+
+  <!-- OpenID delegation -->
+  <meta http-equiv="X-XRDS-Location" content="http://www.myopenid.com/xrds?username=hallettj.myopenid.com">
+  <link rel="openid.server" href="http://www.myopenid.com/server">
+  <link rel="openid.delegate" href="http://hallettj.myopenid.com/">
+  <link rel="openid2.local_id" href="http://hallettj.myopenid.com/">
+  <link rel="openid2.provider" href="http://www.myopenid.com/server">
+
+  
+  <link rel="canonical" href="./Promise Pipelines in JavaScript - sitr.us_files/Promise Pipelines in JavaScript - sitr.us.htm">
+  <link href="http://sitr.us/favicon.ico" rel="icon">
+  <link href="./Promise Pipelines in JavaScript - sitr.us_files/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="http://feeds.feedburner.com/hallettj" rel="alternate" title="sitr.us" type="application/atom+xml">
+  <script type="text/javascript" async="" src="./Promise Pipelines in JavaScript - sitr.us_files/ga.js"></script><script src="./Promise Pipelines in JavaScript - sitr.us_files/modernizr-2.0.js"></script>
+  <script src="./Promise Pipelines in JavaScript - sitr.us_files/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="./Promise Pipelines in JavaScript - sitr.us_files/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="./Promise Pipelines in JavaScript - sitr.us_files/css" rel="stylesheet" type="text/css">
+<link href="./Promise Pipelines in JavaScript - sitr.us_files/css(1)" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-327628-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+<script type="text/javascript" async="" src="./Promise Pipelines in JavaScript - sitr.us_files/embed.js"></script><script src="./Promise Pipelines in JavaScript - sitr.us_files/alfie.js" async="" charset="UTF-8"></script></head>
+
+<body>
+  <header role="banner"><hgroup>
+  <h1><a href="http://sitr.us/">sitr.us</a></h1>
+  
+    <h2>posts by Jesse Hallett</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds.feedburner.com/hallettj" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:sitr.us">
+    <input class="search" type="text" name="q" results="0" placeholder="Search">
+  </fieldset>
+</form>
+  
+<fieldset class="mobile-nav"><select><option value="">Navigate…</option><option value="http://sitr.us/">» Blog</option><option value="http://sitr.us/blog/archives">» Archives</option><option value="http://feeds.feedburner.com/hallettj">» RSS</option></select></fieldset><ul class="main-navigation">
+  <li><a href="http://sitr.us/">Blog</a></li>
+  <li><a href="http://sitr.us/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Promise Pipelines in JavaScript</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-31T00:00:00-07:00" pubdate="" data-updated="true">2012-07-31</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><aside class="translations"><p>This page has been translated into <a href="http://www.webhostinghub.com/support/es/misc/las-bases-de">Spanish</a>
+language by Maria Ramos  from <a href="http://www.webhostinghub.com/">Webhostinghub.com</a>.</p></aside>
+
+<p>Promises, also know as deferreds or futures, are a wonderful abstraction
+for manipulating asynchronous actions.  Dojo has had <a href="http://dojotoolkit.org/reference-guide/1.7/dojo/Deferred.html">Deferreds</a>
+for some time.  jQuery introduced <a href="http://api.jquery.com/category/deferred-object/">its own Deferreds</a>
+in version 1.5 based on the CommonJS <a href="http://wiki.commonjs.org/wiki/Promises/A">Promises/A</a> specification.  I’m
+going to show you some recipes for working with jQuery Deferreds.  Use
+these techniques to turn callback-based spaghetti code into elegant
+declarative code.</p>
+
+<h2 id="the-basics-of-jquery-deferreds">The basics of jQuery Deferreds</h2>
+
+<p>A Deferred is an object that represents some future outcome.  Eventually
+it will either resolve with one or more values if that outcome was
+successful; or it will fail with one or more values if the outcome was
+not successful.  You can get at those resolved or failed values by
+adding callbacks to the Deferred.</p>
+
+<p>In jQuery’s terms a promise is a read-only view of a deferred.</p>
+
+<p>Here is a simple example of creating and then resolving a promise:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">fooPromise</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">Deferred</span><span class="p">();</span>
+
+    <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">);</span>
+    <span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Callbacks can be added to a deferred or a promise using the <code>.then()</code>
+method.  The first callback is called on success, the second on failure:</p>
+
+<!-- more -->
+
+<div class="highlight"><pre><code class="js"><span class="nx">fooPromise</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span>
+    <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// prints "foo" after 1 second</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+    <span class="p">},</span>
+    <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"something went wrong"</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+
+<p>For more information see the
+<a href="http://api.jquery.com/category/deferred-object/">jQuery Deferred documentation</a>.</p>
+
+<p>Note that if you are using a version of jQuery prior to 1.8 you will
+have to use <code>.pipe()</code> instead of <code>.then()</code>.  That goes for all
+references to <code>.then()</code> in this article.</p>
+
+<h2 id="sequential-operations">Sequential operations</h2>
+
+<p>Actions, such as HTTP requests, need to be sequential if input to one
+action depends on the output of another; or if you just want to make
+sure that actions are performed in a particular order.</p>
+
+<p>Consider a scenario where you have a post id and you want to display
+information about the author of that post.  Your web services don’t
+support embedding author information in a post resource.  So you will
+have to download data on the post, get the author id, and then make
+another request to get data for the author.  To start with you will want
+functions for downloading a post and a user:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">getPost</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">getJSON</span><span class="p">(</span><span class="s1">'/posts/'</span><span class="o">+</span> <span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">status</span><span class="p">,</span> <span class="nx">xhr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">data</span><span class="p">;</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">getJSON</span><span class="p">(</span><span class="s1">'/users/'</span><span class="o">+</span> <span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">status</span><span class="p">,</span> <span class="nx">xhr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">data</span><span class="p">;</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>In jQuery 1.5 and later all ajax methods return a promise that, on
+a successful request, resolves with the data in the response, the
+response status, and the XHR object representing the request.</p>
+
+<p>The <code>.then()</code> method produces a new promise that transforms the resolved
+value of its input.  I used <code>.then()</code> here just because using <code>$.when()</code>
+is simpler if each promise resolves to a single value.  We will get back
+to that in parallel operations.  Since only one argument is provided to
+<code>.then()</code> in these cases the new promises will have the same error
+values as the originals if an error occurs.</p>
+
+<p>The result is that <code>getUser()</code> returns a promise that should resolve to
+data representing the user profile for a given id.  And <code>getPost()</code>
+works the same way for posts and post ids.</p>
+
+<p>Now, to fetch that author information:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">authorForPost</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">postPromise</span> <span class="o">=</span> <span class="nx">getPost</span><span class="p">(</span><span class="nx">id</span><span class="p">),</span>
+        <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">Deferred</span><span class="p">();</span>
+
+    <span class="nx">postPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">post</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">authorPromise</span> <span class="o">=</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">post</span><span class="p">.</span><span class="nx">authorId</span><span class="p">);</span>
+
+        <span class="nx">authorPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">author</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>When <code>authorForPost()</code> is called it returns a new promise that resolves
+with author information after both the post and author requests complete
+successfully.  This is a straightforward way to get the job done.
+Though it does not implement error handling; and it could be more
+<a href="https://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a>.  More on that in a bit.</p>
+
+<h2 id="parallel-operations">Parallel operations</h2>
+
+<p>Let’s say that you want to fetch two user profiles to display
+side-by-side.  Using the <code>getUser()</code> function from the previous section:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">getTwoUsers</span><span class="p">(</span><span class="nx">idA</span><span class="p">,</span> <span class="nx">idB</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">userPromiseA</span> <span class="o">=</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">idA</span><span class="p">),</span>
+        <span class="nx">userPromiseB</span> <span class="o">=</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">idB</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">when</span><span class="p">(</span><span class="nx">userPromiseA</span><span class="p">,</span> <span class="nx">userPromiseB</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The requests for userA and userB’s profiles will be made in parallel so
+that you can get the results back as quickly as possible.  This function
+uses <code>$.when()</code> to synchronize the promises for each profile so that
+<code>getTwoUsers()</code> returns one promise that resolves with the data for both
+profiles when both responses come back.  If either request fails, the
+promise that <code>getTwoUsers()</code> returns will fail with information about
+the first failed request.</p>
+
+<p>You might use <code>getTwoUsers()</code> like this:</p>
+
+<div class="highlight"><pre><code class="js"><span class="nx">getTwoUsers</span><span class="p">(</span><span class="mi">1002</span><span class="p">,</span> <span class="mi">1008</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">userA</span><span class="p">,</span> <span class="nx">userB</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">$</span><span class="p">(</span><span class="nx">render</span><span class="p">(</span><span class="nx">userA</span><span class="p">)).</span><span class="nx">appendTo</span><span class="p">(</span><span class="s1">'#users'</span><span class="p">);</span>
+    <span class="nx">$</span><span class="p">(</span><span class="nx">render</span><span class="p">(</span><span class="nx">userB</span><span class="p">)).</span><span class="nx">appendTo</span><span class="p">(</span><span class="s1">'#users'</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>The <code>getTwoUsers()</code> promise resolves with two values, one for each
+profile.</p>
+
+<p>We now have several well-defined functions that operate on asynchronous
+actions.  Isn’t this nicer than the big mess of nested callbacks one
+might otherwise see?</p>
+
+<p>I mentioned above that using <code>$.when()</code> is simpler when each of its
+input promises resolves to a single value.  That is because if an input
+promise resolves to multiple values then the corresponding value in the
+new promise that <code>$.when()</code> creates will be an array instead of a single
+value.</p>
+
+<p>Performing an arbitrary number of actions in parallel is similar:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">getPosts</span><span class="p">(</span><span class="nx">ids</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">postPromises</span> <span class="o">=</span> <span class="nx">ids</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">getPost</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">when</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">$</span><span class="p">,</span> <span class="nx">postPromises</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="cm">/* posts... */</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">makeArray</span><span class="p">(</span><span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>This code fetches any number of posts in parallel.  I used <code>apply</code> to
+pass the post promises to <code>$.when()</code> as though they are each a separate
+argument.  The resulting promise resolves with a separate value for each
+post.  It would be nicer if it resolved with an array of posts as one
+value.  The use of <code>.then()</code> here takes those post values and transforms
+them into an array.</p>
+
+<h2 id="combining-sequential-and-parallel-operations">Combining sequential and parallel operations</h2>
+
+<p>Let’s take the previous examples to their logical conclusion by creating
+a function that, given two post ids, will download information about the
+authors of each post to display them side-by-side.  No problem!</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">getAuthorsForTwoPosts</span><span class="p">(</span><span class="nx">idA</span><span class="p">,</span> <span class="nx">idB</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">when</span><span class="p">(</span><span class="nx">authorForPost</span><span class="p">(</span><span class="nx">idA</span><span class="p">),</span> <span class="nx">authorForPost</span><span class="p">(</span><span class="nx">idB</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>From the perspective of a function that calls <code>authorForPost()</code>, it does
+not matter that two sequential requests are made.  Because
+<code>authorForPost()</code> returns a promise that represents the eventual result
+of both requests, that detail is encapsulated.</p>
+
+<h2 id="generalizing-sequential-operations">Generalizing sequential operations</h2>
+
+<p>There are a couple of problems with the implementation of
+<code>authorForPost()</code> as presented above.  We had to create a deferred by
+hand, which should not be necessary.  And the promise that is returned
+does not fail if any of the requests involved fail.</p>
+
+<p>These issues are not present in the parallel examples because <code>$.when()</code>
+does a nice job of generalizing synchronizing multiple promises.  What
+we need is a function that does a similar job of generalizing flattening
+nested promises.  Meet flatMap:</p>
+
+<div class="highlight"><pre><code class="js"><span class="nx">$</span><span class="p">.</span><span class="nx">flatMap</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">promise</span><span class="p">,</span> <span class="nx">f</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">Deferred</span><span class="p">();</span>
+
+    <span class="kd">function</span> <span class="nx">reject</span><span class="p">(</span><span class="cm">/* arguments */</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// The reject() method puts a deferred into its failure</span>
+        <span class="c1">// state.</span>
+        <span class="nx">deferred</span><span class="p">.</span><span class="nx">reject</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">deferred</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">promise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="cm">/* values... */</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">newPromise</span> <span class="o">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+
+        <span class="nx">newPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="cm">/* newValues... */</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">deferred</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+        <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
+
+    <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<p>This function takes a promise and a callback that returns another
+promise.  When the first promise resolves, <code>$.flatMap()</code> invokes the
+callback with the resolved values as arguments, which produces a new
+promise.  When that new promise resolves, the promise that <code>$.flatMap()</code>
+returns also resolves with the same values.  On top of that,
+<code>$.flatMap()</code> forwards errors to the promise that it returns.  If either
+the input promise or the promise returned by the callback fails then the
+promise that <code>$.flatMap()</code> returns will fail with the same values.</p>
+
+<p>Using <code>$.flatMap()</code> it is possible to write a function like
+<code>authorForPost()</code> a bit more succinctly:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">authorForPost</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">flatMap</span><span class="p">(</span><span class="nx">getPost</span><span class="p">(</span><span class="nx">id</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">post</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">post</span><span class="p">.</span><span class="nx">authorId</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>By using <code>$.flatMap()</code> you also get error handling for free.  If the
+request to fetch a post fails or the request to fetch the post’s author
+fails the promise that this version of <code>authorForPost()</code> returns will
+also fail with the appropriate failure values.</p>
+
+<p>Another potential problem is that <code>authorForPost()</code> does not give you
+access to any of the information on the posts that it downloads.  You
+can combine <code>$.flatMap()</code> and <code>.then()</code> to create a slightly different
+function that exposes both the post and the author:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">postWithAuthor</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">flatMap</span><span class="p">(</span><span class="nx">getPost</span><span class="p">(</span><span class="nx">id</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">post</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">post</span><span class="p">.</span><span class="nx">authorId</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">post</span><span class="p">,</span> <span class="p">{</span> <span class="nx">author</span><span class="o">:</span> <span class="nx">author</span> <span class="p">});</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The promise that <code>postWithAuthor()</code> returns resolves to a post object
+with an added author property containing author information.</p>
+
+<p>It turns out that <code>.then()</code> leads a double life.  If the return value of
+its callback is a promise, <code>.then()</code> behaves exactly like <code>$.flatMap()</code>!
+This is the sort of thing that only a dynamic language like JavaScript
+can do.  So if you want to skip the custom function, you could write
+<code>postWithAuthor()</code> like this:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">postWithAuthor</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">getPost</span><span class="p">(</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">post</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">getUser</span><span class="p">(</span><span class="nx">post</span><span class="p">.</span><span class="nx">authorId</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">post</span><span class="p">,</span> <span class="p">{</span> <span class="nx">author</span><span class="o">:</span> <span class="nx">author</span> <span class="p">});</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="other-uses-for-promises">Other uses for promises</h2>
+
+<p>The examples above focus on HTTP requests.  But promises can be used in
+any kind of asynchronous code.  They even come in handy in synchronous
+code from time to time.</p>
+
+<p>Here is an example of a promise used to represent the outcome of
+a series of user interactions:</p>
+
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">getRegistrationDetails</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">detailsPromise</span> <span class="o">=</span> <span class="nx">openModal</span><span class="p">(</span><span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'/registrations'</span><span class="p">));</span>
+
+    <span class="nx">detailsPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">details</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">$</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s1">'/registrations'</span><span class="p">,</span> <span class="nx">details</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">openModal</span><span class="p">(</span><span class="nx">markupPromise</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">Deferred</span><span class="p">(),</span>
+        <span class="nx">modal</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'&lt;div&gt;&lt;/div&gt;'</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s1">'modalWindow'</span><span class="p">),</span>
+        <span class="nx">loadingSpinner</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'&lt;span&gt;&lt;/span&gt;'</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s1">'spinner'</span><span class="p">);</span>
+
+    <span class="nx">modal</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">loadingSpinner</span><span class="p">);</span>
+
+    <span class="c1">// Use .always() to add a callback to a promise that runs on success</span>
+    <span class="c1">// or failure.</span>
+    <span class="nx">markupPromise</span><span class="p">.</span><span class="nx">always</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">loadingSpinner</span><span class="p">.</span><span class="nx">remove</span><span class="p">();</span>
+    <span class="p">});</span>
+
+    <span class="nx">markupPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">markup</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">modal</span><span class="p">.</span><span class="nx">html</span><span class="p">(</span><span class="nx">markup</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="nx">modal</span><span class="p">.</span><span class="nx">one</span><span class="p">(</span><span class="s1">'submit'</span><span class="p">,</span> <span class="s1">'form'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">event</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">();</span>
+        <span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">serialize</span><span class="p">();</span>
+        <span class="nx">modal</span><span class="p">.</span><span class="nx">remove</span><span class="p">();</span>
+        <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="nx">modal</span><span class="p">.</span><span class="nx">appendTo</span><span class="p">(</span><span class="s1">'body'</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">ready</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s1">'#registerButton'</span><span class="p">).</span><span class="nx">click</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">event</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">();</span>
+        <span class="nx">getRegistrationDetails</span><span class="p">();</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>I suggest considering using promises anywhere you would otherwise pass
+a callback as an argument.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>The promise transformations <code>.then()</code>, <code>$.when()</code>, and <code>$.flatMap()</code>
+work together to build promise pipelines.  Using these functions you can
+define arbitrary parallel and sequential operations with nice
+declarative code.  Furthermore, small promise pipelines can be
+encapsulated in helper functions which can be composed to form longer
+pipelines.  This promotes reusability and maintainability in your code.</p>
+
+<p>Use <code>.then()</code> to transform  individual promises.</p>
+
+<p>Use <code>$.when()</code> to synchronize parallel operations.</p>
+
+<p>Use <code>$.flatMap()</code> or <code>.then()</code> to create chains of sequential
+operations.</p>
+
+<p>Mix and match as desired.</p>
+
+<p>I would like to thank <a href="https://github.com/munro">Ryan Munro</a> for coming up with the “pipeline” analogy.</p>
+
+<p><em>Update 2012-08-01:</em> <code>.pipe()</code> was added in jQuery 1.6.  And it turns
+out that it behaves like <code>$.flatMap()</code> when its callback returns
+a promise.  In jQuery 1.8 <code>.then()</code> will be updated to behave exactly
+like <code>.pipe()</code>, and <code>.pipe()</code> will be deprecated.  So there is actually
+no need to add a custom method - you can just use <code>.pipe()</code> or <code>.then()</code>
+instead of <code>$.flatMap()</code>.</p>
+
+<p><em>Update 2013-01-30:</em> jQuery 1.8 has been released, so I replaced
+references to <code>.pipe()</code> with <code>.then()</code>.  I also included a more
+prominent explanation that <code>.then()</code> can do the same thing that
+<code>$.flatMap()</code> does.</p>
+
+<h2 id="promises-and-category-theory">Promises and Category theory</h2>
+
+<p>Good news!  If you are able to follow the examples in this post then you
+have a working understanding of Monads.  Specifically, <code>$.flatMap()</code> is
+a <a href="http://en.wikipedia.org/wiki/Monad_(functional_programming)">monad</a> transformation, <code>.then()</code> with one argument is a <a href="http://en.wikipedia.org/wiki/Functor">functor</a>
+transformation, and <code>$.when()</code> is almost a <a href="http://en.wikipedia.org/wiki/Monoid">monoid</a> transformation.</p>
+
+<p>Monads, monoids, and functors are concepts from <a href="http://en.wikipedia.org/wiki/Category_theory">category theory</a> that
+can be applied to functional programming.  Really they are just
+generalizations of this idea of creating pipelines to transform values.</p>
+
+<p>I bring this up because category theory can be useful, but is difficult
+to explain.  My hope is that seeing examples of category theory in
+action will help programmers to get a feel for the patterns involved.</p>
+
+<p>For more information on category theory in programming I recommend
+a series of blog posts titled <a href="http://james-iry.blogspot.com/2007/09/monads-are-elephants-part-1.html">Monads are Elephants</a>.  If you have
+read that and want to go further, I found the the book <a href="http://learnyouahaskell.com/">Learn You
+a Haskell for Great Good!</a> to be very informative.  And as a bonus
+it teaches you Haskell.</p>
+
+<p>Those who are already into category theory will note that <code>$.flatMap()</code>
+could also be defined in terms of <code>.then()</code> and a <code>$.join()</code> function:</p>
+
+<div class="highlight"><pre><code class="js"><span class="nx">$</span><span class="p">.</span><span class="nx">flatMap</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">promise</span><span class="p">,</span> <span class="nx">f</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">promise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">f</span><span class="p">));</span>
+<span class="p">};</span>
+
+<span class="nx">$</span><span class="p">.</span><span class="nx">join</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">promise</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">Deferred</span><span class="p">();</span>
+
+    <span class="kd">function</span> <span class="nx">reject</span><span class="p">(</span><span class="cm">/* arguments */</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">deferred</span><span class="p">.</span><span class="nx">reject</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">deferred</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">promise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">nestedPromise</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="nx">nestedPromise</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="cm">/* values... */</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">deferred</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+        <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
+
+    <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<p>Except that this won’t actually work because <code>.then()</code> will join the
+inner and outer promises before the result is passed to <code>$.join()</code>.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Jesse Hallett</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-31T00:00:00-07:00" pubdate="" data-updated="true">2012-07-31</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="http://sitr.us/2012/05/12/installing-a-custom-rom-on-the-transformer-prime.html" title="Previous Post: Installing a custom ROM on the Transformer Prime: A start-to-finish guide">« Installing a custom ROM on the Transformer Prime: A start-to-finish guide</a>
+      
+      
+        <a class="basic-alignment right" href="http://sitr.us/2012/09/04/monkey-patching-document-write.html" title="Next Post: Monkey patching document.write()">Monkey patching document.write() »</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><iframe id="dsq-2" data-disqus-uid="2" allowtransparency="true" frameborder="0" role="complementary" width="100%" src="./Promise Pipelines in JavaScript - sitr.us_files/saved_resource.htm" style="width: 100% !important; border: none !important; overflow: hidden !important; height: 2167px !important;" scrolling="no" horizontalscrolling="no" verticalscrolling="no"></iframe></div>
+  </section>
+
+</div>
+
+<aside class="sidebar thirds">
+  
+    <section class="first odd">
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="http://sitr.us/2013/11/04/functional-data-structures.html">Functional data structures in JavaScript with Mori</a>
+      </li>
+    
+      <li class="post">
+        <a href="http://sitr.us/2013/05/22/functional-reactive-programming-in-javascript.html">Functional Reactive Programming in JavaScript</a>
+      </li>
+    
+      <li class="post">
+        <a href="http://sitr.us/2012/09/04/monkey-patching-document-write.html">Monkey patching document.write()</a>
+      </li>
+    
+      <li class="post">
+        <a href="./Promise Pipelines in JavaScript - sitr.us_files/Promise Pipelines in JavaScript - sitr.us.htm">Promise Pipelines in JavaScript</a>
+      </li>
+    
+      <li class="post">
+        <a href="http://sitr.us/2012/05/12/installing-a-custom-rom-on-the-transformer-prime.html">Installing a custom ROM on the Transformer Prime: A start-to-finish guide</a>
+      </li>
+    
+  </ul>
+</section>
+<section class="even">
+  <h1>Talks</h1>
+  <ul id="talks">
+    <li><a href="http://opensourcebridge.org/sessions/1067">Mod your Android</a></li>
+    <li><a href="http://sitr.us/2012/07/31/talks/intro-to-javascript/">Introduction to JavaScript</a></li>
+    <li><a href="http://lanyrd.com/2012/nodepdx/smyqm/">Object-oriented patterns in JavaScript</a></li>
+    <li><a href="http://sitr.us/2012/07/31/talks/cookies/">Cookies are bad for you</a></li>
+    <li><a href="http://sitr.us/2012/07/31/talks/professional-javascript/">Professional JavaScript</a></li>
+    <li><a href="http://opensourcebridge.org/2009/wiki/Clustering_Data_--_How_to_Have_Fun_in_n-Dimensions">Cluster Analysis: How to Have Fun in n Dimensions</a></li>
+    <li><a href="https://docs.google.com/presentation/d/1hx9Pzo07aAnZ2skMH4JPjH7a6IXx64uC0zRliS3qpkk/edit?usp=sharing">How to build blazing fast web apps with Ruby on Rails</a></li>
+  </ul>
+</section>
+<section class="odd">
+  <h1>Open Source Projects</h1>
+  <ul id="projects">
+    <li><a href="http://github.com/jivesoftware/tAMD">tAMD:</a> Tiny, extensible implementation of the Asynchronous Module Definition (AMD) specification from CommonJS</li>
+  </ul>
+</section>
+<section class="first even">
+  <div class="contact" style="float:left; margin:0.5em;">
+    <p>
+      Jesse Hallett<br>
+      <a href="mailto:jesse@sitr.us">jesse@sitr.us</a>
+    </p>
+  </div>
+  <div class="contact" style="float:left; margin:0.5em;">
+    <p>
+      <a href="http://github.com/hallettj/">github.com/hallettj</a><br>
+      <a href="http://twitter.com/hallettj/">twitter.com/hallettj</a>
+    </p>
+  </div>
+</section>
+
+  
+</aside>
+
+
+    <span class="toggle-sidebar"></span></div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright © 2013 - Jesse Hallett -
+  <span class="credit">Powered by <a href="http://octopress.org/">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'hallettj';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://sitr.us/2012/07/31/promise-pipelines-in-javascript.html';
+        var disqus_url = 'http://sitr.us/2012/07/31/promise-pipelines-in-javascript.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>TSDB Management Console</title>
+<link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="/css/console-layout.css" type="text/css" media="screen" />
+
+<script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/d3/d3.v3.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/ws/tsdb-ws-api.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.gridster.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/db.js" charset="utf-8"></script>
+
+
+
+
+<script type="text/javascript" charset="utf-8" src="/js/start.js"></script>
+</head>
+<body> 
+    <div id="wrapper">
+        <div id="header">
+	  <div style="display: inline-block;" id="heliosimg"><img src="/img/Helios_Symbol_30_45.png" ></img></div>
+	  <div style="display: inline-block;vertical-align: top; padding-top: 10px;">
+	    <span class="helioslight">OpenTSDB Console</span>
+	    <div style="display: inline-block; width: 10px;vertical-align: middle;"></div>
+	    <!--
+	    <div class="tool-widget" style="display: inline-block;vertical-align: middle;">Server:&nbsp;<span id="connectedServer" style="display: inline-block; width:130px;height:20px;border:1px solid blue;line-height:2em">&nbsp;</span></div>
+	    <div class="tool-widget csubscriber" style="display: inline-block;">Connection:&nbsp;&nbsp;<div class="csubscriber-off"></div></div>
+	    <div class="tool-widget" style="display: inline-block;vertical-align: middle;">Session:&nbsp;<span id="displaySession" style="display: inline-block; width:130px;height:20px;border:1px solid blue;line-height:2em">&nbsp;</span>
+		-->
+	    </div>
+	   </div>
+        </div>
+        <div id="leftcolumn">
+	  <div id="tabs" >
+	    <ul>
+	      <li><a id="nativetsd-btn" style="cursor: pointer; color: #333;">Native TSD</a></li>	      <!-- <img src="img/favicon.ico"> -->
+	    </ul>
+          </div>
+        </div>
+        <div id="desktop_content" style="height: 100%; width: 100%">
+	  
+        </div>
+        <div id="footer" style="position: absolute; bottom: 0;">
+            
+            <span>
+	      &#169; 2014 <a href="https://github.com/nickman/tsdb-plugins">TSDB Management Console</a> 
+	    </span>
+        </div>
+    </div>
+
+</body>
+</html>

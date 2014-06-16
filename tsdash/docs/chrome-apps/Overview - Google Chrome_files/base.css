@@ -1,0 +1,234 @@
+body {
+	background: #eee;
+	margin: 20px 0;
+	padding: 50px;
+	text-align: center;
+	color: #2c3034;
+	font-size: 14px;
+	line-height: 18px;
+	font-family: arial, helvetica, sans-serif;
+}
+p, ul {
+	margin: 0;
+	padding: 0 0 15px 0;
+}
+ul {
+	margin-left: 15px;
+	padding-left: 15px;
+}
+form {
+	margin: 0;
+	padding: 0;
+}
+a {
+	color: #cc0000;
+}
+a:hover {
+	color: #999;
+}
+h2 {
+	margin: 0;
+	padding: 12px 0 20px 42px;
+	font-size: 24px;
+	background: url(../img/blocked.gif) no-repeat -7px 0;
+}
+h3 {
+	margin: 0;
+	padding: 0 0 5px 0;
+	font-size: 14px;
+	color: #4c555a;
+}
+.light {
+	color: #999;
+	font-size: 13px;
+}
+.slim {
+	padding-bottom: 5px;
+}
+.error {
+	color: #c00;
+	font-weight: bold;
+}
+.box {
+	border: 1px solid #ddd;
+	padding: 10px;
+	background: #fff;
+}
+.right {
+	text-align: right;
+}
+.logo-container {
+    float: right;
+}
+div#container {
+	width: 600px;
+	background: white;
+	margin: auto;
+}
+div#container-inner {
+	border-right: 1px solid #ff6666;
+	border-left: 1px solid #ff6666;
+	padding: 0 20px;
+	text-align: left;
+}
+div#container-top {
+	margin: auto;
+	width: 600px;
+	height: 20px;
+	background: url(../img/container_top.gif) no-repeat;
+}
+div#container-bottom {
+	margin: auto;
+	width: 600px;
+	height: 20px;
+	background: url(../img/container_bottom.gif) no-repeat;
+}
+p#admin-link {
+	text-align: right;
+	padding: 0;
+}
+#footer {
+	margin: 40px 0 0 0;
+}
+#credentials-login {
+	float: left;
+	width: 130px;
+}	
+#or {
+	float: left;
+	width: 80px;
+	height: 126px;
+	background: url(../img/bpb_or.png) no-repeat top center;
+}
+#credentials-code {
+	float: left;
+	width: 200px;
+}
+#credentials-login input, #credentials-code input {
+	width: 120px;
+}
+#credentials-login h3, #credentials-code h3 {
+	font-weight: normal;
+}
+input#checkboxToggleBypassMask {
+	width: auto;
+}
+p#pMaskBypass {
+	font-size: 12px;
+	color: #888888;
+}
+
+.alert {
+  padding: 8px 35px 8px 14px;
+  margin-bottom: 20px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  background-color: #fcf8e3;
+  border: 1px solid #fbeed5;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+.alert-danger,
+.alert-error {
+  color: #b94a48;
+  background-color: #f2dede;
+  border-color: #eed3d7;
+}
+
+.alert-danger h4,
+.alert-error h4 {
+  color: #b94a48;
+}
+@media only screen
+and (min-device-width : 320px)
+and (max-device-width : 480px) {
+    body {
+        background: #eee;
+        padding: 0px;
+        text-align: center;
+        color: #2c3034;
+        font-size: 14px;
+        line-height: 18px;
+        font-family: arial, helvetica, sans-serif;
+    }
+    div#container {
+        width: 96%;
+        background: white;
+        margin: auto;
+        border-right: 1px solid #ff6666;
+        border-left: 1px solid #ff6666;
+    }
+    div#container-inner {
+        border-right: none;
+        border-left: none;
+        padding: 0 20px;
+    }
+    div#container-top {
+        margin: auto;
+        width: 96%;
+        height: 20px;
+        border-top: 1px solid #ff6666;
+        border-right: 1px solid #ff6666;
+        border-left: 1px solid #ff6666;
+        background: #FFFFFF;
+    }
+    div#container-bottom {
+        margin: auto;
+        width: 96%;
+        height: 20px;
+        border-bottom: 1px solid #ff6666;
+        border-right: 1px solid #ff6666;
+        border-left: 1px solid #ff6666;
+        background: #FFFFFF;
+    }
+    .logo-container {
+        float: none !important;
+    }
+    .logo-container p {
+        padding-bottom: 0px;
+        text-align: left;
+    }
+    h3 {
+        margin: 0;
+        padding: 0 0 5px 0;
+        font-size: 16px;
+        color: #4c555a;
+    }
+    #credentials-login {
+        float: left;
+        width: 44%;
+    }
+    #or {
+        float: left;
+        width: 8%;
+        height: 126px;
+        background: url(../img/bpb_or.png) no-repeat top center;
+    }
+    #credentials-code {
+        float: left;
+        width: 44%;
+        padding-left: 8px;
+    }
+    #credentials-login input, #credentials-code input {
+        width: 90%;
+        height:42px;
+        line-height: normal;
+        font-size: 14px;
+    }
+    .bypassBtn {
+        width: 28%;
+        height: 30px;
+        font-size: 1.2em;
+    }
+    #contactiframe {
+        height: 385px !important;
+    }
+    p#pMaskBypass {
+        font-size: 15px;
+        color: #888888;
+    }
+    .light {
+        color: #999;
+        font-size: 20px;
+    }
+}

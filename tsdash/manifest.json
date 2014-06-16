@@ -1,0 +1,35 @@
+{
+     "name": "TSDBConsole",
+     "description": "Management Console for OpenTSDB",
+     "version": "1.0",
+     "app": {
+	        "launch": {
+               "local_path": "appstart.html"
+          },
+          "container": "panel",
+          "height": 300,
+          "width": 300
+     },
+     "icons": {
+          "128": "/img/tsdbicon_128.png",
+          "16": "/img/tsdbicon_16.png"
+     },
+     "permissions": [
+          "clipboardRead",
+          "clipboardWrite",
+          "notifications",
+          "syncFileSystem",
+          "unlimitedStorage",
+          "storage",
+          "cookies",
+          "tts",
+          "contextMenus",
+          "fileBrowserHandler",
+          "history",
+          "idle",
+          "management",
+          "tabs"
+          
+     ],
+     "manifest_version": 2
+}

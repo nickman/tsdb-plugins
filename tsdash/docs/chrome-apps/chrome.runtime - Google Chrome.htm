@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<!-- saved from url=(0045)http://developer.chrome.com/apps/runtime.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>chrome.runtime - Google Chrome</title>
+    
+    <link href="./chrome.runtime - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.runtime - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./chrome.runtime - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.runtime - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./chrome.runtime - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/apps/" title="Google Chrome Apps">
+          <img src="./chrome.runtime - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            apps ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/apps/samples.html" title="Sample Apps (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-apps" title="Google Chrome Apps developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-app/info" title="[google-chrome-app] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar" class="">
+        <ul class="level1 ">
+        <li class="level2">
+              <span class="level2">Discover</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/about_apps.html" class="level3 ">What Are Chrome Apps?</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Develop</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/first_app.html" class="level3 ">Create Your First App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Tutorials</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Learn with a Codelab</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab.html" class="level5 ">About this Codelab</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab1_setup.html" class="level5 ">1 - Set Up Development Environment</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab2_basic.html" class="level5 ">2 - Create Basic App</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab3_mvc.html" class="level5 ">3 - Create MVC</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab5_data.html" class="level5 ">4 - Save and Fetch Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab6_lifecycle.html" class="level5 ">5 - Manage App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab7_useridentification.html" class="level5 ">6 - Access User's Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab8_webresources.html" class="level5 ">7 - Access Web Resources</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab_10_publishing.html" class="level5 ">8 - Publish App</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">MVC Architecture &amp; Frameworks</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_frameworks.html" class="level5 ">About MVC Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/angular_framework.html" class="level5 ">Build Apps with AngularJS</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/sencha_framework.html" class="level5 ">Build Apps with Sencha Ext JS</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Chrome App Concepts</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">The Fundamentals</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_architecture.html" class="level5 ">App Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_lifecycle.html" class="level5 ">App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/offline_apps.html" class="level5 ">Offline First</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_external.html" class="level5 ">External Content</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Security</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/contentSecurityPolicy.html" class="level5 ">Content Security Policy</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Cloud-Enable Your App</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Messaging</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/cloudMessaging.html" class="level6 ">About Cloud Messaging</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/pushMessaging.html" class="level6 ">Client Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_server.html" class="level6 ">Service Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_tos.html" class="level6 ">Terms of Service</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Storage</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/storage.html" class="level6 ">chrome.storage</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_identity.html" class="level5 ">User Authentication</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Store and Retrieve Data</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_storage.html" class="level5 ">Storage APIs</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Use Low-Level System Services</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_usb.html" class="level5 ">USB</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_serial.html" class="level5 ">Serial</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_network.html" class="level5 ">Network Communications</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Interact with the Host Platform</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/desktop_notifications.html" class="level5 ">Rich Notifications</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Distribute</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/publish_app.html" class="level3 ">Publish Your App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Monetize Your App</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/apps/google_wallet.html" class="level4 ">Google Wallet for Digital Goods</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/analytics.html" class="level3 ">Analytics</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/api_index.html" class="level3 ">Chrome Platform APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/tags/webview.html" class="level3 ">Webview Tag</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/api_other.html" class="level3 ">Web APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/manifest.html" class="level3 ">Manifest File Format</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/app_deprecated.html" class="level3 ">Disabled Web Features</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Samples</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/samples.html" class="level3 ">Sample Apps</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Help</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="https://groups.google.com/a/chromium.org/forum/#!forum/chromium-apps" class="level3 ">Google Groups</a>
+          </li><li class="level3">
+                <a href="http://stackoverflow.com/questions/tagged/google-chrome-app" class="level3 ">Stack Overflow</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<h1>chrome.runtime</h1>
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/apps/runtime.html#types" data-list-item="">Types</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#type-Port" data-list-item="">Port</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender" data-list-item="">MessageSender</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/runtime.html#properties" data-list-item="">Properties</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#property-lastError" data-list-item="">lastError</a>
+          <ol>
+            <li>
+              <a href="http://developer.chrome.com/apps/runtime.html#property-lastError-message" data-list-item="">message</a>
+            </li>
+          </ol>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#property-id" data-list-item="">id</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/runtime.html#methods" data-list-item="">Methods</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-getBackgroundPage" data-list-item="">getBackgroundPage        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-getManifest" data-list-item="">getManifest        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-getURL" data-list-item="">getURL        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-setUninstallUrl" data-list-item="">setUninstallUrl        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-reload" data-list-item="">reload        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-requestUpdateCheck" data-list-item="">requestUpdateCheck        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-restart" data-list-item="">restart        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-connect" data-list-item="">connect        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-connectNative" data-list-item="">connectNative        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-sendMessage" data-list-item="">sendMessage        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-sendNativeMessage" data-list-item="">sendNativeMessage        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-getPlatformInfo" data-list-item="">getPlatformInfo        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#method-getPackageDirectoryEntry" data-list-item="">getPackageDirectoryEntry        </a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/runtime.html#events" data-list-item="">Events</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onStartup" data-list-item="">onStartup</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onInstalled" data-list-item="">onInstalled</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onSuspend" data-list-item="">onSuspend</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onSuspendCanceled" data-list-item="">onSuspendCanceled</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onUpdateAvailable" data-list-item="">onUpdateAvailable</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onBrowserUpdateAvailable" data-list-item="">onBrowserUpdateAvailable</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onConnect" data-list-item="">onConnect</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onConnectExternal" data-list-item="">onConnectExternal</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onMessage" data-list-item="">onMessage</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onMessageExternal" data-list-item="">onMessageExternal</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/runtime.html#event-onRestartRequired" data-list-item="">onRestartRequired</a>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<table class="intro" id="intro">
+  <tbody><tr>
+    <td class="title">Description:</td>
+    <td>
+        Use the <code>chrome.runtime</code> API to retrieve the background page, return details about the manifest, and listen for and respond to events in the app or extension lifecycle. You can also use this API to convert the relative path of URLs to fully-qualified URLs.
+                <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Availability:</td>
+    <td>
+        Stable since Chrome 22.
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Learn More:</td>
+    <td>
+        <a href="http://developer.chrome.com/apps/app_lifecycle.html">
+        Manage App Lifecycle
+                </a>
+        <br>
+        <a href="http://developer.chrome.com/apps/event_pages.html">
+        Event Pages
+                </a>
+        <br>
+    </td>
+  </tr>
+</tbody></table>
+<section>
+<h2 id="api-reference-header" title="">chrome.runtime reference</h2>
+<div class="api_reference">
+    <h2 id="types">Types</h2>
+      <div>
+        <h3 id="type-Port">Port</h3>
+        <div>
+          <dd>An object which allows two way communication with other pages.</dd>
+            <h3 id="Port-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/runtime.html#type-Port">Port</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-Port-name"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-name" title="">
+                        name
+                        <span class="property">
+                          (
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Port-disconnect"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-disconnect" title="">
+                        disconnect
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Port-onDisconnect"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-onDisconnect" title="">
+                        onDisconnect
+                        <span class="property">
+                          (
+                            <a href="http://developer.chrome.com/apps/events.html#type-Event">events.Event</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Port-onMessage"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-onMessage" title="">
+                        onMessage
+                        <span class="property">
+                          (
+                            <a href="http://developer.chrome.com/apps/events.html#type-Event">events.Event</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Port-postMessage"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-postMessage" title="">
+                        postMessage
+                        <span class="property">
+                          (
+                            function
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Port-sender"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Port-sender" title="">
+                        sender
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            <a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender">MessageSender</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      This property will <b>only</b> be present on ports passed to onConnect/onConnectExternal listeners.
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+      <div>
+        <h3 id="type-MessageSender">MessageSender</h3>
+        <div>
+          <dd>An object containing information about the script context that sent a message or request.</dd>
+            <h3 id="MessageSender-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender">MessageSender</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-MessageSender-tab"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-MessageSender-tab" title="">
+                        tab
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            <a href="http://developer.chrome.com/apps/tabs.html#type-Tab">tabs.Tab</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The <a href="http://developer.chrome.com/apps/tabs.html#type-Tab">tabs.Tab</a> which opened the connection, if any. This property will <strong>only</strong> be present when the connection was opened from a tab (including content scripts), and <strong>only</strong> if the receiver is an extension, not an app.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-MessageSender-id"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-MessageSender-id" title="">
+                        id
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The ID of the extension or app that opened the connection, if any.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-MessageSender-url"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-MessageSender-url" title="">
+                        url
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The URL of the page or frame that opened the connection, if any. This property will <strong>only</strong> be present when the connection was opened from a tab or content script.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-MessageSender-tlsChannelId"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-MessageSender-tlsChannelId" title="">
+                        tlsChannelId
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The TLS channel ID of the web page that opened the connection, if requested by the extension or app, and if available.
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+    <h2 id="properties">Properties</h2>
+      <div>
+        <h3 id="property-lastError">lastError</h3>
+        <div class="summary">
+          <div class="line">chrome.runtime.lastError</div>
+        </div>
+        <div>
+          <dt><span class="property">lastError</span> <span class="type_name">  (  object  )</span></dt>
+      <dd>
+            This will be defined during an API method callback if there was an error
+          </dd>    <h4 id="lastError-properties" title="">
+            Properties of <a href="http://developer.chrome.com/apps/runtime.html#property-lastError">lastError</a>
+          </h4>
+          <dd><dl>      <div>
+              <a name="property-lastError-message"></a>
+              <dl>
+                <dt>
+                  <h4 id="property-lastError-message" title="message">
+                    message
+                    <span class="property">
+                      (
+                        <span class="optional">optional</span>
+                        string
+                      )
+                    </span>
+                  </h4>
+                </dt>
+                <dd>
+                  Details about the error which occurred.
+                </dd>
+              </dl>
+            </div>
+      </dl></dd>
+        </div>
+      </div>
+      <div>
+        <h3 id="property-id">id</h3>
+        <div class="summary">
+          <div class="line">chrome.runtime.id</div>
+        </div>
+        <div>
+          <dt><span class="property">id</span> <span class="type_name">  (  string  )</span></dt>
+      <dd>
+            The ID of the extension/app.
+          </dd>  </div>
+      </div>
+    <h2 id="methods">Methods</h2>
+      <div>
+        <h3 id="method-getBackgroundPage">getBackgroundPage
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.getBackgroundPage</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves the JavaScript 'window' object for the background page running inside the current extension/app. If the background page is an event page, the system will ensure it is loaded before calling the callback. If there is no background page, an error is set.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getBackgroundPage-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getBackgroundPage-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">window backgroundPage</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-backgroundPage"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-backgroundPage" title="">
+                        backgroundPage
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            window
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The JavaScript 'window' object for the background page.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getManifest">getManifest
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>object chrome.runtime.getManifest</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns details about the app or extension from the manifest. The object returned is a serialization of the full <a href="http://developer.chrome.com/apps/manifest.html">manifest file</a>.
+          </p>
+            <h4 title="">Properties of return type</h4>
+            <div>
+              <div>
+                <dd>The manifest details.</dd>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getURL">getURL
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span>string chrome.runtime.getURL</span>(<span>string path</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Converts a relative path within an app/extension install directory to a fully-qualified URL.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getURL-path"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getURL-path" title="">
+                      path
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    A path to a resource within an app/extension expressed relative to its install directory.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-setUninstallUrl">setUninstallUrl
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.setUninstallUrl</span>(<span>string url</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sets the URL to be visited upon uninstallation. This may be used to clean up server-side data, do analytics, and implement surveys. Maximum 255 characters.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-setUninstallUrl-url"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-setUninstallUrl-url" title="">
+                      url
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-reload">reload
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.reload</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Reloads the app or extension.
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-requestUpdateCheck">requestUpdateCheck
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.requestUpdateCheck</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Requests an update check for this app/extension.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-requestUpdateCheck-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-requestUpdateCheck-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">enum</span><span class="pln"> of </span><code><span class="str">"throttled"</span></code><span class="pun">,</span><span class="pln"> </span><code><span class="str">"no_update"</span></code><span class="pun">,</span><span class="pln"> </span><span class="kwd">or</span><span class="pln"> </span><code><span class="str">"update_available"</span></code><span class="pln"> status</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">object</span><span class="pln"> details</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-status"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-status" title="">
+                        status
+                        <span class="property">
+                          (
+                            enum of <code>"throttled"</code>, <code>"no_update"</code>, or <code>"update_available"</code>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Result of the update check.
+                    </dd>
+                  </dl>
+                </div>
+                <div>
+                  <a name="property-callback-details"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-details" title="">
+                        details
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      If an update is available, this contains more information about the available update.
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-details-version"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-details-version" title="">
+                              version
+                              <span class="property">
+                                (
+                                  string
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The version of the available update.
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-restart">restart
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.restart</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Restart the ChromeOS device when the app runs in kiosk mode. Otherwise, it's no-op.
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-connect">connect
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span><a href="http://developer.chrome.com/apps/runtime.html#type-Port">Port</a> chrome.runtime.connect</span>(<span class="optional">string extensionId</span>, <span class="optional">object connectInfo</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Attempts to connect to other listeners within the extension/app (such as the background page), or other extensions/apps. This is useful for content scripts connecting to their extension processes. Note that this does not connect to any listeners in a content script. Extensions may connect to content scripts embedded in tabs via <a href="http://developer.chrome.com/apps/tabs.html#method-connect">tabs.connect</a>.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-connect-extensionId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-extensionId" title="">
+                      extensionId
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The ID of the extension/app you want to connect to. If omitted, default is your own extension.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-connect-connectInfo"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connect-connectInfo" title="">
+                      connectInfo
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+                <dd>
+                  <h4 title="">Properties</h4>
+                  <dl>
+                    <div>
+                      <a name="property-connectInfo-name"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-connectInfo-name" title="">
+                            name
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                string
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Will be passed into onConnect for processes that are listening for the connection event.
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-connectInfo-includeTlsChannelId"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-connectInfo-includeTlsChannelId" title="">
+                            includeTlsChannelId
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Whether the TLS channel ID will be passed into onConnectExternal for processes that are listening for the connection event.
+                        </dd>
+                      </dl>
+                    </div>
+                  </dl>
+                </dd>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-connectNative">connectNative
+        </h3>
+        <div class="summary">
+        <div class="line">
+        <span><a href="http://developer.chrome.com/apps/runtime.html#type-Port">Port</a> chrome.runtime.connectNative</span>(<span>string application</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Connects to a native application in the host machine.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-connectNative-application"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-connectNative-application" title="">
+                      application
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The name of the registered application to connect to.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-sendMessage">sendMessage
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.sendMessage</span>(<span class="optional">string extensionId</span>, <span>any message</span>, <span class="optional">object options</span>, <span class="optional">function responseCallback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Sends a single message to onMessage event listeners within the extension (or another extension/app). Similar to chrome.runtime.connect, but only sends a single message with an optional response. The <a href="http://developer.chrome.com/apps/runtime.html#event-onMessage">onMessage</a> event is fired in each extension page of the extension. Note that extensions cannot send messages to content scripts using this method. To send messages to content scripts, use <a href="http://developer.chrome.com/apps/tabs.html#method-sendMessage">tabs.sendMessage</a>.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-sendMessage-extensionId"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendMessage-extensionId" title="">
+                      extensionId
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The extension ID of the extension you want to connect to. If omitted, default is your own extension.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendMessage-message"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendMessage-message" title="">
+                      message
+                      <span class="property">
+                        (
+                          any
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendMessage-options"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendMessage-options" title="">
+                      options
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+                <dd>
+                  <h4 title="">Properties</h4>
+                  <dl>
+                    <div>
+                      <a name="property-options-includeTlsChannelId"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-options-includeTlsChannelId" title="">
+                            includeTlsChannelId
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                boolean
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Whether the TLS channel ID will be passed into onMessageExternal for processes that are listening for the connection event.
+                        </dd>
+                      </dl>
+                    </div>
+                  </dl>
+                </dd>
+              </div>
+              <div>
+                <a name="property-sendMessage-responseCallback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendMessage-responseCallback" title="">
+                      responseCallback
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  If you specify the <em>responseCallback</em> parameter, it should
+                  specify a function that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any response</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-responseCallback-response"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-responseCallback-response" title="">
+                        response
+                        <span class="property">
+                          (
+                            any
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The JSON response object sent by the handler of the message. If an error occurs while connecting to the extension, the callback will be called with no arguments and <a href="http://developer.chrome.com/apps/runtime.html#property-lastError">lastError</a> will be set to the error message.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-sendNativeMessage">sendNativeMessage
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.sendNativeMessage</span>(<span>string application</span>, <span>object message</span>, <span class="optional">function responseCallback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Send a single message to a native application.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-sendNativeMessage-application"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendNativeMessage-application" title="">
+                      application
+                      <span class="property">
+                        (
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The name of the native messaging host.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendNativeMessage-message"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendNativeMessage-message" title="">
+                      message
+                      <span class="property">
+                        (
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The message that will be passed to the native messaging host.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-sendNativeMessage-responseCallback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-sendNativeMessage-responseCallback" title="">
+                      responseCallback
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  If you specify the <em>responseCallback</em> parameter, it should
+                  specify a function that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any response</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-responseCallback-response"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-responseCallback-response" title="">
+                        response
+                        <span class="property">
+                          (
+                            any
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      The response message send by the native messaging host. If an error occurs while connecting to the native messaging host, the callback will be called with no arguments and <a href="http://developer.chrome.com/apps/runtime.html#property-lastError">lastError</a> will be set to the error message.
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getPlatformInfo">getPlatformInfo
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.getPlatformInfo</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns information about the current platform.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getPlatformInfo-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getPlatformInfo-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Called with results
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> platformInfo</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-platformInfo"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-platformInfo" title="">
+                        platformInfo
+                        <span class="property">
+                          (
+                            object
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                  <dd>
+                    <h4 title="">Properties</h4>
+                    <dl>
+                      <div>
+                        <a name="property-platformInfo-os"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-platformInfo-os" title="">
+                              os
+                              <span class="property">
+                                (
+                                  enum of <code>"mac"</code>, <code>"win"</code>, <code>"android"</code>, <code>"cros"</code>, <code>"linux"</code>, or <code>"openbsd"</code>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The operating system chrome is running on.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-platformInfo-arch"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-platformInfo-arch" title="">
+                              arch
+                              <span class="property">
+                                (
+                                  enum of <code>"arm"</code>, <code>"x86-32"</code>, or <code>"x86-64"</code>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The machine's processor architecture.
+                          </dd>
+                        </dl>
+                      </div><div>
+                        <a name="property-platformInfo-nacl_arch"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-platformInfo-nacl_arch" title="">
+                              nacl_arch
+                              <span class="property">
+                                (
+                                  enum of <code>"arm"</code>, <code>"x86-32"</code>, or <code>"x86-64"</code>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The native client architecture. This may be different from arch on some platforms.
+                          </dd>
+                        </dl>
+                      </div>
+                    </dl>
+                  </dd>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getPackageDirectoryEntry">getPackageDirectoryEntry
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.runtime.getPackageDirectoryEntry</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Returns a DirectoryEntry for the package directory.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getPackageDirectoryEntry-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getPackageDirectoryEntry-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">directoryentry directoryEntry</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-directoryEntry"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-directoryEntry" title="">
+                        directoryEntry
+                        <span class="property">
+                          (
+                            directoryentry
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+    <h2 id="events">Events</h2>
+      <div>
+        <h3 id="event-onStartup">onStartup</h3>
+        <div class="description">
+      <p>
+            Fired when a profile that has this extension installed first starts up. This event is not fired when an incognito profile is started, even if this extension is operating in 'split' incognito mode.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onStartup.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onStartup-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onStartup-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onInstalled">onInstalled</h3>
+        <div class="description">
+      <p>
+            Fired when the extension is first installed, when the extension is updated to a new version, and when Chrome is updated to a new version.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onInstalled.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onInstalled-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onInstalled-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> details</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onInstalled-details"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onInstalled-details" title="">
+                              details
+                              <span class="property">
+                                (
+                                  object
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                        <dd>
+                          <h4 title="">Properties</h4>
+                          <dl>
+                            <div>
+                              <a name="property-details-reason"></a>
+                              <dl>
+                                <dt>
+                                  <h4 id="property-details-reason" title="">
+                                    reason
+                                    <span class="property">
+                                      (
+                                        enum of <code>"install"</code>, <code>"update"</code>, or <code>"chrome_update"</code>
+                                      )
+                                    </span>
+                                  </h4>
+                                </dt>
+                                <dd>
+                                  The reason that this event is being dispatched.
+                                </dd>
+                              </dl>
+                            </div><div>
+                              <a name="property-details-previousVersion"></a>
+                              <dl>
+                                <dt>
+                                  <h4 id="property-details-previousVersion" title="">
+                                    previousVersion
+                                    <span class="property">
+                                      (
+                                        <span class="optional">optional</span>
+                                        string
+                                      )
+                                    </span>
+                                  </h4>
+                                </dt>
+                                <dd>
+                                  Indicates the previous version of the extension, which has just been updated. This is present only if 'reason' is 'update'.
+                                </dd>
+                              </dl>
+                            </div>
+                          </dl>
+                        </dd>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onSuspend">onSuspend</h3>
+        <div class="description">
+      <p>
+            Sent to the event page just before it is unloaded. This gives the extension opportunity to do some clean up. Note that since the page is unloading, any asynchronous operations started while handling this event are not guaranteed to complete. If more activity for the event page occurs before it gets unloaded the onSuspendCanceled event will be sent and the page won't be unloaded. 
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onSuspend.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onSuspend-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onSuspend-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onSuspendCanceled">onSuspendCanceled</h3>
+        <div class="description">
+      <p>
+            Sent after onSuspend to indicate that the app won't be unloaded after all.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onSuspendCanceled.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onSuspendCanceled-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onSuspendCanceled-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onUpdateAvailable">onUpdateAvailable</h3>
+        <div class="description">
+      <p>
+            Fired when an update is available, but isn't installed immediately because the app is currently running. If you do nothing, the update will be installed the next time the background page gets unloaded, if you want it to be installed sooner you can explicitly call chrome.runtime.reload().
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onUpdateAvailable.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onUpdateAvailable-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onUpdateAvailable-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">object</span><span class="pln"> details</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onUpdateAvailable-details"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onUpdateAvailable-details" title="">
+                              details
+                              <span class="property">
+                                (
+                                  object
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The manifest details of the available update.
+                          </dd>
+                        </dl>
+                        <dd>
+                          <h4 title="">Properties</h4>
+                          <dl>
+                            <div>
+                              <a name="property-details-version"></a>
+                              <dl>
+                                <dt>
+                                  <h4 id="property-details-version" title="">
+                                    version
+                                    <span class="property">
+                                      (
+                                        string
+                                      )
+                                    </span>
+                                  </h4>
+                                </dt>
+                                <dd>
+                                  The version number of the available update.
+                                </dd>
+                              </dl>
+                            </div>
+                          </dl>
+                        </dd>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onBrowserUpdateAvailable">onBrowserUpdateAvailable</h3>
+        <p class="warning">
+          onBrowserUpdateAvailable is deprecated. Please use <a href="http://developer.chrome.com/apps/runtime.html#event-onRestartRequired">onRestartRequired</a>.
+        </p>
+        <div class="description">
+      <p>
+            Fired when a Chrome update is available, but isn't installed immediately because a browser restart is required.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onBrowserUpdateAvailable.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onBrowserUpdateAvailable-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onBrowserUpdateAvailable-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">()</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onConnect">onConnect</h3>
+        <div class="description">
+      <p>
+            Fired when a connection is made from either an extension process or a content script.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onConnect.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onConnect-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onConnect-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/runtime.html#type-Port"><span class="typ">Port</span></a><span class="pln"> port</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onConnect-port"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onConnect-port" title="">
+                              port
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/runtime.html#type-Port">Port</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onConnectExternal">onConnectExternal</h3>
+        <div class="description">
+      <p>
+            Fired when a connection is made from another extension.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onConnectExternal.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onConnectExternal-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onConnectExternal-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/runtime.html#type-Port"><span class="typ">Port</span></a><span class="pln"> port</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onConnectExternal-port"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onConnectExternal-port" title="">
+                              port
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/runtime.html#type-Port">Port</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onMessage">onMessage</h3>
+        <div class="description">
+      <p>
+            Fired when a message is sent from either an extension process or a content script.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onMessage.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onMessage-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onMessage-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any message</span><span class="pun">,</span><span class="pln"> </span><a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender"><span class="typ">MessageSender</span></a><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">function</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onMessage-message"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessage-message" title="">
+                              message
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  any
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The message sent by the calling script.
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onMessage-sender"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessage-sender" title="">
+                              sender
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender">MessageSender</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onMessage-sendResponse"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessage-sendResponse" title="">
+                              sendResponse
+                              <span class="property">
+                                (
+                                  function
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            Function to call (at most once) when you have a response. The argument should be any JSON-ifiable object. If you have more than one <code>onMessage</code> listener in the same document, then only one may send a response. This function becomes invalid when the event listener returns, unless you return true from the event listener to indicate you wish to send a response asynchronously (this will keep the message channel open to the other end until <code>sendResponse</code> is called).
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onMessageExternal">onMessageExternal</h3>
+        <div class="description">
+      <p>
+            Fired when a message is sent from another extension/app. Cannot be used in a content script.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onMessageExternal.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onMessageExternal-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onMessageExternal-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">any message</span><span class="pun">,</span><span class="pln"> </span><a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender"><span class="typ">MessageSender</span></a><span class="pln"> sender</span><span class="pun">,</span><span class="pln"> </span><span class="kwd">function</span><span class="pln"> sendResponse</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onMessageExternal-message"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessageExternal-message" title="">
+                              message
+                              <span class="property">
+                                (
+                                  <span class="optional">optional</span>
+                                  any
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The message sent by the calling script.
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onMessageExternal-sender"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessageExternal-sender" title="">
+                              sender
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/runtime.html#type-MessageSender">MessageSender</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                          </dd>
+                        </dl>
+                      </div>
+                      <div>
+                        <a name="property-onMessageExternal-sendResponse"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onMessageExternal-sendResponse" title="">
+                              sendResponse
+                              <span class="property">
+                                (
+                                  function
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            Function to call (at most once) when you have a response. The argument should be any JSON-ifiable object. If you have more than one <code>onMessage</code> listener in the same document, then only one may send a response. This function becomes invalid when the event listener returns, unless you return true from the event listener to indicate you wish to send a response asynchronously (this will keep the message channel open to the other end until <code>sendResponse</code> is called).
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="event-onRestartRequired">onRestartRequired</h3>
+        <div class="description">
+      <p>
+            Fired when an app or the device that it runs on needs to be restarted. The app should close all its windows at its earliest convenient time to let the restart to happen. If the app does nothing, a restart will be enforced after a 24-hour grace period has passed. Currently, this event is only fired for Chrome OS kiosk apps.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.runtime.onRestartRequired.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onRestartRequired-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onRestartRequired-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="kwd">enum</span><span class="pln"> of </span><code><span class="str">"app_update"</span></code><span class="pun">,</span><span class="pln"> </span><code><span class="str">"os_update"</span></code><span class="pun">,</span><span class="pln"> </span><span class="kwd">or</span><span class="pln"> </span><code><span class="str">"periodic"</span></code><span class="pln"> reason</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onRestartRequired-reason"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onRestartRequired-reason" title="">
+                              reason
+                              <span class="property">
+                                (
+                                  enum of <code>"app_update"</code>, <code>"os_update"</code>, or <code>"periodic"</code>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The reason that the event is being dispatched. 'app_update' is used when the restart is needed because the application is updated to a newer version. 'os_update' is used when the restart is needed because the browser/OS is updated to a newer version. 'periodic' is used when the system runs for more than the permitted uptime set in the enterprise policy.
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+</div>
+</section>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./chrome.runtime - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./chrome.runtime - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./chrome.runtime - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./chrome.runtime - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./chrome.runtime - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./chrome.runtime - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./chrome.runtime - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

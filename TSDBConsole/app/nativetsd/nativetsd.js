@@ -11,12 +11,17 @@ $(document).ready(function() {
   $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).css({ width: '30%'})
   .click(function(e){
     console.info('Taking Snap...');    
-    webView.executeScript({code: "$('img.gwt-Image')[0].src"}, function(r) { console.info("Snapshot [%s]", r[0]); });
+    getSnapshotUrl().then(
+      function(snap) {
+        console.info("Snapshot [%s]", snap); 
+        saveSnapshot(snap);
+      }
+    );
   });
   $('#snap-btn').toggle();
 
   console.info("Popping Dialog")
-  $( "#dialog" ).dialog({ 
+  $( "#dialog_openNativeConsole" ).dialog({ 
     width: 600, 
     modal: true,    
     closeOnEscape: true, 
@@ -34,8 +39,12 @@ $(document).ready(function() {
   });
 });
 
-function snapshot() {
-
+function getSnapshotUrl() {
+  var d = $.Deferred();
+  webView.executeScript({code: "$('img.gwt-Image')[0].src"}, function(r) {     
+    d.resolve(r[0]);
+  });
+  return d.promise();
 }
 
 
@@ -56,12 +65,8 @@ function loadWebView(url) {
     var loadstop = function() {
       console.info("Loaded WebView Window");
       
-      webView.executeScript({file: "/js/jquery/jquery-2.0.3.js"}, function(r) { 
-        webView.executeScript({code: "$('img.gwt-Image')[0].src"}, function(r2) { 
-          console.info(r2); 
-          $('#snap-btn').toggle();
-        });
-        
+      webView.executeScript({file: "/js/jquery/jquery-2.0.3.js"}, function(r) {                   
+          $('#snap-btn').toggle();        
       });
       //webView.executeScript({ file: "injects.js" }, function(results) { 
       webView.executeScript({ code: "window.addEventListener('message', function(e) { e.source.postMessage('message', '*'); } ); " }, function(results) { 
@@ -96,7 +101,47 @@ function loadWebView(url) {
 
 }
 
+
+function saveSnapshot(tsdurl) {
+  var dlg = $( "#dialog_saveSnapshot" ).dialog({ 
+    width: 900, 
+    modal: true,    
+    closeOnEscape: true, 
+    buttons: {
+      Load : function() {
+        
+      },
+      Cancel: function() {
+          $( this ).dialog( "close" );
+      }
+    }
+  });
+  console.info("Save Dialog: %O", dlg);
+  $('#snapshot').val(tsdurl);
+
+}
+
 /*
+
+
+
+  <div id="dialog_saveSnapshot" title="OpenTSDB Console: Save Chart Snapshot" >  
+    <form>
+      <fieldset>
+        <label for="category">Category:</label>
+        <input type="text" name="category" id="category" class="text ui-widget-content ui-corner-all" value="" style="width: 65%">
+        <label for="snapshot">Snapshot:</label>
+        <input type="text" name="snapshot" id="snapshot" class="text ui-widget-content ui-corner-all" value="" style="width: 95%">
+      </fieldset>
+    </form>  
+      <div id="tabs" >
+        <ul>
+            <li><a id="savesnapshot-btn">Save</a></li>
+            <li><a id="cancelsnapshot-btn">Cancel</a></li>
+        </ul>
+        </div>    
+  </div>
+
 
 
 

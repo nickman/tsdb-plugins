@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)http://developer.chrome.com/extensions/overview.html#arch -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Overview - Google Chrome</title>
+    
+    <link href="./Overview - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./Overview - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./Overview - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./Overview - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./Overview - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/extensions/" title="Google Chrome Extensions">
+          <img src="./Overview - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            extensions ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/extensions/samples.html" title="Sample Extensions (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-extensions" title="Google Chrome Extensions developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-extension/info" title="[google-chrome-extension] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar" class="">
+        <ul class="level1 ">
+        <li class="level2">
+              <a href="http://developer.chrome.com/extensions/getstarted.html" class="level2 ">Getting Started</a>
+        </li><li class="level2">
+              <a class="level2 selected">Overview</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/whats_new.html" class="level2 ">What's New?</a>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/devguide.html" class="level2 ">Developer's Guide</a>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser UI</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/browserAction.html" class="level4 ">Browser Actions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contextMenus.html" class="level4 ">Context Menus</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/desktop_notifications.html" class="level4 ">Desktop Notifications</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/omnibox.html" class="level4 ">Omnibox</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/options.html" class="level4 ">Options Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/override.html" class="level4 ">Override Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/pageAction.html" class="level4 ">Page Actions</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Browser Interaction</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/bookmarks.html" class="level4 ">Bookmarks</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/cookies.html" class="level4 ">Cookies</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/devtools.html" class="level4 ">Extending DevTools</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/events.html" class="level4 ">Events</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/history.html" class="level4 ">History</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/management.html" class="level4 ">Management</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/tabs.html" class="level4 ">Tabs</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/windows.html" class="level4 ">Windows</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Implementation</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/a11y.html" class="level4 ">Accessibility</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/event_pages.html" class="level4 ">Event Pages</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/contentSecurityPolicy.html" class="level4 ">Content Security Policy</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/content_scripts.html" class="level4 ">Content Scripts</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/xhr.html" class="level4 ">Cross-Origin XHR</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/i18n.html" class="level4 ">Internationalization</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/messaging.html" class="level4 ">Message Passing</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/permissions.html" class="level4 ">Optional Permissions</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/npapi.html" class="level4 ">NPAPI Plugins</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Finishing</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/hosting.html" class="level4 ">Hosting</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/external_extensions.html" class="level4 ">Other Deployment Options</a>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <a href="http://developer.chrome.com/extensions/tutorials.html" class="level2 ">Tutorials</a>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_migration_to_manifest_v2.html" class="level3 ">Manifest V2</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_debugging.html" class="level3 ">Debugging</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_analytics.html" class="level3 ">Google Analytics</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/tut_oauth.html" class="level3 ">OAuth</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Formats</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/extensions/manifest.html" class="level4 ">Manifest Files</a>
+            </li><li class="level4">
+                  <a href="http://developer.chrome.com/extensions/match_patterns.html" class="level4 ">Match Patterns</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/permission_warnings.html" class="level3 ">Permission Warnings</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_index.html" class="level3 ">chrome.* APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/api_other.html" class="level3 ">Other APIs</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">More</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/extensions/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/webstore/docs/index.html" class="level3 ">Chrome Web Store</a>
+          </li><li class="level3">
+                <a href="http://code.google.com/chrome/apps/docs/developers_guide.html" class="level3 ">Hosted Apps</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/extensions/themes.html" class="level3 ">Themes</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#what" data-list-item="">The basics</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#extension-ui" data-list-item="">Extension UIs</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#files" data-list-item="">Files</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#relative-urls" data-list-item="">Referring to files</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#manifest" data-list-item="">The manifest file</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="./Overview - Google Chrome_files/Overview - Google Chrome.htm" data-list-item="">Architecture</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#background_page" data-list-item="">The background page</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#pages" data-list-item="">UI pages</a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#contentScripts" data-list-item="">Content scripts</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#apis" data-list-item=""> Using the chrome.* APIs </a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#sync" data-list-item=""> Asynchronous vs. synchronous methods </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#sync-example" data-list-item=""> Example: Using a callback </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/extensions/overview.html#chrome-more" data-list-item=""> More details </a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#pageComm" data-list-item="">Communication between pages </a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#incognito" data-list-item=""> Saving data and incognito mode </a>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/extensions/overview.html#now-what" data-list-item=""> Now what? </a>
+    </li>
+  </ol>
+</div>
+
+<h1>Overview</h1>
+
+
+<p>
+Once you've finished this page
+and the
+<a href="http://developer.chrome.com/extensions/getstarted.html">Getting Started</a> tutorial,
+you'll be all set to start writing extensions.
+</p>
+
+<h2 id="what">The basics</h2>
+
+<p>
+An extension is a zipped bundle of files—HTML,
+CSS, JavaScript, images, and anything else you need—that
+adds functionality to the Google Chrome browser.
+Extensions are essentially web pages,
+and they can use all the
+<a href="http://developer.chrome.com/extensions/api_other.html">APIs that the browser provides to web pages</a>,
+from XMLHttpRequest to JSON to HTML5.
+</p>
+
+<p>
+Extensions can interact with web pages or servers using
+<a href="http://developer.chrome.com/extensions/content_scripts.html">content scripts</a> or
+<a href="http://developer.chrome.com/extensions/xhr.html">cross-origin XMLHttpRequests</a>.
+Extensions can also interact programmatically
+with browser features such as
+<a href="http://developer.chrome.com/extensions/bookmarks.html">bookmarks</a>
+and <a href="http://developer.chrome.com/extensions/tabs.html">tabs</a>.
+</p>
+
+<h3 id="extension-ui">Extension UIs</h3>
+
+<p>
+Many extensions—but not Chrome Apps—add
+UI to Google Chrome in the form of
+<a href="http://developer.chrome.com/extensions/browserAction.html">browser actions</a>
+or <a href="http://developer.chrome.com/extensions/pageAction.html">page actions</a>.
+Each extension can have at most one browser action or page action.
+Choose a <b>browser action</b> when the extension is relevant to most pages.
+Choose a <b>page action</b> when the extension's icon
+should appear or disappear,
+depending on the page.
+</p>
+
+<table class="simple">
+<tbody><tr>
+  <td width="33%">
+    <img src="./Overview - Google Chrome_files/browser-action.png" width="147" height="100" alt="screenshot">
+  </td>
+  <td width="33%">
+    <img src="./Overview - Google Chrome_files/page-action.png" width="147" height="100" alt="screenshot">
+  </td>
+  <td>
+    <img src="./Overview - Google Chrome_files/browser-action-with-popup.png" width="147" height="100" alt="screenshot">
+  </td>
+</tr>
+
+<tr>
+  <td>
+    This <a href="http://developer.chrome.com/extensions/samples.html#google-mail-checker">Google Mail Checker extension</a>
+    uses a <em>browser action</em>
+    (icon in the toolbar).
+  </td>
+  <td>
+    This <a href="http://developer.chrome.com/extensions/samples.html#mappy">Mappy extension</a>
+    uses a <em>page action</em>
+    (icon in the address bar)
+    and <em>content script</em>
+    (code injected into a web page).
+  </td>
+  <td>
+    This <a href="http://developer.chrome.com/extensions/samples.html#news-reader">News Reader extension</a>
+    features a browser action that,
+    when clicked,
+    shows a <em>popup</em>.
+  </td>
+</tr>
+</tbody></table>
+
+<p>
+Extensions (and Chrome Apps) can also present a UI in other ways,
+such as adding to the Chrome context menu,
+providing an options page,
+or using a content script that changes how pages look.
+See the <a href="http://developer.chrome.com/extensions/devguide.html">Developer's Guide</a>
+for a complete list of extension features,
+with links to implementation details
+for each one.
+</p>
+
+<h2 id="files">Files</h2>
+<p>
+Each extension has the following files:
+
+</p>
+
+<ul>
+  <li>A <b>manifest file</b></li>
+  <li>One or more <b>HTML files</b> (unless the extension is a theme)</li>
+  <li><em>Optional:</em> One or more <b>JavaScript files</b></li>
+  <li><em>Optional:</em> Any other files your extension needs—for
+  example, image files</li>
+</ul>
+
+<p>
+While you're working on your extension,
+you put all these files into a single folder.
+When you distribute your extension,
+the contents of the folder are packaged into a special ZIP file
+that has a <code>.crx</code> suffix.
+If you upload your extension using the
+<a href="https://chrome.google.com/webstore/developer/dashboard">Chrome Developer Dashboard</a>,
+the <code>.crx</code> file is created for you.
+For details on distributing extensions,
+see <a href="http://developer.chrome.com/extensions/hosting.html">Hosting</a>.
+</p>
+
+
+<h3 id="relative-urls">Referring to files</h3>
+
+<p>
+You can put any file you like into an extension,
+but how do you use it?
+Usually,
+you can refer to the file using a relative URL,
+just as you would in an ordinary HTML page.
+Here's an example of referring to
+a file named <code>myimage.png</code>
+that's in a subfolder named <code>images</code>.
+</p>
+
+<pre class="prettyprint"><span class="tag">&lt;img</span><span class="pln"> </span><b><span class="atn">src</span><span class="pun">=</span><span class="atv">"images/myimage.png"</span></b><span class="tag">&gt;</span></pre>
+
+<p>
+As you might notice while you use the Google Chrome debugger,
+every file in an extension is also accessible by an absolute URL like this:
+</p>
+
+<blockquote>
+<b>chrome-extension://</b><em>&lt;extensionID&gt;</em><b>/</b><em>&lt;pathToFile&gt;</em>
+</blockquote>
+
+<p>
+In that URL, the <em>&lt;extensionID&gt;</em> is a unique identifier
+that the extension system generates for each extension.
+You can see the IDs for all your loaded extensions
+by going to the URL <b>chrome://extensions</b>.
+The <em>&lt;pathToFile&gt;</em> is the location of the file
+under the extension's top folder;
+it's the same as the relative URL.
+</p>
+
+<p>
+While you're working on an extension
+(before it's packaged),
+the extension ID can change.
+Specifically, the ID of an unpacked extension will change
+if you load the extension from a different directory;
+the ID will change again when you package the extension.
+If your extension's code
+needs to specify the full path to a file within the extension,
+you can use the <code>@@extension_id</code>
+<a href="http://developer.chrome.com/extensions/i18n.html#overview-predefined">predefined message</a>
+to avoid hardcoding the ID during development.
+</p>
+
+<p>
+When you package an extension
+(typically, by uploading it with the dashboard),
+the extension gets a permanent ID,
+which remains the same even after you update the extension.
+Once the extension ID is permanent,
+you can change all occurrences of
+<code>@@extension_id</code> to use the real ID.
+</p>
+
+
+<h3 id="manifest">The manifest file</h3>
+
+<p>
+The manifest file, called <code>manifest.json</code>,
+gives information about the extension,
+such as the most important files
+and the capabilities that the extension might use.
+Here's a typical manifest file for a browser action
+that uses information from google.com:
+</p>
+
+<pre data-filename="manifest.json" class="prettyprint"><div class="filename nocode">manifest.json</div><span class="pun">{</span><span class="pln">
+  </span><span class="str">"name"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"My Extension"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"version"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"2.1"</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"description"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"Gets information from Google."</span><span class="pun">,</span><span class="pln">
+  </span><span class="str">"icons"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">{</span><span class="pln"> </span><span class="str">"128"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"icon_128.png"</span><span class="pln"> </span><span class="pun">},</span><span class="pln">
+  </span><span class="str">"background"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="str">"persistent"</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">false</span><span class="pun">,</span><span class="pln">
+    </span><span class="str">"scripts"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">[</span><span class="str">"bg.js"</span><span class="pun">]</span><span class="pln">
+  </span><span class="pun">},</span><span class="pln">
+  </span><span class="str">"permissions"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">[</span><span class="str">"http://*.google.com/"</span><span class="pun">,</span><span class="pln"> </span><span class="str">"https://*.google.com/"</span><span class="pun">],</span><span class="pln">
+  </span><span class="str">"browser_action"</span><span class="pun">:</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    </span><span class="str">"default_title"</span><span class="pun">:</span><span class="pln"> </span><span class="str">""</span><span class="pun">,</span><span class="pln">
+    </span><span class="str">"default_icon"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"icon_19.png"</span><span class="pun">,</span><span class="pln">
+    </span><span class="str">"default_popup"</span><span class="pun">:</span><span class="pln"> </span><span class="str">"popup.html"</span><span class="pln">
+  </span><span class="pun">}</span><span class="pln">
+</span><span class="pun">}</span></pre>
+
+<p>
+For details, see
+<a href="http://developer.chrome.com/extensions/manifest.html">Manifest Files</a>.
+</p>
+
+<h2 id="arch">Architecture</h2>
+
+<p>
+Many extensions have a <em>background page</em>,
+an invisible page
+that holds the main logic of the extension.
+An extension can also contain other pages
+that present the extension's UI.
+If an extension needs to interact with web pages that the user loads
+(as opposed to pages that are included in the extension),
+then the extension must use a content script.
+</p>
+
+
+<h3 id="background_page">The background page</h3>
+
+<p>
+The following figure shows a browser
+that has at least two extensions installed:
+a browser action (yellow icon)
+and a page action (blue icon).
+Both the browser action and the page action
+have background pages.
+This figure shows the browser action's background page,
+which is defined by <code>background.html</code>
+and has JavaScript code that controls
+the behavior of the browser action in both windows.
+</p>
+
+<img src="./Overview - Google Chrome_files/arch-1.gif" width="232" height="168" alt="Two windows and a box representing a background page (background.html). One window has a yellow icon; the other has both a yellow icon and a blue icon. The yellow icons are connected to the background page.">
+
+<p>
+There are two types of background pages:
+<a href="http://developer.chrome.com/extensions/background_pages.html">persistent background pages</a>,
+and <a href="http://developer.chrome.com/extensions/event_pages.html">event pages</a>. Persistent
+background pages, as the name suggests, are always open.
+Event pages are opened and closed as needed. Unless you absolutely
+need your background page to run all the time, prefer to use
+an event page.
+</p>
+
+<!-- PENDING: Perhaps show a picture of many background page processes.
+  This could build on a figure that shows the process architecture. -->
+
+<p>
+See <a href="http://developer.chrome.com/extensions/event_pages.html">Event Pages</a>
+and <a href="http://developer.chrome.com/extensions/background_pages.html">Background Pages</a>
+for more details.
+</p>
+
+<h3 id="pages">UI pages</h3>
+
+<p>
+Extensions can contain ordinary HTML pages that display the extension's UI.
+For example, a browser action can have a popup,
+which is implemented by an HTML file.
+Any extension can have an options page,
+which lets users customize how the extension works.
+Another type of special page is the override page.
+And finally, you can
+use <a href="http://developer.chrome.com/extensions/tabs.html#method-create">tabs.create</a>
+or <code>window.open()</code>
+to display any other HTML files that are in the extension.
+</p>
+
+<p>
+The HTML pages inside an extension
+have complete access to each other's DOMs,
+and they can invoke functions on each other.
+</p>
+
+<!-- PENDING: Change the following example and figure
+to use something that's not a popup?
+(It might lead people to think that popups need background pages.) -->
+
+<p>
+The following figure shows the architecture
+of a browser action's popup.
+The popup's contents are a web page
+defined by an HTML file
+(<code>popup.html</code>).
+This extension also happens to have a background page
+(<code>background.html</code>).
+The popup doesn't need to duplicate code
+that's in the background page
+because the popup can invoke functions on the background page.
+</p>
+
+<img src="./Overview - Google Chrome_files/arch-2.gif" width="256" height="168" alt="A browser window containing a browser action that&#39;s displaying a popup. The popup&#39;s HTML file (popup.html) can communicate with the extension&#39;s background page (background.html).">
+
+<p>
+See <a href="http://developer.chrome.com/extensions/browserAction.html">Browser Actions</a>,
+<a href="http://developer.chrome.com/extensions/options.html">Options</a>,
+<a href="http://developer.chrome.com/extensions/override.html">Override Pages</a>,
+and the <a href="http://developer.chrome.com/extensions/overview.html#pageComm">Communication between pages</a> section
+for more details.
+</p>
+
+
+<h3 id="contentScripts">Content scripts</h3>
+
+<p>
+If your extension needs to interact with web pages,
+then it needs a <em>content script</em>.
+A content script is some JavaScript
+that executes in the context of a page
+that's been loaded into the browser.
+Think of a content script as part of that loaded page,
+not as part of the extension it was packaged with
+(its <em>parent extension</em>).
+</p>
+
+<!-- [PENDING: Consider explaining that the reason content scripts are separated from the extension is due to chrome's multiprocess design.  Something like:
+
+Each extension runs in its own process.
+To have rich interaction with a web page, however,
+the extension must be able to
+run some code in the web page's process.
+Extensions accomplish this with content scripts.]
+-->
+
+<p>
+Content scripts can read details of the web pages the browser visits,
+and they can make changes to the pages.
+In the following figure,
+the content script
+can read and modify
+the DOM for the displayed web page.
+It cannot, however, modify the DOM of its parent extension's background page.
+</p>
+
+<img src="./Overview - Google Chrome_files/arch-3.gif" width="238" height="169" alt="A browser window with a browser action (controlled by background.html) and a content script (controlled by contentscript.js).">
+
+<p>
+Content scripts aren't completely cut off from their parent extensions.
+A content script can exchange messages with its parent extension,
+as the arrows in the following figure show.
+For example, a content script might send a message
+whenever it finds an RSS feed in a browser page.
+Or a background page might send a message
+asking a content script to change the appearance of its browser page.
+</p>
+
+<img src="./Overview - Google Chrome_files/arch-cs.gif" width="238" height="194" alt="Like the previous figure, but showing more of the parent extension&#39;s files, as well as a communication path between the content script and the parent extension.">
+
+
+
+<p>
+For more information,
+see <a href="http://developer.chrome.com/extensions/content_scripts.html">Content Scripts</a>.
+</p>
+
+
+<h2 id="apis"> Using the chrome.* APIs </h2>
+
+<p>
+In addition to having access to all the APIs that web pages and apps can use,
+extensions can also use Chrome-only APIs
+(often called <em>chrome.* APIs</em>)
+that allow tight integration with the browser.
+For example, any extension or web app can use the
+standard <code>window.open()</code> method to open a URL.
+But if you want to specify which window that URL should be displayed in,
+your extension can use the Chrome-only 
+<a href="http://developer.chrome.com/extensions/tabs.html#method-create">tabs.create</a>
+method instead.
+</p>
+
+<h3 id="sync"> Asynchronous vs. synchronous methods </h3>
+<p>
+Most methods in the chrome.* APIs are <b>asynchronous</b>:
+they return immediately, without waiting for the operation to finish.
+If you need to know the outcome of that operation,
+then you pass a callback function into the method.
+That callback is executed later (potentially <em>much</em> later),
+sometime after the method returns.
+Here's an example of the signature for an asynchronous method:
+</p>
+
+<p>
+<code>
+chrome.tabs.create(object <em>createProperties</em>, function <em>callback</em>)
+</code>
+</p>
+
+<p>
+Other chrome.* methods are <b>synchronous</b>.
+Synchronous methods never have a callback
+because they don't return until they've completed all their work.
+Often, synchronous methods have a return type.
+Consider the
+<a href="http://developer.chrome.com/extensions/runtime.html#method-getURL">runtime.getURL</a> method:
+</p>
+
+<p>
+<code>
+string chrome.runtime.getURL()
+</code>
+</p>
+
+<p>
+This method has no callback and a return type of <code>string</code>
+because it synchronously returns the URL
+and performs no other, asynchronous work.
+</p>
+
+
+<h3 id="sync-example"> Example: Using a callback </h3>
+
+<p>
+Say you want to navigate
+the user's currently selected tab to a new URL.
+To do this, you need to get the current tab's ID
+(using <a href="http://developer.chrome.com/extensions/tabs.html#method-query">tabs.query</a>)
+and then make that tab go to the new URL
+(using <a href="http://developer.chrome.com/extensions/tabs.html#method-update">tabs.update</a>).
+</p>
+
+<p>
+If <code>query()</code> were synchronous,
+you might write code like this:
+</p>
+
+<pre class="prettyprint"><b><span class="com">//THIS CODE DOESN'T WORK</span></b><span class="pln">
+</span><span class="kwd">var</span><span class="pln"> tab </span><span class="pun">=</span><span class="pln"> chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">query</span><span class="pun">({</span><span class="str">'active'</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">});</span><span class="pln"> </span><b><span class="com">//WRONG!!!</span></b><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">update</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">url</span><span class="pun">:</span><span class="pln">newUrl</span><span class="pun">});</span><span class="pln">
+someOtherFunction</span><span class="pun">();</span></pre>
+
+<p>
+That approach fails
+because <code>query()</code> is asynchronous.
+It returns without waiting for its work to complete,
+and it doesn't even return a value
+(although some asynchronous methods do).
+You can tell that <code>query()</code> is asynchronous
+by the <em>callback</em> parameter in its signature:
+
+</p><p>
+<code>
+chrome.tabs.query(object <em>queryInfo</em>, function <em>callback</em>)
+</code>
+</p>
+
+<p>
+To fix the preceding code,
+you must use that callback parameter.
+The following code shows
+how to define a callback function
+that gets the results from <code>query()</code>
+(as a parameter named <code>tab</code>)
+and calls <code>update()</code>.
+</p>
+
+<pre class="prettyprint"><b><span class="com">//THIS CODE WORKS</span></b><span class="pln">
+chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">query</span><span class="pun">({</span><span class="str">'active'</span><span class="pun">:</span><span class="pln"> </span><span class="kwd">true</span><span class="pun">},</span><span class="pln"> </span><b><span class="kwd">function</span><span class="pun">(</span><span class="pln">tabs</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span></b><span class="pln">
+  chrome</span><span class="pun">.</span><span class="pln">tabs</span><span class="pun">.</span><span class="pln">update</span><span class="pun">(</span><span class="pln">tabs</span><span class="pun">[</span><span class="lit">0</span><span class="pun">].</span><span class="pln">id</span><span class="pun">,</span><span class="pln"> </span><span class="pun">{</span><span class="pln">url</span><span class="pun">:</span><span class="pln"> newUrl</span><span class="pun">});</span><span class="pln">
+</span><b><span class="pun">}</span></b><span class="pun">);</span><span class="pln">
+someOtherFunction</span><span class="pun">();</span></pre>
+
+<p>
+In this example, the lines are executed in the following order: 1, 4, 2.
+The callback function specified to <code>query()</code> is called
+(and line 2 executed)
+only after information about the currently selected tab is available,
+which is sometime after <code>query()</code> returns.
+Although <code>update()</code> is asynchronous,
+this example doesn't use its callback parameter,
+since we don't do anything about the results of the update.
+</p>
+
+
+<h3 id="chrome-more"> More details </h3>
+
+<p>
+For more information, see the
+<a href="http://developer.chrome.com/extensions/api_index.html">chrome.* API docs</a>
+and watch this video:
+</p>
+
+<p>
+<iframe title="YouTube video player" width="640" height="390" src="./Overview - Google Chrome_files/bmxr75CV36A.htm" frameborder="0" allowfullscreen=""></iframe>
+</p>
+
+<h2 id="pageComm">Communication between pages </h2>
+
+<p>
+The HTML pages within an extension often need to communicate.
+
+Because all of an extension's pages
+execute in same process on the same thread,
+the pages can make direct function calls to each other.
+</p>
+
+<p>
+To find pages in the extension, use
+<a href="http://developer.chrome.com/extensions/extension.html"><code>chrome.extension</code></a>
+methods such as
+<code>getViews()</code> and
+<code>getBackgroundPage()</code>.
+Once a page has a reference to other pages within the extension,
+the first page can invoke functions on the other pages,
+and it can manipulate their DOMs.
+</p>
+
+<h2 id="incognito"> Saving data and incognito mode </h2>
+
+<p>
+Extensions can save data using
+the HTML5 <a href="http://dev.w3.org/html5/webstorage/">web storage API</a>
+(such as <code>localStorage</code>)
+or by making server requests that result in saving data.
+Whenever you want to save something,
+first consider whether it's
+from a window that's in incognito mode.
+By default, extensions don't run in incognito windows.
+You need to consider what a user expects
+from your extension
+when the browser is incognito.
+</p>
+
+<p>
+<em>Incognito mode</em> promises that the window will leave no tracks.
+When dealing with data from incognito windows,
+do your best to honor this promise.
+For example, if your extension normally
+saves browsing history to the cloud,
+don't save history from incognito windows.
+On the other hand, you can store
+your extension's settings from any window,
+incognito or not.
+</p>
+
+<p class="note">
+<b>Rule of thumb:</b>
+If a piece of data might show where a user
+has been on the web or what the user has done,
+don't store it if it's from an incognito window.
+</p>
+
+<p>
+To detect whether a window is in incognito mode,
+check the <code>incognito</code> property of the relevant
+<a href="http://developer.chrome.com/extensions/tabs.html#type-Tab">tabs.Tab</a> or
+<a href="http://developer.chrome.com/extensions/windows.html#type-Window">windows.Window</a> object.
+For example:
+</p>
+
+<pre class="prettyprint"><span class="kwd">function</span><span class="pln"> saveTabData</span><span class="pun">(</span><span class="pln">tab</span><span class="pun">,</span><span class="pln"> data</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+  </span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">incognito</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    chrome</span><span class="pun">.</span><span class="pln">runtime</span><span class="pun">.</span><span class="pln">getBackgroundPage</span><span class="pun">(</span><span class="kwd">function</span><span class="pun">(</span><span class="pln">bgPage</span><span class="pun">)</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+      bgPage</span><span class="pun">[</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">url</span><span class="pun">]</span><span class="pln"> </span><span class="pun">=</span><span class="pln"> data</span><span class="pun">;</span><span class="pln">      </span><span class="com">// Persist data ONLY in memory</span><span class="pln">
+    </span><span class="pun">});</span><span class="pln">
+  </span><span class="pun">}</span><span class="pln"> </span><span class="kwd">else</span><span class="pln"> </span><span class="pun">{</span><span class="pln">
+    localStorage</span><span class="pun">[</span><span class="pln">tab</span><span class="pun">.</span><span class="pln">url</span><span class="pun">]</span><span class="pln"> </span><span class="pun">=</span><span class="pln"> data</span><span class="pun">;</span><span class="pln">  </span><span class="com">// OK to store data</span><span class="pln">
+  </span><span class="pun">}</span><span class="pln">
+</span><span class="pun">}</span></pre>
+
+
+<h2 id="now-what"> Now what? </h2>
+
+<p>
+Now that you've been introduced to extensions,
+you should be ready to write your own.
+Here are some ideas for where to go next:
+</p>
+
+<ul>
+  <li> <a href="http://developer.chrome.com/extensions/getstarted.html">Tutorial: Getting Started</a> </li>
+  <li> <a href="http://developer.chrome.com/extensions/tut_debugging.html">Tutorial: Debugging</a> </li>
+  <li> <a href="http://developer.chrome.com/extensions/devguide.html">Developer's Guide</a> </li>
+  <li> <a href="http://developer.chrome.com/extensions/samples.html">Samples</a> </li>
+  <li> <a href="http://www.youtube.com/view_play_list?p=CA101D6A85FE9D4B">Videos</a>,
+    such as
+    <a href="http://www.youtube.com/watch?v=B4M_a7xejYI&feature=PlayList&p=CA101D6A85FE9D4B&index=6">Extension Message Passing</a>
+    </li>
+</ul>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./Overview - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./Overview - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./Overview - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./Overview - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./Overview - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./Overview - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./Overview - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

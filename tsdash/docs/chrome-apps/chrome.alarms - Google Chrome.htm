@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)http://developer.chrome.com/apps/alarms.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>chrome.alarms - Google Chrome</title>
+    
+    <link href="./chrome.alarms - Google Chrome_files/site.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.alarms - Google Chrome_files/print.css" rel="stylesheet" type="text/css" media="print">
+    <link href="./chrome.alarms - Google Chrome_files/prettify.css" rel="stylesheet" type="text/css">
+    <link href="./chrome.alarms - Google Chrome_files/css" rel="stylesheet" type="text/css">
+    <script async="" src="./chrome.alarms - Google Chrome_files/analytics.js"></script><script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-41980257-1');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="gc-topnav">
+      <table><tbody><tr>
+      <td id="chrome-logo">
+        <a href="http://developer.chrome.com/apps/" title="Google Chrome Apps">
+          <img src="./chrome.alarms - Google Chrome_files/chrome-logo.png" alt=""> chrome
+        </a>
+        <div id="platform-chooser">
+          <button id="platform-chooser-toggle" data-menu="platform-chooser-popup">
+            apps ▾ 
+          </button>
+          <div id="platform-chooser-popup">
+            <button class="apps" data-href="/apps/about_apps.html">apps</button>
+            <button class="extensions" data-href="/extensions">extensions</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="http://developer.chrome.com/apps/samples.html" title="Sample Apps (with source code)">Samples</a>
+          </li>
+          <li>
+            <a href="http://groups.google.com/a/chromium.org/group/chromium-apps" title="Google Chrome Apps developer forum" target="_blank">Group</a>
+          </li>
+          <li>
+            <a href="http://stackoverflow.com/tags/google-chrome-app/info" title="[google-chrome-app] tag on Stack Overflow" target="_blank">Stack overflow</a>
+          </li>
+        </ul>
+      </td>
+      </tr></tbody></table>
+    </div>
+    <div id="gc-topnav-space"></div>
+    <div id="gc-container">
+      <div id="gc-sidebar">
+        <ul class="level1 ">
+        <li class="level2">
+              <span class="level2">Discover</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/about_apps.html" class="level3 ">What Are Chrome Apps?</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Develop</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/first_app.html" class="level3 ">Create Your First App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Tutorials</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Learn with a Codelab</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab.html" class="level5 ">About this Codelab</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab1_setup.html" class="level5 ">1 - Set Up Development Environment</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab2_basic.html" class="level5 ">2 - Create Basic App</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab3_mvc.html" class="level5 ">3 - Create MVC</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab5_data.html" class="level5 ">4 - Save and Fetch Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab6_lifecycle.html" class="level5 ">5 - Manage App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab7_useridentification.html" class="level5 ">6 - Access User's Data</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab8_webresources.html" class="level5 ">7 - Access Web Resources</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_codelab_10_publishing.html" class="level5 ">8 - Publish App</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">MVC Architecture &amp; Frameworks</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_frameworks.html" class="level5 ">About MVC Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/angular_framework.html" class="level5 ">Build Apps with AngularJS</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/sencha_framework.html" class="level5 ">Build Apps with Sencha Ext JS</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Chrome App Concepts</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">The Fundamentals</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_architecture.html" class="level5 ">App Architecture</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_lifecycle.html" class="level5 ">App Lifecycle</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/offline_apps.html" class="level5 ">Offline First</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_external.html" class="level5 ">External Content</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Security</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/contentSecurityPolicy.html" class="level5 ">Content Security Policy</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Cloud-Enable Your App</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Messaging</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/cloudMessaging.html" class="level6 ">About Cloud Messaging</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/pushMessaging.html" class="level6 ">Client Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_server.html" class="level6 ">Service Reference</a>
+                </li><li class="level6">
+                      <a href="http://developer.chrome.com/apps/gcm_tos.html" class="level6 ">Terms of Service</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                  <a class="button level5" href="javascript:void(0)">
+                    <span class="level5">Cloud Storage</span>
+                    <div class="toggleIndicator level5"></div>
+                  </a>
+                <ul toggleable="" class="level5 hidden">
+                <li class="level6">
+                      <a href="http://developer.chrome.com/apps/storage.html" class="level6 ">chrome.storage</a>
+                </li>
+                </ul>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_identity.html" class="level5 ">User Authentication</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Store and Retrieve Data</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_storage.html" class="level5 ">Storage APIs</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Use Low-Level System Services</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_usb.html" class="level5 ">USB</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_serial.html" class="level5 ">Serial</a>
+              </li><li class="level5">
+                    <a href="http://developer.chrome.com/apps/app_network.html" class="level5 ">Network Communications</a>
+              </li>
+              </ul>
+            </li><li class="level4">
+                <a class="button level4" href="javascript:void(0)">
+                  <span class="level4">Interact with the Host Platform</span>
+                  <div class="toggleIndicator level4"></div>
+                </a>
+              <ul toggleable="" class="level4 hidden">
+              <li class="level5">
+                    <a href="http://developer.chrome.com/apps/desktop_notifications.html" class="level5 ">Rich Notifications</a>
+              </li>
+              </ul>
+            </li>
+            </ul>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Distribute</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/publish_app.html" class="level3 ">Publish Your App</a>
+          </li><li class="level3">
+              <a class="button level3" href="javascript:void(0)">
+                <span class="level3">Monetize Your App</span>
+                <div class="toggleIndicator level3"></div>
+              </a>
+            <ul toggleable="" class="level3 hidden">
+            <li class="level4">
+                  <a href="http://developer.chrome.com/apps/google_wallet.html" class="level4 ">Google Wallet for Digital Goods</a>
+            </li>
+            </ul>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/analytics.html" class="level3 ">Analytics</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Reference</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/api_index.html" class="level3 ">Chrome Platform APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/tags/webview.html" class="level3 ">Webview Tag</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/api_other.html" class="level3 ">Web APIs</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/manifest.html" class="level3 ">Manifest File Format</a>
+          </li><li class="level3">
+                <a href="http://developer.chrome.com/apps/app_deprecated.html" class="level3 ">Disabled Web Features</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Samples</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/samples.html" class="level3 ">Sample Apps</a>
+          </li>
+          </ul>
+        </li><li class="level2">
+              <span class="level2">Help</span>
+          <ul class="level2 ">
+          <li class="level3">
+                <a href="http://developer.chrome.com/apps/faq.html" class="level3 ">FAQ</a>
+          </li><li class="level3">
+                <a href="https://groups.google.com/a/chromium.org/forum/#!forum/chromium-apps" class="level3 ">Google Groups</a>
+          </li><li class="level3">
+                <a href="http://stackoverflow.com/questions/tagged/google-chrome-app" class="level3 ">Stack Overflow</a>
+          </li>
+          </ul>
+        </li>
+        </ul>
+      </div>
+      <div id="gc-pagecontent">
+
+<h1>chrome.alarms</h1>
+<div id="toc">
+  <ol>
+    <li>
+      <a href="http://developer.chrome.com/apps/alarms.html#types" data-list-item="">Types</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#type-Alarm" data-list-item="">Alarm</a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/alarms.html#methods" data-list-item="">Methods</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#method-create" data-list-item="">create        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#method-get" data-list-item="">get        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#method-getAll" data-list-item="">getAll        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#method-clear" data-list-item="">clear        </a>
+        </li>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#method-clearAll" data-list-item="">clearAll        </a>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <a href="http://developer.chrome.com/apps/alarms.html#events" data-list-item="">Events</a>
+      <ol>
+        <li>
+          <a href="http://developer.chrome.com/apps/alarms.html#event-onAlarm" data-list-item="">onAlarm</a>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<table class="intro" id="intro">
+  <tbody><tr>
+    <td class="title">Description:</td>
+    <td>
+         Use the <code>chrome.alarms</code> API to schedule code to run
+         periodically or at a specified time in the future.
+                <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Availability:</td>
+    <td>
+        Stable since Chrome 22.
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Permissions:</td>
+    <td>
+        <span class="code">
+        "alarms"
+                </span>
+        <br>
+    </td>
+  </tr>
+  <tr>
+    <td class="title">Learn More:</td>
+    <td>
+        <a href="http://developer.chrome.com/apps/event_pages.html">
+        Event Pages
+                </a>
+        <br>
+    </td>
+  </tr>
+</tbody></table>
+<section>
+<h2 id="api-reference-header" title="">chrome.alarms reference</h2>
+<div class="api_reference">
+    <h2 id="types">Types</h2>
+      <div>
+        <h3 id="type-Alarm">Alarm</h3>
+        <div>
+            <h3 id="Alarm-properties" class="capitalize" title="">
+              properties of <a href="http://developer.chrome.com/apps/alarms.html#type-Alarm">Alarm</a>
+            </h3>
+            <dd>
+              <dl>
+                <div>
+                  <a name="property-Alarm-name"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Alarm-name" title="">
+                        name
+                        <span class="property">
+                          (
+                            string
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Name of this alarm.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Alarm-scheduledTime"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Alarm-scheduledTime" title="">
+                        scheduledTime
+                        <span class="property">
+                          (
+                            double
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      Time at which this alarm was scheduled to fire, in milliseconds past the epoch (e.g. <code>Date.now() + n</code>).  For performance reasons, the alarm may have been delayed an arbitrary amount beyond this.
+                    </dd>
+                  </dl>
+                </div><div>
+                  <a name="property-Alarm-periodInMinutes"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-Alarm-periodInMinutes" title="">
+                        periodInMinutes
+                        <span class="property">
+                          (
+                            <span class="optional">optional</span>
+                            double
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                      If not null, the alarm is a repeating alarm and will fire again in <var>periodInMinutes</var> minutes.
+                    </dd>
+                  </dl>
+                </div>
+              </dl>
+            </dd>
+        </div>
+      </div>
+    <h2 id="methods">Methods</h2>
+      <div>
+        <h3 id="method-create">create
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.alarms.create</span>(<span class="optional">string name</span>, <span>object alarmInfo</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Creates an alarm.  Near the time(s) specified by <var>alarmInfo</var>, the <code>onAlarm</code> event is fired. If there is another alarm with the same name (or no name if none is specified), it will be cancelled and replaced by this alarm.<br><br> In order to reduce the load on the user's machine, Chrome limits alarms to at most once every 1 minute but may delay them an arbitrary amount more.  That is, setting <code>delayInMinutes</code> or <code>periodInMinutes</code> to less than <code>1</code> will not be honored and will cause a warning.  <code>when</code> can be set to less than 1 minute after "now" without warning but won't actually cause the alarm to fire for at least 1 minute.<br><br> To help you debug your app or extension, when you've loaded it unpacked, there's no limit to how often the alarm can fire.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-create-name"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-name" title="">
+                      name
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Optional name to identify this alarm. Defaults to the empty string.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-create-alarmInfo"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-create-alarmInfo" title="">
+                      alarmInfo
+                      <span class="property">
+                        (
+                          object
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    Describes when the alarm should fire.  The initial time must be specified by either <var>when</var> or <var>delayInMinutes</var> (but not both).  If <var>periodInMinutes</var> is set, the alarm will repeat every <var>periodInMinutes</var> minutes after the initial event.  If neither <var>when</var> or <var>delayInMinutes</var> is set for a repeating alarm, <var>periodInMinutes</var> is used as the default for <var>delayInMinutes</var>.
+                  </dd>
+                </dl>
+                <dd>
+                  <h4 title="">Properties</h4>
+                  <dl>
+                    <div>
+                      <a name="property-alarmInfo-when"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-alarmInfo-when" title="">
+                            when
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                double
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Time at which the alarm should fire, in milliseconds past the epoch (e.g. <code>Date.now() + n</code>).
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-alarmInfo-delayInMinutes"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-alarmInfo-delayInMinutes" title="">
+                            delayInMinutes
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                double
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          Length of time in minutes after which the <code>onAlarm</code> event should fire.<br><br> <!-- TODO: need minimum=0 -->
+                        </dd>
+                      </dl>
+                    </div><div>
+                      <a name="property-alarmInfo-periodInMinutes"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-alarmInfo-periodInMinutes" title="">
+                            periodInMinutes
+                            <span class="property">
+                              (
+                                <span class="optional">optional</span>
+                                double
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                          If set, the onAlarm event should fire every <var>periodInMinutes</var> minutes after the initial event specified by <var>when</var> or <var>delayInMinutes</var>.  If not set, the alarm will only fire once.<br><br> <!-- TODO: need minimum=0 -->
+                        </dd>
+                      </dl>
+                    </div>
+                  </dl>
+                </dd>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-get">get
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.alarms.get</span>(<span class="optional">string name</span>, <span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Retrieves details about the specified alarm.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-get-name"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-get-name" title="">
+                      name
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The name of the alarm to get. Defaults to the empty string.
+                  </dd>
+                </dl>
+              </div>
+              <div>
+                <a name="property-get-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-get-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/alarms.html#type-Alarm"><span class="typ">Alarm</span></a><span class="pln"> alarm</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-alarm"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-alarm" title="">
+                        alarm
+                        <span class="property">
+                          (
+                            <a href="http://developer.chrome.com/apps/alarms.html#type-Alarm">Alarm</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-getAll">getAll
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.alarms.getAll</span>(<span>function callback</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Gets an array of all the alarms.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-getAll-callback"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-getAll-callback" title="">
+                      callback
+                      <span class="property">
+                        (
+                          function
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+            <p>
+                  The <em>callback</em> parameter should specify a function
+                  that looks like this:
+            </p>
+            <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><span class="pln">array of </span><a href="http://developer.chrome.com/apps/alarms.html#type-Alarm"><span class="typ">Alarm</span></a><span class="pln"> alarms</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+            <dl>
+                <div>
+                  <a name="property-callback-alarms"></a>
+                  <dl>
+                    <dt>
+                      <h4 id="property-callback-alarms" title="">
+                        alarms
+                        <span class="property">
+                          (
+                            array of <a href="http://developer.chrome.com/apps/alarms.html#type-Alarm">Alarm</a>
+                          )
+                        </span>
+                      </h4>
+                    </dt>
+                    <dd>
+                    </dd>
+                  </dl>
+                </div>
+            </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-clear">clear
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.alarms.clear</span>(<span class="optional">string name</span>)
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Clears the alarm with the given name.
+          </p>
+          <h4 title="">Parameters</h4>
+          <dl>
+              <div>
+                <a name="property-clear-name"></a>
+                <dl>
+                  <dt>
+                    <h4 id="property-clear-name" title="">
+                      name
+                      <span class="property">
+                        (
+                          <span class="optional">optional</span>
+                          string
+                        )
+                      </span>
+                    </h4>
+                  </dt>
+                  <dd>
+                    The name of the alarm to clear. Defaults to the empty string.
+                  </dd>
+                </dl>
+              </div>
+          </dl>
+        </div>
+      </div>
+      <div>
+        <h3 id="method-clearAll">clearAll
+        </h3>
+        <div class="summary uncapitalize">
+        <div class="line">
+        <span>chrome.alarms.clearAll</span>()
+        </div>
+        </div>
+        <div class="description">
+          <p>
+            Clears all alarms.
+          </p>
+        </div>
+      </div>
+    <h2 id="events">Events</h2>
+      <div>
+        <h3 id="event-onAlarm">onAlarm</h3>
+        <div class="description">
+      <p>
+            Fired when an alarm has elapsed. Useful for event pages.
+          </p>      <div>
+              <h4 title="">addListener
+              </h4>
+              <div class="summary uncapitalize">
+              <div class="line">
+              <span>chrome.alarms.onAlarm.addListener</span>(<span>function callback</span>)
+              </div>
+              </div>
+              <div class="description">
+                <h4 title="">Parameters</h4>
+                <dl>
+                    <div>
+                      <a name="property-onAlarm-callback"></a>
+                      <dl>
+                        <dt>
+                          <h4 id="property-onAlarm-callback" title="">
+                            callback
+                            <span class="property">
+                              (
+                                function
+                              )
+                            </span>
+                          </h4>
+                        </dt>
+                        <dd>
+                        </dd>
+                      </dl>
+                    </div>
+                </dl>
+                  <p>
+                        The <em>callback</em> parameter should specify a function
+                        that looks like this:
+                  </p>
+                  <pre class="prettyprint"><span class="kwd">function</span><span class="pun">(</span><a href="http://developer.chrome.com/apps/alarms.html#type-Alarm"><span class="typ">Alarm</span></a><span class="pln"> alarm</span><span class="pun">)</span><span class="pln"> </span><span class="subdued"><span class="pun">{...}</span></span><span class="pun">;</span></pre>
+                  <dl>
+                      <div>
+                        <a name="property-onAlarm-alarm"></a>
+                        <dl>
+                          <dt>
+                            <h4 id="property-onAlarm-alarm" title="">
+                              alarm
+                              <span class="property">
+                                (
+                                  <a href="http://developer.chrome.com/apps/alarms.html#type-Alarm">Alarm</a>
+                                )
+                              </span>
+                            </h4>
+                          </dt>
+                          <dd>
+                            The alarm that has elapsed.
+                          </dd>
+                        </dl>
+                      </div>
+                  </dl>
+              </div>
+            </div>
+        </div>
+      </div>
+</div>
+</section>
+      </div>
+    </div>
+  
+
+  <div id="gc-footer">
+    <button class="google-button hidden" id="scroll-to-top">↑</button>
+    <button class="google-button" id="send-feedback">Send Feedback</button>
+    <div class="text">
+      <p>
+        Except as otherwise <a href="http://code.google.com/policies.html#restrictions">noted</a>,
+        the content of this page is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons
+        Attribution 3.0 License</a>, and code samples are licensed under the
+        <a rel="license" href="http://code.google.com/google_bsd_license.html">BSD License</a>.
+      </p>
+      <p>
+        ©2013 Google
+      </p>
+      <script src="./chrome.alarms - Google Chrome_files/platform_chooser.js" type="text/javascript"></script>
+      <script src="./chrome.alarms - Google Chrome_files/popup.js" type="text/javascript"></script>
+      <script src="./chrome.alarms - Google Chrome_files/prettify.js" type="text/javascript"></script>
+      <script src="./chrome.alarms - Google Chrome_files/scroll.js" type="text/javascript"></script>
+      <script src="./chrome.alarms - Google Chrome_files/sidebar.js" type="text/javascript"></script>
+      <script src="./chrome.alarms - Google Chrome_files/tabs.js" type="text/javascript"></script>
+      <script>
+        (function() {
+          // Auto syntax highlight all pre tags.
+          var preElements = document.getElementsByTagName('pre');
+          for (var i = 0; i < preElements.length; i++) {
+            var preElement = preElements[i];
+            preElement.classList.add('prettyprint');
+            var datasetFilename = preElement.getAttribute('data-filename');
+            if (datasetFilename) {
+              var filename = document.createElement('div');
+              filename.className = 'filename nocode';
+              filename.textContent = datasetFilename;
+              preElement.insertBefore(filename, preElement.firstChild);
+            }
+          }
+          prettyPrint();
+        })();
+      </script>
+
+      <!-- Feedback. -->
+      <script type="text/javascript" src="./chrome.alarms - Google Chrome_files/api.js"></script>
+      <script type="text/javascript">
+        (function() {
+         document.getElementById('send-feedback').addEventListener('click', function() {
+           userfeedback.api.startFeedback({ productId: 86265 });
+         });
+        })();
+      </script>
+    </div>
+  </div>
+
+</body></html>

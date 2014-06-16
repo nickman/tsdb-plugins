@@ -5,11 +5,14 @@
   <meta charset="utf-8">
 <link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="/css/console-layout.css" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="/css/jquery.combobox.style.css">
+
 
 <script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
 <script type="text/javascript" src="nativetsd.js" charset="utf-8"></script>
-
+<script type="text/javascript" src="/js/jquery.combobox.js"></script>
 
 </head>
 <body>
@@ -24,7 +27,7 @@
 		<form>
 		  <fieldset>
 		    <label for="name">OpenTSDB URL</label>
-		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://localhost:4242/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1500x300&amp;autoreload=5" style="width: 95%">
+		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://opentsdb:8080/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1500x300&amp;autoreload=5" style="width: 95%">
 		  </fieldset>
 		</form>  
 	</div>
@@ -32,11 +35,14 @@
 	<div id="dialog_saveSnapshot" title="OpenTSDB Console: Save Chart Snapshot" >  
 		<form>
 		  <fieldset>
+		    <label for="title">Title:</label>
+		    <input type="text" name="title" id="title" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">
+		    <br>
 		    <label for="category">Category:</label>
 		    <input type="text" name="category" id="category" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">
 		    <br>
 		    <label for="snapshot">Snapshot:</label>
-		    <input type="text" name="snapshot" id="snapshot" class="text ui-widget-content ui-corner-all" value="" style="width: 70%">
+		    <input type="text" name="snapshot" id="snapshot" class="text ui-widget-content ui-corner-all" value="" style="width: 100%">
 		  </fieldset>
 		</form>  
 		<!--

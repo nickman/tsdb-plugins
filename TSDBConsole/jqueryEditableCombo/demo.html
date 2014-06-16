@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>jQuery Combobox Plugin Demo</title>
+    <link rel="stylesheet" type="text/css" href="./jquery/css/jquery.combobox/style.css">
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+    <script type="text/javascript" src="./jquery/js/jquery.combobox.js"></script>
+    <script type="text/javascript">
+
+    jQuery(function () {
+
+        jQuery('#input1').combobox([
+            'Foo',
+            'Bar',
+            'Bartender',
+            'Hello',
+            'Master',
+            'Monster',
+            'Monorail',
+            'Octopus has eight legs',
+            'Octagon',
+            'Often',
+            'World',
+            'wacko',
+            'woo'
+        ]);
+
+        jQuery('#input2').combobox([
+            'Yo',
+            'Mo',
+            'Jo'
+        ]);
+        
+        jQuery('#option_changer').click(function (e) {
+            jQuery.combobox.instances[0].setSelectOptions([
+                'Apples',
+                'Oranges',
+                'Bananas'
+            ]);
+        });
+        
+    });
+    
+    
+    </script>
+</head>
+<body>
+
+    <div>
+        <h1>jQuery.combobox Demo</h1>
+        <p>
+            by <a href="http://dellsala.com/">Dell Sala</a><br>
+            <a href="https://github.com/dellsala/Combo-Box-jQuery-Plugin">Get it from github</a>
+        </p>        
+    </div>
+    <div>
+        <label for="input1">Field1:</label> <input id="input1" type="text" value="">
+        <label for="input2">Field2:</label> <input id="input2" type="text" value="Hello"><br>
+        <br>
+        <br>
+        <input id="option_changer" type="button" value="Change Field 1 Options">
+    </div>
+
+</body>
+</html>

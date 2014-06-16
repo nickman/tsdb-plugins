@@ -7,7 +7,7 @@ document.domain = chrome.runtime.id;
 var webView = null;
 
 $(document).ready(function() { 
-  
+  initDb();  
   $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).css({ width: '30%'})
   .click(function(e){
     console.info('Taking Snap...');    
@@ -101,14 +101,91 @@ function loadWebView(url) {
 
 }
 
+function initDb() {
+
+  var dbOpenPromise = $.indexedDB("Snapshots", { 
+      // The second parameter is optional
+      "version" : 2,  // Integer version that the DB should be opened with
+      "upgrade" : function(transaction){
+        console.info("DB UPGRADE");
+      },
+      "schema" : {
+          "1" : function(transaction){
+              console.info("VERSION 1");
+              var directoryObjectStore = transaction.createObjectStore("directories", {
+                  "keyPath" : 'name' 
+              });    
+              var request = directoryObjectStore.add({name: "Default"});
+              
+              request.onsuccess = function(event){ 
+                console.info("Inited directories and added Default");
+              };
+              request.onerror = function(e){
+                console.error("Data save failed");
+                console.error(e);
+                transaction.abort();
+              };
+                            
+          },
+          "2" : function(transaction){
+              console.info("VERSION 2");
+          }
+      }
+  });
+}
+
+  function deleteDb(dbname) {
+    var dbRequest = window.indexedDB.deleteDatabase(dbname);
+    dbRequest.onsuccess = function(evt){ console.info("Deleted DB:%o", evt); }
+    dbRequest.onerror = function(evt){ console.error("Failed to delete db: %o", evt.target.error); }  
+  }
+
+
+/*
+  var request = window.indexedDB.open("Snapshots");
+  request.onsuccess = function(event){
+      var db = request.result;
+      var transaction = db.transaction(["BookList"], IDBTransaction.READ_WRITE);
+      var objectStore = transaction.objectStore("BookList");
+      var request = DAO.objectStore.openCursor();
+      request.onsuccess = function(event){
+          var cursor = request.result;
+          if (cursor) {
+            write(cursor.key + "" + cursor.value);
+            cursor["continue"]();                
+          }
+      };
+  };
+*/  
+
+
+/*
+    Object Stores
+    =============
+    directories
+      name
+ */
+
+
 
 function saveSnapshot(tsdurl) {
+  var dirs = [];
+  var iterationPromise  = $.indexedDB("Snapshots").objectStore("directories").each(function(item){
+    dirs.push(item.value.name);
+  });
+  iterationPromise.done(function(result, event){
+    if(result==null) {
+      console.info("Retrieved Directories: [%O]", dirs);
+    }
+  });
+
   var dlg = $( "#dialog_saveSnapshot" ).dialog({ 
     width: 900, 
+    height: 300,
     modal: true,    
     closeOnEscape: true, 
     buttons: {
-      Load : function() {
+      Save : function() {
         
       },
       Cancel: function() {
@@ -117,7 +194,8 @@ function saveSnapshot(tsdurl) {
     }
   });
   console.info("Save Dialog: %O", dlg);
-  $('#snapshot').val(tsdurl);
+  $('#snapshot').val(decodeURIComponent(tsdurl));
+  $('#category').combobox(dirs);
 
 }
 

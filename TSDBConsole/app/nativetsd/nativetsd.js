@@ -7,35 +7,36 @@ document.domain = chrome.runtime.id;
 var webView = null;
 
 $(document).ready(function() { 
-  initDb();  
-  $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).css({ width: '30%'})
-  .click(function(e){
-    console.info('Taking Snap...');    
-    getSnapshotUrl().then(
-      function(snap) {
-        console.info("Snapshot [%s]", snap); 
-        saveSnapshot(snap);
-      }
-    );
-  });
-  $('#snap-btn').toggle();
+  initDb().then(function(){
+    $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).css({ width: '30%'})
+    .click(function(e){
+      console.info('Taking Snap...');    
+      getSnapshotUrl().then(
+        function(snap) {
+          console.info("Snapshot [%s]", snap); 
+          saveSnapshot(snap);
+        }
+      );
+    });
+    $('#snap-btn').toggle();
 
-  console.info("Popping Dialog")
-  $( "#dialog_openNativeConsole" ).dialog({ 
-    width: 600, 
-    modal: true,    
-    closeOnEscape: true, 
-    buttons: {
-      Load : function() {
-        var url = $('#tsdurl').val();
-        $( this ).dialog( "close" );        
-        loadWebView(url);
+    console.info("Popping Dialog")
+    $( "#dialog_openNativeConsole" ).dialog({ 
+      width: 600, 
+      modal: true,    
+      closeOnEscape: true, 
+      buttons: {
+        Load : function() {
+          var url = $('#tsdurl').val();
+          $( this ).dialog( "close" );        
+          loadWebView(url);
 
-      },
-      Cancel: function() {
-          $( this ).dialog( "close" );
+        },
+        Cancel: function() {
+            $( this ).dialog( "close" );
+        }
       }
-    }
+    });
   });
 });
 
@@ -103,7 +104,7 @@ function loadWebView(url) {
 
 function initDb() {
 
-  var dbOpenPromise = $.indexedDB("Snapshots", { 
+  return $.indexedDB("Snapshots", { 
       // The second parameter is optional
       "version" : 2,  // Integer version that the DB should be opened with
       "upgrade" : function(transaction){
@@ -112,20 +113,7 @@ function initDb() {
       "schema" : {
           "1" : function(transaction){
               console.info("VERSION 1");
-              var directoryObjectStore = transaction.createObjectStore("directories", {
-                  "keyPath" : 'name' 
-              });    
-              var request = directoryObjectStore.add({name: "Default"});
-              
-              request.onsuccess = function(event){ 
-                console.info("Inited directories and added Default");
-              };
-              request.onerror = function(e){
-                console.error("Data save failed");
-                console.error(e);
-                transaction.abort();
-              };
-                            
+              initDirectoriesOS(transaction).then(initSnapshotsOS(transaction))
           },
           "2" : function(transaction){
               console.info("VERSION 2");
@@ -134,6 +122,41 @@ function initDb() {
   });
 }
 
+function initDirectoriesOS(tx) {
+  var directoryObjectStore = tx.createObjectStore("directories", {
+      "keyPath" : 'name' 
+  });    
+  var request = directoryObjectStore.add({name: "Default"});
+  
+  request.onsuccess = function(event){ 
+    console.info("----> Inited directories and added Default");
+  };
+  request.onerror = function(e){
+    console.error("Data save failed");
+    console.error(e);
+    tx.abort();
+  };
+  return request;
+}
+
+// http://james.padolsey.com/javascript/parsing-urls-with-the-dom/
+
+function initSnapshotsOS(tx) {  
+  var d = $.Deferred();
+  var p = d.promise();
+  try {
+    tx.createObjectStore("snapshots", {
+      "keyPath" : 'fullKey' 
+    });    
+    console.info("----> Inited snapshots")
+    d.resolve();
+  } catch (e) {
+    d.reject(e);
+  }
+  return p;
+}
+
+
   function deleteDb(dbname) {
     var dbRequest = window.indexedDB.deleteDatabase(dbname);
     dbRequest.onsuccess = function(evt){ console.info("Deleted DB:%o", evt); }
@@ -141,22 +164,6 @@ function initDb() {
   }
 
 
-/*
-  var request = window.indexedDB.open("Snapshots");
-  request.onsuccess = function(event){
-      var db = request.result;
-      var transaction = db.transaction(["BookList"], IDBTransaction.READ_WRITE);
-      var objectStore = transaction.objectStore("BookList");
-      var request = DAO.objectStore.openCursor();
-      request.onsuccess = function(event){
-          var cursor = request.result;
-          if (cursor) {
-            write(cursor.key + "" + cursor.value);
-            cursor["continue"]();                
-          }
-      };
-  };
-*/  
 
 
 /*
@@ -186,9 +193,36 @@ function saveSnapshot(tsdurl) {
     closeOnEscape: true, 
     buttons: {
       Save : function() {
-        
+        $('#dialog_saveSnapshotErr').remove();
+        try {
+          persistSnapshot($('#dialog_saveSnapshot')).then(
+            function() {
+              // Complete
+              $( this ).dialog( "close" );
+              
+            },
+            function(error, event) {
+              // Error
+            }
+          );
+        } catch (errors) {
+
+            var msg = "<div id='dialog_saveSnapshotErr'><font color='red'>ERROR:<ul>";
+            if($.isArray(errors)) {
+              $.each(errors, function(index, m) {
+                msg += "<li>" + m + "</li>";
+              });
+            } else {
+              console.error("Save Snapshot Error: %O", errors);
+              msg += "<li>" + errors.message + "<ul><li>" + errors.stack + "</li></ul></li>";
+            }
+            msg += "</ul></font></div>";
+            $('#dialog_saveSnapshot').append(msg);   
+            msg = null;         
+        }
       },
       Cancel: function() {
+          $('#dialog_saveSnapshotErr').remove();
           $( this ).dialog( "close" );
       }
     }
@@ -197,6 +231,72 @@ function saveSnapshot(tsdurl) {
   $('#snapshot').val(decodeURIComponent(tsdurl));
   $('#category').combobox(dirs);
 
+}
+
+
+
+function persistSnapshot() {
+  // title, category, snapshot
+  var errors = [];
+  var title = $('#title').val();  
+  if(title==null || title.trim()=="") {
+    errors.push("Title was empty");
+  }
+  var category = $('#category').val();
+  if(category==null || category.trim()=="") {
+    errors.push("Directory was empty");
+  }
+  var snapshot = $('#snapshot').val();
+  if(snapshot==null || snapshot.trim()=="") {
+    errors.push("Snapshot was empty");
+  }
+  if(errors.length > 0) {
+    throw(errors);
+  }
+  return doPersistCategory(category).then(doPersistSnapshot(category, title, snapshot))
+}
+
+function doPersistCategory(category) {
+  console.info("Saving Category: [%O]", category);
+  var d = $.Deferred();
+  var promise = d.promise();
+  var objectStore = $.indexedDB("Snapshots").objectStore("directories");
+  objectStore.get(category).done(function(x) {
+    if(x==null) {
+      objectStore.add(category)
+        .done(function(){
+          d.resolve();
+        })
+        .fail(function(error, event){
+          console.error("Failed to save category: %O", error);
+          d.reject(error);
+        });      
+    } else {
+      d.resolve();
+    }
+  });
+  return promise;
+}
+
+function doPersistSnapshot(category, title, snapshot) {
+  console.info("Saving Snapshot: [%O]", arguments);
+  var objectStore = $.indexedDB("Snapshots").objectStore("snapshots");
+  objectStore.get(key).done(function(x) {
+    if(x==null) {
+      var value = {'fullKey': key, 'title': title, 'category': category, 'snapshot': snapshot, 'urlparts' : parseURL(snapshot) };
+      objectStore.add(category)
+        .done(function(){
+          d.resolve();
+        })
+        .fail(function(error, event){
+          console.error("Failed to save snapshot: %O", error);
+          d.reject(error);
+        });      
+    } else {
+      d.resolve();
+    }
+  });
+  return promise;
 }
 
 /*
@@ -243,5 +343,35 @@ function loadWebView(url) {
 }
 */
 
-
+// This function creates a new anchor element and uses location
+// properties (inherent) to get the desired URL data. Some String
+// operations are used (to normalize results across browsers).
+// Originally from http://james.padolsey.com/javascript/parsing-urls-with-the-dom/
+function parseURL(url) {
+    var a =  document.createElement('a');
+    a.href = url;
+    return {
+        source: url,
+        protocol: a.protocol.replace(':',''),
+        host: a.hostname,
+        port: a.port,
+        query: a.search,
+        params: (function(){
+            var ret = {},
+                seg = a.search.replace(/^\?/,'').split('&'),
+                len = seg.length, i = 0, s;
+            for (;i<len;i++) {
+                if (!seg[i]) { continue; }
+                s = seg[i].split('=');
+                ret[s[0]] = s[1];
+            }
+            return ret;
+        })(),
+        file: (a.pathname.match(/\/([^\/?#]+)$/i) || [,''])[1],
+        hash: a.hash.replace('#',''),
+        path: a.pathname.replace(/^([^\/])/,'/$1'),
+        relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [,''])[1],
+        segments: a.pathname.replace(/^\//,'').split('/')
+    };
+}
 

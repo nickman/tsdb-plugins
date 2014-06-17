@@ -103,6 +103,8 @@ function loadWebView(url) {
 }
 
 function initDb() {
+  var d = $.Deferred();
+  var promise = d.promise();
 
   return $.indexedDB("Snapshots", { 
       // The second parameter is optional
@@ -113,30 +115,47 @@ function initDb() {
       "schema" : {
           "1" : function(transaction){
               console.info("VERSION 1");
-              initDirectoriesOS(transaction).then(initSnapshotsOS(transaction))
+              initDirectoriesOS(transaction).always(initSnapshotsOS(transaction)).then(
+                function() {
+                  console.info("================ DB Init Complete ================");
+                  d.resolve();
+                },
+                function(error, event) {
+                  console.error("================ DB Init Complete ================: %O", event);
+                  d.reject(event);
+                }
+              );
           },
           "2" : function(transaction){
               console.info("VERSION 2");
+              d.resolve();
           }
       }
   });
+  return promise;
 }
 
 function initDirectoriesOS(tx) {
+  console.info("Creating Snapshot ObjectStore")
+  var d = $.Deferred();
+  var promise = d.promise();
+
   var directoryObjectStore = tx.createObjectStore("directories", {
       "keyPath" : 'name' 
   });    
   var request = directoryObjectStore.add({name: "Default"});
   
-  request.onsuccess = function(event){ 
+  request.done = function(event){ 
     console.info("----> Inited directories and added Default");
+    promise.resolve();
   };
-  request.onerror = function(e){
+  request.fail = function(e){
     console.error("Data save failed");
     console.error(e);
     tx.abort();
+    promise.reject(e);
   };
-  return request;
+  return promise;
 }
 
 // http://james.padolsey.com/javascript/parsing-urls-with-the-dom/
@@ -145,11 +164,13 @@ function initSnapshotsOS(tx) {
   var d = $.Deferred();
   var p = d.promise();
   try {
-    tx.createObjectStore("snapshots", {
+    var req = tx.createObjectStore("snapshots", {
       "keyPath" : 'fullKey' 
     });    
-    console.info("----> Inited snapshots")
-    d.resolve();
+    req.done(function(){
+      console.info("----> Inited snapshots")
+      d.resolve();
+    });
   } catch (e) {
     d.reject(e);
   }
@@ -164,14 +185,6 @@ function initSnapshotsOS(tx) {
   }
 
 
-
-
-/*
-    Object Stores
-    =============
-    directories
-      name
- */
 
 
 
@@ -198,7 +211,8 @@ function saveSnapshot(tsdurl) {
           persistSnapshot($('#dialog_saveSnapshot')).then(
             function() {
               // Complete
-              $( this ).dialog( "close" );
+              $.jGrowl("Snapshot Saved")
+              //$( this ).dialog( "close" );
               
             },
             function(error, event) {
@@ -263,12 +277,12 @@ function doPersistCategory(category) {
   var objectStore = $.indexedDB("Snapshots").objectStore("directories");
   objectStore.get(category).done(function(x) {
     if(x==null) {
-      objectStore.add(category)
-        .done(function(){
+      var addPr = objectStore.add({name: category});
+        addPr.done(function(){
           d.resolve();
-        })
-        .fail(function(error, event){
-          console.error("Failed to save category: %O", error);
+        });
+        addPr.fail(function(error, event){
+          console.error("Failed to save category: %O - %O", error, event);
           d.reject(error);
         });      
     } else {
@@ -280,15 +294,19 @@ function doPersistCategory(category) {
 
 function doPersistSnapshot(category, title, snapshot) {
   console.info("Saving Snapshot: [%O]", arguments);
+  var d = $.Deferred();
+  var promise = d.promise();
+  var key = [category, title, snapshot].join("##")
   var objectStore = $.indexedDB("Snapshots").objectStore("snapshots");
   objectStore.get(key).done(function(x) {
     if(x==null) {
       var value = {'fullKey': key, 'title': title, 'category': category, 'snapshot': snapshot, 'urlparts' : parseURL(snapshot) };
-      objectStore.add(category)
-        .done(function(){
+      var addPr = objectStore.add(value);
+        addPr.done(function(){
+          console.info("Saved Snapshot [%s]", key);
           d.resolve();
-        })
-        .fail(function(error, event){
+        });
+        addPr.fail(function(error, event){
           console.error("Failed to save snapshot: %O", error);
           d.reject(error);
         });      

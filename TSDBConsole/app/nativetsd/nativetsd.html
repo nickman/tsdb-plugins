@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- <html xmlns="http://www.w3.org/1999/xhtml" id="nativetsd_doc"> -->
+
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -12,14 +12,16 @@
 <script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
-<script type="text/javascript" src="nativetsd.js" charset="utf-8"></script>
+
 <script type="text/javascript" src="/js/jquery.combobox.js"></script>
 <script type="text/javascript" src="/js/jquery.jgrowl.min.js"></script>
+<script type="text/javascript" src="nativetsd.js" charset="utf-8"></script>
 
 </head>
 <body>
 <div style="display: block">
 	<a id="snap-btn" style="margin-left: 50px; cursor: pointer; color: #333;">Snap</a></li>
+	<a id="snapclose-btn" style="margin-left: 50px; cursor: pointer; color: #333;">Close</a></li>
 </div>
 
 
@@ -29,7 +31,7 @@
 		<form>
 		  <fieldset>
 		    <label for="name">OpenTSDB URL</label>
-		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://opentsdb:8080/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1200x300&amp;autoreload=5" style="width: 95%">
+		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://localhost:8080/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1200x300&amp;autoreload=5" style="width: 95%">
 		  </fieldset>
 		</form>  
 	</div>

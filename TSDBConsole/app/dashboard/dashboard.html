@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8"></meta>
+<link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="/css/console-layout.css" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="/css/jquery.combobox.style.css"/>
+<link rel="stylesheet" type="text/css" href="/css/jquery.jgrowl.min.css"/>
+
+
+<script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.combobox.js"></script>
+<script type="text/javascript" src="/js/jquery.jgrowl.min.js"></script>
+<script type="text/javascript" src="dashboard.js" charset="utf-8"></script>
+
+</head>
+<body>
+	<h4>OpenTSDB Custom Dashboard Editor</h4>
+
+
+</body>
+	<div >
+		<div id='dashboardtoolbar'>
+		    <ul>
+		      <li><a id="nativechart-btn" style="cursor: pointer; color: #333;">Native Chart</a></li>
+		    </ul>
+		</div>
+	</div>
+	<div id="dialog_pickSnapshot" title="OpenTSDB Console: Select Chart Snapshot" style="display: none">  
+		<form>
+		  <fieldset id="snapshotFieldset">
+		    <label for="category">Category:</label>
+		    <input type="text" name="category" id="category" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">
+		    <br>
+		    <label for="title">Title:</label>
+		    <input type="text" name="title" id="title" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">		    
+		  </fieldset>
+		</form>  
+	</div>
+
+</html>

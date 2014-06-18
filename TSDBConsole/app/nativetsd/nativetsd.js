@@ -19,6 +19,13 @@ $(document).ready(function() {
       );
     });
     $('#snap-btn').toggle();
+    $('#snapclose-btn').button({icons: {primary: 'ui-close-tsd'}}).css({ width: '30%'})
+    .click(function(e){
+      console.info('Closing Snap...');    
+      $('body').children().remove();
+    });
+    $('#snapclose-btn').toggle();
+
 
     console.info("Popping Dialog")
     $( "#dialog_openNativeConsole" ).dialog({ 
@@ -67,7 +74,8 @@ function loadWebView(url) {
       console.info("Loaded WebView Window");
       
       webView.executeScript({file: "/js/jquery/jquery-2.0.3.js"}, function(r) {                   
-          $('#snap-btn').toggle();        
+          $('#snap-btn').toggle();
+          $('#snapclose-btn').toggle();        
       });
       //webView.executeScript({ file: "injects.js" }, function(results) { 
       webView.executeScript({ code: "window.addEventListener('message', function(e) { e.source.postMessage('message', '*'); } ); " }, function(results) { 
@@ -106,7 +114,7 @@ function initDb() {
   var d = $.Deferred();
   var promise = d.promise();
 
-  return $.indexedDB("Snapshots", { 
+  return $.indexedDB("OpenTSDB", { 
       // The second parameter is optional
       "version" : 2,  // Integer version that the DB should be opened with
       "upgrade" : function(transaction){
@@ -190,7 +198,7 @@ function initSnapshotsOS(tx) {
 
 function saveSnapshot(tsdurl) {
   var dirs = [];
-  var iterationPromise  = $.indexedDB("Snapshots").objectStore("directories").each(function(item){
+  var iterationPromise  = $.indexedDB("OpenTSDB").objectStore("directories").each(function(item){
     dirs.push(item.value.name);
   });
   iterationPromise.done(function(result, event){
@@ -207,18 +215,18 @@ function saveSnapshot(tsdurl) {
     buttons: {
       Save : function() {
         $('#dialog_saveSnapshotErr').remove();
+        var self = this;
         try {
           persistSnapshot($('#dialog_saveSnapshot')).then(
             function() {
               // Complete
               $.jGrowl("Snapshot Saved")
-              //$( this ).dialog( "close" );
-              
+              $( self ).dialog( "close" );              
             },
             function(error, event) {
               // Error
             }
-          );
+          );          
         } catch (errors) {
 
             var msg = "<div id='dialog_saveSnapshotErr'><font color='red'>ERROR:<ul>";
@@ -274,7 +282,7 @@ function doPersistCategory(category) {
   console.info("Saving Category: [%O]", category);
   var d = $.Deferred();
   var promise = d.promise();
-  var objectStore = $.indexedDB("Snapshots").objectStore("directories");
+  var objectStore = $.indexedDB("OpenTSDB").objectStore("directories");
   objectStore.get(category).done(function(x) {
     if(x==null) {
       var addPr = objectStore.add({name: category});
@@ -297,7 +305,7 @@ function doPersistSnapshot(category, title, snapshot) {
   var d = $.Deferred();
   var promise = d.promise();
   var key = [category, title, snapshot].join("##")
-  var objectStore = $.indexedDB("Snapshots").objectStore("snapshots");
+  var objectStore = $.indexedDB("OpenTSDB").objectStore("snapshots");
   objectStore.get(key).done(function(x) {
     if(x==null) {
       var value = {'fullKey': key, 'title': title, 'category': category, 'snapshot': snapshot, 'urlparts' : parseURL(snapshot) };

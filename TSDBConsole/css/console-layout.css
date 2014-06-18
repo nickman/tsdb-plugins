@@ -118,3 +118,8 @@ a {
     height: 32px; 
 }
 
+.ui-button .ui-icon.ui-dashboard-tsd {
+    background-image: url("/img/dashboard.png");
+    width: 32px;
+    height: 32px; 
+}

@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="/css/console-layout.css" type="text/css" media="screen" />
 <link rel="stylesheet" type="text/css" href="/css/jquery.combobox.style.css">
 <link rel="stylesheet" type="text/css" href="/css/jquery.jgrowl.min.css">
+<link rel="stylesheet" type="text/css" href="/css/layout-default-latest.css" >
+<link rel="stylesheet" href="/js/dataTables/css/jquery.dataTables.css" type="text/css" />
 
 
 <script type="text/javascript" src="/js/jquery/jquery-2.0.3.js" charset="utf-8"></script>
@@ -15,14 +17,45 @@
 
 <script type="text/javascript" src="/js/jquery.combobox.js"></script>
 <script type="text/javascript" src="/js/jquery.jgrowl.min.js"></script>
+<script type="text/javascript" src="/js/jquery.layout-latest.js"></script>
 <script type="text/javascript" src="nativetsd.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/dataTables/jquery.dataTables.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/flotr2.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery-sDashboard.js" charset="utf-8"></script>
+
 
 </head>
 <body>
-<div style="display: block">
-	<a id="snap-btn" style="margin-left: 50px; cursor: pointer; color: #333;">Snap</a></li>
-	<a id="snapclose-btn" style="margin-left: 50px; cursor: pointer; color: #333;">Close</a></li>
-</div>
+<section style="position: relative;">
+	<div style="display: inline; z-index: 10;">
+		<a id="snap-btn" style="cursor: pointer; color: #333;">Snap</a>
+		<a id="snapclose-btn" style="cursor: pointer; color: #333;">Close</a>	
+		<div class="ui-widget" style="display: inline;">	
+		
+    	<label for="activetsdurl">TSD URL:</label>
+    	<input id="activetsdurl" class="text ui-widget-content ui-corner-all" style="width: 70%" tabindex="1"> <!-- class="text ui-widget-content ui-corner-all" -->
+    	
+    	</div>
+	</div>
+	<div id="tsdwebview" style="display: inline; position: relative; z-index: 1;">
+
+	</div>
+
+</section>
+
+
+
+ 
+ 
+</body>
+
+
+
+
+
+
+
+
 
 
 <div id="dialogs" style="display: none">
@@ -31,7 +64,7 @@
 		<form>
 		  <fieldset>
 		    <label for="name">OpenTSDB URL</label>
-		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://localhost:8080/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1200x300&amp;autoreload=5" style="width: 95%">
+		    <input type="text" name="tsdurl" id="tsdurl" class="text ui-widget-content ui-corner-all" value="http://opentsdb:8080/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1200x300&amp;autoreload=5" style="width: 95%">
 		  </fieldset>
 		</form>  
 	</div>
@@ -60,9 +93,7 @@
 	</div>
 
 </div>
- 
- 
-</body>
+
 </html>
 
 

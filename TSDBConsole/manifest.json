@@ -22,7 +22,8 @@
           "contextMenus",
           "fileBrowserHandler",
           "idle",
-          "webview"
+          "webview",
+          "<all_urls>"
 
      ],
      "manifest_version": 2

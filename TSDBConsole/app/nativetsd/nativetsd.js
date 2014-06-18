@@ -8,23 +8,19 @@ var webView = null;
 
 $(document).ready(function() { 
   initDb().then(function(){
-    $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).css({ width: '30%'})
-    .click(function(e){
+    $('#snap-btn').button({icons: {primary: 'ui-snap-tsd'}}).click(function(e){
       console.info('Taking Snap...');    
       getSnapshotUrl().then(
         function(snap) {
           console.info("Snapshot [%s]", snap); 
           saveSnapshot(snap);
-        }
-      );
+      });
     });
-    $('#snap-btn').toggle();
-    $('#snapclose-btn').button({icons: {primary: 'ui-close-tsd'}}).css({ width: '30%'})
-    .click(function(e){
-      console.info('Closing Snap...');    
-      $('body').children().remove();
+
+    $('#snapclose-btn').button({icons: {primary: 'ui-close-tsd'}}).click(function(e){
+        console.info('Closing Snap...');    
+        $('body').children().remove();
     });
-    $('#snapclose-btn').toggle();
 
 
     console.info("Popping Dialog")
@@ -57,25 +53,30 @@ function getSnapshotUrl() {
 
 
 function loadWebView(url) {
-  console.info("Started WebView Window");
+  console.info("Started WebView Window: [%s]", url);  
   window.addEventListener('message', function(e) {  
     console.info("MESSAGE: %O", e);
   });
   //$('body').append($('<webview id="foo" src="http://localhost:4242/#start=5m-ago&amp;m=sum:sys.cpu%7Bcpu=*,type=combined%7D&amp;o=&amp;yrange=%5B0:%5D&amp;key=out%20right%20top%20box&amp;wxh=1500x300&amp;autoreload=15" style="width:100%; height:100%" name="OpenTSDBWindow"></webview>'))
-  $('body').append($('<webview id="foo" src="' + url + '" style="width:100%; height:100%" name="OpenTSDBWindow"></webview>'))
-    webView = document.getElementById("foo");
-    console.info("WebView: %O", webView);
-    var indicator = document.querySelector(".indicator");
-      
+  $('#tsdwebview').append($('<webview id="tsdwebviewinstance" src="' + url + '" style="width:100%; height:100%" name="OpenTSDBWindow"></webview>'))
+    webView = document.getElementById("tsdwebviewinstance");
+    $('#activetsdurl').attr('value', url)
+
+    console.info("WebView: %O", webView);      
     var loadstart = function() {
       console.info("Loading WebView Window");
     }
     var loadstop = function() {
       console.info("Loaded WebView Window");
       
-      webView.executeScript({file: "/js/jquery/jquery-2.0.3.js"}, function(r) {                   
-          $('#snap-btn').toggle();
-          $('#snapclose-btn').toggle();        
+      webView.executeScript({file: "/js/jquery/jquery-2.0.3.js"}, function(r) {      
+        getSnapshotUrl().then(function(data){
+          $('#activetsdurl').attr('value', data);
+          console.info("Updated Active TSD URL: [%s]", data);
+        }, function() {
+          console.error("Failed to get URL: %O", arguments);
+
+        });
       });
       //webView.executeScript({ file: "injects.js" }, function(results) { 
       webView.executeScript({ code: "window.addEventListener('message', function(e) { e.source.postMessage('message', '*'); } ); " }, function(results) { 

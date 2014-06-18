@@ -10,8 +10,15 @@ function loadApp(appName) {
   var appId = appName + "_app";
   var uri = '/app/' + appName + '/' + appName + '.html';
   console.info('Loading App [%s]', uri);
-  
-  $('#desktop_content').empty().append($('<iframe id="' + appId + '" src="' + uri + '"></iframe>').css('display', 'block').css('width', '90%').css('height', '90%')); //.width($('#desktop_content').width()));
+
+  /*
+  $.get( chrome.runtime.getURL(uri), function( data ) {  
+    $( "#desktop_content" ).html( data ).css('display', 'block').css('width', '90%').css('height', '90%');
+  });
+*/
+
+
+  $('#desktop_content').empty().append($('<iframe id="' + appId + '" src="' + chrome.runtime.getURL(uri) + '"></iframe>').css('display', 'block').css('width', '90%').css('height', '90%')); //.width($('#desktop_content').width()));
   
 }
 

@@ -3,8 +3,42 @@
  * Whitehead, 2014
  */ 
 
+var dirs = [];
+var titles = [];
+var dlg = null;
+
+var widgetDefinitions =[]
+/*
+    { 
+        widgetTitle : "System CPU Summary", //Title of the widget
+        widgetId: "id008", //unique id for the widget
+        widgetContent: "<img src='http://opentsdb:8080/q?start=5m-ago&ignore=2550&m=sum:sys.cpu%7Bcpu=*,type=combined,host=PP-WK-NWHI-01%7D&o=&yrange=%5B0:%5D&wxh=1900x300&png'>" //content for the widget
+
+
+        var handle = null;
+        function go() {
+          $("#dashplate").sDashboard("addWidget", { widgetTitle: "System CPU Summary", widgetId: "id008", widgetContent: "<div id='id008img'>"});
+          var remoteImage = new RAL.RemoteImage({ src: "http://opentsdb:8080/q?start=5m-ago&ignore=3380&m=sum:sys.cpu%7Bcpu=*,type=combined,host=PP-WK-NWHI-01%7D&o=&yrange=%5B0:%5D&nokey&wxh=500x300&png", width: 377, height: 190});        
+          var container = document.querySelector('#id008img');        
+          container.appendChild(remoteImage.element);
+          //RAL.Queue.add(remoteImage, false);
+          handle = RAL.Queue.start();
+        }
+
+
+//var remoteImage = new RAL.RemoteImage("http://opentsdb:8080/q?start=5m-ago&ignore=3380&m=sum:sys.cpu%7Bcpu=*,type=combined,host=PP-WK-NWHI-01%7D&o=&yrange=%5B0:%5D&nokey&wxh=500x300&png");        
+
+    }
+]
+*/
+
 document.domain = chrome.runtime.id;
 $(document).ready(function() { 
+  RAL.debug = true;
+  RAL.Queue.setMaxConnections(1);
+  //RAL.Queue.start();  
+  $('#title').combobox(titles);
+  $('#category').combobox(dirs);
 	$('#tabs').append($('#dashboardtoolbar'));
   	$('#nativechart-btn').button({icons: {primary: 'ui-icon-tsd'}})
   		.click(function(e){
@@ -14,15 +48,28 @@ $(document).ready(function() {
 
 
     $( "#dashboardtoolbar" ).dialog({}).draggable().resizable();
-  	
+    $("#dashplate").sDashboard({
+        dashboardData : widgetDefinitions       
+    });  	
 
 	console.info("Dashboard Editor Loaded");
 });
 
 
 
+function clearDirs() {
+  while(dirs.length > 0) {
+    dirs.pop();
+  }  
+}
+function clearTitles() {
+  while(titles.length > 0) {
+    titles.pop();
+  }  
+}
+
+
 function pickSnapshot() {
-  var dirs = [];
   var iterationPromise  = $.indexedDB("OpenTSDB").objectStore("directories").each(function(item){
     dirs.push(item.value.name);
   });
@@ -31,7 +78,7 @@ function pickSnapshot() {
       console.info("Retrieved Directories: [%O]", dirs);
     }
   });	
-  var dlg = $( "#dialog_pickSnapshot" ).toggle().dialog({ 
+  dlg = $( "#dialog_pickSnapshot" ).toggle().dialog({ 
     width: 500, 
     height: 200,
     modal: true,    
@@ -49,8 +96,9 @@ function pickSnapshot() {
   });	
   $('#title').combobox([]);
   $('#category').combobox(dirs).change(function() {
+    clearTitles();
   	var cat = $('#category').val();
-  	var titles = [];
+  	
 	var titlesPromise  = $.indexedDB("OpenTSDB").objectStore("snapshots").each(function(item){
 		if(cat==item.value.category) {
 			titles.push(item.value.title);
@@ -60,7 +108,7 @@ function pickSnapshot() {
     	if(result==null) {
       		console.info("Retrieved Titles: [%O]", titles);
       		$.each(titles, function(index, item){
-      			$('#title').append(new Option(item, item));
+      			titles.push(item);
       		}) ;      		
     	}
   	});	  	

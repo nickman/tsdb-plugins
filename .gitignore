@@ -1,6 +1,8 @@
 /hs_err_pid*.log
 /dependency-reduced-pom.xml
 *.bak
+*.crx
+*.pem
 *.*~
 file:
 log.*

@@ -45,7 +45,7 @@
 /*dashboard widget header css*/
 .sDashboardWidgetHeader {
 	margin: 0.3em;
-	padding: 2px 0.2em 2px 1em;
+	padding: 2px 0.2em 0px 1em;
 	cursor: move;
 	border: 0;
 	border-bottom: 1px solid #CBCBCB;
@@ -55,9 +55,9 @@
 
 /*dashboard widget content css*/
 .sDashboardWidgetContent {
-	margin: 0.3em;
-	padding: 0.4em;
-	height: 180px;
+	margin: 0em;
+	padding: 0em;
+	height: 185px;
 	overflow-x: hidden;
 	overflow-y: auto;
 }

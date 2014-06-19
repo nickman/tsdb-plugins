@@ -25,6 +25,35 @@ var widgetDefinitions =[]
           handle = RAL.Queue.start();
         }
 
+    
+    function blob() {
+      $("#dashplate").sDashboard("addWidget", { widgetTitle: "System CPU Summary", widgetId: "id008", widgetContent: "<img id='id008img' src='/img/loading.gif'>"});
+      var url = "http://localhost:8080/q?start=5m-ago&ignore=9&m=sum:sys.cpu%7Bcpu=*,type=combined%7D&o=&yrange=%5B0:%5D&nokey&wxh=377x180&png";
+      var xhr = new XMLHttpRequest();
+
+      xhr.onerror = function() { console.error(arguments); },
+      xhr.onload = function(data) { 
+        var blob = data.currentTarget.response;
+        console.info("Blob Retrieved: [%O]", blob);         
+        var img = $('#id008img')[0];
+        window.URL.revokeObjectURL(img.src);
+        img.src = window.URL.createObjectURL(blob);
+      },
+      xhr.open('GET', url, true);
+      xhr.responseType = "blob";
+      xhr.send();
+
+    }
+
+-webkit-transform: scale3d(1,1,1);
+
+chrome.alarms.create("alarm1", {name: "alarm1", scheduledTime: (Date.now() + 10000)});
+
+function handle(msg, sender, sendFunction) {
+  
+}
+
+chrome.runtime.onMessage.addListener(
 
 //var remoteImage = new RAL.RemoteImage("http://opentsdb:8080/q?start=5m-ago&ignore=3380&m=sum:sys.cpu%7Bcpu=*,type=combined,host=PP-WK-NWHI-01%7D&o=&yrange=%5B0:%5D&nokey&wxh=500x300&png");        
 

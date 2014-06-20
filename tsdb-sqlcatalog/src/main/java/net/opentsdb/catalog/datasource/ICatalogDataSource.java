@@ -204,7 +204,7 @@ public interface ICatalogDataSource {
 	public static final String JDBC_POOL_JDBCURL = "tsdb.jdbc.jdbcUrl";
 	/** The default pool jdbcUrl */
 	public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:mem:tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MVCC=TRUE";
-	//public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:file:e:/.tsdb/tsdb;MULTI_THREADED=1;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;CACHE_SIZE=65536;CACHE_TYPE=TQ";
+	//public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:file:/.tsdb/tsdb;MULTI_THREADED=1;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;CACHE_SIZE=65536;CACHE_TYPE=TQ";
 	//public static final String DEFAULT_JDBC_POOL_JDBCURL = "jdbc:h2:file:~/sd-data/tsdb/tsdb;JMX=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;CACHE_SIZE=65536;CACHE_TYPE=TQ;MVCC=TRUE";
 	// jdbc:h2:tcp://localhost:9092/~/sd-data/tsdb/tsdb
 	// jdbc:h2:tcp://10.5.202.22:8083//var/opt/opentsdb/sqlcatalog/tsdb/tsdb

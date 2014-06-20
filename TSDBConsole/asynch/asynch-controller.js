@@ -1,14 +1,16 @@
-document.domain = chrome.runtime.id;
+//document.domain = chrome.runtime.id;
 var asynchWebview = null;
 $(document).ready(function() { 
+//(function() {	
 	console.info("Loading Asynch Controller....");
+	/*
 	asynchWebview = document.getElementById("asynch").contentWindow;
 	window.addEventListener("message", onPhoneHome);
 	asynchWebview.addEventListener("onload", function(){
 		console.info("Asynch Frame Loaded");
 		asynchWebview.postMessage("message", "*");
 	});
-	
+	*/
 
 
 

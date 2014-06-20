@@ -2,8 +2,10 @@
 
 $(document).ready(function() { 
 	console.info("Loading.........");
-	window.addEventListener("message", function(e){e.source.postMessage("Pong", e.origin);});
+	window.addEventListener("message", route);
 	
 });
 
-
+function route(e) {
+	console.info("Processing Message from origin: [%s] ---> [%O]", e.origin, e);
+}

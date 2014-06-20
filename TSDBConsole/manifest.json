@@ -4,7 +4,9 @@
      "version": "1.0",
      "app": {
           "background": {
-               "scripts": ["main.js"]
+               
+               "page": "/asynch/asynchpage.html"
+
           }
      },
      "icons": {
@@ -12,7 +14,7 @@
           "16": "/img/tsdbicon_16.png"
      },
      "sandbox": {
-       "pages": ["/asynch/asynch.html"]
+          "pages": ["/asynch/asynch.html"]       
      },
 
      "permissions": [

@@ -45,7 +45,7 @@ chrome.app.runtime.onLaunched.addListener(function() {
   scheduleRecurring();
   chrome.alarms.onAlarm.addListener(function(alarm){
     scheduleRecurring();
-    console.info("========= RING: Alarm. Time: [%s], Alarm Details: [%O]", new Date(), alarm);
+    //console.info("========= RING: Alarm. Time: [%s], Alarm Details: [%O]", new Date(), alarm);
   });
 });
 

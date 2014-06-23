@@ -25,6 +25,14 @@ function loadApp(appName) {
   
 }
 
+function appNewWindow(appName) {
+  var appId = appName + "_app";
+  var uri = '/app/' + appName + '/' + appName + '.html';
+  console.info('Opening App [%s]', uri);
+  chrome.app.window.create(uri, {id:"dashboardEditor"});
+}
+
+
 function buildApp(appName) {
   $('#desktop_content').empty();
   var appId = appName + "_app";
@@ -65,7 +73,7 @@ function initialize() {
   $('#dashboard-btn').button({icons: {primary: 'ui-dashboard-tsd'}})
   .click(function(e){
     console.info('Loading Dashboard');
-    loadApp('dashboard');
+    appNewWindow('dashboard');
   });
 
   $('#status-btn').button({ disabled: true }).css({ width: '100%'})

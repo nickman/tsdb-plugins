@@ -174,8 +174,10 @@ function initSnapshotsOS(tx) {
   var p = d.promise();
   try {
     var req = tx.createObjectStore("snapshots", {
-      "keyPath" : 'fullKey' 
-    });    
+      "keyPath" : 'id' ,
+      "autoIncrement" : true
+
+    }).createIndex("fullKeyIndex", "fullKey", true);   
     req.done(function(){
       console.info("----> Inited snapshots")
       d.resolve();

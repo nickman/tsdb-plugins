@@ -35,10 +35,14 @@
 			_createView : function() {
 				
 				var docHeight = $(document).height();
+				var docWidth = $(document).width();
 
 				$("body").append("<div class='sDashboard-overlay'></div>");
 
 				$(".sDashboard-overlay").height(docHeight);
+				$(".sDashboard-overlay").width(docWidth);
+				
+
 
 				$(".sDashboard-overlay").hide();
 				

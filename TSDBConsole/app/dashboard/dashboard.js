@@ -8,6 +8,7 @@ var dlg = null;
 var dlgTitle = 'OpenTSDB Console: Select Chart Snapshot';
 var comboCategories = null;
 var comboTitles = null;
+var contentWindow = null;
 
 var dlgContent = "<div id='dialog_pickSnapshot' style='display: none;'>  \
     <form> \
@@ -21,25 +22,36 @@ var dlgContent = "<div id='dialog_pickSnapshot' style='display: none;'>  \
     </form></div>";
 
 
+var toolDlg = '<div id="dashboardtoolbar"><ul><li><a id="nativechart-btn" style="cursor: pointer; color: #333;">Native Chart</a></li></ul></div>';
+    
+  
+
+
+
 document.domain = chrome.runtime.id;
 $(document).ready(function() { 
-  $('#dashboardcontainer').empty().append($('<iframe id="sandboxDashboard" src="' + chrome.runtime.getURL("/app/dashboard/sandbox-dashboard.html") + '"></iframe>')
-    .css('display', 'block')
-    .css('width', '100%')
-    .css('height', '100%')); //.width($('#desktop_content').width()));
-  registerImageHandler();
+  //$('#dashboardcontainer').empty().append($('<iframe id="sandboxDashboard" src="' + chrome.runtime.getURL("/app/dashboard/sandbox-dashboard.html") + '"></iframe>')
+  
+  var iframeSrc = '<iframe id="sandboxDashboard" src="' + chrome.runtime.getURL("/app/dashboard/sandbox-dashboard.html") + '" width="' + $(window).width() + '" height="' + $(window).height() + '"></iframe>';
+  $('#dashboardcontainer').empty().height($(window).height).width($(window).width).append(iframeSrc);
+  contentWindow = $('#sandboxDashboard')[0].contentWindow;
+  $('#sandboxDashboard').height($(window).height()).width($(window).width());
+  console.info("IFRAME: [%s]", iframeSrc);
+  
+  //registerImageHandler();
   makeDialog();
 	$('#tabs').append($('#dashboardtoolbar'));
-  	$('#nativechart-btn').button({icons: {primary: 'ui-icon-tsd'}})
-  		.click(function(e){
-    		console.info("Adding Native Chart");
-    		pickSnapshot();
-    	});
+  $( toolDlg ).dialog({
+    
+  }).draggable().resizable();
+
+	$('#nativechart-btn').button({icons: {primary: 'ui-icon-tsd'}})
+		.click(function(e){
+  		console.info("Adding Native Chart");
+  		pickSnapshot();
+  	});
 
 
-    $( "#dashboardtoolbar" ).dialog({
-
-    }).draggable().resizable();
 });
 
 function makeDialog() {
@@ -88,6 +100,28 @@ function makeDialog() {
 
 function addNativeChart(directory, title) {
   console.info("Adding Native Chart [%s / %s]", directory, title);
+  var snapshot = null;
+  var iterationPromise  = $.indexedDB("OpenTSDB").objectStore("snapshots").each(function(item){
+    if(item.value.category==directory && item.value.title==title) {
+      snapshot = item.value;
+    }
+  });
+  iterationPromise.done(function(result, event){
+    if(result==null) {
+      if(snapshot!=null) {
+        console.info("Inserting dashboard [%O]", snapshot);
+        var def = {
+          type: "newtile",
+          widgetTitle: snapshot.title, 
+          widgetId: "id" + snapshot.id,       
+          widgetContent: "<img id='" + ("img" + ("id" + snapshot.id)) + "' src='" + snapshot.snapshot + "'>"
+        };
+        contentWindow.postMessage(def, "*");
+      }
+    }
+  }); 
+
+
 }
 
 
@@ -147,13 +181,6 @@ function popTitles(directory) {
   }); 
 }
 
-function registerImageHandler() {
-  $('img').livequery(function(){
-    $(this).load(function(){
-      console.info("Replacing img source: [%O]", this);
-    })    
-  });
-}
 
 
 /*

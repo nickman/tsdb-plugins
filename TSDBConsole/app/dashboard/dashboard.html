@@ -2,7 +2,7 @@
 
 <html lang="en">
 <head>
-  <meta charset="utf-8"></meta>
+<meta charset="utf-8"></meta>
 <link rel="stylesheet" href="/js/jquery-ui-1.10.3.custom/css/pepper-grinder/jquery-ui-1.10.3.custom.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="/css/console-layout.css" type="text/css" media="screen" />
 <link rel="stylesheet" type="text/css" href="/css/jquery.combobox.style.css"/>
@@ -15,19 +15,21 @@
 <script type="text/javascript" src="/js/jquery.indexeddb.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/jquery.combobox.js"></script>
 <script type="text/javascript" src="/js/jquery.jgrowl.min.js"></script>
-<script type="text/javascript" src="/js/ral.min.js"></script>
 <script type="text/javascript" src="/js/dataTables/jquery.dataTables.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/flotr2.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/jquery-sDashboard.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/sprintf.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="/js/jquery.livequery.js" charset="utf-8"></script>
 
 
-<script type="text/javascript" src="dashboard.js" charset="utf-8"></script>
+
+
+
+<script type="text/javascript" src="/app/dashboard/dashboard.js" charset="utf-8"></script>
 
 </head>
 <body>
-	<h4>OpenTSDB Custom Dashboard Editor</h4>
-	<ul id="dashplate"></ul>
-	
+	<div id="dashboardcontainer"></div>
 
 </body>
 	<div >
@@ -37,16 +39,5 @@
 		    </ul>
 		</div>
 	</div>
-	<div id="dialog_pickSnapshot" title="OpenTSDB Console: Select Chart Snapshot" style="display: none">  
-		<form>
-		  <fieldset id="snapshotFieldset">
-		    <label for="category">Category:</label>
-		    <input type="text" name="category" id="category" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">
-		    <br>
-		    <label for="title">Title:</label>
-		    <input type="text" name="title" id="title" class="text ui-widget-content ui-corner-all" value="" style="width: 45%">		    
-		  </fieldset>
-		</form>  
-	</div>
-
+</body>
 </html>

@@ -17,9 +17,23 @@ function loadApp(appName) {
   });
 */
 
-
-  $('#desktop_content').empty().append($('<iframe id="' + appId + '" src="' + chrome.runtime.getURL(uri) + '"></iframe>').css('display', 'block').css('width', '90%').css('height', '90%')); //.width($('#desktop_content').width()));
+  var h = $('#desktop_content').height(), w = $('#desktop_content').width();
+  $('#desktop_content').empty().append($('<iframe id="' + appId + '" src="' + chrome.runtime.getURL(uri) + '"></iframe>')
+    //.css('display', 'block')
+    .css('width', w)
+    .css('height', h)); //.width($('#desktop_content').width()));
   
+}
+
+function buildApp(appName) {
+  $('#desktop_content').empty();
+  var appId = appName + "_app";
+  var uri = '/app/' + appName + '/' + appName + '.html';
+  console.info('Building App [%s]', uri);
+  $.get(chrome.runtime.getURL(uri), function(data){
+    $('#desktop_content').append($(data));
+  });
+
 }
 
 function loadWebView(appName) {    

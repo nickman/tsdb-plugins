@@ -10,6 +10,7 @@ var comboCategories = null;
 var comboTitles = null;
 var contentWindow = null;
 
+/*
 var dlgContent = "<div id='dialog_pickSnapshot' style='display: none;'>  \
     <form> \
       <fieldset id='snapshotFieldset'> \
@@ -20,6 +21,16 @@ var dlgContent = "<div id='dialog_pickSnapshot' style='display: none;'>  \
         <input type='text' name='title' id='title' class='text ui-widget-content ui-corner-all' value='' style='width: 85%'>  \
       </fieldset> \
     </form></div>";
+*/
+var dlgContent = "<div id='dialog_pickSnapshot' style='display: none;'>  \
+    <table border='1' width='100%' height='100%'><tr><th>Category</th><th>Title</th></tr> \
+    <tr><td> \
+    <input type='text' name='category' id='category' class='text ui-widget-content ui-corner-all' value='' style='width: 85%'> \
+    </td><td>  \
+    <input type='text' name='title' id='title' class='text ui-widget-content ui-corner-all' value='' style='width: 85%'></td></tr> \
+    </table></div>";
+
+
 
 
 var toolDlg = '<div id="dashboardtoolbar"><ul><li><a id="nativechart-btn" style="cursor: pointer; color: #333;">Native Chart</a></li></ul></div>';
@@ -61,8 +72,8 @@ function makeDialog() {
       autoOpen: false,
       closeOnEscape: true,
       modal: true,
-      width: 600,
-      height: 150,
+      width: 'auto',
+      height: 'auto',
       position: ['center', 'center'],
       create: function(event, ui) {
         var cIndex = jQuery.combobox.instances==null ? 0 : jQuery.combobox.instances.length;
@@ -111,10 +122,13 @@ function addNativeChart(directory, title) {
       if(snapshot!=null) {
         console.info("Inserting dashboard [%O]", snapshot);
         var def = {
+          data: snapshot,
           type: "newtile",
           widgetTitle: snapshot.title, 
           widgetId: "id" + snapshot.id,       
-          widgetContent: "<img id='" + ("img" + ("id" + snapshot.id)) + "' src='" + snapshot.snapshot + "'>"
+          imgUrl: snapshot.snapshot,
+          imgId: ("img" + ("id" + snapshot.id)),
+          widgetContent: "<img id='" + ("img" + ("id" + snapshot.id)) + "' src='/img/loading.gif'>"
         };
         contentWindow.postMessage(def, "*");
       }
@@ -174,9 +188,11 @@ function popTitles(directory) {
     if(result==null) {
       console.info("Retrieved Titles: [%O]", titles);
       comboTitles.setSelectOptions(titles);
+/*
       if(titles.length>0) {
         $('#title').val(titles[0]);
       }
+*/      
     }
   }); 
 }

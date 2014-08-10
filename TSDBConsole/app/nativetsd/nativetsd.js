@@ -124,7 +124,7 @@ function initDb() {
       "schema" : {
           "1" : function(transaction){
               console.info("VERSION 1");
-              initDirectoriesOS(transaction).always(initSnapshotsOS(transaction)).then(
+              initDirectoriesOS(transaction).always(initSnapshotsOS(transaction)).always(initDashboardOS(transaction)).then(
                 function() {
                   console.info("================ DB Init Complete ================");
                   d.resolve();
@@ -187,6 +187,26 @@ function initSnapshotsOS(tx) {
   }
   return p;
 }
+
+function initDashboardOS(tx) {  
+  var d = $.Deferred();
+  var p = d.promise();
+  try {
+    var req = tx.createObjectStore("dashboards", {
+      "keyPath" : 'id' ,
+      "autoIncrement" : true
+
+    }).createIndex("dashboardNameIndex", "dashboardName", true);   
+    req.done(function(){
+      console.info("----> Inited dashboards")
+      d.resolve();
+    });
+  } catch (e) {
+    d.reject(e);
+  }
+  return p;
+}
+
 
 
   function deleteDb(dbname) {

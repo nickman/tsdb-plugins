@@ -61,7 +61,23 @@ function onNewTileRequest(e) {
 	def.refreshCallBack = function(widgetId) {
 		console.info("Refreshing Widget [%s], ts[%s]", widgetId, def.ts);
 	}
+	$(def.widgetContent).find("img")
 	$("#dashplate").sDashboard("addWidget", def); 
+	
+	$('#id' + def.id)
+	var dContent = '#id' + def.data.id + " .sDashboardWidgetContent";
+	console.info("Widget Content Selector [%s]", dContent);
+	var h = $(dContent).height();
+	var w = $(dContent).width();
+	var newSize = ("" + w + "x" + h);
+	console.info("Replacing [%s] with [%s]", def.data.urlparts.params.wxh, newSize);
+	var adjUrl = def.imgUrl.replace(def.data.urlparts.params.wxh, newSize);
+	console.info("Adjusted URL: [%s]", adjUrl);
+	$('#' + def.imgId).attr('src', adjUrl);	
+          //imgUrl: snapshot.snapshot,
+          //imgId: ("img" + ("id" + snapshot.id)),
+
+
 }
 
 function go(x, y) {

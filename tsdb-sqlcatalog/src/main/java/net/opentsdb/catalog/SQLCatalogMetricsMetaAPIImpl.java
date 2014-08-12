@@ -131,10 +131,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagKeysFor(net.opentsdb.meta.QueryOptions, java.lang.String, java.lang.String[])
+	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagKeys(net.opentsdb.meta.QueryOptions, java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagKeysFor(final QueryOptions queryOptions, final String metric, final String...tagKeys) {
+	public Deferred<Set<UIDMeta>> getTagKeys(final QueryOptions queryOptions, final String metric, final String...tagKeys) {
 		return getUIDsFor(UniqueId.UniqueIdType.TAGK, UniqueId.UniqueIdType.METRIC, queryOptions, metric, tagKeys);
 	}
 	
@@ -214,10 +214,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNamesFor(net.opentsdb.meta.QueryOptions, java.lang.String[])
+	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNamesFor(final QueryOptions queryOptions, final String... tagKeys) {
+	public Deferred<Set<UIDMeta>> getMetricNames(final QueryOptions queryOptions, final String... tagKeys) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -281,10 +281,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNamesFor(net.opentsdb.meta.QueryOptions, java.util.Map)
+	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.QueryOptions, java.util.Map)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNamesFor(final QueryOptions queryOptions, final Map<String, String> tags) {
+	public Deferred<Set<UIDMeta>> getMetricNames(final QueryOptions queryOptions, final Map<String, String> tags) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -452,15 +452,23 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql);
 		}
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagValues(net.opentsdb.meta.QueryOptions, java.lang.String, java.lang.String[])
+	 */
+	@Override
+	public Deferred<Set<UIDMeta>[]> getTagValues(QueryOptions queryOptions, String metric, String...tagKeys) {
+		return null;
+	}
 		
 		
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#evaluateExpression(net.opentsdb.meta.QueryOptions, java.lang.String[])
+	 * @see net.opentsdb.meta.MetricsMetaAPI#evaluate(net.opentsdb.meta.QueryOptions, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> evaluateExpression(QueryOptions queryOptions,
-			String... expressions) {
+	public Deferred<Set<TSMeta>> evaluate(QueryOptions queryOptions, String... expressions) {
 		// TODO Auto-generated method stub
 		return null;
 	}

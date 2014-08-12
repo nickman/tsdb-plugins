@@ -52,7 +52,30 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getTagKeysFor(QueryOptions queryOptions, String metric, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getTagKeys(QueryOptions queryOptions, String metric, String...tagKeys);
+	
+	/**
+	 * <p>Returns the tag values associated with the passed metric name and tag keys.</p>
+	 * <p>The combined metric name and tag keys may not resolve to any directly associated tag values 
+	 * due to missing intermediary tag keys, or they may resolve partially to some tag values.
+	 * In other words, the resolution of a metric name and tag keys may produce tree leafs, tree nodes,
+	 * a combination of both, or zero of either.</p>
+	 * <p>Accordingly, the returned value is a 2 sized array of {@link UIDMeta} sets.
+	 * The two sets indicate the located tree leafs (tag values) and nodes (tag keys) at the 
+	 * resolved location. Position zero contains the resolved tag values and position one
+	 * contains the resolved tag keys.</p>
+	 * position zero is the resolved tag values at the tree position 
+	 * Wildcards will be honoured on metric names and tag keys.
+	 * @param queryOptions The query options for this call
+	 * @param metric The metric name to match
+	 * @param tagKeys The tag keys to match
+	 * @return A deferred 2 sized array containing sets of : <ul>
+	 * 	<li><b>Index 0</b>: matching tag value UIDMetas</li>
+	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
+	 *  </ul>
+	 */
+	public Deferred<Set<UIDMeta>[]> getTagValues(QueryOptions queryOptions, String metric, String...tagKeys);
+
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag keys.
@@ -61,7 +84,7 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNamesFor(QueryOptions queryOptions, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryOptions queryOptions, String...tagKeys);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag pairs.
@@ -70,7 +93,7 @@ public interface MetricsMetaAPI {
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNamesFor(QueryOptions queryOptions, Map<String, String> tags);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryOptions queryOptions, Map<String, String> tags);
 	
 	/**
 	 * Returns the TSMetas matching the passed metric name and tags
@@ -93,6 +116,6 @@ public interface MetricsMetaAPI {
 	 * @param queryOptions The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Deferred<Set<TSMeta>> evaluateExpression(QueryOptions queryOptions, String...expressions);
+	public Deferred<Set<TSMeta>> evaluate(QueryOptions queryOptions, String...expressions);
 	
 }

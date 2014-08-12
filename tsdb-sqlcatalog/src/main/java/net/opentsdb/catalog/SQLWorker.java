@@ -55,8 +55,6 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 
-import com.sun.rowset.CachedRowSetImpl;
-
 /**
  * <p>Title: SQLWorker</p>
  * <p>Description: A functional wrapper class for JDBC operations to handle all the messy stuff.
@@ -223,7 +221,7 @@ public class SQLWorker {
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
 			if(disconnected) {
-				CachedRowSetImpl crs = new CachedRowSetImpl();
+				TSDBCachedRowSetImpl crs = new TSDBCachedRowSetImpl();
 				crs.populate(rset);
 				return crs;
 			}

@@ -48,6 +48,9 @@ public class JSONMapSupport {
 	/** A JSON representation of an empty map */
 	public static final String EMPTY_MAP = "{}";
 
+	
+	
+	
 	/**
 	 * Validates that the named value is not null, or if a {@link CharSequence} insance, 
 	 * that it is not empty

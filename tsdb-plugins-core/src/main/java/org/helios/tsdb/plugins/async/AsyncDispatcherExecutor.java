@@ -24,12 +24,14 @@
  */
 package org.helios.tsdb.plugins.async;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -63,6 +65,9 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	protected final Logger log;
 	/** The JMX ObjectName */
 	protected final ObjectName objectName;   
+	
+	/** Registered UncaughtExceptionHandlers */
+	protected final Set<UncaughtExceptionHandler> exceptionHandlers = new CopyOnWriteArraySet<Thread.UncaughtExceptionHandler>();
 	
 	/** Thread serial number */
 	protected final AtomicInteger threadSerial = new AtomicInteger();
@@ -115,6 +120,16 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 		try { JMXHelper.unregisterMBean(objectName); } catch (Exception ex) {}
 	}
 	
+	
+	/**
+	 * Registers an uncaught exception handler
+	 * @param handler the handler to register
+	 */
+	public void registerUncaughtExceptionHandler(UncaughtExceptionHandler handler) {
+		if(handler!=null) {
+			exceptionHandlers.add(handler);
+		}
+	}
 	
 	/**
 	 * Creates a new AsyncDispatcherExecutor
@@ -261,9 +276,20 @@ public class AsyncDispatcherExecutor extends ThreadPoolExecutor implements Threa
 	 * @see java.lang.Thread.UncaughtExceptionHandler#uncaughtException(java.lang.Thread, java.lang.Throwable)
 	 */
 	@Override
-	public void uncaughtException(Thread thread, Throwable t) {
+	public void uncaughtException(final Thread thread, final Throwable t) {
 		long cnt = uncaughtCount.incrementAndGet();
-		log.warn("Uncaught exception. Total uncaught: {}", cnt);		
+		log.warn("Uncaught exception. Total uncaught: {}", cnt);
+		if(!exceptionHandlers.isEmpty()) {
+			for(final UncaughtExceptionHandler handler: exceptionHandlers) {
+				this.execute(new Runnable() {
+					public void run() {
+						try {
+							handler.uncaughtException(thread, t);
+						} catch (Throwable t) {}
+					}
+				});
+			}
+		}
 	}
 
 

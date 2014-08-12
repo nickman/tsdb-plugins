@@ -117,7 +117,7 @@ import com.sun.jmx.mbeanserver.MXBeanMapping;
  * <p><code>net.opentsdb.catalog.AbstractDBCatalog</code></p>
  */
 @JSONRequestService(name="sqlcatalog", description="The SQL metric catalog service")
-public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDBMXBean {
+public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDBMXBean, MetaReader {
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
 	/** Logger adapter for setting logger levels */
@@ -134,6 +134,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected PluginContext pluginContext = null;
 	/** The extracted TSDB config properties */
 	protected Properties extracted = null;
+	
+	/** The meta metrics api service impl */
+	protected SQLCatalogMetricsMetaAPIImpl metricsMetaService = null;
 	
 	/** The SQLWorker to manage JDBC Ops */
 	protected SQLWorker sqlWorker = null;
@@ -507,11 +510,13 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		checkLastSync();
 		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
 		final AbstractDBCatalog finalMe = this;
+		metricsMetaService = new SQLCatalogMetricsMetaAPIImpl(sqlWorker, this, tsdb, pluginContext);
 		pluginContext.addResourceListener(
 				new IPluginContextResourceListener() {
 					@Override
 					public void onResourceRegistered(String name, Object resource) {
-						((JSONRequestRouter)resource).registerJSONService(finalMe);	
+						((JSONRequestRouter)resource).registerJSONService(finalMe);
+						((JSONRequestRouter)resource).registerJSONService(metricsMetaService);	
 					}
 				},
 				new IPluginContextResourceFilter() {
@@ -521,6 +526,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 					}
 				}
 		);		
+		 
 		synker = new SyncQueueProcessor(pluginContext);
 		synker.startAsync();
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());
@@ -616,6 +622,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		log.info("\n\t================================================\n\tStopping TSDB Catalog DB\n\tName:{}\n\t================================================", cds.getConfig().getJdbcUrl());
 		doShutdown();
 		if(cds!=null) {
+			if(metricsMetaService!=null) {
+				metricsMetaService.shutdown();
+				metricsMetaService = null;
+			}
 			cds.shutdown();
 			cds = null;
 			dataSource = null;
@@ -1559,7 +1569,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 //					custom.put(PK_KEY, "" + fqnId);
 //				}
 				if(includeUIDs) {
-					loadUIDs(rset.isClosed() ? null : rset.getStatement().getConnection(), meta, rset.getString("METRIC_UID"), fqnId);
+					loadUIDs(
+							rset.isClosed() ? null : 
+								rset.getStatement().getConnection(), 
+								meta, rset.getString("METRIC_UID"), fqnId);
 				}
 				tsMetas.add(meta);
 			}

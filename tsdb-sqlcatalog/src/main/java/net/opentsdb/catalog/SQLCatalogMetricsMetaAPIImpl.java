@@ -250,7 +250,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = keySql.toString();
 					}
 					binds.add(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}] with binds {}", sql, binds);
 					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
 					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC));					
 					def.callback(uidMetas);
@@ -271,8 +271,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND T.XUID = P.XUID " +
 			"AND P.TAGK = K.XUID " +
 			"AND P.TAGV = V.XUID " +
-			"AND K.NAME = ? " + 			
-			"AND V.NAME = ? ";			
+			"AND K.NAME %s ? " + 			
+			"AND V.NAME %s ? ";			
 
 //	/** The Metric Name Retrieval SQL template when no tag keys are provided */
 //	public static final String GET_METRIC_NAMES_SQL =
@@ -289,6 +289,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
 				final List<Object> binds = new ArrayList<Object>();
+				final List<String> likeOrEquals = new ArrayList<String>();
 				String sql = null;
 				try {
 					if(tags==null || tags.isEmpty()) {										
@@ -302,12 +303,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ").append(GET_METRIC_NAMES_WITH_TAGS_SQL);
 						Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
 						Map.Entry<String, String> entry = iter.next();
-						binds.add(entry.getKey());
-						binds.add(entry.getValue());
+						processBindsAndTokens(entry, binds, likeOrEquals);
 						while(iter.hasNext()) {
-							entry = iter.next();
-							binds.add(entry.getKey());
-							binds.add(entry.getValue());
+							processBindsAndTokens(iter.next(), binds, likeOrEquals);
 							keySql.append(" INTERSECT ").append(GET_METRIC_NAMES_WITH_TAGS_SQL);
 						}
 						keySql.append(") X ");
@@ -318,7 +316,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							binds.add(queryOptions.getNextIndex());
 						}
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
-						sql = keySql.toString();
+						sql = String.format(keySql.toString(), likeOrEquals.toArray());
 					}
 					binds.add(queryOptions.getPageSize());
 					log.debug("Executing SQL [{}] with binds {}", sql, binds);
@@ -332,6 +330,26 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			}
 		});
 		return def;
+	}
+
+//	final List<Object> binds = new ArrayList<Object>();
+//	final List<String> likeOrEquals = new ArrayList<String>();
+
+	
+	protected void processBindsAndTokens(final Map.Entry<String, String> entry, final List<Object> binds, final List<String> likeOrEquals) {
+		processBindOrToken(entry.getKey(), binds, likeOrEquals);
+		processBindOrToken(entry.getValue(), binds, likeOrEquals);
+		
+	}
+	
+	protected void processBindOrToken(String value, final List<Object> binds, final List<String> likeOrEquals) {
+		if(value.indexOf('*')!=-1) {
+			binds.add(value.replace('*', '%'));
+			likeOrEquals.add("LIKE");
+		} else {
+			binds.add(value);
+			likeOrEquals.add("=");
+		}
 	}
 	
 	/** The Metric Name Retrieval SQL template when tag pairs are provided */
@@ -400,7 +418,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = keySql.toString();
 					}
 					binds.add(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					//log.debug("Executing SQL [{}] with binds {}", sql, binds);
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
 					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), true));					
 					def.callback(tsMetas);

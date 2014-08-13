@@ -48,9 +48,11 @@ public class QueryOptions {
 	protected int pageSize = 100;
 	/** The starting index for the next chunk */
 	protected Object nextIndex = null;
-	/** An arbitrary state provided by the MetricsMetaAPI implementation which should be
-	 submitted back in each subsequent call after the first during one logical query excution */
-	protected byte[] context = null;
+	/** Indicates if we want a count only */
+	protected boolean countOnly = false;
+	
+	
+	
 	
 	
 	
@@ -155,25 +157,8 @@ public class QueryOptions {
 		return this;
 	}
 	
-	/**
-	 * Returns the query context
-	 * @return the context
-	 */
-	public final byte[] getContext() {
-		return context;
-	}
 
 
-	/**
-	 * Sets the query context
-	 * @param context the context to set
-	 * @return this Query Options
-	 */
-	public final QueryOptions setContext(byte[] context) {
-		this.context = context;
-		return this;
-	}
-	
 
 	
 	/**
@@ -226,14 +211,28 @@ public class QueryOptions {
 		builder.append(", outputFormat=");
 		builder.append(OutputFormat.decode(format));
 		builder.append(", pageSize=").append(pageSize);
+		builder.append(", countOnly=").append(countOnly);
 		if(nextIndex != null) {
 			builder.append(", nextIndex=").append(nextIndex);
 		}
-		if(context!=null && context.length>0) {
-			builder.append(", context=").append(context.length).append(" bytes");
-		}
 		builder.append("]");
 		return builder.toString();
+	}
+
+	/**
+	 * Indicates if the query should be for a count only
+	 * @return true if the query should be for a count only, false otherwise
+	 */
+	public boolean isCountOnly() {
+		return countOnly;
+	}
+
+	/**
+	 * Indicates if the query should be for a count only
+	 * @param countOnly true to get a count only, false for a standard query
+	 */
+	public void setCountOnly(boolean countOnly) {
+		this.countOnly = countOnly;
 	}
 
 

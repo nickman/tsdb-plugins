@@ -92,7 +92,7 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory, ChannelU
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
 		pipeline.addLast("session", this);
-		pipeline.addLast("logger", logger);
+		//pipeline.addLast("logger", logger);
 		pipeline.addLast("protocolSwitch", protocolSwitch);
 		return pipeline;
 	}

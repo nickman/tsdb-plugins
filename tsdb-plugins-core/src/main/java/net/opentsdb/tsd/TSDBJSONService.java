@@ -276,7 +276,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	 * WebSocket invoker for OpenTSDB HTTP <a href="http://opentsdb.net/docs/build/html/api_http/logs.html">/s</a> logs API call
 	 * @param request The JSONRequest
 	 */
-	@JSONRequestHandler(name="logs", description="Returns JSOINized OpenTSDB log file entries")
+	@JSONRequestHandler(name="logs", description="Returns JSONized OpenTSDB log file entries")
 	public void logs(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/logs?json=true");
@@ -380,6 +380,10 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	 * TODO: Handle errors and return error messages to caller.
 	 * TODO: Implement hierarchical json tree of points for a smaller and more normalized payload
 	 */
+	
+	// var a = '{"t":"req", "rid":1, "svc":"tsdb", "op":"points", 
+	//  "points":[{"m":"sys.cpu", "ts":"' + Math.round(new Date().getTime()/1000) + '", "v":"32", "tags": {"host":"webserver1"}}, {"m":"sys.cpu", "ts":"' + Math.round(new Date().getTime()/1000) + '","v":"19","tags": {"host":"webserver2"}}]}';
+	
 	@JSONRequestHandler(name="points", description="Submits an array of datapoints to the TSDB")
 	public void addPoint(final JSONRequest request) {
 		if(request==null) throw new IllegalArgumentException("The passed request was null");

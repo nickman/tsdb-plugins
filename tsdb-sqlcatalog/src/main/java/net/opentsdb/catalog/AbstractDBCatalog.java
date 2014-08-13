@@ -1586,7 +1586,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	public static final String TSMETA_TAGS_SQL = "SELECT 'TAGK' as TAG_TYPE, F.PORDER, K.* FROM TSD_TAGK K, TSD_FQN_TAGPAIR F, TSD_TAGPAIR P WHERE F.XUID = P.XUID AND K.XUID = P.TAGK AND F.FQNID = ? " + 
 												 "UNION ALL " + 
 												 "SELECT 'TAGV' as TAG_TYPE, F.PORDER, V.* FROM TSD_TAGV V, TSD_FQN_TAGPAIR F, TSD_TAGPAIR P WHERE F.XUID = P.XUID AND V.XUID = P.TAGV AND F.FQNID = ? " + 
-												 "ORDER BY 1,2";
+												 "ORDER BY 2";
 	
 	/**
 	 * Deep loads the metric and tag UIDs into the passed TSMeta

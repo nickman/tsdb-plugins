@@ -87,6 +87,9 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 	/** The started indicator */
 	protected final AtomicBoolean started = new AtomicBoolean(false);
 	
+	/** The plugin class loader */
+	protected final ClassLoader pluginClassLoader;
+	
 	
 	
 	/** A set of implicit imports for the compiler configuration */
@@ -100,6 +103,7 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 	 */
 	public GroovyService(PluginContext pluginContext) {
 		this.pluginContext = pluginContext;
+		this.pluginClassLoader = pluginContext.getSupportClassLoader();
 		this.tsdb = pluginContext.getTsdb();
 		this.config = pluginContext.getExtracted();
 		pluginContext.setResource("groovy-service", this);
@@ -585,10 +589,12 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 	 */
 	@Override
 	public void launchConsole(String fileName) {
+		final ClassLoader cl = Thread.currentThread().getContextClassLoader();
 		try {
-			Class<?> clazz = Class.forName("groovy.ui.Console");
-			Constructor<?> ctor = clazz.getDeclaredConstructor(Binding.class);
-			Object console = ctor.newInstance(getBindings());
+			Thread.currentThread().setContextClassLoader(pluginClassLoader);
+			Class<?> clazz = Class.forName("groovy.ui.Console", true, pluginClassLoader);
+			Constructor<?> ctor = clazz.getDeclaredConstructor(ClassLoader.class, Binding.class);
+			Object console = ctor.newInstance(pluginClassLoader, getBindings());
 			console.getClass()
 				.getDeclaredMethod("run")
 					.invoke(console);
@@ -605,7 +611,9 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 				log.error("Failed to launch console cause", e.getCause());
 			}
 			throw new RuntimeException("Failed to launch console", e);
-		}		
+		} finally {
+			Thread.currentThread().setContextClassLoader(cl);
+		}
 	}
 	
 

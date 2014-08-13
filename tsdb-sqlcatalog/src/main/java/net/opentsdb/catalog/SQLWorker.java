@@ -743,7 +743,7 @@ public class SQLWorker {
 				binderClazz.addMethod(bindm);
 				binderClazz.writeFile("/tmp/sqlworker/");
 				@SuppressWarnings("unchecked")
-				Class<PreparedStatementBinder> javaClazz = binderClazz.toClass();
+				Class<PreparedStatementBinder> javaClazz = binderClazz.toClass(SQLWorker.class.getClassLoader(), SQLWorker.class.getProtectionDomain());
 				psb = javaClazz.newInstance();
 				binderClazz.detach();
 				return psb;

@@ -3,6 +3,7 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
@@ -10,11 +11,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import net.opentsdb.utils.JSON;
+
 import org.helios.tsdb.plugins.util.StringHelper;
 import org.jboss.netty.channel.Channel;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -475,6 +479,16 @@ public class JSONRequest {
 		return array;
 	}
 	
+	public <T> T get(String fieldName, Class<T> type, T defaultValue) {
+		JsonNode node = arguments.get(fieldName);
+		try {
+			return JSON.getMapper().reader(type).readValue(node);
+		} catch (Exception ex) {
+			return defaultValue;
+		}
+	}
+	
+	
 	/**
 	 * @param fieldName
 	 * @param defaultValue
@@ -482,7 +496,7 @@ public class JSONRequest {
 	 */
 	public byte[] get(String fieldName, byte[] defaultValue) {
 		byte[] value = null;
-		try {
+		try {			
 			value = arguments.get(fieldName).binaryValue();
 		} catch (Exception ex) {
 			if(allowDefaults) 

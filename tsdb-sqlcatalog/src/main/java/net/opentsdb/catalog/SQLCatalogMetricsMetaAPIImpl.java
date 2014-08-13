@@ -34,6 +34,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import net.opentsdb.core.Const;
@@ -43,12 +45,19 @@ import net.opentsdb.meta.QueryOptions;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
+import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
+import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -58,7 +67,7 @@ import com.stumbleupon.async.Deferred;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.catalog.SQLCatalogMetricsMetaAPIImpl</code></p>
  */
-
+@JSONRequestService(name="meta")
 public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExceptionHandler {
 	/** The MetricsMetaAPIService service executor */
 	protected final AsyncDispatcherExecutor metaQueryExecutor;
@@ -71,7 +80,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
 	
+	/** The maximum TSUID in Hex String format */
 	public static final String MAX_TSUID;
+	/** The dynamic binding SQL block for tag keys */
+	public static final String TAGK_SQL_BLOCK = "K.NAME %s ?"; 
+	/** The dynamic binding SQL block for tag values */
+	public static final String TAGV_SQL_BLOCK = "V.NAME %s ?"; 
+	/** The dynamic binding SQL block for metric names */
+	public static final String METRIC_SQL_BLOCK = "M.NAME %s ?"; 
+	
+	
 	
 	/** Empty string array const */
 	public static final String[] EMPTY_STR_ARR = {};
@@ -99,7 +117,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND F.FQNID = T.FQNID " + 
 			"AND T.XUID = P.XUID " + 
 			"AND P.TAGK = X.XUID " + 
-			"AND K.NAME = ? " +
+			"AND (%s) " +   				//  K.NAME = ? et. al.
 			"AND X.NAME NOT IN (%s) " +
 			"AND %s " + 					// XUID_START_SQL goes here
 			"ORDER BY X.XUID DESC " + 
@@ -159,10 +177,12 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {
+				final List<Object> binds = new ArrayList<Object>();
 				String sql = null;
+				final String predicate = expandPredicate(filterName, TAGK_SQL_BLOCK, binds);
 				try {
-					List<Object> binds = new ArrayList<Object>();
-					binds.add(filterName);
+					
+//					binds.add(filterName);
 					StringBuilder keyBinds = new StringBuilder();
 					for(String key: excludes) {
 						keyBinds.append("?, ");
@@ -178,14 +198,14 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 //					 * 4. The start at XUID expression
 					
 					if(queryOptions.getNextIndex()==null) {
-						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, keyBinds, INITIAL_XUID_START_SQL); 
+						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, predicate, keyBinds, INITIAL_XUID_START_SQL); 
 					} else {
-						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, keyBinds, XUID_START_SQL);
+						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, predicate, keyBinds, XUID_START_SQL);
 						binds.add(queryOptions.getNextIndex());
 					}
 					binds.add(queryOptions.getPageSize());
 					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}] with binds {}", sql, binds);
 					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.TAGK));
 					def.callback(uidMetas);
 				} catch (Exception ex) {
@@ -206,12 +226,57 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND F.FQNID = T.FQNID  " +
 			"AND T.XUID = P.XUID " +
 			"AND P.TAGK = K.XUID " +
-			"AND K.NAME = ? ";			
+			"AND (%s) ";			// K.NAME = ? 	  --- > TAGK_SQL_BLOCK		
 
 	/** The Metric Name Retrieval SQL template when no tag keys are provided */
 	public static final String GET_METRIC_NAMES_SQL =
 			"SELECT X.* FROM TSD_METRIC X WHERE %s ORDER BY X.XUID DESC LIMIT ?"; 
+	
+	
+	// SAMPLE {"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 100 }, "keys" : ["host"] }
+	
+	
+	
+	class ResultCompleteCallback<T> implements Callback<Void, T> {
+		private final JSONRequest request;		
+		/**
+		 * Creates a new ResultCompleteCallback
+		 * @param request
+		 */
+		public ResultCompleteCallback(JSONRequest request) {
+			this.request = request;
+		}
+		@Override
+		public Void call(T result) throws Exception {
+			try {
+				JSON.getMapper().writeValue(request.response().getChannelOutputStream(), result);
+			} catch (Exception e) {
+				request.error("Failed to get metric names", e);
+				log.error("Failed to get metric names", e);
+			}			
+			return null;
+		}
+	}
 
+	/**
+	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])} 
+	 * @param request The JSON request
+	 * <p>Sample request:<pre>
+	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }
+	 * </pre></p>
+	 */
+	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
+	public void jsonMetricNames(final JSONRequest request) {
+		QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		final ArrayNode keysArr = (ArrayNode)request.getRequest().get("keys");
+		final String[] keys = new String[keysArr.size()];
+		for(int i = 0; i < keysArr.size(); i++) {
+			keys[i] = keysArr.get(i).asText();
+		}
+		log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(keys));		
+		getMetricNames(q, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request));
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])
@@ -222,6 +287,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
 				final List<Object> binds = new ArrayList<Object>();
+				
 				String sql = null;
 				try {
 					if(tagKeys==null || tagKeys.length==0) {										
@@ -232,12 +298,12 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							binds.add(queryOptions.getNextIndex());
 						}
 					} else {
-						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ").append(GET_METRIC_NAMES_WITH_KEYS_SQL);
-						binds.add(tagKeys[0]);
+						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ").append(String.format(GET_METRIC_NAMES_WITH_KEYS_SQL, expandPredicate(tagKeys[0], TAGK_SQL_BLOCK, binds))); 
+//						binds.add(tagKeys[0]);
 						int tagCount = tagKeys.length;
 						for(int i = 1; i < tagCount; i++) {
-							keySql.append(" INTERSECT ").append(GET_METRIC_NAMES_WITH_KEYS_SQL);
-							binds.add(tagKeys[i]);
+							keySql.append(" INTERSECT ").append(String.format(GET_METRIC_NAMES_WITH_KEYS_SQL, expandPredicate(tagKeys[i], TAGK_SQL_BLOCK, binds)));
+//							binds.add(tagKeys[i]);
 						}
 						keySql.append(") X ");
 						if(queryOptions.getNextIndex()==null) {
@@ -271,13 +337,33 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND T.XUID = P.XUID " +
 			"AND P.TAGK = K.XUID " +
 			"AND P.TAGV = V.XUID " +
-			"AND K.NAME %s ? " + 			
-			"AND V.NAME %s ? ";			
-
-//	/** The Metric Name Retrieval SQL template when no tag keys are provided */
-//	public static final String GET_METRIC_NAMES_SQL =
-//			"SELECT X.* FROM TSD_METRIC X WHERE %s ORDER BY X.XUID DESC LIMIT ?"; 
+			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
+			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
 	
+
+	
+	/**
+	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])} 
+	 * @param request The JSON request
+	 * <p>Sample request:<pre>
+	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricswtags", "q": { "pageSize" : 10 }, "tags" : {"host" : "*", "type" : "combined"}}
+	 * </pre></p>
+	 */
+	@JSONRequestHandler(name="metricswtags", description="Returns the MetricNames that match the passed tag pairs")
+	public void jsonMetricNamesWithTags(final JSONRequest request) {
+		QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
+		final Map<String, String> tags = new TreeMap<String, String>();
+		Iterator<String> titer = tagNode.fieldNames();
+		while(titer.hasNext()) {
+			String key = titer.next();
+			tags.put(key, tagNode.get(key).asText());
+		}
+		log.info("Processing jsonMetricNamesWithTags. q: [{}], tags: {}", q, tags);		
+		getMetricNames(q, tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request));
+	}
+
+
 	
 	/**
 	 * {@inheritDoc}
@@ -300,13 +386,23 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							binds.add(queryOptions.getNextIndex());
 						}
 					} else {
-						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ").append(GET_METRIC_NAMES_WITH_TAGS_SQL);
+//						String predicate = expandPredicate(tagKeys[0], TAGK_SQL_BLOCK, binds)
 						Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
 						Map.Entry<String, String> entry = iter.next();
-						processBindsAndTokens(entry, binds, likeOrEquals);
+								
+						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ").append(String.format(GET_METRIC_NAMES_WITH_TAGS_SQL, 
+								expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
+								expandPredicate(entry.getValue(), TAGV_SQL_BLOCK, binds)								
+						));
+						
+						//processBindsAndTokens(entry, binds, likeOrEquals);
 						while(iter.hasNext()) {
-							processBindsAndTokens(iter.next(), binds, likeOrEquals);
-							keySql.append(" INTERSECT ").append(GET_METRIC_NAMES_WITH_TAGS_SQL);
+//							processBindsAndTokens(iter.next(), binds, likeOrEquals);
+							entry = iter.next();
+							keySql.append(" INTERSECT ").append(String.format(GET_METRIC_NAMES_WITH_TAGS_SQL,
+									expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
+									expandPredicate(entry.getValue(), TAGV_SQL_BLOCK, binds)																	
+							));
 						}
 						keySql.append(") X ");
 						if(queryOptions.getNextIndex()==null) {
@@ -319,7 +415,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = String.format(keySql.toString(), likeOrEquals.toArray());
 					}
 					binds.add(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}] with binds {}", sql, binds);
 					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
 					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC));					
 					def.callback(uidMetas);
@@ -332,25 +428,6 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return def;
 	}
 
-//	final List<Object> binds = new ArrayList<Object>();
-//	final List<String> likeOrEquals = new ArrayList<String>();
-
-	
-	protected void processBindsAndTokens(final Map.Entry<String, String> entry, final List<Object> binds, final List<String> likeOrEquals) {
-		processBindOrToken(entry.getKey(), binds, likeOrEquals);
-		processBindOrToken(entry.getValue(), binds, likeOrEquals);
-		
-	}
-	
-	protected void processBindOrToken(String value, final List<Object> binds, final List<String> likeOrEquals) {
-		if(value.indexOf('*')!=-1) {
-			binds.add(value.replace('*', '%'));
-			likeOrEquals.add("LIKE");
-		} else {
-			binds.add(value);
-			likeOrEquals.add("=");
-		}
-	}
 	
 	/** The Metric Name Retrieval SQL template when tag pairs are provided */
 	public static final String GET_TSMETAS_SQL =
@@ -359,10 +436,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND X.FQNID = T.FQNID  " +
 			"AND T.XUID = P.XUID " +
 			"AND P.TAGK = K.XUID " +
-			"AND M.NAME = ? " + 
+			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
 			"AND P.TAGV = V.XUID " +
-			"AND K.NAME = ? " + 			
-			"AND V.NAME %s ";			
+			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
+			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
 
 	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
 	public static final String GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL =
@@ -379,17 +456,41 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 	
 	/**
+	 * HTTP and WebSocket exposed interface to {@link #getTSMetas(net.opentsdb.meta.QueryOptions, boolean, java.lang.String, java.util.Map)} 
+	 * @param request The JSON request
+	 * <p>Sample request:<pre>
+	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"tsmetas", "q": { "pageSize" : 10 }, "m":"sys.cp*", "overflow":false,  "tags" : {"host" : "*NWHI*"}}
+	 * </pre></p>
+	 */
+	@JSONRequestHandler(name="tsmetas", description="Returns the MetricNames that match the passed tag pairs")
+	public void jsonTSMetas(final JSONRequest request) {
+		final QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		final String metricName = request.getRequest().get("m").textValue();
+		final boolean overflow = request.getRequest().get("overflow").asBoolean(false);
+		final ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
+		final Map<String, String> tags = new TreeMap<String, String>();
+		Iterator<String> titer = tagNode.fieldNames();
+		while(titer.hasNext()) {
+			String key = titer.next();
+			tags.put(key, tagNode.get(key).asText());
+		}
+		log.info("Processing jsonTSMetas. q: [{}], tags: {}", q, tags);		
+		getTSMetas(q, overflow, metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request));
+	}
+	
+	
+	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.QueryOptions, boolean, java.lang.String, java.util.Map)
 	 */
 	@Override
 	public Deferred<Set<TSMeta>> getTSMetas(final QueryOptions queryOptions, final boolean overflow, final String metricName, final Map<String, String> tags) {
-		final Deferred<Set<TSMeta>> def = new Deferred<Set<TSMeta>>();
-		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
+		final Deferred<Set<TSMeta>> def = new Deferred<Set<TSMeta>>();		
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
 				final List<Object> binds = new ArrayList<Object>();
 				String sql = null;
+				final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 				try {
 					if(tags==null || tags.isEmpty()) {	
 						if(!overflow) {
@@ -405,6 +506,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						if(hasMetricName) binds.add(metricName);
 						
 					} else {
+						// expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
 						prepareGetTSMetasSQL(metricName, tags, binds, keySql);
 						keySql.append(") X ");
@@ -418,8 +520,19 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = keySql.toString();
 					}
 					binds.add(queryOptions.getPageSize());
-					//log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					log.debug("Executing SQL [{}] with binds {}", sql, binds);
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
+					// =================================================================================================================================
+					//    LOAD TSMETAS FROM TSDB/HBASE
+					// =================================================================================================================================
+//					ResultSet disconnected = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
+//					while(disconnected.next()) {
+//						String tsuid = disconnected.getString(5);
+//						tsMetas.add(TSMeta.getTSMeta(tsdb, tsuid).join(1000));  // FIXME:  Chain the callbacks, then add the timeout
+//					}
+					// =================================================================================================================================
+					//	LOADS TSMETAS FROM THE SQL CATALOG DB
+					// =================================================================================================================================
 					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), true));					
 					def.callback(tsMetas);
 				} catch (Exception ex) {
@@ -431,36 +544,52 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return def;
 	}
 
-	protected String[] parseValue(String v) {
-		if(v==null || v.trim().isEmpty()) return EMPTY_STR_ARR;
-		String[] vals = SPLIT_PIPES.split(v.trim());
-		Set<String> set = new HashSet<String>(vals.length);
-		for(String s: vals) {
-			if(s==null || s.trim().isEmpty()) continue;
-			set.add(s.trim());
-		}
-		return set.toArray(new String[set.size()]);
-	}
 	
-	protected String toBindSymbolString(final String[] bindSymbols) {
-		if(bindSymbols.length==1) {
-			return " = ? ";
+	/**
+	 * Generates a TSMeta query
+	 * @param sqlBuffer The sql buffer to append generated SQL into
+	 * @param binds The query bind values
+	 * @param queryOptions The query options
+	 * @param metricName The metric name
+	 * @param tags The tag pairs
+	 */
+	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryOptions queryOptions, final String metricName, final Map<String, String> tags) {
+		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
+		if(tags==null || tags.isEmpty()) {	
+			if(queryOptions.getNextIndex()==null) {							
+				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_XUID_START_SQL)); 
+			} else {
+				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, XUID_START_SQL));
+				binds.add(queryOptions.getNextIndex());
+			}
+			if(hasMetricName) binds.add(metricName);
+			
 		} else {
-			return String.format(" in(%s) ", Arrays.toString(bindSymbols).replace("[", "").replace("]", ""));
-		}
+			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
+			prepareGetTSMetasSQL(metricName, tags, binds, keySql);
+			keySql.append(") X ");
+			if(queryOptions.getNextIndex()==null) {
+				keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
+			} else {
+				keySql.append(" WHERE ").append(TSUID_START_SQL);
+				binds.add(queryOptions.getNextIndex());
+			}
+			keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
+			sqlBuffer.append(keySql.toString());
+		}		
 	}
-	
+		
 	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
-		binds.add(metricName);
-		binds.add(tag.getKey());
-		String[] values = parseValue(tag.getValue());
-		String[] bindSymbols = new String[values.length];
-		Arrays.fill(bindSymbols, "?");
+		// // expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 		if(!firstEntry) {
 			sql.append(" INTERSECT ");
 		}
-		sql.append(String.format(GET_TSMETAS_SQL, toBindSymbolString(bindSymbols) ));
-		binds.addAll(Arrays.asList(values));
+		
+		sql.append(String.format(GET_TSMETAS_SQL,  
+				expandPredicate(metricName, METRIC_SQL_BLOCK, binds),
+				expandPredicate(tag.getKey(), TAGK_SQL_BLOCK, binds),
+				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds)
+		));
 	}
 	
 	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
@@ -473,10 +602,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagValues(net.opentsdb.meta.QueryOptions, java.lang.String, java.lang.String[])
+	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagValues(net.opentsdb.meta.QueryOptions, java.lang.String, java.util.Map, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>[]> getTagValues(QueryOptions queryOptions, String metric, String...tagKeys) {
+	public Deferred<Set<UIDMeta>> getTagValues(QueryOptions queryOptions, String metric, Map<String, String> tagPairs, String tagKey) {
+		//return getUIDsFor(UniqueId.UniqueIdType.TAGV, UniqueId.UniqueIdType.METRIC, queryOptions, metric, tagKeys);
 		return null;
 	}
 		
@@ -495,6 +625,32 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	public void uncaughtException(Thread t, Throwable e) {
 		log.error("Caught exception on thread [{}]", t, e);
 		
+	}
+
+	/**
+	 * Expands a SQL predicate for wildcards and multis
+	 * @param value The value expression
+	 * @param predicateBase The constant predicate base format
+	 * @param binds The bind variable accumulator
+	 * @return the expanded predicate
+	 */
+	public static final String expandPredicate(final String value, final String predicateBase, final List<Object> binds) {
+		final StringTokenizer st = new StringTokenizer(value.replace(" ", ""), "|", false);
+		final int segmentCount = st.countTokens();
+		if(segmentCount<1) throw new RuntimeException("Failed to parse expression [" + value + "]. Segment count was 0");
+		if(segmentCount==1) {
+			String val = st.nextToken();
+			binds.add(val.replace('*', '%'));
+			return predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE");
+		}
+		StringBuilder b = new StringBuilder();
+		for(int i = 0; i < segmentCount; i++) {			
+			if(i!=0) b.append(" OR ");
+			String val = st.nextToken();
+			binds.add(val.replace('*', '%'));
+			b.append(predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE"));			
+		}
+		return b.toString();				
 	}
 
 

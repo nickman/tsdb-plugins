@@ -74,7 +74,7 @@ public interface MetricsMetaAPI {
 	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
 	 *  </ul>
 	 */
-	public Deferred<Set<UIDMeta>[]> getTagValues(QueryOptions queryOptions, String metric, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getTagValues(QueryOptions queryOptions, String metric, Map<String, String> tagPairs, String tagKey);
 
 	
 	/**

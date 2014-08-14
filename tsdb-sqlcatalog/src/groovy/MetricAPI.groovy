@@ -4,9 +4,8 @@ import com.stumbleupon.async.*
 import org.slf4j.*;
 import ch.qos.logback.classic.*;
 
-logger = LoggerFactory.getLogger(SQLCatalogMetricsMetaAPIImpl.class);
-println logger.getLevel();
-logger.setLevel(Level.valueOf("DEBUG"));
+logger = LoggerFactory.getLogger(SQLCatalogMetricsMetaAPIImpl.class).setLevel(Level.valueOf("DEBUG"));
+
 
 
 
@@ -73,7 +72,7 @@ long start = System.currentTimeMillis();
 cbrow = 0;
 eor = false;
 for(;;){ // infinite for
-    a = metrics.getTSMetas(q.setPageSize(100),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : 'combined', 'cpu' : '0' ]).addCallback(callback).join(5000);  //, "host" 
+    a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
     //a = metrics.getTSMetas(q.setPageSize(2),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : '*']).addCallback(callback).join(5000);  //, "host" 
     //println a;
     //metrics.getMetricNames(q.setPageSize(2), ['host' : '*', 'type' : 'combined']).addCallback(callback).join(5000);  //, "host" 
@@ -90,6 +89,7 @@ cbrow = 0;
 long elapsed = System.currentTimeMillis()-start;
 println "Elapsed: $elapsed ms.";
 
+println "========================================"
 
 
 return null;

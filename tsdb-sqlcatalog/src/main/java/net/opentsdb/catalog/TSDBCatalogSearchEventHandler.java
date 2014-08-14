@@ -51,6 +51,7 @@ import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.EmptySearchEventHandler;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
@@ -65,7 +66,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>net.opentsdb.catalog.TSDBCatalogSearchEventHandler</code></p>
  */
 
-public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler implements  Runnable {
+public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler implements TSDBCatalogSearchEventHandlerMBean, Runnable {
 	/** The singleton instance */
 	protected static volatile TSDBCatalogSearchEventHandler instance = null;
 	/** The singleton instance ctor lock */
@@ -210,6 +211,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		queueProcessorThread.start();
 		log.info("\n\t==================================\n\tStarted TSDBCatalogQueueProcessor\n\t==================================");
 		addBootNotificationListener(inMem);
+		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=SearchEventHandler")));
 		latch.countDown();		
 	}
 	
@@ -296,12 +298,41 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	}
 	
 	/**
-	 * Returns the number of events pending in the processing queue
-	 * @return the number of events pending in the processing queue
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.TSDBCatalogSearchEventHandlerMBean#getProcessingQueueDepth()
 	 */
+	@Override
 	public int getProcessingQueueDepth() {
 		return processingQueue.size();
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.TSDBCatalogSearchEventHandlerMBean#getBatchSize()
+	 */
+	@Override
+	public int getBatchSize() {
+		return batchSize;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.TSDBCatalogSearchEventHandlerMBean#getQueueSize()
+	 */
+	@Override
+	public int getQueueSize() {
+		return queueSize;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.TSDBCatalogSearchEventHandlerMBean#getShutdownFlushTimeout()
+	 */
+	@Override
+	public long getShutdownFlushTimeout() {
+		return timeout;
+	}
+	
 	
 	
 	/**
@@ -341,6 +372,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 	 */
 	@Override
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+		final long start = System.currentTimeMillis();
+		incrCount(event);
 		if(!EVENT_ORDERING.containsKey(event.eventType)) {
 			log.warn("No event type ordering entry. Not processing Event [{}]", event);
 			return;
@@ -354,6 +387,7 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 			}
 			//processingQueue.add(event.asSearchEvent());
 		}
+		elapsedTime(event, System.currentTimeMillis()-start);
 	}
 	
 	

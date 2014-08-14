@@ -17,6 +17,14 @@ On The Fly Bug List
 	* Need to handle meta deletes (trigger store into deleted table)
 	
 	
+Metric Ingestion:
+=================
+
+INSERT INTO TSD_TAGPAIR (XUID, TAGK, TAGV, NAME) VALUES (?,?,?,?) 
+	Unique index or primary key violation: "PRIMARY_KEY_C ON PUBLIC.TSD_TAGPAIR(XUID) VALUES ( /* 228 */ '0000070056C3' )"
+INSERT INTO TSD_TAGV (XUID,VERSION, NAME,CREATED,LAST_UPDATE,DESCRIPTION,DISPLAY_NAME,NOTES,CUSTOM) VALUES(?,?,?,?,?,?,?,?,?)	
+	Unique index or primary key violation: "TSD_TAGV_AK ON PUBLIC.TSD_TAGV(NAME) VALUES ( /* 397 */ '2' )"
+	
 	
 Notes:
 =====================================

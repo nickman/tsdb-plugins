@@ -489,38 +489,18 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
 				final List<Object> binds = new ArrayList<Object>();
-				String sql = null;
-				final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
+//				String sql = null;
+				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
 					if(tags==null || tags.isEmpty()) {	
 						if(!overflow) {
 							def.callback(Collections.EMPTY_SET);
 							return;
 						}
-						if(queryOptions.getNextIndex()==null) {							
-							sql = String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_XUID_START_SQL); 
-						} else {
-							sql = String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, XUID_START_SQL);
-							binds.add(queryOptions.getNextIndex());
-						}
-						if(hasMetricName) binds.add(metricName);
-						
-					} else {
-						// expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
-						StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-						prepareGetTSMetasSQL(metricName, tags, binds, keySql);
-						keySql.append(") X ");
-						if(queryOptions.getNextIndex()==null) {
-							keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
-						} else {
-							keySql.append(" WHERE ").append(TSUID_START_SQL);
-							binds.add(queryOptions.getNextIndex());
-						}
-						keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
-						sql = keySql.toString();
 					}
+					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
 					binds.add(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sql, binds);
+					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
 					// =================================================================================================================================
 					//    LOAD TSMETAS FROM TSDB/HBASE
@@ -533,10 +513,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					// =================================================================================================================================
 					//	LOADS TSMETAS FROM THE SQL CATALOG DB
 					// =================================================================================================================================
-					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), true));					
+					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true));					
 					def.callback(tsMetas);
 				} catch (Exception ex) {
-					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sql, ex);
+					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
 					def.callback(ex);					
 				}
 			}
@@ -600,14 +580,82 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 	}
 	
+	/** The Tag Values Retrieval SQL template when tag pairs are provided */
+	
+	/*
+	 * 
+	 * Outer select from TSD_TAGV where exists
+	 * 	Same as TSDMeta query but:
+	 * 		match provided tags exactly, but not (TAGK = target tag key)
+	 *  
+	 */
+	
+	public static final String GET_TAG_VALUES_SQL =
+			"SELECT DISTINCT X.* FROM TSD_TAGV X, TSD_TSMETA A, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K" +
+			"WHERE M.XUID = A.METRIC_UID  " +
+			"AND A.FQNID = T.FQNID  " +
+			"AND T.XUID = P.XUID " +
+			"AND P.TAGK = K.XUID " +
+			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
+			"AND P.TAGV = X.XUID " +
+			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
+			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+			
+//			"SELECT DISTINCT X.* FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
+//			"WHERE M.XUID = X.METRIC_UID  " +
+//			"AND X.FQNID = T.FQNID  " +
+//			"AND T.XUID = P.XUID " +
+//			"AND P.TAGK = K.XUID " +
+//			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
+//			"AND P.TAGV = V.XUID " +
+//			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
+//			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+
+	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
+	public static final String GET_TAG_VALUES_NO_TAGS_NO_METRIC_NAME_SQL =
+			"SELECT X.* FROM TSD_TSMETA X WHERE %s ORDER BY X.TSUID DESC LIMIT ?"; 
+
+	/** The TSMeta Retrieval SQL template when no tags are provided and overflow is true */
+	public static final String GET_TAG_VALUES_NO_TAGS_NAME_SQL =
+			"SELECT X.* FROM TSD_TSMETA X, TSD_METRIC M WHERE M.XUID = X.METRIC_UID AND %s AND M.NAME = ? ORDER BY X.TSUID DESC LIMIT ?"; 
+	
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagValues(net.opentsdb.meta.QueryOptions, java.lang.String, java.util.Map, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagValues(QueryOptions queryOptions, String metric, Map<String, String> tagPairs, String tagKey) {
-		//return getUIDsFor(UniqueId.UniqueIdType.TAGV, UniqueId.UniqueIdType.METRIC, queryOptions, metric, tagKeys);
-		return null;
+	public Deferred<Set<UIDMeta>> getTagValues(final QueryOptions queryOptions, final String metricName, final Map<String, String> tags, final String tagKey) {
+		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();		
+		this.metaQueryExecutor.execute(new Runnable() {
+			public void run() {				
+				final List<Object> binds = new ArrayList<Object>();
+				final StringBuilder sqlBuffer = new StringBuilder();
+				try {
+					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
+					binds.add(queryOptions.getPageSize());
+					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
+					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
+					// =================================================================================================================================
+					//    LOAD TSMETAS FROM TSDB/HBASE
+					// =================================================================================================================================
+//					ResultSet disconnected = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
+//					while(disconnected.next()) {
+//						String tsuid = disconnected.getString(5);
+//						tsMetas.add(TSMeta.getTSMeta(tsdb, tsuid).join(1000));  // FIXME:  Chain the callbacks, then add the timeout
+//					}
+					// =================================================================================================================================
+					//	LOADS TSMETAS FROM THE SQL CATALOG DB
+					// =================================================================================================================================
+					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true));					
+					def.callback(tsMetas);
+				} catch (Exception ex) {
+					log.error("Failed to execute getTagValues (with tags).\nSQL was [{}]", sqlBuffer, ex);
+					def.callback(ex);					
+				}
+			}
+		});
+		return def;
 	}
 		
 		

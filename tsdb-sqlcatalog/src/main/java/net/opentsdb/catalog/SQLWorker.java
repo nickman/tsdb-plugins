@@ -278,7 +278,7 @@ public class SQLWorker {
 	 * @return the number of rows retrieved
 	 */
 	public int executeQuery(String sqlText, ResultSetHandler rowHandler, Object...args) {
-		return executeQuery(sqlText, rowHandler, args);
+		return executeQuery(null, sqlText, rowHandler, args);
 	}
 	
 	

@@ -591,25 +591,25 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 */
 	
 	public static final String GET_TAG_VALUES_SQL =
-			"SELECT DISTINCT X.* FROM TSD_TAGV X, TSD_TSMETA A, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K" +
-			"WHERE M.XUID = A.METRIC_UID  " +
-			"AND A.FQNID = T.FQNID  " +
-			"AND T.XUID = P.XUID " +
-			"AND P.TAGK = K.XUID " +
-			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
-			"AND P.TAGV = X.XUID " +
-			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
-			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
-			
-//			"SELECT DISTINCT X.* FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
-//			"WHERE M.XUID = X.METRIC_UID  " +
-//			"AND X.FQNID = T.FQNID  " +
-//			"AND T.XUID = P.XUID " +
-//			"AND P.TAGK = K.XUID " +
-//			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
-//			"AND P.TAGV = V.XUID " +
-//			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
-//			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+		"SELECT DISTINCT VA.* " + 
+		"FROM TSD_TAGV VA, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TSMETA XA " +
+		"WHERE M.XUID = XA.METRIC_UID " +
+		"AND XA.FQNID = T.FQNID " +
+		"AND T.XUID = P.XUID " +
+		"AND P.TAGK = K.XUID " +
+		"AND P.TAGV = VA.XUID " +
+		"AND EXISTS ( " +
+			"SELECT * FROM ( " + 
+				"SELECT DISTINCT X.FQNID, V.XUID, K.NAME FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE M.XUID = X.METRIC_UID  AND X.FQNID = T.FQNID  AND T.XUID = P.XUID AND P.TAGK = K.XUID  AND P.TAGV = V.XUID " + 
+				"AND (M.NAME = 'sys.cpu') AND ( " +
+					//  ====  APPEND TAG PAIR EXPRESSIONS ====
+					"(K.NAME = 'host') AND (V.NAME = 'PP-WK-NWHI-01') " +
+					"OR " +
+					"(K.NAME = 'type') AND (V.NAME = 'combined') " +
+			") " +
+		") Q WHERE Q.FQNID = XA.FQNID AND K.NAME NOT IN ('host', 'type') " +
+	   ")";
+	
 
 	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
 	public static final String GET_TAG_VALUES_NO_TAGS_NO_METRIC_NAME_SQL =

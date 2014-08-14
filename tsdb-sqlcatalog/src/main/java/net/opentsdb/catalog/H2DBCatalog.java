@@ -24,7 +24,6 @@
  */
 package net.opentsdb.catalog;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -37,13 +36,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 
+import net.opentsdb.catalog.h2.H2IOStats;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -56,8 +55,6 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.helios.tsdb.plugins.util.SystemClock.ElapsedTime;
 import org.helios.tsdb.plugins.util.URLHelper;
-
-import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: H2DBCatalog</p>
@@ -82,6 +79,9 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	protected int httpPort = -1;
 	/** The H2 HTTP Allow Others */
 	protected boolean httpAllowOthers = false;
+	
+	/** The H2 stats service */
+	protected H2IOStats h2Stats = null;
 	
 	
 	/** The container/manager for the TCP Listener */
@@ -186,7 +186,8 @@ public class H2DBCatalog extends AbstractDBCatalog {
 			} finally {
 				if(conn!=null) try { conn.close(); } catch (Exception ex) {/* No Op */}
 			}
-		}
+		}		
+		h2Stats = new H2IOStats(sqlWorker, (ScheduledExecutorService) pluginContext.getResource("scheduler", ScheduledExecutorService.class));
 	}
 	
 	
@@ -222,6 +223,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		} finally {
 			if(conn!=null) try { conn.close(); } catch (Exception x) {/* No Op */}
 		}
+		try { h2Stats.shutdown(); } catch (Exception x) {/* No Op */}
 	}
 	
     

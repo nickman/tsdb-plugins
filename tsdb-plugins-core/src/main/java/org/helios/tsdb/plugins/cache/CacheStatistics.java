@@ -51,22 +51,9 @@ public class CacheStatistics implements CacheStatisticsMXBean {
 	 */
 	public CacheStatistics(Cache<?, ?> cache, ObjectName objectName) {
 		this.cache = cache;
-		this.objectName = objectName;
-		objectName = JMXHelper.objectName(objectName);
+		this.objectName = objectName;		
 	}
 
-	/**
-	 * Registers the JMX interface for this cache stats, if not already registered
-	 */
-	public void register() {
-		if(!JMXHelper.getHeliosMBeanServer().isRegistered(objectName)) {
-			try {
-				JMXHelper.getHeliosMBeanServer().registerMBean(this, objectName);
-			} catch (Exception ex) {
-				ex.printStackTrace(System.err);
-			}
-		}
-	}
 	
 	/**
 	 * {@inheritDoc}

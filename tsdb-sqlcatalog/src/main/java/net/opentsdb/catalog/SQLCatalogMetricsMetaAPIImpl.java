@@ -24,6 +24,7 @@
  */
 package net.opentsdb.catalog;
 
+import java.io.FileInputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,11 +33,13 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.Const;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
@@ -44,6 +47,7 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
 import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId;
+import net.opentsdb.utils.Config;
 import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
@@ -51,6 +55,8 @@ import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
+import org.helios.tsdb.plugins.service.PluginContextImpl;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,6 +152,47 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		ctx.setResource(getClass().getSimpleName(), this);				
 	}
 	
+	public static void main(String[] args) {
+		log("DB Only MetaInstance");
+		FileInputStream fis = null;
+		try {
+			ConfigurationHelper.createPluginJar(net.opentsdb.catalog.TSDBCatalogSearchEventHandler.class);
+			fis = new FileInputStream("c:/services/opentsdb/tsdb.conf");
+			// tsd.core.plugin_path=c:/services/opentsdb/plugins
+			Config cfg = new Config(fis);
+			cfg.overrideConfig("tsd.core.plugin_path", ConfigurationHelper.TMP_PLUGIN_DIR);
+			Properties config = new Properties();
+			config.putAll(cfg.getMap());
+			final PluginContext pc = new PluginContextImpl(null, cfg, config, Thread.currentThread().getContextClassLoader());
+			log("PluginContext created.");
+//			H2DBCatalog service = new H2DBCatalog();
+//			service.initialize(pc);
+//			log("H2DBCatalog Initialized");
+			TSDBCatalogSearchEventHandler seh = TSDBCatalogSearchEventHandler.getInstance();
+			seh.initialize(pc);
+			log("TSDBCatalogSearchEventHandler Initialized");
+			CatalogDataSource cds = CatalogDataSource.getInstance();
+			cds.initialize(pc);
+			log("Catalog Datasource Initialized");
+			
+		} catch (Exception ex) {
+			loge("Start Failed", ex);
+		} finally {
+			if(fis!=null) try { fis.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	public static void log(Object fmt, Object...args) {
+		System.out.println(String.format(fmt.toString(), args));
+	}
+	public static void loge(Object fmt, Object...args) {
+		System.err.println(String.format(fmt.toString(), args));
+		if(args.length > 0 && args[args.length-1] instanceof Throwable) {
+			System.err.println("Stack Trace Follows....");
+			((Throwable)args[args.length-1]).printStackTrace(System.err);
+		}
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTagKeys(net.opentsdb.meta.api.QueryContext, java.lang.String, java.lang.String[])
@@ -204,6 +251,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					}
 					final int modPageSize = queryOptions.getPageSize();
 					binds.add(modPageSize);					
+					log.info("Executing SQL [{}] with binds {}", sql, binds);
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), targetType)
 					);
@@ -521,7 +569,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
 			"AND P.TAGV = V.XUID " +
 			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
-			"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+			"AND (%s) "	+				// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+			" %s ";						// If !overflow, the NODE = 'L' 
 
 	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
 	public static final String GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL =
@@ -579,8 +628,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							def.callback(Collections.EMPTY_SET);
 							return;
 						}
-					}
-					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
+					}					
+					generateTSMetaSQL(overflow, sqlBuffer, binds, queryOptions, metricName, tags);
 					final int modPageSize = queryOptions.getPageSize();
 					binds.add(modPageSize);
 					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
@@ -613,13 +662,14 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * Generates a TSMeta query
+	 * @param overflow If true, TSMetas that are a partial match will be included, otherwise only exact matches will be returned
 	 * @param sqlBuffer The sql buffer to append generated SQL into
 	 * @param binds The query bind values
 	 * @param queryOptions The query options
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
 	 */
-	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
+	protected void generateTSMetaSQL(final boolean overflow, final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
@@ -632,7 +682,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			
 		} else {
 			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-			prepareGetTSMetasSQL(metricName, tags, binds, keySql);
+			prepareGetTSMetasSQL(overflow, metricName, tags, binds, keySql);
 			keySql.append(") X ");
 			if(queryOptions.getNextIndex()==null) {
 				keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
@@ -645,7 +695,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}		
 	}
 		
-	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
+	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final boolean overflow, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
 		// // expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 		if(!firstEntry) {
 			sql.append(" INTERSECT ");
@@ -654,15 +704,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		sql.append(String.format(GET_TSMETAS_SQL,  
 				expandPredicate(metricName, METRIC_SQL_BLOCK, binds),
 				expandPredicate(tag.getKey(), TAGK_SQL_BLOCK, binds),
-				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds)
+				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds),
+				overflow ? "" : "AND T.NODE = 'L'"
 		));
 	}
 	
-	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
+	protected void prepareGetTSMetasSQL(final boolean overflow, final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
 		Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
-		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql);
+		doGetTSMetasSQLTagValues(true, overflow, metricName, iter.next(), binds, sql);
 		while(iter.hasNext()) {
-			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql);
+			doGetTSMetasSQLTagValues(false, overflow, metricName, iter.next(), binds, sql);
 		}
 	}
 	
@@ -723,7 +774,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				final List<Object> binds = new ArrayList<Object>();
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
+					generateTSMetaSQL(true, sqlBuffer, binds, queryOptions, metricName, tags);
 					binds.add(queryOptions.getPageSize());
 					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
@@ -748,7 +799,35 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		});
 		return def;
 	}
-		
+
+	
+	// BEST VALUE QUERY SO FAR
+//	SELECT DISTINCT F.NODE, F.PORDER, K.NAME, V.NAME
+//	FROM TSD_TAGV V, TSD_FQN_TAGPAIR F, TSD_TAGPAIR P, TSD_TAGK K
+//	WHERE V.XUID = P.TAGV
+//	AND K.XUID = P.TAGK
+//	AND P.XUID = F.XUID
+//	AND EXISTS (
+//		SELECT 1
+//		FROM TSD_TAGK XA, TSD_TSMETA FA, TSD_FQN_TAGPAIR TA, TSD_TAGPAIR PA
+//		WHERE FA.FQNID = TA.FQNID
+//		AND XA.XUID = K.XUID	
+//		AND TA.XUID = PA.XUID
+//		AND PA.TAGK = XA.XUID	
+//		AND (XA.NAME != 'host')
+//		AND (XA.NAME != 'type')
+//		AND XA.XUID <= 'FFFFFF'
+//		AND TA.FQN_TP_ID = F.FQN_TP_ID	
+//		AND EXISTS (
+//			SELECT 1 
+//			FROM TSD_TSMETA TB, TSD_METRIC MB
+//			WHERE TB.METRIC_UID = MB.XUID
+//			AND TA.FQNID = TB.FQNID
+//			AND MB.NAME = 'sys.cpu'
+//		)
+//	)
+//	ORDER BY NODE,  V.NAME
+	
 		
 	/**
 	 * {@inheritDoc}

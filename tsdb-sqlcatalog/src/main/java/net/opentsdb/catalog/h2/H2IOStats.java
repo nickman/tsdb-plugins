@@ -27,6 +27,7 @@ package net.opentsdb.catalog.h2;
 import java.sql.ResultSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +50,8 @@ import org.helios.tsdb.plugins.util.JMXHelper;
 public class H2IOStats implements Runnable, ResultSetHandler, H2IOStatsMBean {
 	/** The sql worker to poll the table with */
 	private final SQLWorker sqlWorker;
+	/** Backup scheduler */
+	private final ScheduledExecutorService backupScheduler;
 	/** A handle to the scheduled polling */
 	private final ScheduledFuture<?> handle;
 	/** A map of most recently polled values, keyed by the H2 column name */
@@ -81,9 +84,14 @@ public class H2IOStats implements Runnable, ResultSetHandler, H2IOStatsMBean {
 	 */
 	public H2IOStats(SQLWorker sqlWorker, ScheduledExecutorService scheduler) {
 		this.sqlWorker = sqlWorker;
-		handle = scheduler.scheduleWithFixedDelay(this, 1, 5, TimeUnit.SECONDS);
-		JMXHelper.registerMBean(this, objectName);
+		if(scheduler==null) {
+			backupScheduler = Executors.newSingleThreadScheduledExecutor();
+		} else {
+			backupScheduler = null;
+		}
 		
+		handle = scheduler != null ? scheduler.scheduleWithFixedDelay(this, 1, 5, TimeUnit.SECONDS) : backupScheduler.scheduleWithFixedDelay(this, 1, 5, TimeUnit.SECONDS); 
+		JMXHelper.registerMBean(this, objectName);
 	}
 	
 	public long getTotalFileWrites() {
@@ -120,6 +128,7 @@ public class H2IOStats implements Runnable, ResultSetHandler, H2IOStatsMBean {
 	 */
 	public void shutdown() {
 		handle.cancel(false);
+		if(backupScheduler!=null) backupScheduler.shutdownNow();
 		JMXHelper.unregisterMBean(objectName);
 	}
 	

@@ -99,7 +99,7 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 	 * @param extracted The extracted TSDB instance config properties
 	 * @param supportClassLoader The plugin support classloader
 	 */
-	PluginContextImpl(TSDB tsdb, Config config, Properties extracted, ClassLoader supportClassLoader) {
+	public PluginContextImpl(TSDB tsdb, Config config, Properties extracted, ClassLoader supportClassLoader) {
 		if(JMXHelper.isRegistered(OBJECT_NAME)) throw new IllegalStateException("The PluginContext has already been created");
 		this.tsdb = tsdb;
 		this.config = config;

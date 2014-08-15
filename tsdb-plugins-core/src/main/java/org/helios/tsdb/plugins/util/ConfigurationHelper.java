@@ -4,13 +4,25 @@
  */
 package org.helios.tsdb.plugins.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+
+import net.opentsdb.search.SearchPlugin;
+import net.opentsdb.tsd.RTPublisher;
+import net.opentsdb.tsd.RpcPlugin;
 
 
 /**
@@ -31,7 +43,75 @@ public class ConfigurationHelper {
 	
 	/** If property names start with this, system properties and environment variables should be ignored. */
 	public static final String NOSYSENV = "tsd.";
+	
+	/** A set of files to be deleted after each test */
+	protected static final Set<File> TO_BE_DELETED = new CopyOnWriteArraySet<File>();
+	
+	/** Temp directory for fake plugin jars */
+	public static final String TMP_PLUGIN_DIR = "./tmp-plugins";
 
+	
+	static {
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			public void run() {
+				for(File f: TO_BE_DELETED) {
+					f.delete();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Creates a temp plugin jar in the plugin directory
+	 * @param plugin The plugin class to install
+	 */
+	public static void createPluginJar(Class<?> plugin) {
+		FileOutputStream fos = null;
+		JarOutputStream jos = null;
+		try {
+			new File(TMP_PLUGIN_DIR).mkdirs();
+			File jarFile = new File(TMP_PLUGIN_DIR + "/" + plugin.getSimpleName() + ".jar");
+			
+			TO_BE_DELETED.add(jarFile);
+			//jarFile.deleteOnExit();		
+			StringBuilder manifest = new StringBuilder();
+			manifest.append("Manifest-Version: 1.0\n");
+			ByteArrayInputStream bais = new ByteArrayInputStream(manifest.toString().getBytes());
+			Manifest mf = new Manifest(bais);
+			fos = new FileOutputStream(jarFile, false);
+			jos = new JarOutputStream(fos, mf);
+			if(SearchPlugin.class.isAssignableFrom(plugin)) {
+				jos.putNextEntry(new ZipEntry("META-INF/services/net.opentsdb.search.SearchPlugin"));
+				jos.write((plugin.getName() + "\n").getBytes());
+				jos.flush();
+				jos.closeEntry();				
+			}
+			if(RTPublisher.class.isAssignableFrom(plugin)) {
+				jos.putNextEntry(new ZipEntry("META-INF/services/net.opentsdb.tsd.RTPublisher"));
+				jos.write((plugin.getName() + "\n").getBytes());
+				jos.flush();
+				jos.closeEntry();				
+			}
+			if(RpcPlugin.class.isAssignableFrom(plugin)) {
+				jos.putNextEntry(new ZipEntry("META-INF/services/net.opentsdb.tsd.RpcPlugin"));
+				jos.write((plugin.getName() + "\n").getBytes());
+				jos.flush();
+				jos.closeEntry();				
+			}
+			
+			jos.flush();
+			jos.close();
+			fos.flush();
+			fos.close();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to Plugin Jar for [" + plugin.getName() + "]", e);
+		} finally {
+			if(fos!=null) try { fos.close(); } catch (Exception e) {}
+		}		
+	}
+	
+	
+	
 	/**
 	 * Merges the passed properties
 	 * @param properties The properties to merge

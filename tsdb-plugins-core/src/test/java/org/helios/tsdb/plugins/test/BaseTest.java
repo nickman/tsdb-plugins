@@ -421,7 +421,7 @@ public class BaseTest {
 	protected static final Set<File> TO_BE_DELETED = new CopyOnWriteArraySet<File>();
 	
 	/** Temp directory for fake plugin jars */
-	protected static final String TMP_PLUGIN_DIR = "./tmp-plugins";
+	public static final String TMP_PLUGIN_DIR = "./tmp-plugins";
 	
 	static {
 		File f = new File(TMP_PLUGIN_DIR);
@@ -460,6 +460,8 @@ public class BaseTest {
 	private static void createRPCShellJar() {
 		createPluginJar(RpcService.class);
 	}
+	
+	
 	
 	/**
 	 * Creates a temp plugin jar in the plugin directory

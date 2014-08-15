@@ -56,6 +56,7 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.cache.UIDCache;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.catalog.h2.H2Support;
 import net.opentsdb.catalog.h2.json.JSONMapSupport;
@@ -193,6 +194,14 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	protected ISequenceCache fqnTpSequence = null; // FQN_TP_SEQ
 	/** The sequence for the Annotation PK */
 	protected ISequenceCache annSequence = null; // ANN_SEQ
+	
+	
+	/** The UIDMeta cache for TAGKs */
+	protected UIDCache keyUIDCache = null;
+	/** The UIDMeta cache for TAGVs */
+	protected UIDCache valueUIDCache = null;
+	/** The UIDMeta cache for Metrics */
+	protected UIDCache metricUIDCache = null;
 
 	// ========================================================================================
 	//	Some informational database meta-data for the JMX interface
@@ -526,7 +535,17 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 					}
 				}
 		);		
-		 
+		// public UIDCache(UniqueId.UniqueIdType uidType, SQLWorker sqlWorker, MetaReader metaReader)
+		log.info("Loading TAGK UIDMeta Cache....");
+		keyUIDCache = new UIDCache(UniqueId.UniqueIdType.TAGK, sqlWorker, this);
+		log.info("Loaded TAGK UIDMeta Cache with [{}] UIDMetas", keyUIDCache.size());
+		log.info("Loading TAGV UIDMeta Cache....");
+		valueUIDCache = new UIDCache(UniqueId.UniqueIdType.TAGV, sqlWorker, this);
+		log.info("Loaded TAGV UIDMeta Cache with [{}] UIDMetas", valueUIDCache.size());
+		log.info("Loading METRIC UIDMeta Cache....");
+		metricUIDCache = new UIDCache(UniqueId.UniqueIdType.METRIC, sqlWorker, this);
+		log.info("Loaded METRIC UIDMeta Cache with [{}] UIDMetas", metricUIDCache.size());
+
 //		synker = new SyncQueueProcessor(pluginContext);
 //		synker.startAsync();
 		log.info("\n\t================================================\n\tDB Initializer Started\n\tJDBC URL:{}\n\t================================================", cds.getConfig().getJdbcUrl());

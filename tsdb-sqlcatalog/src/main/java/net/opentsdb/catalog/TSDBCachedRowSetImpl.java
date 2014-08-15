@@ -62,6 +62,20 @@ public class TSDBCachedRowSetImpl extends CachedRowSetImpl {
 		super(tab);
 	}
 	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see com.sun.rowset.CachedRowSetImpl#size()
+	 */
+	@SuppressWarnings("restriction")
+	public int size() {
+		return super.size();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see com.sun.rowset.CachedRowSetImpl#populate(java.sql.ResultSet)
+	 */
 	@Override
 	public void populate(ResultSet rset) throws SQLException {
 		closed = false;

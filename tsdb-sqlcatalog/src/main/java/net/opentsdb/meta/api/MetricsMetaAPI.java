@@ -101,7 +101,7 @@ public interface MetricsMetaAPI {
 	/**
 	 * Returns the TSMetas matching the passed metric name and tags
 	 * @param queryOptions The query options for this call
-	 * @param overflow true to return TSMetas that match the passed criteria 
+	 * @param overflow If true, TSMetas that are a partial match will be included, otherwise only exact matches will be returned
 	 * but which have additional tags beyond the supplied ones, false to return exact matches only 
 	 * @param metricName The metric name to match
 	 * @param tags The tag pairs to match

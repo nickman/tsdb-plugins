@@ -25,11 +25,16 @@
 package net.opentsdb.catalog.cache;
 
 import java.sql.Connection;
-import java.util.concurrent.ExecutionException;
+import java.sql.ResultSet;
+import java.util.List;
 
 import javax.management.ObjectName;
 
+import net.opentsdb.catalog.MetaReader;
 import net.opentsdb.catalog.SQLWorker;
+import net.opentsdb.catalog.SQLWorker.ResultSetHandler;
+import net.opentsdb.catalog.TSDBCachedRowSetImpl;
+import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
 
 import org.helios.jmx.util.helpers.ConfigurationHelper;
@@ -48,24 +53,20 @@ import com.google.common.util.concurrent.Callables;
  * <p><code>net.opentsdb.catalog.cache.UIDCache</code></p>
  */
 
-public class UIDCache {
+public class UIDCache implements ResultSetHandler {
 	/** The UIDMeta type this cache is for */
 	protected final UniqueId.UniqueIdType uidType;
 	/** A SQLWorker to execute lookups and inserts */
 	protected final SQLWorker sqlWorker;
-	/** The underlying guava cache */
-	protected final Cache<String, String> cache;
+	/** The underlying guava cache of UIDMetas keyed by the UID */
+	protected final Cache<String, UIDMeta> cache;
 	/** The cache stats ObjectName if stats are enabled */
 	protected final ObjectName objectName;
 	
-	/** The count sql */
-	protected final String countSql;
-	/** The initial load sql */
-	protected final String initialLoadSql;
 	/** The load sql */
 	protected final String loadSql;
-	/** The insert sql */
-	protected final String insertSql;
+	/** The meta-reader */
+	protected final MetaReader metaReader;
 	
 	
 	
@@ -83,46 +84,54 @@ public class UIDCache {
 	/** The default stats enablement of the cache */
 	public static final boolean DEFAULT_STATS_ENABLED = true;
 
-	/** The configuration property name for the stats enablement of the cache */
-	public static final String SPEC_TEMPLATE = "concurrencyLevel=%s,initialCapacity=%s,maximumSize=%s,recordStats=%s";
+	/** The configuration property with stats enablement of the cache */
+	public static final String SPEC_TEMPLATE_WSTATS = "concurrencyLevel=%s,initialCapacity=%s,maximumSize=%s,recordStats";
+	/** The configuration property without stats enablement of the cache */
+	public static final String SPEC_TEMPLATE_NOSTATS = "concurrencyLevel=%s,initialCapacity=%s,maximumSize=%s";
 
 	/** The count sql */
 	public static final String COUNT_SQL = "SELECT COUNT(*) FROM TSD_%s";
 	/** The initial load sql */
-	public static final String INITIAL_LOAD_SQL = "SELECT XUID, NAME FROM TSD_%s LIMIT ?";
+	public static final String INITIAL_LOAD_SQL = "SELECT * FROM TSD_%s LIMIT ?";
 	
 	/** The load sql */
-	public static final String LOAD_SQL = "SELECT NAME FROM TSD_%s WHERE XUID = ?";
-	/** The insert sql */
-	public static final String INSERT_SQL = "SELECT NAME FROM TSD_%s WHERE XUID = ?";
+	public static final String LOAD_SQL = "SELECT * FROM TSD_%s WHERE XUID = ?";
 	
 	/**
 	 * Creates a new UIDCache
 	 * @param uidType The UIDMeta type this cache is for
 	 * @param sqlWorker A SQLWorker to execute lookups and inserts
+	 * @param metaReader The meta-reader to build the UIDMeta from a resultset
 	 */
-	public UIDCache(UniqueId.UniqueIdType uidType, SQLWorker sqlWorker) {
+	public UIDCache(UniqueId.UniqueIdType uidType, SQLWorker sqlWorker, MetaReader metaReader) {
 		this.uidType = uidType;
 		this.sqlWorker = sqlWorker;
-		countSql = String.format(COUNT_SQL, uidType.name());
-		initialLoadSql = String.format(INITIAL_LOAD_SQL, uidType.name());
+		this.metaReader = metaReader;
 		loadSql = String.format(LOAD_SQL, uidType.name());
-		insertSql = String.format(INSERT_SQL, uidType.name());
-		
 		final String name = uidType.name().toLowerCase();
 		final long maxSize = ConfigurationHelper.getLongSystemThenEnvProperty(String.format(MAX_SIZE_PROP, name), DEFAULT_MAX_SIZE);
 		final int concurrency = ConfigurationHelper.getIntSystemThenEnvProperty(String.format(CONCURRENCY_PROP, name), DEFAULT_CONCURRENCY);
 		final boolean stats = ConfigurationHelper.getBooleanSystemThenEnvProperty(String.format(STATS_ENABLED_PROP, name), DEFAULT_STATS_ENABLED);
-		final long initialCount = sqlWorker.sqlForLong(COUNT_SQL, name);
+		final long initialCount = sqlWorker.sqlForLong(String.format(COUNT_SQL, uidType.name()));
 		final long initialSize = (initialCount > maxSize) ? maxSize : initialCount;
-		final String spec = String.format(SPEC_TEMPLATE, concurrency, initialSize, maxSize, stats);		
+		final String spec = String.format(stats ? SPEC_TEMPLATE_WSTATS : SPEC_TEMPLATE_NOSTATS, concurrency, initialSize, maxSize);		
 		cache = CacheBuilder.from(spec).build();
 		if(stats) {
 			objectName = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=UIDCache,type=").append(uidType.name()));
 			JMXHelper.registerMBean(objectName, new CacheStatistics(cache, objectName));
 		} else {
 			objectName = null;
-		}		
+		}
+		put(metaReader.readUIDMetas(sqlWorker.executeQuery(String.format(INITIAL_LOAD_SQL, uidType.name()), false, initialSize), uidType).toArray(new UIDMeta[0]));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.SQLWorker.ResultSetHandler#onRow(int, java.sql.ResultSet)
+	 */
+	@Override
+	public boolean onRow(int rowId, ResultSet rset) {
+		return true;
 	}
 	
 	/**
@@ -139,33 +148,64 @@ public class UIDCache {
 	 * @param conn The connection to use if the loader is called
 	 * @return The UID name
 	 */
-	public String get(final String key, final Connection conn) {
+	public UIDMeta get(final String key, final Connection conn) {
 		try {
 			return cache.get(key, Callables.returning(getName(key, conn)));
 		} catch (Exception ex) {
 			throw new RuntimeException("UIDCache [" + uidType + "] failed on looking up [" + key + "]", ex);
 		}
-		
 	}
-
-	protected String getName(final String key, final Connection conn) {
-		String name = sqlWorker.sqlForString(conn, loadSql, key);
-		if(name==null) {
-			
-		}
-		return name;
-	}
-		
-	
 
 	/**
-	 * @param key
-	 * @param value
-	 * @see com.google.common.cache.Cache#put(java.lang.Object, java.lang.Object)
+	 * Attempts to retrieve the UIDMeta from the DB
+	 * @param key The UID of the target UIDMeta
+	 * @param conn The optional connection
+	 * @return the UIDMeta or null if one was not found
 	 */
-	public void put(String key, String value) {
-		cache.put(key, value);
+	protected UIDMeta getName(final String key, final Connection conn) {
+		TSDBCachedRowSetImpl rset = (TSDBCachedRowSetImpl)sqlWorker.executeQuery(conn, loadSql, true, key);
+		if(rset.size()==0) {
+			return null;
+		}		
+		try {
+			rset.setMaxRows(1);
+			List<UIDMeta> uidMetas = metaReader.readUIDMetas(rset, uidType);
+			if(uidMetas==null || uidMetas.isEmpty()) return null;
+			return uidMetas.get(0);
+		} catch (Exception ex) {
+			throw new RuntimeException("UIDCache [" + uidType + "] failed on looking up [" + key + "]", ex);
+		}
+	}
+		
+	/**
+	 * Determines if the UIDMeta with the passed UID is in cache
+	 * @param key The UIDMeta's UID
+	 * @return true if present, false otherwise
+	 */
+	public boolean contains(String key) {
+		if(key==null || key.trim().isEmpty()) return false;
+		return cache.getIfPresent(key)!=null;
+	}
+
+	/**
+	 * Returns the number of entries in this cache
+	 * @return the number of entries in this cache
+	 */
+	public long size() {
+		return cache.size();
 	}
 	
-	
+	/**
+	 * Puts an array of UIDMetas into cache
+	 * @param values the UIDMetas to cache 
+	 * @see com.google.common.cache.Cache#put(java.lang.Object, java.lang.Object)
+	 */
+	public void put(UIDMeta...values) {
+		for(UIDMeta value: values) {
+			if(value != null && value.getUID()!=null && !value.getUID().trim().isEmpty()) {
+				cache.put(value.getUID().trim(), value);
+			}
+		}
+	}
+
 }

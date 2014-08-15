@@ -137,7 +137,7 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.UIDMeta, net.opentsdb.catalog.TSDBTable)
 	 */
 	@Override
 	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
@@ -147,7 +147,7 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.TSMeta)
 	 */
 	@Override
 	public void recordSyncQueueFailure(TSMeta tsMeta) {
@@ -157,7 +157,7 @@ public class PostgresDBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.Annotation)
 	 */
 	@Override
 	public void recordSyncQueueFailure(Annotation ann) {

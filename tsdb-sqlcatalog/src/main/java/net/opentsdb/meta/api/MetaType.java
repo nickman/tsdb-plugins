@@ -22,11 +22,11 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.meta;
+package net.opentsdb.meta.api;
 
 import java.util.EnumSet;
 
-import static net.opentsdb.meta.MetaOption.*;
+import static net.opentsdb.meta.api.MetaOption.*;
 
 /**
  * <p>Title: MetaType</p>
@@ -35,15 +35,15 @@ import static net.opentsdb.meta.MetaOption.*;
  * but intended to define the different data structure types.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.MetaType</code></p>
+ * <p><code>net.opentsdb.meta.api.MetaType</code></p>
  */
 
 public enum MetaType implements BitMaskEnum {
-	/** A metric or tag definition ({@link net.opentsdb.meta.UIDMeta}) */
+	/** A metric or tag definition ({@link net.opentsdb.meta.api.UIDMeta}) */
 	UID(XUID, NAME, DISPLAY_NAME, DESCRIPTION, NOTES, CUSTOM, CREATED, TYPE),
-	/** An annotation definition ({@link net.opentsdb.meta.Annotation}) */
+	/** An annotation definition ({@link net.opentsdb.meta.api.Annotation}) */
 	ANNOTATION(XUID, NAME, DISPLAY_NAME, DESCRIPTION, NOTES, CUSTOM, CREATED, ENDTIME, STARTTIME),
-	/** An TSMeta definition ({@link net.opentsdb.meta.TSMeta}) */
+	/** An TSMeta definition ({@link net.opentsdb.meta.api.TSMeta}) */
 	TSUID(XUID, NAME, DISPLAY_NAME, DESCRIPTION, NOTES, CUSTOM, CREATED, DATATYPE, MAX, MIN, RETENTION, TAGS, UNITS);
 	
 	private MetaType(MetaOption...metaOptions) {

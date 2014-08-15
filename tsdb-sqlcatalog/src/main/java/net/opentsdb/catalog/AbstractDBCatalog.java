@@ -840,7 +840,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#bindUIDMeta(net.opentsdb.meta.UIDMeta, java.sql.PreparedStatement)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#bindUIDMeta(net.opentsdb.meta.api.UIDMeta, java.sql.PreparedStatement)
 	 */
 	@Override
 	public void bindUIDMeta(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
@@ -849,7 +849,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#bindUIDMetaUpdate(net.opentsdb.meta.UIDMeta, java.sql.PreparedStatement)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#bindUIDMetaUpdate(net.opentsdb.meta.api.UIDMeta, java.sql.PreparedStatement)
 	 */
 	@Override
 	public void bindUIDMetaUpdate(UIDMeta uidMeta, PreparedStatement ps) throws SQLException {
@@ -941,7 +941,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#processUIDMeta(java.sql.Connection, net.opentsdb.meta.UIDMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#processUIDMeta(java.sql.Connection, net.opentsdb.meta.api.UIDMeta)
 	 */
 	@Override
 	public void processUIDMeta(Connection conn, UIDMeta uidMeta) {
@@ -1130,7 +1130,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#processAnnotation(java.sql.Connection, net.opentsdb.meta.Annotation)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#processAnnotation(java.sql.Connection, net.opentsdb.meta.api.Annotation)
 	 */
 	@Override
 	public void processAnnotation(Connection conn, Annotation annotation) {
@@ -1249,7 +1249,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#processTSMeta(java.util.Set, java.sql.Connection, net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#processTSMeta(java.util.Set, java.sql.Connection, net.opentsdb.meta.api.TSMeta)
 	 */
 	@Override
 	public void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta) {
@@ -1320,7 +1320,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#processUIDMetaPair(java.util.Set, java.sql.Connection, net.opentsdb.meta.UIDMeta[])
+	 * @see net.opentsdb.catalog.CatalogDBInterface#processUIDMetaPair(java.util.Set, java.sql.Connection, net.opentsdb.meta.api.UIDMeta[])
 	 */
 	@Override
 	public String processUIDMetaPair(final Set<String> batchUidPairs, Connection conn, UIDMeta[] tagPair) {
@@ -1676,7 +1676,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.api.TSMeta)
 	 */
 	@Override
 	public boolean exists(Connection conn, TSMeta tsMeta) {
@@ -1694,7 +1694,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.api.TSMeta)
 	 */
 	@Override
 	public boolean exists(TSMeta tsMeta) {
@@ -1705,7 +1705,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.UIDMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(java.sql.Connection, net.opentsdb.meta.api.UIDMeta)
 	 */
 	@Override
 	public boolean exists(Connection conn, UIDMeta uidMeta) {
@@ -1715,7 +1715,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.UIDMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.api.UIDMeta)
 	 */
 	@Override
 	public boolean exists(UIDMeta uidMeta) {
@@ -1726,7 +1726,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.Annotation)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#exists(net.opentsdb.meta.api.Annotation)
 	 */
 	@Override
 	public boolean exists(Annotation annotation) {
@@ -2569,7 +2569,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.api.UIDMeta, net.opentsdb.catalog.TSDBTable)
 	 */
 	public void clearSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
 		sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", tsdbTable.name(), uidMeta.getUID());
@@ -2577,7 +2577,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.api.TSMeta)
 	 */
 	public void clearSyncQueueFailure(TSMeta tsMeta) {
 		sqlWorker.execute("DELETE FROM TSD_LASTSYNC_FAILS WHERE TABLE_NAME = ? AND OBJECT_ID = ?", "TSD_TSMETA", tsMeta.getTSUID());
@@ -2585,7 +2585,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#clearSyncQueueFailure(net.opentsdb.meta.api.Annotation)
 	 */
 	public void clearSyncQueueFailure(Annotation ann) {
 		String tsuid = ann.getTSUID();

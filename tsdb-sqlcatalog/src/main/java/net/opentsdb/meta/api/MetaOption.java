@@ -22,7 +22,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.meta;
+package net.opentsdb.meta.api;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +35,7 @@ import java.util.Set;
  * <p>Description: Defines the levels of meta data that can be requested when issuing a meta-api request</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.MetaOption</code></p>
+ * <p><code>net.opentsdb.meta.api.MetaOption</code></p>
  */
 
 public enum MetaOption implements BitMaskEnum {

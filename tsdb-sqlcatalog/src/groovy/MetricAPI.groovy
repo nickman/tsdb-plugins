@@ -1,5 +1,5 @@
 import net.opentsdb.catalog.*;
-import net.opentsdb.meta.*;
+import net.opentsdb.meta.api.*;
 import com.stumbleupon.async.*
 import org.slf4j.*;
 import ch.qos.logback.classic.*;

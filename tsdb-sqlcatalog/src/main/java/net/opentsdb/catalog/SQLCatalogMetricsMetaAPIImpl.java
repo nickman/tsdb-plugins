@@ -28,7 +28,6 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,10 +39,10 @@ import java.util.regex.Pattern;
 
 import net.opentsdb.core.Const;
 import net.opentsdb.core.TSDB;
-import net.opentsdb.meta.MetricsMetaAPI;
-import net.opentsdb.meta.QueryOptions;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
+import net.opentsdb.meta.api.MetricsMetaAPI;
+import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.utils.JSON;
 
@@ -149,10 +148,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagKeys(net.opentsdb.meta.QueryOptions, java.lang.String, java.lang.String[])
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTagKeys(net.opentsdb.meta.api.QueryContext, java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagKeys(final QueryOptions queryOptions, final String metric, final String...tagKeys) {
+	public Deferred<Set<UIDMeta>> getTagKeys(final QueryContext queryOptions, final String metric, final String...tagKeys) {
 		return getUIDsFor(UniqueId.UniqueIdType.TAGK, UniqueId.UniqueIdType.METRIC, queryOptions, metric, tagKeys);
 	}
 	
@@ -173,7 +172,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param excludes Values of the target name that we don't want
 	 * @return A deferred result to a set of matching UIDMetas of the type defined in the target argument
 	 */
-	protected Deferred<Set<UIDMeta>> getUIDsFor(final UniqueId.UniqueIdType targetType, final UniqueId.UniqueIdType filterType, final QueryOptions queryOptions, final String filterName, final String...excludes) {
+	protected Deferred<Set<UIDMeta>> getUIDsFor(final UniqueId.UniqueIdType targetType, final UniqueId.UniqueIdType filterType, final QueryContext queryOptions, final String filterName, final String...excludes) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {
@@ -203,10 +202,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, predicate, keyBinds, XUID_START_SQL);
 						binds.add(queryOptions.getNextIndex());
 					}
-					binds.add(queryOptions.getPageSize());
-					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
-					log.info("Executing SQL [{}] with binds {}", sql, binds);
-					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.TAGK));
+					final int modPageSize = queryOptions.getPageSize();
+					binds.add(modPageSize);					
+					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
+							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), targetType)
+					);
 					def.callback(uidMetas);
 				} catch (Exception ex) {
 					log.error("Failed to execute getTagKeysFor.\nSQL was [{}]", sql, ex);
@@ -238,18 +238,26 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	
 	class ResultCompleteCallback<T> implements Callback<Void, T> {
+		/** The original JSON request */
 		private final JSONRequest request;		
+		/** The current query context */
+		private final QueryContext ctx;
 		/**
 		 * Creates a new ResultCompleteCallback
-		 * @param request
+		 * @param request The original JSON request
+		 * @parma ctx The current query context
 		 */
-		public ResultCompleteCallback(JSONRequest request) {
+		public ResultCompleteCallback(JSONRequest request, QueryContext ctx) {
 			this.request = request;
+			this.ctx = ctx;
 		}
 		@Override
 		public Void call(T result) throws Exception {
 			try {
-				JSON.getMapper().writeValue(request.response().getChannelOutputStream(), result);
+				ArrayNode an = JSON.getMapper().createArrayNode();
+				an.insertPOJO(0, ctx);
+				an.insertPOJO(0, result);
+				JSON.getMapper().writeValue(request.response().getChannelOutputStream(), an);
 			} catch (Exception e) {
 				request.error("Failed to get metric names", e);
 				log.error("Failed to get metric names", e);
@@ -259,7 +267,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	}
 
 	/**
-	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])} 
+	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])} 
 	 * @param request The JSON request
 	 * <p>Sample request:<pre>
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }
@@ -267,22 +275,22 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 */
 	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
 	public void jsonMetricNames(final JSONRequest request) {
-		QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
 		final ArrayNode keysArr = (ArrayNode)request.getRequest().get("keys");
 		final String[] keys = new String[keysArr.size()];
 		for(int i = 0; i < keysArr.size(); i++) {
 			keys[i] = keysArr.get(i).asText();
 		}
 		log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(keys));		
-		getMetricNames(q, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request));
+		getMetricNames(q, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNames(final QueryOptions queryOptions, final String... tagKeys) {
+	public Deferred<Set<UIDMeta>> getMetricNames(final QueryContext queryOptions, final String... tagKeys) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -315,10 +323,12 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = keySql.toString();
 					}
-					binds.add(queryOptions.getPageSize());
+					final int modPageSize = queryOptions.getPageSize() + 1;
+					binds.add(modPageSize);
 					log.info("Executing SQL [{}] with binds {}", sql, binds);
-					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
-					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC));					
+					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
+							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
+					);
 					def.callback(uidMetas);
 				} catch (Exception ex) {
 					log.error("Failed to execute getMetricNamesFor.\nSQL was [{}]", sql, ex);
@@ -328,6 +338,76 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		});
 		return def;
 	}
+	
+
+	private static final Set<UIDMeta> EMPTY_UIDMETA_SET =  Collections.unmodifiableSet(new LinkedHashSet<UIDMeta>(0));
+	private static final Set<TSMeta> EMPTY_TSMETA_SET =  Collections.unmodifiableSet(new LinkedHashSet<TSMeta>(0));
+	
+	/**
+	 * Closes out a UIDMeta query result, updating the QueryContext to indicate if the results are exhausted,
+	 * and if not, what the next page start index is
+	 * @param modPageSize The modified page size (one more than what was requested)
+	 * @param ctx The query context to update
+	 * @param readMetas The materialized UIDMetas being returned
+	 * @return The set of UIDMetas to return
+	 */
+	protected Set<UIDMeta> closeOutUIDMetaResult(final int modPageSize, final QueryContext ctx, final List<UIDMeta> readMetas) {
+		UIDMeta lastUIDMeta = null;
+		if(readMetas.isEmpty()) {
+			ctx.setExhausted(true);
+			ctx.setNextIndex(null);
+			return EMPTY_UIDMETA_SET;
+		} else {
+			final int size = readMetas.size(); 
+			if(size < modPageSize) {
+				ctx.setExhausted(true);
+				lastUIDMeta = readMetas.get(size-1);
+			} else {
+				lastUIDMeta = readMetas.get(size-2);
+				readMetas.remove(size-1);							
+			}						
+		}
+		if(lastUIDMeta!=null) {
+			ctx.setNextIndex(lastUIDMeta.getUID());
+		} else {
+			ctx.setNextIndex(null);
+		}		
+		return readMetas.isEmpty() ? EMPTY_UIDMETA_SET : new LinkedHashSet<UIDMeta>(readMetas);
+	}
+	
+	/**
+	 * Closes out a TSMeta query result, updating the QueryContext to indicate if the results are exhausted,
+	 * and if not, what the next page start index is
+	 * @param modPageSize The modified page size (one more than what was requested)
+	 * @param ctx The query context to update
+	 * @param readMetas The materialized TSMetas being returned
+	 * @return The set of TSMetas to return
+	 */
+	protected Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {
+		TSMeta lastTSMeta = null;
+		if(readMetas.isEmpty()) {
+			ctx.setExhausted(true);
+			ctx.setNextIndex(null);
+			return EMPTY_TSMETA_SET;
+		} else {
+			final int size = readMetas.size(); 
+			if(size < modPageSize) {
+				ctx.setExhausted(true);
+				lastTSMeta = readMetas.get(size-1);
+			} else {
+				lastTSMeta = readMetas.get(size-2);
+				readMetas.remove(size-1);							
+			}						
+		}
+		if(lastTSMeta!=null) {
+			ctx.setNextIndex(lastTSMeta.getTSUID());
+		} else {
+			ctx.setNextIndex(null);
+		}		
+		return readMetas.isEmpty() ? EMPTY_TSMETA_SET : new LinkedHashSet<TSMeta>(readMetas);
+	}
+	
+	
 
 	/** The Metric Name Retrieval SQL template when tag pairs are provided */
 	public static final String GET_METRIC_NAMES_WITH_TAGS_SQL =
@@ -343,7 +423,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 	
 	/**
-	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.QueryOptions, java.lang.String[])} 
+	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])} 
 	 * @param request The JSON request
 	 * <p>Sample request:<pre>
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricswtags", "q": { "pageSize" : 10 }, "tags" : {"host" : "*", "type" : "combined"}}
@@ -351,7 +431,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 */
 	@JSONRequestHandler(name="metricswtags", description="Returns the MetricNames that match the passed tag pairs")
 	public void jsonMetricNamesWithTags(final JSONRequest request) {
-		QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
 		ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
 		final Map<String, String> tags = new TreeMap<String, String>();
 		Iterator<String> titer = tagNode.fieldNames();
@@ -360,17 +440,17 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			tags.put(key, tagNode.get(key).asText());
 		}
 		log.info("Processing jsonMetricNamesWithTags. q: [{}], tags: {}", q, tags);		
-		getMetricNames(q, tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request));
+		getMetricNames(q, tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
 
 
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.QueryOptions, java.util.Map)
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.util.Map)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNames(final QueryOptions queryOptions, final Map<String, String> tags) {
+	public Deferred<Set<UIDMeta>> getMetricNames(final QueryContext queryOptions, final Map<String, String> tags) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -414,10 +494,12 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = String.format(keySql.toString(), likeOrEquals.toArray());
 					}
-					binds.add(queryOptions.getPageSize());
+					final int modPageSize = queryOptions.getPageSize(); 
+					binds.add(modPageSize);
 					log.info("Executing SQL [{}] with binds {}", sql, binds);
-					final Set<UIDMeta> uidMetas = new LinkedHashSet<UIDMeta>(queryOptions.getPageSize());
-					uidMetas.addAll(metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC));					
+					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
+							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
+					);
 					def.callback(uidMetas);
 				} catch (Exception ex) {
 					log.error("Failed to execute getMetricNamesFor (with tags).\nSQL was [{}]", sql, ex);
@@ -456,7 +538,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 	
 	/**
-	 * HTTP and WebSocket exposed interface to {@link #getTSMetas(net.opentsdb.meta.QueryOptions, boolean, java.lang.String, java.util.Map)} 
+	 * HTTP and WebSocket exposed interface to {@link #getTSMetas(net.opentsdb.meta.api.QueryContext, boolean, java.lang.String, java.util.Map)} 
 	 * @param request The JSON request
 	 * <p>Sample request:<pre>
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"tsmetas", "q": { "pageSize" : 10 }, "m":"sys.cp*", "overflow":false,  "tags" : {"host" : "*NWHI*"}}
@@ -464,7 +546,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 */
 	@JSONRequestHandler(name="tsmetas", description="Returns the MetricNames that match the passed tag pairs")
 	public void jsonTSMetas(final JSONRequest request) {
-		final QueryOptions q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryOptions.class);
+		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
 		final String metricName = request.getRequest().get("m").textValue();
 		final boolean overflow = request.getRequest().get("overflow").asBoolean(false);
 		final ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
@@ -475,16 +557,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			tags.put(key, tagNode.get(key).asText());
 		}
 		log.info("Processing jsonTSMetas. q: [{}], tags: {}", q, tags);		
-		getTSMetas(q, overflow, metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request));
+		getTSMetas(q, overflow, metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
 	}
 	
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.QueryOptions, boolean, java.lang.String, java.util.Map)
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, boolean, java.lang.String, java.util.Map)
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> getTSMetas(final QueryOptions queryOptions, final boolean overflow, final String metricName, final Map<String, String> tags) {
+	public Deferred<Set<TSMeta>> getTSMetas(final QueryContext queryOptions, final boolean overflow, final String metricName, final Map<String, String> tags) {
 		final Deferred<Set<TSMeta>> def = new Deferred<Set<TSMeta>>();		
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -499,9 +581,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						}
 					}
 					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
-					binds.add(queryOptions.getPageSize());
+					final int modPageSize = queryOptions.getPageSize();
+					binds.add(modPageSize);
 					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
-					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
+					
 					// =================================================================================================================================
 					//    LOAD TSMETAS FROM TSDB/HBASE
 					// =================================================================================================================================
@@ -513,7 +596,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					// =================================================================================================================================
 					//	LOADS TSMETAS FROM THE SQL CATALOG DB
 					// =================================================================================================================================
-					tsMetas.addAll(metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true));					
+					
+					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryOptions, 
+							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
+					);
 					def.callback(tsMetas);
 				} catch (Exception ex) {
 					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
@@ -533,7 +619,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
 	 */
-	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryOptions queryOptions, final String metricName, final Map<String, String> tags) {
+	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
@@ -610,6 +696,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		") Q WHERE Q.FQNID = XA.FQNID AND K.NAME NOT IN ('host', 'type') " +
 	   ")";
 	
+	/*
+	 * No need to join to TSD_TSMETA if no metric name is provided.
+	 * If metric name is not null, do an inner exists against TSD_TSMETA
+	 */
+	
 
 	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
 	public static final String GET_TAG_VALUES_NO_TAGS_NO_METRIC_NAME_SQL =
@@ -622,10 +713,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#getTagValues(net.opentsdb.meta.QueryOptions, java.lang.String, java.util.Map, java.lang.String)
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTagValues(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagValues(final QueryOptions queryOptions, final String metricName, final Map<String, String> tags, final String tagKey) {
+	public Deferred<Set<UIDMeta>> getTagValues(final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String tagKey) {
 		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();		
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {				
@@ -661,10 +752,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.MetricsMetaAPI#evaluate(net.opentsdb.meta.QueryOptions, java.lang.String[])
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> evaluate(QueryOptions queryOptions, String... expressions) {
+	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String... expressions) {
 		// TODO Auto-generated method stub
 		return null;
 	}

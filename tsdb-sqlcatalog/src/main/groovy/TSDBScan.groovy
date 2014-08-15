@@ -3,7 +3,7 @@ import org.hbase.async.*;
 import java.nio.charset.*;
 import org.helios.tsdb.plugins.util.SystemClock;
 import net.opentsdb.uid.*;
-import net.opentsdb.meta.*;
+import net.opentsdb.meta.api.*;
 import net.opentsdb.core.*;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 

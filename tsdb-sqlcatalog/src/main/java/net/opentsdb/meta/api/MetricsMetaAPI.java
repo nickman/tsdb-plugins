@@ -22,10 +22,13 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.meta;
+package net.opentsdb.meta.api;
 
 import java.util.Map;
 import java.util.Set;
+
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
 
 import com.stumbleupon.async.Deferred;
 
@@ -34,10 +37,10 @@ import com.stumbleupon.async.Deferred;
  * <p>Description: Defines a proposed OpenTSDB metrics meta-data access API</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.MetricsMetaAPI</code></p>
+ * <p><code>net.opentsdb.meta.api.MetricsMetaAPI</code></p>
  * <p>NOTES: <ul>
  * 	<li>Read Only</li>
- * 	<li>No meta requiring extended reads, such as {@link net.opentsdb.meta.TSMeta#getLastReceived()} or {@link net.opentsdb.meta.TSMeta#getTotalDatapoints()}</li>
+ * 	<li>No meta requiring extended reads, such as {@link net.opentsdb.meta.api.TSMeta#getLastReceived()} or {@link net.opentsdb.meta.api.TSMeta#getTotalDatapoints()}</li>
  * </ul></p>
  */
 
@@ -52,7 +55,7 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getTagKeys(QueryOptions queryOptions, String metric, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getTagKeys(QueryContext queryOptions, String metric, String...tagKeys);
 	
 	/**
 	 * <p>Returns the tag values associated with the passed metric name and tag keys.</p>
@@ -74,7 +77,7 @@ public interface MetricsMetaAPI {
 	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
 	 *  </ul>
 	 */
-	public Deferred<Set<UIDMeta>> getTagValues(QueryOptions queryOptions, String metric, Map<String, String> tagPairs, String tagKey);
+	public Deferred<Set<UIDMeta>> getTagValues(QueryContext queryOptions, String metric, Map<String, String> tagPairs, String tagKey);
 
 	
 	/**
@@ -84,7 +87,7 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNames(QueryOptions queryOptions, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryOptions, String...tagKeys);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag pairs.
@@ -93,7 +96,7 @@ public interface MetricsMetaAPI {
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNames(QueryOptions queryOptions, Map<String, String> tags);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryOptions, Map<String, String> tags);
 	
 	/**
 	 * Returns the TSMetas matching the passed metric name and tags
@@ -104,7 +107,7 @@ public interface MetricsMetaAPI {
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching TSMetas 
 	 */
-	public Deferred<Set<TSMeta>> getTSMetas(QueryOptions queryOptions, boolean overflow, String metricName, Map<String, String> tags);
+	public Deferred<Set<TSMeta>> getTSMetas(QueryContext queryOptions, boolean overflow, String metricName, Map<String, String> tags);
 	
 	
 
@@ -116,6 +119,6 @@ public interface MetricsMetaAPI {
 	 * @param queryOptions The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Deferred<Set<TSMeta>> evaluate(QueryOptions queryOptions, String...expressions);
+	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String...expressions);
 	
 }

@@ -509,7 +509,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.UIDMeta, net.opentsdb.catalog.TSDBTable)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.UIDMeta, net.opentsdb.catalog.TSDBTable)
 	 */
 	public void recordSyncQueueFailure(UIDMeta uidMeta, TSDBTable tsdbTable) {
 		String sqlText = "MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) "
@@ -519,7 +519,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.TSMeta)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.TSMeta)
 	 */
 	public void recordSyncQueueFailure(TSMeta tsMeta) {
 		String sqlText = "MERGE INTO TSD_LASTSYNC_FAILS KEY(TABLE_NAME, OBJECT_ID) "
@@ -529,7 +529,7 @@ public class H2DBCatalog extends AbstractDBCatalog {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.Annotation)
+	 * @see net.opentsdb.catalog.CatalogDBInterface#recordSyncQueueFailure(net.opentsdb.meta.api.Annotation)
 	 */
 	public void recordSyncQueueFailure(Annotation ann) {
 		String tsuid = ann.getTSUID();

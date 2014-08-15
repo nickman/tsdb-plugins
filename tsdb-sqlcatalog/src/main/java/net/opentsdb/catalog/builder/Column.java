@@ -22,39 +22,46 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.meta;
+package net.opentsdb.catalog.builder;
 
 /**
- * <p>Title: OutputFormat</p>
- * <p>Description: The format of the format data</p> 
+ * <p>Title: Column</p>
+ * <p>Description: Enumerates the table columns in the SQL catalog</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.OutputFormat</code></p>
+ * <p><code>net.opentsdb.catalog.builder.Column</code></p>
  */
 
-public enum OutputFormat {
-	/** A serialized Java list of maps of each result in the format */
-	LIST,
-	/** A JSON representation of each result in the format */
-	JSON,
-	/** The native OpenTSDB POJOS */
-	POJO;
+public enum Column {
+	ANNID,
+	CREATED,
+	CUSTOM,
+	DATA_TYPE,
+	DESCRIPTION,
+	DISPLAY_NAME,
+	END_TIME,
+	FQN,
+	FQNID,
+	FQN_TP_ID,
+	LAST_UPDATE,
+	MAX_VALUE,
+	METRIC_UID,
+	MIN_VALUE,
+	NAME,
+	NODE,
+	NOTES,
+	PORDER,
+	RETENTION,
+	START_TIME,
+	TAGK,
+	TAGV,
+	TSUID,
+	UNITS,
+	VERSION,
+	XUID;
 	
-	private static final OutputFormat[] _values = OutputFormat.values();
 	
-	/**
-	 * Decodes the passed number to a OutputFormat via their ordinals
-	 * @param num The number to decode
-	 * @return The decoded OutputFormat
-	 */
-	public static OutputFormat decode(Number num) {
-		if(num==null) throw new IllegalArgumentException("The passed number was null");
-		final int ord = num.intValue();
-		try {
-			return _values[ord];
-		} catch (Exception x) {
-			throw new IllegalArgumentException("The passed number was not a recognized OutputFormat Ordinal [" + ord + "]");
-		}
+	public String as(String alias) {
+		return name() + " as \"" + alias + "\"";
 	}
-	
 }

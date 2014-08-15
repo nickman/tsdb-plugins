@@ -22,14 +22,14 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package net.opentsdb.meta;
+package net.opentsdb.meta.api;
 
 /**
  * <p>Title: BitMaskEnum</p>
  * <p>Description: Support interface for bit masked enums.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.BitMaskEnum</code></p>
+ * <p><code>net.opentsdb.meta.api.BitMaskEnum</code></p>
  */
 
 public interface BitMaskEnum {

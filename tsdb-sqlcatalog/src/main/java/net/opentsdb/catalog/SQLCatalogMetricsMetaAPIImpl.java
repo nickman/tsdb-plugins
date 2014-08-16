@@ -24,7 +24,7 @@
  */
 package net.opentsdb.catalog;
 
-import java.io.FileInputStream;
+import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +37,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.opentsdb.catalog.datasource.CatalogDataSource;
@@ -154,12 +155,13 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	public static void main(String[] args) {
 		log("DB Only MetaInstance");
-		FileInputStream fis = null;
+//		FileInputStream fis = null;
 		try {
 			ConfigurationHelper.createPluginJar(net.opentsdb.catalog.TSDBCatalogSearchEventHandler.class);
-			fis = new FileInputStream("c:/services/opentsdb/tsdb.conf");
+//			fis = new FileInputStream("c:/services/opentsdb/tsdb.conf");
 			// tsd.core.plugin_path=c:/services/opentsdb/plugins
-			Config cfg = new Config(fis);
+			File file = new File("./src/test/resources/configs/search-plugin.conf");
+			Config cfg = new Config(file.getAbsolutePath());
 			cfg.overrideConfig("tsd.core.plugin_path", ConfigurationHelper.TMP_PLUGIN_DIR);
 			Properties config = new Properties();
 			config.putAll(cfg.getMap());
@@ -178,7 +180,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		} catch (Exception ex) {
 			loge("Start Failed", ex);
 		} finally {
-			if(fis!=null) try { fis.close(); } catch (Exception x) {/* No Op */}
+//			if(fis!=null) try { fis.close(); } catch (Exception x) {/* No Op */}
 		}
 	}
 	
@@ -191,6 +193,23 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			System.err.println("Stack Trace Follows....");
 			((Throwable)args[args.length-1]).printStackTrace(System.err);
 		}
+	}
+	
+	private static final Pattern Q_PATTERN = Pattern.compile("\\?");
+	
+	public static String fillInSQL(String sql, List<Object> binds) {
+		final int bindCnt = binds.size();
+		Matcher m = Q_PATTERN.matcher(sql);
+		for(int i = 0; i < bindCnt; i++) {
+			Object bind = binds.get(i);
+			if(bind instanceof CharSequence) {
+				sql = m.replaceFirst("'" + bind.toString() + "'");
+			} else {
+				sql = m.replaceFirst(bind.toString());
+			}		
+			m = Q_PATTERN.matcher(sql);
+		}
+		return sql;
 	}
 	
 	/**
@@ -251,7 +270,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					}
 					final int modPageSize = queryOptions.getPageSize();
 					binds.add(modPageSize);					
-					log.info("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), targetType)
 					);
@@ -373,7 +392,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					}
 					final int modPageSize = queryOptions.getPageSize() + 1;
 					binds.add(modPageSize);
-					log.info("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
 					);
@@ -544,7 +563,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					}
 					final int modPageSize = queryOptions.getPageSize(); 
 					binds.add(modPageSize);
-					log.info("Executing SQL [{}] with binds {}", sql, binds);
+					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
 					);
@@ -632,7 +651,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					generateTSMetaSQL(overflow, sqlBuffer, binds, queryOptions, metricName, tags);
 					final int modPageSize = queryOptions.getPageSize();
 					binds.add(modPageSize);
-					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
+					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					
 					// =================================================================================================================================
 					//    LOAD TSMETAS FROM TSDB/HBASE
@@ -776,7 +795,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				try {
 					generateTSMetaSQL(true, sqlBuffer, binds, queryOptions, metricName, tags);
 					binds.add(queryOptions.getPageSize());
-					log.debug("Executing SQL [{}] with binds {}", sqlBuffer, binds);
+					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
 					// =================================================================================================================================
 					//    LOAD TSMETAS FROM TSDB/HBASE
@@ -873,3 +892,90 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 
 }
+
+
+
+
+/*
+POIFECT VALUE SQL:
+==================
+SELECT
+*
+FROM
+(
+   SELECT
+   DISTINCT T.NODE, V.*
+   FROM TSD_TSMETA X,
+   TSD_METRIC M,
+   TSD_FQN_TAGPAIR T,
+   TSD_TAGPAIR P,
+   TSD_TAGK K,
+   TSD_TAGV V
+   WHERE M.XUID = X.METRIC_UID
+   AND X.FQNID = T.FQNID
+   AND T.XUID = P.XUID
+   AND P.TAGK = K.XUID
+   AND (M.NAME = 'sys.cpu')
+   AND P.TAGV = V.XUID
+   AND (K.NAME = 'dc')
+   AND (V.NAME = 'dc3' OR V.NAME = 'dc4') UNION
+   SELECT
+   DISTINCT T.NODE, V.*
+   FROM TSD_TSMETA X,
+   TSD_METRIC M,
+   TSD_FQN_TAGPAIR T,
+   TSD_TAGPAIR P,
+   TSD_TAGK K,
+   TSD_TAGV V
+   WHERE M.XUID = X.METRIC_UID
+   AND X.FQNID = T.FQNID
+   AND T.XUID = P.XUID
+   AND P.TAGK = K.XUID
+   AND (M.NAME = 'sys.cpu')
+   AND P.TAGV = V.XUID
+   AND (K.NAME = 'host')
+   AND (V.NAME LIKE 'Web%1') UNION
+   SELECT
+   DISTINCT T.NODE, V.*
+   FROM TSD_TSMETA X,
+   TSD_METRIC M,
+   TSD_FQN_TAGPAIR T,
+   TSD_TAGPAIR P,
+   TSD_TAGK K,
+   TSD_TAGV V
+   WHERE M.XUID = X.METRIC_UID
+   AND X.FQNID = T.FQNID
+   AND T.XUID = P.XUID
+   AND P.TAGK = K.XUID
+   AND (M.NAME = 'sys.cpu')
+   AND P.TAGV = V.XUID
+   AND (K.NAME = 'type')
+   AND (V.NAME = 'combined')
+)
+X
+WHERE NODE = 'L'
+--WHERE X.TSUID <= 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+--ORDER BY X.TSUID DESC LIMIT 300
+ORDER BY X.XUID DESC LIMIT 300
+
+====================================
+
+NON OVERFLOWING TSMETAS:
+========================
+
+	SELECT X.*
+	FROM TSD_FQN_TAGPAIR T, TSD_TSMETA X WHERE X.FQNID = T.FQNID
+	GROUP BY X.FQNID
+	HAVING SUM(CASE WHEN T.XUID IN (
+	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'dc') AND (V.NAME = 'dc1'))
+	   UNION ALL
+	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'host') AND (V.NAME = 'WebServer1'))
+	   UNION ALL
+	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'type') AND (V.NAME = 'combined'))	
+	) THEN 1 ELSE 0 END) = 3
+
+
+
+
+
+*/

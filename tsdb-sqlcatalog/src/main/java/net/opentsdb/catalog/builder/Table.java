@@ -68,19 +68,19 @@ import java.util.Map;
 
 public enum Table {
 	/** Associative table between TSD_TSMETA and TSD_TAGPAIR, or the TSMeta and the Tag keys and values of the UIDMetas therein */
-	TSD_FQN_TAGPAIR("F", FQN_TP_ID,NODE,XUID,FQNID,PORDER),
+	TSD_FQN_TAGPAIR("F", FQN_TP_ID, FQNID, XUID, PORDER, NODE),
 	/** Table storing the observed unique tag key and value pairs associated with a time-series/TSMeta */
-	TSD_TAGPAIR("P", XUID,TAGV,TAGK,NAME),
+	TSD_TAGPAIR("P", XUID, TAGK, TAGV, NAME),
 	/** Table storing distinct time-series metric names */
-	TSD_METRIC("M", XUID,DISPLAY_NAME,LAST_UPDATE,NOTES,NAME,VERSION,DESCRIPTION,CREATED,CUSTOM),
+	TSD_METRIC("M", XUID, VERSION, NAME, CREATED, LAST_UPDATE, DESCRIPTION, DISPLAY_NAME, NOTES, CUSTOM),
 	/** Table storing created annotations */
-	TSD_ANNOTATION("A", ANNID,LAST_UPDATE,NOTES,END_TIME,CUSTOM,FQNID,START_TIME,VERSION,DESCRIPTION),
+	TSD_ANNOTATION("A", ANNID, VERSION, START_TIME, LAST_UPDATE, DESCRIPTION, NOTES, FQNID, END_TIME, CUSTOM),
 	/** Table storing distinct time-series tag keys */
-	TSD_TAGK("K", XUID,DISPLAY_NAME,LAST_UPDATE,NOTES,NAME,VERSION,DESCRIPTION,CREATED,CUSTOM),
+	TSD_TAGK("K", XUID, VERSION, NAME, CREATED, LAST_UPDATE, DESCRIPTION, DISPLAY_NAME, NOTES, CUSTOM),
 	/** Table storing distinct time-series tag values */
-	TSD_TAGV("V", XUID,DISPLAY_NAME,LAST_UPDATE,NOTES,NAME,VERSION,DESCRIPTION,CREATED,CUSTOM),
+	TSD_TAGV("V", XUID, VERSION, NAME, CREATED, LAST_UPDATE, DESCRIPTION, DISPLAY_NAME, NOTES, CUSTOM),
 	/** Table storing each distinct time-series TSMeta and its attributes */
-	TSD_TSMETA("T", FQNID,UNITS,CUSTOM,FQN,METRIC_UID,DISPLAY_NAME,MIN_VALUE,VERSION,NOTES,DESCRIPTION,RETENTION,MAX_VALUE,TSUID,LAST_UPDATE,DATA_TYPE,CREATED);
+	TSD_TSMETA("T", FQNID, VERSION, METRIC_UID, FQN, TSUID, CREATED, LAST_UPDATE, MAX_VALUE, MIN_VALUE, DATA_TYPE, DESCRIPTION, DISPLAY_NAME, NOTES, UNITS, RETENTION, CUSTOM);
 
 	public static class FK {
 		public final Table table;
@@ -113,14 +113,17 @@ public enum Table {
 		this.alias2 = "X" + alias;
 		this.columns = Collections.unmodifiableList(new ArrayList<Column>(Arrays.asList(columns)));
 		this.pk = columns[0];
+		StringBuilder a = new StringBuilder();
 		StringBuilder b = new StringBuilder();
 		StringBuilder b2 = new StringBuilder();
 		for(Column c: columns) {
+			a.append(c.name()).append(", ");
 			b.append(alias).append(".").append(c.name()).append(", ");			
-			b.append(alias2).append(".").append(c.name()).append(", ");
+			b2.append(alias2).append(".").append(c.name()).append(", ");
 		}
-		allAliasedCsv = b.deleteCharAt(b.length()-1).toString();
-		allAliasedCsv2 = b.deleteCharAt(b.length()-1).toString();
+		columnNames = a.deleteCharAt(a.length()-1).deleteCharAt(a.length()-1).toString();
+		allAliasedCsv = b.deleteCharAt(b.length()-1).deleteCharAt(b.length()-1).toString();
+		allAliasedCsv2 = b2.deleteCharAt(b2.length()-1).deleteCharAt(b2.length()-1).toString();
 		
 		// allAliasedCsv
 	}
@@ -131,7 +134,7 @@ public enum Table {
 	public final Column pk;
 	public final String allAliasedCsv;
 	public final String allAliasedCsv2;
-	
+	public final String columnNames;
 	
 	
 }

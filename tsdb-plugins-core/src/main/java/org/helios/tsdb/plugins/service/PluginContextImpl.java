@@ -25,6 +25,7 @@
 package org.helios.tsdb.plugins.service;
 
 import java.net.URLClassLoader;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -166,6 +167,15 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 		return (T)namedResources.get(name);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.service.PluginContext#getResourceNames()
+	 */
+	@Override
+	public Set<String> getResourceNames() {
+		return Collections.unmodifiableSet(namedResources.keySet());
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.service.PluginContext#setResource(java.lang.String, java.lang.Object)

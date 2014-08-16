@@ -43,12 +43,13 @@ import javax.sql.DataSource;
 
 import net.opentsdb.core.TSDB;
 
+import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
+import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
@@ -152,6 +153,7 @@ public class CatalogDataSource implements ICatalogDataSource {
 //			checkDriverClasspath(driver, pc.getSupportClassLoader());
 			pc.setResource(getClass().getSimpleName(), connectionPool);
 			getStatisticsMBean();
+			pc.setResource("groovySql", new groovy.sql.Sql(connectionPool));
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create datasource", ex);
 		}

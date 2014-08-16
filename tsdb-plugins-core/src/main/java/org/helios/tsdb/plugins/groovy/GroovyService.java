@@ -36,6 +36,7 @@ import net.opentsdb.core.TSDB;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
+import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
@@ -122,6 +123,15 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		} catch (Exception ex) {
 			log.warn("Failed to register GroovyService Management Interface", ex);
 		}
+		pluginContext.addResourceListener(new IPluginContextResourceListener() {
+			@Override
+			public void onResourceRegistered(String name, Object resource) {
+				beans.put(name, resource);				
+			}
+		});
+		for(String name: pluginContext.getResourceNames()) {
+			beans.put(name, pluginContext.getResource(name, Object.class));
+		}		
 	}
 	
 	

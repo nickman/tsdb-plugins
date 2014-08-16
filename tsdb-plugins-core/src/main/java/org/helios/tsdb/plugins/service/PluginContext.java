@@ -1,6 +1,7 @@
 package org.helios.tsdb.plugins.service;
 
 import java.util.Properties;
+import java.util.Set;
 
 import javax.management.NotificationEmitter;
 
@@ -47,6 +48,12 @@ public interface PluginContext extends NotificationEmitter {
 	 * @return The named resource or null if the name was not bound 
 	 */
 	public <T> T getResource(String name, Class<?> type);
+	
+	/**
+	 * Returns the names of all the registered resources
+	 * @return the names of all the registered resources
+	 */
+	public Set<String> getResourceNames();
 
 	/**
 	 * Adds a resource to the named resource map

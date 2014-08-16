@@ -1,4 +1,5 @@
 import net.opentsdb.catalog.*;
+import net.opentsdb.meta.*;
 import net.opentsdb.meta.api.*;
 import com.stumbleupon.async.*
 import org.slf4j.*;
@@ -9,7 +10,7 @@ logger = LoggerFactory.getLogger(SQLCatalogMetricsMetaAPIImpl.class).setLevel(Le
 
 
 
-q = new QueryOptions().setPageSize(1);
+q = new QueryContext().setPageSize(1);
 
 renderTags = { tags ->
     b = new StringBuilder();
@@ -72,7 +73,7 @@ long start = System.currentTimeMillis();
 cbrow = 0;
 eor = false;
 for(;;){ // infinite for
-    a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
+    a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
     //a = metrics.getTSMetas(q.setPageSize(2),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : '*']).addCallback(callback).join(5000);  //, "host" 
     //println a;
     //metrics.getMetricNames(q.setPageSize(2), ['host' : '*', 'type' : 'combined']).addCallback(callback).join(5000);  //, "host" 
@@ -93,3 +94,41 @@ println "========================================"
 
 
 return null;
+
+
+SELECT
+*
+FROM
+(
+   SELECT
+   DISTINCT X.*
+   FROM TSD_TSMETA X,
+   TSD_METRIC M,
+   TSD_FQN_TAGPAIR T,
+   TSD_TAGPAIR P,
+   TSD_TAGK K,
+   TSD_TAGV V
+   WHERE M.XUID = X.METRIC_UID
+   AND X.FQNID = T.FQNID
+   AND T.XUID = P.XUID
+   AND P.TAGK = K.XUID
+   AND (M.NAME = 'sys.cpu')
+   AND P.TAGV = V.XUID
+   AND EXISTS (
+       SELECT 1 FROM TSD_TAGPAIR P3 WHERE P3.XUID = P.XUID AND  EXISTS (
+        SELECT 1 FROM TSD_TAGPAIR P2, TSD_TAGK K2 , TSD_TAGV V2
+        WHERE P2.TAGV = V2.XUID AND P2.TAGK = K2.XUID AND P2.XUID = P3.XUID AND (
+            ((K2.NAME = 'dc') AND (V2.NAME = 'dc3' OR V2.NAME = 'dc4'))
+            OR
+            ((K2.NAME = 'host') AND (V2.NAME LIKE 'Web%1'))
+            OR 
+            ((K2.NAME = 'type') AND (V2.NAME = 'combined'))
+        )        
+      )
+       )        
+)
+X
+WHERE X.TSUID <= 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+ORDER BY X.TSUID DESC LIMIT 10
+
+

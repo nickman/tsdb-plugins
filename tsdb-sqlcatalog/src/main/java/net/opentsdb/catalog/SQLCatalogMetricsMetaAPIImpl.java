@@ -40,6 +40,7 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.opentsdb.catalog.cache.TagPredicateCache;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.Const;
 import net.opentsdb.core.TSDB;
@@ -85,6 +86,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	protected final MetaReader metaReader;
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
+	
+	/** The tag predicate cache */
+	protected final TagPredicateCache tagPredicateCache;
 	
 	/** The maximum TSUID in Hex String format */
 	public static final String MAX_TSUID;
@@ -149,7 +153,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.sqlWorker = sqlWorker;
 		this.tsdb = tsdb;
 		this.metaReader = metaReader;
-		
+		tagPredicateCache = new TagPredicateCache(sqlWorker);
 		ctx.setResource(getClass().getSimpleName(), this);				
 	}
 	
@@ -588,8 +592,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
 			"AND P.TAGV = V.XUID " +
 			"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
-			"AND (%s) "	+				// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
-			" %s ";						// If !overflow, the NODE = 'L' 
+			"AND (%s) ";				// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
 
 	/** The TSMeta Retrieval SQL template when no tags or metric name are provided and overflow is true */
 	public static final String GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL =
@@ -648,7 +651,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							return;
 						}
 					}					
-					generateTSMetaSQL(overflow, sqlBuffer, binds, queryOptions, metricName, tags);
+					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
 					final int modPageSize = queryOptions.getPageSize();
 					binds.add(modPageSize);
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
@@ -667,7 +670,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					
 					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryOptions, 
 							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
-					);
+					); 
 					def.callback(tsMetas);
 				} catch (Exception ex) {
 					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
@@ -677,18 +680,32 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		});
 		return def;
 	}
+	
+	public static final String TS_METAS_NO_OVERFLOW_SQL = "SELECT X.* FROM TSD_FQN_TAGPAIR T, TSD_TSMETA X WHERE X.FQNID = T.FQNID GROUP BY X.FQNID HAVING SUM(CASE WHEN T.XUID IN ( ? ) THEN 1 ELSE 0 END) = ? ORDER BY X.TSUID DESC LIMIT ?";
+	
+	protected void tsMetasNoOverflow(final QueryContext queryOptions, final String metricName, final Map<String, String> tags) throws Exception {
+		final String[] xuids = tagPredicateCache.newPredicateBuilder().appendTags(tags).get();
+		final List<Object> binds = new ArrayList<Object>();
+		binds.add(xuids);
+		binds.add(xuids.length);
+		binds.add(queryOptions.getPageSize());
+		//log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
+		
+		
+		// 
+		
+	}
 
 	
 	/**
 	 * Generates a TSMeta query
-	 * @param overflow If true, TSMetas that are a partial match will be included, otherwise only exact matches will be returned
 	 * @param sqlBuffer The sql buffer to append generated SQL into
 	 * @param binds The query bind values
 	 * @param queryOptions The query options
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
 	 */
-	protected void generateTSMetaSQL(final boolean overflow, final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
+	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
@@ -701,7 +718,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			
 		} else {
 			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-			prepareGetTSMetasSQL(overflow, metricName, tags, binds, keySql);
+			prepareGetTSMetasSQL(metricName, tags, binds, keySql);
 			keySql.append(") X ");
 			if(queryOptions.getNextIndex()==null) {
 				keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
@@ -714,7 +731,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}		
 	}
 		
-	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final boolean overflow, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
+	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
 		// // expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 		if(!firstEntry) {
 			sql.append(" INTERSECT ");
@@ -723,16 +740,15 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		sql.append(String.format(GET_TSMETAS_SQL,  
 				expandPredicate(metricName, METRIC_SQL_BLOCK, binds),
 				expandPredicate(tag.getKey(), TAGK_SQL_BLOCK, binds),
-				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds),
-				overflow ? "" : "AND T.NODE = 'L'"
+				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds)
 		));
 	}
 	
-	protected void prepareGetTSMetasSQL(final boolean overflow, final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
+	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
 		Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
-		doGetTSMetasSQLTagValues(true, overflow, metricName, iter.next(), binds, sql);
+		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql);
 		while(iter.hasNext()) {
-			doGetTSMetasSQLTagValues(false, overflow, metricName, iter.next(), binds, sql);
+			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql);
 		}
 	}
 	
@@ -793,7 +809,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				final List<Object> binds = new ArrayList<Object>();
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(true, sqlBuffer, binds, queryOptions, metricName, tags);
+					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
 					binds.add(queryOptions.getPageSize());
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					final Set<TSMeta> tsMetas = new LinkedHashSet<TSMeta>(queryOptions.getPageSize());
@@ -975,6 +991,7 @@ NON OVERFLOWING TSMETAS:
 	) THEN 1 ELSE 0 END) = 3
 
 
+	SELECT X.* FROM TSD_FQN_TAGPAIR T, TSD_TSMETA X WHERE X.FQNID = T.FQNID GROUP BY X.FQNID HAVING SUM(CASE WHEN T.XUID IN ( ? ) THEN 1 ELSE 0 END) = ?  
 
 
 

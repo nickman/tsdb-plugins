@@ -40,7 +40,7 @@ import com.stumbleupon.async.Deferred;
  * <p><code>net.opentsdb.meta.api.MetricsMetaAPI</code></p>
  * <p>NOTES: <ul>
  * 	<li>Read Only</li>
- * 	<li>No meta requiring extended reads, such as {@link net.opentsdb.meta.api.TSMeta#getLastReceived()} or {@link net.opentsdb.meta.api.TSMeta#getTotalDatapoints()}</li>
+ * 	<li>No meta requiring extended reads, such as {@link net.opentsdb.meta.TSMeta#getLastReceived()} or {@link net.opentsdb.meta.TSMeta#getTotalDatapoints()}</li>
  * </ul></p>
  */
 
@@ -71,14 +71,14 @@ public interface MetricsMetaAPI {
 	 * Wildcards will be honoured on metric names and tag keys.
 	 * @param queryOptions The query options for this call
 	 * @param metric The metric name to match
-	 * @param tagKeys The tag keys to match
+	 * @param tagPairs The tag pairs to match
+	 * @param tagKey 
 	 * @return A deferred 2 sized array containing sets of : <ul>
 	 * 	<li><b>Index 0</b>: matching tag value UIDMetas</li>
 	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
 	 *  </ul>
 	 */
 	public Deferred<Set<UIDMeta>> getTagValues(QueryContext queryOptions, String metric, Map<String, String> tagPairs, String tagKey);
-
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag keys.

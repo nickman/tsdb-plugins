@@ -129,8 +129,9 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 				beans.put(name, resource);				
 			}
 		});
+		beans.put("pluginContext", pluginContext);
 		for(String name: pluginContext.getResourceNames()) {
-			beans.put(name, pluginContext.getResource(name, Object.class));
+			beans.put(name, pluginContext.getResource(name.toLowerCase(), Object.class));
 		}		
 	}
 	

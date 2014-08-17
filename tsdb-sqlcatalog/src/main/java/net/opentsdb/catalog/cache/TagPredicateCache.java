@@ -24,22 +24,30 @@
  */
 package net.opentsdb.catalog.cache;
 
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.management.ObjectName;
 
 import net.opentsdb.catalog.SQLWorker;
+import net.opentsdb.catalog.SQLWorker.ResultSetHandler;
 
 import org.helios.jmx.util.helpers.ConfigurationHelper;
 import org.helios.tsdb.plugins.cache.CacheStatistics;
 import org.helios.tsdb.plugins.util.JMXHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -53,6 +61,8 @@ import com.google.common.cache.CacheBuilder;
  */
 
 public class TagPredicateCache {
+	/** Instance logger */
+	protected Logger log = LoggerFactory.getLogger(getClass()); 
 	/** A SQLWorker to execute lookups */
 	protected final SQLWorker sqlWorker;
 	/** The underlying guava cache of UIDs keyed by the deep hash code of the raw predicates */
@@ -78,7 +88,7 @@ public class TagPredicateCache {
 	public static final String SPEC_TEMPLATE_NOSTATS = "concurrencyLevel=%s,initialCapacity=%s,maximumSize=%s";
 	
 	/** The load sql fragment to be UNION ALLed */
-	public static final String LOAD_SQL = "SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND %s ";
+	public static final String LOAD_SQL = "SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ";
 	// ((K.NAME = 'dc') AND (V.NAME = 'dc1'))
 	/** The dynamic binding SQL block for tag keys */
 	public static final String TAGK_SQL_BLOCK = "K.NAME %s ?"; 
@@ -111,10 +121,76 @@ public class TagPredicateCache {
 		return new PredicateBuilder();
 	}
 	
+	private class PredicateRetriever implements Callable<String[]>, ResultSetHandler {
+		final PredicateBuilder pb;
+		final Set<String> results = new LinkedHashSet<String>();
+		
+		public PredicateRetriever(PredicateBuilder pb) {
+			this.pb = pb;
+		}
+
+
+
+		@Override
+		public String[] call() throws Exception {
+			StringBuilder b = new StringBuilder();
+			boolean first = true;
+			List<Object> binds = new ArrayList<Object>();
+			for(Map.Entry<String, String> entry: pb.pairPredicates.entrySet()) {
+				
+				if(first) {
+					first = false;
+				} else {
+					b.append(" UNION ALL ");
+				}
+				b.append(LOAD_SQL);
+				b.append("(")
+					.append("(").append(expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds)).append(")")
+					.append(" AND ")
+					.append("(").append(expandPredicate(entry.getValue(), TAGV_SQL_BLOCK, binds)).append(")")
+					.append(") ");
+			}
+			log.info("Executing SQL [{}]", fillInSQL(b.toString(), binds));
+			sqlWorker.executeQuery(b.toString(), this, binds.toArray(new Object[0]));			
+			return results.toArray(new String[results.size()]);
+		}
+
+
+
+		@Override
+		public boolean onRow(int rowId, ResultSet rset) {
+			try {
+				results.add(rset.getString(1));
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+			}
+			return true;
+		}
+		
+	}
+	
+	private static final Pattern Q_PATTERN = Pattern.compile("\\?");
+	
+	public static String fillInSQL(String sql, List<Object> binds) {
+		final int bindCnt = binds.size();
+		Matcher m = Q_PATTERN.matcher(sql);
+		for(int i = 0; i < bindCnt; i++) {
+			Object bind = binds.get(i);
+			if(bind instanceof CharSequence) {
+				sql = m.replaceFirst("'" + bind.toString() + "'");
+			} else {
+				sql = m.replaceFirst(bind.toString());
+			}		
+			m = Q_PATTERN.matcher(sql);
+		}
+		return sql;
+	}
+	
+	
 	public class PredicateBuilder {
-		private final TreeSet<String> keyPredicates = new TreeSet<String>();
-		private final TreeSet<String> valuePredicates = new TreeSet<String>();
-		private final TreeMap<String, String> pairPredicates = new TreeMap<String, String>();		
+		final TreeSet<String> keyPredicates = new TreeSet<String>();
+		final TreeSet<String> valuePredicates = new TreeSet<String>();
+		final TreeMap<String, String> pairPredicates = new TreeMap<String, String>();		
 		private volatile String[] preds = {};
 		
 		public PredicateBuilder appendKeys(String...keys) {
@@ -148,24 +224,18 @@ public class TagPredicateCache {
 			if(preds==null) {
 				final int k = keyPredicates.size();
 				final int v = valuePredicates.size();
-				preds = new String[k + v];
-				System.arraycopy(keyPredicates.toArray(new String[k]), 0, preds, 0, k);
-				System.arraycopy(valuePredicates.toArray(new String[v]), 0, preds, k-1, v);
+				final int p = pairPredicates.size();
+				preds = new String[p];
+				System.arraycopy(valuePredicates.toArray(new String[p]), 0, preds, 0, p);
+//				System.arraycopy(keyPredicates.toArray(new String[k]), 0, preds, 0, k);
+//				System.arraycopy(valuePredicates.toArray(new String[v]), 0, preds, k-1, v);
 			}
 			return preds.length==0 ? 0 : Arrays.deepHashCode(preds);			
 		}
 		
 		public String[] get() throws Exception {
 			final int key = hashCode();
-			return cache.get(hashCode(), new Callable<String[]>() {
-				@Override
-				public String[] call() throws Exception {
-					LinkedHashSet<String> uids = new LinkedHashSet<String>();
-					StringBuilder b = new StringBuilder(LOAD_SQL);
-					
-					return uids.toArray(new String[uids.size()]);
-				}
-			});
+			return cache.get(hashCode(), new PredicateRetriever(this));
 		}
 		
 		

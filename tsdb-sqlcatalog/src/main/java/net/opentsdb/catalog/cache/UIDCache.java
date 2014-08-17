@@ -142,7 +142,8 @@ public class UIDCache  {
 		try {
 			return cache.get(key, Callables.returning(getName(key, conn)));
 		} catch (Exception ex) {
-			throw new RuntimeException("UIDCache [" + uidType + "] failed on looking up [" + key + "]", ex);
+			//throw new RuntimeException("UIDCache [" + uidType + "] failed on looking up [" + key + "]", ex);
+			return null;
 		}
 	}
 

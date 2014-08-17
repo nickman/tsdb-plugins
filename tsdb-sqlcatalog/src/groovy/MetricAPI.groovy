@@ -73,6 +73,7 @@ long start = System.currentTimeMillis();
 cbrow = 0;
 eor = false;
 for(;;){ // infinite for
+    //metrics.tsMetasNoOverflow(q.setPageSize(300),'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]);
     a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
     //a = metrics.getTSMetas(q.setPageSize(2),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : '*']).addCallback(callback).join(5000);  //, "host" 
     //println a;

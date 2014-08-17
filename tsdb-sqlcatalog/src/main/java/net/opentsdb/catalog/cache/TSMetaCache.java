@@ -101,7 +101,7 @@ public class TSMetaCache {
 		final String spec = String.format(stats ? SPEC_TEMPLATE_WSTATS : SPEC_TEMPLATE_NOSTATS, concurrency, initialSize, maxSize);		
 		cache = CacheBuilder.from(spec).build();
 		if(stats) {
-			objectName = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSMetaCache,type="));
+			objectName = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSMetaCache"));
 			JMXHelper.registerMBean(objectName, new CacheStatistics(cache, objectName));
 		} else {
 			objectName = null;

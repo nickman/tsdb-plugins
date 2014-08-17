@@ -67,23 +67,31 @@ cb = [
 ]
 callback  = cb as Callback;
 
-metrics = SQLCatalogMetricsMetaAPIImpl;
+metrics = pluginContext.namedResources.get("SQLCatalogMetricsMetaAPIImpl");
+
 
 long start = System.currentTimeMillis();
 cbrow = 0;
+batches = 0;
 eor = false;
 for(;;){ // infinite for
     //metrics.tsMetasNoOverflow(q.setPageSize(300),'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]);
-    a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
+    //a = metrics.getTSMetas(q.setPageSize(300),true, 'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
     //a = metrics.getTSMetas(q.setPageSize(2),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : '*']).addCallback(callback).join(5000);  //, "host" 
     //println a;
     //metrics.getMetricNames(q.setPageSize(2), ['host' : '*', 'type' : 'combined']).addCallback(callback).join(5000);  //, "host" 
     //metrics.getMetricNames(q.setPageSize(2), "host", "type", "cpu").addCallback(callback).join(5000);  //, "host" 
     //metrics.getMetricNamesFor(q.setPageSize(2)).addCallback(callback).join(5000);  //, "host" 
-    //metrics.getTagKeysFor(q.setPageSize(2), "sys.cpu").addCallback(callback).join(5000);  //, "host" 
+    //metrics.getTagKeys(q.setPageSize(100), "sys.cpu", 'dc', 'host', 'cpu').addCallback(callback).join(5000);  //, "host" 
+    
+    // getTagValues(final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String tagKey)
+    
+    
+    metrics.getTagValues(q.setPageSize(40), "sys.cpu", ['dc': 'dc1', 'host' : 'WebServer*', 'cpu' : '*'], 'type').addCallback(callback).join(5000);  //, "host" 
+    batches++;
     //metrics.getTagValues(q.setPageSize(pageSize), "sys.cpu", 'type').addCallback(callback).join(5000);  //, "host" 
-    if( q.getNextIndex()==null || eor ){ //condition to break, oppossite to while 
-        println "=============\nRows: $cbrow";
+    if( q.isExhausted() || q.getNextIndex()==null){ //condition to break, oppossite to while 
+        println "=============\nRows: $cbrow, Batches: $batches";
         break
     }
 }
@@ -95,5 +103,3 @@ println "========================================"
 
 
 return null;
-
-

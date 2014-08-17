@@ -110,7 +110,7 @@ public class TagPredicateCache {
 		final String spec = String.format(stats ? SPEC_TEMPLATE_WSTATS : SPEC_TEMPLATE_NOSTATS, concurrency, 100, maxSize);		
 		cache = CacheBuilder.from(spec).build();
 		if(stats) {
-			objectName = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSMetaCache,type="));
+			objectName = JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TagPredicateCache"));
 			JMXHelper.registerMBean(objectName, new CacheStatistics(cache, objectName));
 		} else {
 			objectName = null;
@@ -141,7 +141,7 @@ public class TagPredicateCache {
 				if(first) {
 					first = false;
 				} else {
-					b.append(" UNION ALL ");
+					b.append(" INTERSECT ");
 				}
 				b.append(LOAD_SQL);
 				b.append("(")

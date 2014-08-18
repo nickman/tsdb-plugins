@@ -37,6 +37,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -109,6 +110,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	/** Pipe parser pattern */
 	public static final Pattern SPLIT_PIPES = Pattern.compile("\\|");
 	
+	
 	static {
 		char[] fs = new char[4 + (2*4*Const.MAX_NUM_TAGS)];
 		Arrays.fill(fs, 'F');
@@ -160,7 +162,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		ctx.setResource(getClass().getSimpleName(), this);				
 	}
 	
-	public static void main(String[] args) {
+	public static void mainx(String[] args) {
 		log("DB Only MetaInstance");
 //		FileInputStream fis = null;
 		try {
@@ -898,12 +900,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @return the expanded predicate
 	 */
 	public static final String expandPredicate(final String value, final String predicateBase, final List<Object> binds) {
-		final StringTokenizer st = new StringTokenizer(value.replace(" ", ""), "|", false);
-		final int segmentCount = st.countTokens();
-		if(segmentCount<1) throw new RuntimeException("Failed to parse expression [" + value + "]. Segment count was 0");
+		String nexpandedValue = value;
+		final StringTokenizer st = new StringTokenizer(nexpandedValue.replace(" ", ""), "|", false);
+		int segmentCount = st.countTokens();
+		if(segmentCount<1) {
+			throw new RuntimeException("Failed to parse expression [" + value + "]. Segment count was 0");
+		}
 		if(segmentCount==1) {
 			String val = st.nextToken();
 			binds.add(val.replace('*', '%'));
+			//String pred = expandNumericRange(predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE"));
 			String pred = predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE");
 			return pred;
 		}
@@ -912,11 +918,92 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			if(i!=0) b.append(" OR ");
 			String val = st.nextToken();
 			binds.add(val.replace('*', '%'));
-			b.append(predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE"));			
+			b.append(
+//					expandNumericRange(
+								predicateBase.replace("%s", val.indexOf('*')==-1 ? "=" : "LIKE")
+//					)
+			);
 		}
 		return b.toString();				
 	}
 
+	public static void main(String[] args) { 
+		log("Range Test");
+		String expr = "WebServer[8,9,11-20]";  // |DBServer[8,9,11-20]
+		List<Object> binds = new ArrayList<Object>();
+		log("Expression:" + expr);
+		log("Expanded:" + expandNumericRange(expr));
+		log("Expanded:" + fillInSQL(expandPredicate(expr, TAGK_SQL_BLOCK, binds), binds));
+	}
+	
+	/** Regex pattern that defines a range of numbers */
+	protected static final Pattern intRange = Pattern.compile("\\[(?:(([0-9]+(-[0-9]+)?)(,([0-9]+(-[0-9]+)?))*)\\])");
+
+	
+	public static String expandNumericRange(final String valuesStr) {
+    	if(valuesStr==null || valuesStr.trim().isEmpty()) return valuesStr;
+    	final String token = "{==%s==}";
+    	TreeMap<Integer, int[]> ranges = new TreeMap<Integer, int[]>();
+    	Matcher m = intRange.matcher(valuesStr.trim().replace(" ", ""));
+    	StringBuffer b = new StringBuffer();
+    	int matches = 0;
+    	while(m.find()) {
+    		int[] range = convertToRange(m.group(1).split(","));
+    		m.appendReplacement(b, String.format(token, matches));
+    		ranges.put(matches, range);
+    		matches++;
+    	}
+    	StringBuilder sb = new StringBuilder();
+    	String target = b.toString();   // WebServer{==0==}|DBServer{==1==}
+    	
+    	
+    	
+    	for(int i = 0; i < matches; i++) {
+    		String rep = String.format(token, i);
+    		int[] range = ranges.get(i);
+    		for(int x = 0; x < range.length; x++) {
+    			sb.append(target.replace(rep, "" + range[x])).append("|");    			
+    		}
+    	}
+    	if(sb.length()>0) {
+    		sb.deleteCharAt(sb.length()-1);
+    	}
+    	return sb.toString();
+    	//return sb.deleteCharAt(sb.length()-1).toString();
+    	
+    	
+	}
+	
+	public static int[] convertToRange(final String[] intExpr) {
+		Set<Integer> values = new TreeSet<Integer>();
+		for(String s: intExpr) {
+			if(s==null || s.trim().isEmpty()) continue;
+			int index = s.indexOf('-'); 
+			if(index==-1) {
+				values.add(Integer.parseInt(s));
+			} else {
+				int starter = Integer.parseInt(s.substring(0, index));
+				int ender = Integer.parseInt(s.substring(index+1));
+				if(ender==starter) {
+					values.add(ender);
+				} else if(starter < ender) {
+					for(int i = starter; i <= ender; i++) {
+						values.add(i);
+					}
+				} else {
+					throw new RuntimeException("Invalid Negative Range: [" + starter + "-" + ender + "]");
+				}
+			}
+		}	
+		int[] range = new int[values.size()];
+		int cnt = 0;
+		for(int x : values) {
+			range[cnt] = x;
+			cnt++;
+		}
+		return range;
+	}
+	
 
 }
 

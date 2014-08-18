@@ -11,12 +11,13 @@
 	
 	<modules>
 		<module>tsdb-plugins-core</module>
+		<module>tsdb-sqlcatalog</module>
+		<!--
 		<module>spring-plugin</module>
 		<module>tsdb-elastic</module>
-		<module>tsdb-jdbc</module>
-		<module>tsdb-sqlcatalog</module>
+		<module>tsdb-jdbc</module>		
 		<module>tsdb-trace</module>
-		<!-- <module>tsdb-websockets</module> -->
+		<module>tsdb-websockets</module> -->
 	</modules>
 	
     <properties>    	 

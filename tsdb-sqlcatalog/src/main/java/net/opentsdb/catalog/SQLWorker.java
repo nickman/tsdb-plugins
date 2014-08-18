@@ -24,6 +24,7 @@
  */
 package net.opentsdb.catalog;
 
+import java.io.File;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -645,11 +646,21 @@ public class SQLWorker {
 				obj = classPool.get(Object.class.getName());
 				atomicL = classPool.get(AtomicLong.class.getName());
 				toStr = obj.getDeclaredMethod("toString");
+				writeTSMeta();
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to create PreparedStatementBinder CtClass IFace", ex);
 			} finally {
 				if(st!=null) try { st.close(); } catch (Exception x) { /* No Op */ }
 				if(conn!=null) try { conn.close(); } catch (Exception x) { /* No Op */ }
+			}
+		}
+		
+		private void writeTSMeta() {
+			try {
+				CtClass c = classPool.get("net.opentsdb.meta.TSMeta");
+				c.writeFile(SAVE_DIR);
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
 			}
 		}
 		
@@ -741,7 +752,7 @@ public class SQLWorker {
 				bindm.setBody(b.toString());
 				bindm.setModifiers(bindm.getModifiers() & ~Modifier.ABSTRACT);
 				binderClazz.addMethod(bindm);
-				binderClazz.writeFile("/tmp/sqlworker/");
+				binderClazz.writeFile(SAVE_DIR);
 				@SuppressWarnings("unchecked")
 				Class<PreparedStatementBinder> javaClazz = binderClazz.toClass(SQLWorker.class.getClassLoader(), SQLWorker.class.getProtectionDomain());
 				psb = javaClazz.newInstance();
@@ -756,5 +767,8 @@ public class SQLWorker {
 		}
 		
 	}
+	
+	
+	public static final String SAVE_DIR = (System.getProperty("java.io.tmpdir") + File.separator + "sqlWorker" + File.separator).replace(File.separator + File.separator,  File.separator);
 	
 }

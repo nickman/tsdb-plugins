@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -851,29 +852,54 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
-	 * Examines the custom map of the passed object if it is an Annotation, UIDMeta or TSMeta.
-	 * If null or not one of those classes, returns true.
-	 * If the class matches, returns true if the instances custom map contains the {@link SyncQueueProcessor.IGNORE_TAG_NAME} tag set to true.
-	 * Otherwise returns false.
-	 * @param custom The object to test for an ignore tag
-	 * @return true to ignore, false otherwise
+	 * Indicates if the passed annotation should be ignored
+	 * @param ann The annotation to test
+	 * @return true to ignore, false to process
 	 */
-	protected boolean shouldIgnore(Object custom) {
-		if(custom==null) return true;
-		Map<String, String> cmap = null;
-		if(custom instanceof Annotation) {
-			cmap = ((Annotation)custom).getCustom();
-		} else if(custom instanceof UIDMeta) {
-			cmap = ((UIDMeta)custom).getCustom();
-		} else if(custom instanceof TSMeta) {
-			cmap = ((TSMeta)custom).getCustom();
-		} else {
-			return true;
-		}
+	protected boolean shouldIgnore(Annotation ann) {
+		if(ann==null) return true;
+		Map<String, String> cmap = ann.getCustom();
 		if(cmap==null) return false;
 		String enabled = cmap.get(SyncQueueProcessor.IGNORE_TAG_NAME);
-		return ("true".equalsIgnoreCase(enabled));
+		return ("true".equalsIgnoreCase(enabled));				
 	}
+	
+	/**
+	 * Indicates if the passed TSMeta should be ignored
+	 * @param ts The TSMeta to test
+	 * @return true to ignore, false to process
+	 */
+	protected boolean shouldIgnore(final TSMeta ts) {
+		if(ts==null) return true;
+		Map<String, String> cmap = getCustom(ts);
+		if(cmap==null) return false;
+		String enabled = cmap.get(SyncQueueProcessor.IGNORE_TAG_NAME);
+		return ("true".equalsIgnoreCase(enabled));				
+	}
+	
+	protected final Map<String, String> getCustom(final Object obj) {
+		if(obj==null) return null;
+		try {
+			Method m = obj.getClass().getDeclaredMethod("getCustom");
+			return (Map<String, String>)m.invoke(obj);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Indicates if the passed UIDMeta should be ignored
+	 * @param uim The UIDMeta to test
+	 * @return true to ignore, false to process
+	 */
+	protected boolean shouldIgnore(UIDMeta uim) {
+		if(uim==null) return true;
+		Map<String, String> cmap = uim.getCustom();
+		if(cmap==null) return false;
+		String enabled = cmap.get(SyncQueueProcessor.IGNORE_TAG_NAME);
+		return ("true".equalsIgnoreCase(enabled));				
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -1294,7 +1320,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			updateTSMeta(conn, tsMeta);
 			return;
 		} 
-		Collection<UIDMeta> uidMetas = new ArrayList<UIDMeta>(tsMeta.getTags());
+		Collection<UIDMeta> uidMetas = tsMeta.getTags();
 		uidMetas.add(tsMeta.getMetric());
 		preProcessUIDMeta(conn, uidMetas);
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");

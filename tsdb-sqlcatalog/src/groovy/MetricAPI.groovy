@@ -68,15 +68,19 @@ cb = [
 callback  = cb as Callback;
 
 metrics = pluginContext.namedResources.get("SQLCatalogMetricsMetaAPIImpl");
+tsdb = metrics.tsdb;
+
+
 
 
 long start = System.currentTimeMillis();
 cbrow = 0;
 batches = 0;
 eor = false;
+tsuids = [];
 for(;;){ // infinite for
     //metrics.tsMetasNoOverflow(q.setPageSize(300),'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]);
-    a = metrics.getTSMetas(q.setPageSize(300),'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
+    //a = metrics.getTSMetas(q.setPageSize(300),'sys.cpu', ['dc' : 'dc3|dc4', 'host' : 'Web*1', 'type' : 'combined' ]).addCallback(callback).join(5000);  //, "host" 
     //a = metrics.getTSMetas(q.setPageSize(2),true, 'sys.cpu', ['host' : 'PP-WK-NWHI-01', 'type' : '*']).addCallback(callback).join(5000);  //, "host" 
     //println a;
     //metrics.getMetricNames(q.setPageSize(2), ['host' : '*', 'type' : 'combined']).addCallback(callback).join(5000);  //, "host" 
@@ -86,6 +90,8 @@ for(;;){ // infinite for
     
     // getTagValues(final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String tagKey)
     
+    //metrics.evaluate(q.setPageSize(100), "sys.cpu:dc=dc1,host=WebServer1|WebServer5,type=combined,cpu=0|1").addCallback(callback).join(5000);
+    //metrics.evaluate(q.setPageSize(100), "sys*:dc=dc1,host=WebServer1|WebServer5").addCallback(callback).join(5000);
     
     //metrics.getTagValues(q.setPageSize(40), "sys.cpu", ['dc': 'dc1', 'host' : 'WebServer*', 'cpu' : '*'], 'type').addCallback(callback).join(5000);  //, "host" 
     batches++;

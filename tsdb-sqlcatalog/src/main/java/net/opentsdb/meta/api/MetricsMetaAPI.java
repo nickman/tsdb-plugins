@@ -113,10 +113,10 @@ public interface MetricsMetaAPI {
 	/**
 	 * Evaluates the passed TSUIDEXPR expression and returns the matches.
 	 * Wildcards will be honoured on metric names, tag keys and tag values.
-	 * @param expressions The TSUIDEXPR expressions to evaluate
+	 * @param expression The TSUIDEXPR expression to evaluate
 	 * @param queryOptions The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String...expressions);
+	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String expression);
 	
 }

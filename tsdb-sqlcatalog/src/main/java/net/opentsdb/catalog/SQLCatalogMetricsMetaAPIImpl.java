@@ -40,6 +40,8 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.management.ObjectName;
+
 import net.opentsdb.catalog.cache.TagPredicateCache;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
 import net.opentsdb.core.Const;
@@ -844,12 +846,42 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	/**
 	 * {@inheritDoc}
-	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String[])
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String... expressions) {
-		// TODO Auto-generated method stub
-		return null;
+	public Deferred<Set<TSMeta>> evaluate(final QueryContext queryContext, final String expression) {
+		if(expression==null || expression.trim().isEmpty()) {
+			return Deferred.fromError(new IllegalArgumentException("The passed expression was null or empty"));
+		}
+		final Deferred<Set<TSMeta>> def = new Deferred<Set<TSMeta>>();		
+		this.metaQueryExecutor.execute(new Runnable() {
+			public void run() {
+				final String expr = expression.trim();
+				try {
+					final ObjectName on = new ObjectName(expr);
+					final Deferred<Set<TSMeta>> deferred = getTSMetas(queryContext, on.getDomain(), on.getKeyPropertyList());
+					deferred.addCallback(
+						new Callback<Void, Set<TSMeta>>() {
+							@Override
+							public Void call(Set<TSMeta> result) throws Exception {
+								def.callback(result);
+								return null;
+							}
+						}						
+					);
+					deferred.addErrback(new Callback<Void, Throwable>() {
+						@Override
+						public Void call(Throwable err) throws Exception {
+							def.callback(err);
+							return null;
+						}
+					});
+				} catch (Exception ex) {
+					def.callback(new Exception("Failed to evaluate expression [" + expr + "]", ex));
+				}
+			}
+		});
+		return def;
 	}
 
 	@Override

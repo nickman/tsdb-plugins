@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.helios.tsdb.plugins.rpc.netty.pipeline.http.impl.StaticFileRequest;
 import org.helios.tsdb.plugins.rpc.netty.pipeline.websock.WebSocketServiceHandler;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -102,7 +101,7 @@ public class HttpRequestRouter implements ChannelUpstreamHandler {
 	 * Creates a new HttpRequestRouter
 	 */
 	protected HttpRequestRouter() {
-		registerHandler(new StaticFileRequest());
+//		registerHandler(new StaticFileRequest());
 	}
 	
 	/**

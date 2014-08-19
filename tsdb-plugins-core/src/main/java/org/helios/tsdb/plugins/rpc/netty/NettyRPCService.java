@@ -29,7 +29,7 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import net.opentsdb.core.TSDB;
-import net.opentsdb.tsd.RpcHandler;
+import net.opentsdb.tsd.HandlerRegistrar;
 
 import org.helios.tsdb.plugins.Constants;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
@@ -120,7 +120,8 @@ public class NettyRPCService extends AbstractRPCService {
 //			log.error("Failed to start NettyRPCService", ex);
 //			throw new RuntimeException("Failed to start NettyRPCService", ex);
 //		}
-		RpcHandler.getInstance(tsdb).registerHandler("ws", new WebSocketServiceHandler());
+		//RpcHandler.getInstance(tsdb).registerHandler("ws", new WebSocketServiceHandler());
+		HandlerRegistrar.registerHandler("ws", new WebSocketServiceHandler());
 		log.info("\n\t===============================================================\n\tRegistered WebSocketServiceHandler\n\t===============================================================\n");
 	}
 	

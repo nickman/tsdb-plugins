@@ -143,7 +143,12 @@ WebSocketAPIClient.prototype.invokeOnOpen = function invoke(fx, args, start, int
 
 WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 	if(this.ws.readyState!=1) {
-		invoke(serviceRequest, arguments, 100);
+		try {
+			this.invokeOnOpen(this.serviceRequest, arguments, 100);
+		} catch (e) {
+			this.invokeOnOpen(this.serviceRequest, arguments, 100);
+		}
+		return;
 		//throw "Failed to call service. Socket in state: [" + this.ws.readyState + "]";
 	}
 	// {"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }

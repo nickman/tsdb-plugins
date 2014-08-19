@@ -25,10 +25,16 @@
 package net.opentsdb.catalog;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,6 +44,10 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +72,8 @@ import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.PluginContextImpl;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,6 +171,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.tsdb = tsdb;
 		this.metaReader = metaReader;
 		tagPredicateCache = new TagPredicateCache(sqlWorker);
+		loadContent();
 		ctx.setResource(getClass().getSimpleName(), this);				
 	}
 	
@@ -947,6 +960,166 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		return b.toString();				
 	}
+	
+	/** The content prefix for the metric-ui POC resources */
+	public static final String CONTENT_PREFIX = "metricapi-ui";
+	
+	/**
+	 * Loads the Static UI content files from the classpath JAR to the configured static root directory
+	 * @param the name of the content directory to write the content to
+	 */
+	private void loadContent() {
+		boolean completed = true;
+		final String contentDirectory = tsdb.getConfig().getString("tsd.http.staticroot");
+		final File gpDir = new File(contentDirectory);
+		final long startTime = System.currentTimeMillis();
+		final AtomicInteger filesLoaded = new AtomicInteger();
+		final AtomicInteger fileFailures = new AtomicInteger();
+		final AtomicInteger fileOlder = new AtomicInteger();
+		final AtomicLong bytesLoaded = new AtomicLong();
+		String codeSourcePath = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+		File file = new File(codeSourcePath);
+		if( codeSourcePath.endsWith(".jar") && file.exists() && file.canRead() ) {
+			JarFile jar = null;
+			ChannelBuffer contentBuffer = ChannelBuffers.dynamicBuffer(300000);
+			try {
+				jar = new JarFile(file);
+				final Enumeration<JarEntry> entries = jar.entries(); 
+				while(entries.hasMoreElements()) {
+					JarEntry entry = entries.nextElement();
+					final String name = entry.getName();
+					if (name.startsWith(CONTENT_PREFIX + "/")) { 
+						final int contentSize = (int)entry.getSize();
+						final long contentTime = entry.getTime();
+						if(entry.isDirectory()) {
+							new File(gpDir, name).mkdirs();
+							continue;
+						}
+						File contentFile = new File(gpDir, name.replace(CONTENT_PREFIX + "/", ""));
+						if( !contentFile.getParentFile().exists() ) {
+							contentFile.getParentFile().mkdirs();
+						}
+						if( contentFile.exists() ) {
+							if( contentFile.lastModified() < contentTime ) {
+								log.debug("File in directory was newer [{}]", name);
+								fileOlder.incrementAndGet();
+								continue;
+							}
+							contentFile.delete();
+						}
+						log.debug("Writing content file [{}]", contentFile );
+						contentFile.createNewFile();
+						if( !contentFile.canWrite() ) {
+							log.warn("Content file [{}] not writable", contentFile);
+							fileFailures.incrementAndGet();
+							continue;
+						}
+						FileOutputStream fos = null;
+						InputStream jis = null;
+						try {
+							fos = new FileOutputStream(contentFile);
+							jis = jar.getInputStream(entry);
+							contentBuffer.writeBytes(jis, contentSize);
+							contentBuffer.readBytes(fos, contentSize);
+							fos.flush();
+							jis.close(); jis = null;
+							fos.close(); fos = null;
+							filesLoaded.incrementAndGet();
+							bytesLoaded.addAndGet(contentSize);
+							log.debug("Wrote content file [{}] + with size [{}]", contentFile, contentSize );
+						} finally {
+							if( jis!=null ) try { jis.close(); } catch (Exception ex) {}
+							if( fos!=null ) try { fos.close(); } catch (Exception ex) {}
+						}
+					}  // not content
+				} // end of while loop
+			} catch (Exception ex) {
+				log.error("Failed to export metricapi-ui content from Jar", ex);	
+				completed = false;
+			} finally {
+				if( jar!=null ) try { jar.close(); } catch (Exception x) { /* No Op */}
+			}
+		}  else {	// end of was-not-a-jar
+			try {
+				File contentRootDir = new File("./src/main/resources/" + CONTENT_PREFIX);
+				if(!contentRootDir.exists() || !contentRootDir.isDirectory()) {
+					throw new Exception("Failed to locate content source directory [" + contentRootDir + "]");					
+				}
+				if(!gpDir.exists() || !gpDir.isDirectory()) {
+					throw new Exception("Failed to locate content target directory [" + gpDir + "]");					
+				}
+				File targetDirectory = new File(gpDir, CONTENT_PREFIX);
+				targetDirectory.mkdirs();
+				recursiveFileCopy(contentRootDir, targetDirectory, filesLoaded, fileFailures, fileOlder, bytesLoaded);
+			} catch (Exception ex) {
+				log.error("Failed to export metricapi-ui content from Jar", ex);	
+				completed = false;				
+			}
+		}
+		final long elapsed = System.currentTimeMillis()-startTime;
+		StringBuilder b = new StringBuilder("\n\n\t===================================================\n\tStatic Root Directory:[").append(contentDirectory).append("]");
+		b.append("\n\tTotal Files Written:").append(filesLoaded.get());
+		b.append("\n\tTotal Bytes Written:").append(bytesLoaded.get());
+		b.append("\n\tFile Write Failures:").append(fileFailures.get());
+		b.append("\n\tFile Older Than Content:").append(fileOlder.get());
+		b.append("\n\tElapsed (ms):").append(elapsed);
+		b.append("\n\t===================================================\n");
+		log.info(b.toString());		
+	}
+	
+	private void recursiveFileCopy(File srcDir, File targetDir, 
+			final AtomicInteger filesLoaded, 
+			final AtomicInteger fileFailures,
+			final AtomicInteger fileOlder,
+			final AtomicLong bytesLoaded) {
+		for(File f: srcDir.listFiles()) {
+			if(f.isFile()) {
+				File newFile = new File(targetDir + File.separator + f.getName());
+				if(newFile.exists()) {
+					if(newFile.lastModified() >= f.lastModified()) {
+						fileOlder.incrementAndGet();
+						continue;
+					}
+					newFile.delete();
+				}
+				try {
+					if(!newFile.createNewFile()) {
+						fileFailures.incrementAndGet();
+						continue;
+					}
+				} catch (Exception ex) {
+					fileFailures.incrementAndGet();
+					continue;					
+				}
+				try {
+					bytesLoaded.addAndGet(copyFile(f, newFile));
+					filesLoaded.incrementAndGet();
+				} catch (Exception ex) {
+					fileFailures.incrementAndGet();
+					continue;					
+				}
+			} else if(f.isDirectory()) {
+				File nextDir = new File(targetDir, f.getName());
+				recursiveFileCopy(f, nextDir, filesLoaded, fileFailures, fileOlder, bytesLoaded);
+			}
+		}
+	}
+
+    public static long copyFile(File in, File out)  throws IOException {
+    	FileChannel inChannel = new FileInputStream(in).getChannel();
+        FileChannel outChannel = new FileOutputStream(out).getChannel();
+        try {
+        	return inChannel.transferTo(0, inChannel.size(), outChannel);
+        }  catch (IOException e) {
+        	throw e;
+        }
+        finally {
+        	if (inChannel != null) inChannel.close();
+        	if (outChannel != null) outChannel.close();
+        }
+     }
+	
+	
 
 	public static void main(String[] args) { 
 		log("Range Test");

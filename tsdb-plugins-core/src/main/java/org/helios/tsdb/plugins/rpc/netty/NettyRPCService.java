@@ -29,11 +29,11 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.tsd.RpcHandler;
 
 import org.helios.tsdb.plugins.Constants;
-import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
-import org.helios.tsdb.plugins.rpc.netty.pipeline.RemotingPipelineFactory;
+import org.helios.tsdb.plugins.rpc.netty.pipeline.websock.WebSocketServiceHandler;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelPipelineFactory;
@@ -94,32 +94,34 @@ public class NettyRPCService extends AbstractRPCService {
 	 */
 	@Override
 	protected void startImpl() {
-		if(ipSocketAddress==null) {
-			log.info("NettyRPCService Disabled.");
-			return;
-		}
-		try {
-			log.info("Initializing NettyRPCService BossPool");
-			bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
-			log.info("Initializing NettyRPCService WorkerPool");
-			workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
-			nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
-			log.info("Created NioServerSocketChannelFactory");
-			try {
-				pipelineFactory = RemotingPipelineFactory.getInstance();
-				log.info("Acquired Pipeline Factory");
-			} catch (Throwable t) {
-				log.error("Failed to create pipeline factory", t);
-			}
-			serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
-			serverBootstrap.setPipelineFactory(pipelineFactory);
-			log.info("Binding to [{}]", ipSocketAddress);
-			serverBootstrap.bind(ipSocketAddress);
-			log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
-		} catch (Exception ex) {
-			log.error("Failed to start NettyRPCService", ex);
-			throw new RuntimeException("Failed to start NettyRPCService", ex);
-		}
+//		if(ipSocketAddress==null) {
+//			log.info("NettyRPCService Disabled.");
+//			return;
+//		}
+//		try {
+//			log.info("Initializing NettyRPCService BossPool");
+//			bossPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "BossPool", config);
+//			log.info("Initializing NettyRPCService WorkerPool");
+//			workerPool = new AsyncDispatcherExecutor(getClass().getSimpleName() + "WorkerPool", config);
+//			nioServerChannelFactory = new NioServerSocketChannelFactory(bossPool, workerPool);
+//			log.info("Created NioServerSocketChannelFactory");
+//			try {
+//				pipelineFactory = RemotingPipelineFactory.getInstance();
+//				log.info("Acquired Pipeline Factory");
+//			} catch (Throwable t) {
+//				log.error("Failed to create pipeline factory", t);
+//			}
+//			serverBootstrap = new ServerBootstrap(nioServerChannelFactory);
+//			serverBootstrap.setPipelineFactory(pipelineFactory);
+//			log.info("Binding to [{}]", ipSocketAddress);
+//			serverBootstrap.bind(ipSocketAddress);
+//			log.info("NettyRPCService Listening on [{}]", ipSocketAddress);
+//		} catch (Exception ex) {
+//			log.error("Failed to start NettyRPCService", ex);
+//			throw new RuntimeException("Failed to start NettyRPCService", ex);
+//		}
+		RpcHandler.getInstance(tsdb).registerHandler("ws", new WebSocketServiceHandler());
+		log.info("\n\t===============================================================\n\tRegistered WebSocketServiceHandler\n\t===============================================================\n");
 	}
 	
 	/**
@@ -129,7 +131,7 @@ public class NettyRPCService extends AbstractRPCService {
 	 */
 	@Override
 	protected void stopImpl() {
-		serverBootstrap.releaseExternalResources();
+//		serverBootstrap.releaseExternalResources();
 	}
 
 }

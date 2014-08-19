@@ -42,14 +42,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class QueryContext {
 	/** The maximum size of each page of results to be returned */
 	protected int pageSize = 100;
+	/** The timeout on each submitted request in ms. */
+	protected long timeout = 3000;
+	
 	/** The starting index for the next chunk */
 	protected Object nextIndex = null;
 	/** Indicates if the full result set has exhausted */
 	protected boolean exhausted = false;
-	
-	
-	
-	
+	/** The maximum cummulative number of items to be returned within this context */
+	protected int maxSize = 5000;
+	/** The cummulative number of items retrieved within this context */
+	protected int cummulative = 0;
 	
 	
 	public static void main(String[] args) {
@@ -125,7 +128,10 @@ public class QueryContext {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("QueryContext [pageSize=").append(pageSize);
+		builder.append(", timeout=").append(timeout);
+		builder.append(", maxSize=").append(maxSize);
 		builder.append(", exhausted=").append(exhausted);
+		builder.append(", cummulative=").append(cummulative);
 		if(nextIndex != null) {
 			builder.append(", nextIndex=").append(nextIndex);
 		}
@@ -140,13 +146,80 @@ public class QueryContext {
 	public boolean isExhausted() {
 		return exhausted;
 	}
+	
+	/**
+	 * Calculates the item count limit on the next call which is the lesser of:<ol>
+	 * 	<li>The configured page size</li>
+	 *  <li>The maximum item count minus the number of cummulative items already retrieved</li>
+	 * </ol>
+	 * @return the item count limit on the next call
+	 */
+	public int getNextMaxLimit() {
+		return Math.min(pageSize, maxSize - cummulative);
+	}
 
 	/**
 	 * Indicates if the query should be for a count only
 	 * @param exhausted true to set the full result set as exhausted, false to reset
+	 * @return this QueryContext
 	 */
-	public void setExhausted(boolean exhausted) {
+	public QueryContext setExhausted(boolean exhausted) {
 		this.exhausted = exhausted;
+		return this;
+	}
+
+	/**
+	 * Returns the configured maximum cummulative number of items to be returned within this context
+	 * @return the maxSize the configured maximum cummulative number of items
+	 */
+	public final int getMaxSize() {
+		return maxSize;
+	}
+
+	/**
+	 * Sets the configured maximum cummulative number of items to be returned within this context
+	 * @param maxSize the maximum cummulative number of items
+	 * @return this QueryContext
+	 */
+	public final QueryContext setMaxSize(int maxSize) {
+		this.maxSize = maxSize;
+		return this;
+	}
+
+	/**
+	 * Returns the cummulative number of items retrieved within this context
+	 * @return the cummulative number of items
+	 */
+	public final int getCummulative() {
+		return cummulative;
+	}
+
+	/**
+	 * Increments the cummulative by the passed amount
+	 * @param cummulative the amount to increment by
+	 * @return this QueryContext
+	 */
+	public final QueryContext incrementCummulative(int cummulative) {
+		this.cummulative = cummulative;
+		return this;
+	}
+
+	/**
+	 * Returns the timeout on each submitted request in ms. 
+	 * @return the timeout in ms.
+	 */
+	public final long getTimeout() {
+		return timeout;
+	}
+
+	/**
+	 * Sets the timeout on each submitted request in ms.
+	 * @param timeout the timeout in ms.
+	 * @return this QueryContext
+	 */
+	public final QueryContext setTimeout(long timeout) {
+		this.timeout = timeout;
+		return this;
 	}
 
 

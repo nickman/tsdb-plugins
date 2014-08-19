@@ -30,8 +30,13 @@ import static org.jboss.netty.handler.codec.http.HttpMethod.GET;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import net.opentsdb.core.TSDB;
+import net.opentsdb.tsd.HttpQuery;
+import net.opentsdb.tsd.HttpRpc;
 
 import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
@@ -82,7 +87,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * <p><code>org.helios.tsdb.plugins.rpc.netty.pipeline.websock.WebSocketServiceHandler</code></p>
  */
 
-public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelDownstreamHandler {
+public class WebSocketServiceHandler  implements ChannelUpstreamHandler, ChannelDownstreamHandler, HttpRpc {
 	/** The JSON Request Router */
 	protected final JSONRequestRouter router = JSONRequestRouter.getInstance();
 	protected final ObjectMapper marshaller = new ObjectMapper();	
@@ -282,6 +287,51 @@ public class WebSocketServiceHandler implements ChannelUpstreamHandler,	ChannelD
             f.addListener(ChannelFutureListener.CLOSE);
         }
     }
+
+	@Override
+	public void execute(TSDB tsdb, HttpQuery query) throws IOException {
+		if(query.getAPIMethod()!=GET) {
+			query.badRequest("HTTP Request Type [" + query.getAPIMethod() + "] Forbidden");
+			return;
+		}
+        
+        final Channel channel = query.channel();
+        final  HttpRequest req = query.request();
+        String uri = req.getUri();
+        final WebSocketServiceHandler wsHandler = this;
+        // Handshake
+        WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req), null, false);
+        WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
+        if (handshaker == null) {
+            wsFactory.sendUnsupportedWebSocketVersionResponse(channel);
+        } else {
+        	wsHandShaker.set(channel, handshaker);
+        	ChannelFuture cf = handshaker.handshake(channel, req); 
+            cf.addListener(WebSocketServerHandshaker.HANDSHAKE_LISTENER);
+            cf.addListener(new ChannelFutureListener() {
+				@Override
+				public void operationComplete(ChannelFuture f) throws Exception {
+					if(f.isSuccess()) {
+						Channel wsChannel = f.getChannel();
+						wsChannel.getPipeline().addLast("websock", wsHandler);
+						RPCSessionManager.getInstance().getSession(wsChannel).addSessionAttribute(RPCSessionAttribute.Protocol, "WebSocket");
+//						SharedChannelGroup.getInstance().add(
+//								f.getChannel(), 
+//								ChannelType.WEBSOCKET_REMOTE, 
+//								"WebSocketClient-" + f.getChannel().getId(), 
+//								((InetSocketAddress)wsChannel.getRemoteAddress()).getAddress().getCanonicalHostName(), 
+//								"WebSock[" + wsChannel.getId() + "]"
+//						);
+						//wsChannel.write(new JSONObject(Collections.singletonMap("sessionid", wsChannel.getId())));
+						
+						wsChannel.write(marshaller.getNodeFactory().objectNode().put("sessionid", "" + wsChannel.getId()));
+						//wsChannel.getPipeline().remove(DefaultChannelHandler.NAME);
+					}
+				}
+			});
+        }
+		
+	}
     
 
 }

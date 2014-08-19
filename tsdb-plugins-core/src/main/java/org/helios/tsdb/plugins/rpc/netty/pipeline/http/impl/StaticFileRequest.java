@@ -24,38 +24,16 @@
  */
 package org.helios.tsdb.plugins.rpc.netty.pipeline.http.impl;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import net.opentsdb.utils.Config;
-
-import org.helios.tsdb.plugins.rpc.netty.pipeline.http.HttpRequestHandler;
-import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.jboss.netty.handler.codec.http.HttpHeaders.isKeepAlive;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.setContentLength;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static org.jboss.netty.handler.codec.http.HttpMethod.GET;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -71,6 +49,14 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.activation.MimetypesFileTypeMap;
+
+import net.opentsdb.core.TSDB;
+import net.opentsdb.tsd.HttpQuery;
+import net.opentsdb.tsd.StaticFileRpc;
+import net.opentsdb.utils.Config;
+
+import org.helios.tsdb.plugins.rpc.netty.pipeline.http.HttpRequestHandler;
+import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -78,10 +64,8 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelFutureProgressListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.DefaultFileRegion;
-import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.FileRegion;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -90,6 +74,8 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -106,6 +92,9 @@ public class StaticFileRequest implements HttpRequestHandler {
 
 	protected final String root;
 	protected final File rootDir;
+	
+	protected final StaticFileRpc fileRpc;
+	protected final TSDB tsdb;
 	
     public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
     public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
@@ -136,6 +125,8 @@ public class StaticFileRequest implements HttpRequestHandler {
 			log.error("The configured root is invalid [{}]", root);
 			throw new RuntimeException("The configured root is invalid [" + root + "]");
 		}
+		fileRpc = new StaticFileRpc();
+		tsdb = TSDBPluginServiceLoader.getInstance().getTSDB();
 	}
 
 	/**
@@ -153,18 +144,19 @@ public class StaticFileRequest implements HttpRequestHandler {
 	 */
 	@Override
 	public void handle(ChannelHandlerContext ctx, MessageEvent e, HttpRequest request, String path) throws Exception {
-		log.info("Static File Request: [{}], URI: [{}]", path, request.getUri());
-        if (request.getMethod() != GET) {
-            sendError(ctx, METHOD_NOT_ALLOWED);
-            return;
-        }
-        ChannelFuture writeFuture = writeResponseFromFile(ctx, e, request, path);
-
-        // Decide whether to close the connection or not.
-        if (writeFuture!=null && !isKeepAlive(request)) {
-            // Close the connection when the whole content is written out.
-            writeFuture.addListener(ChannelFutureListener.CLOSE);
-        }
+		fileRpc.execute(tsdb, new HttpQuery(tsdb, request, ctx.getChannel()));
+//		log.info("Static File Request: [{}], URI: [{}]", path, request.getUri());
+//        if (request.getMethod() != GET) {
+//            sendError(ctx, METHOD_NOT_ALLOWED);
+//            return;
+//        }
+//        ChannelFuture writeFuture = writeResponseFromFile(ctx, e, request, path);
+//
+//        // Decide whether to close the connection or not.
+//        if (writeFuture!=null && !isKeepAlive(request)) {
+//            // Close the connection when the whole content is written out.
+//            writeFuture.addListener(ChannelFutureListener.CLOSE);
+//        }
 
 	}
 	

@@ -355,8 +355,8 @@ public class MetaSynchronizer {
 		try {
 			row = tsdb.getClient().get(get).joinUninterruptibly(2000);
 			if (row == null || row.isEmpty()) {
-				log.error("No data in the metric max UID cell");
-				throw new IllegalStateException("No data in the metric max UID cell");
+				log.warn("No data in the metric max UID cell. Empty DB ?");
+//				throw new IllegalStateException("No data in the metric max UID cell");
 			}
 			final byte[] id_bytes = row.get(0).value();
 			if (id_bytes.length != 8) {

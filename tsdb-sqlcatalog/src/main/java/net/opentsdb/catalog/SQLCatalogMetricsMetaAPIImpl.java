@@ -296,10 +296,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, predicate, keyBinds, XUID_START_SQL);
 						binds.add(queryOptions.getNextIndex());
 					}
-					final int modPageSize = queryOptions.getPageSize();
-					binds.add(modPageSize+1);					
+					final int modPageSize = queryOptions.getNextMaxLimit() + 1;
+					binds.add(modPageSize);					
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize+1, queryOptions, 
+					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), targetType)
 					);
 					def.callback(uidMetas);
@@ -367,6 +367,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * <p>Sample request:<pre>
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }
 	 * </pre></p>
+	 * API:  ws.serviceRequest("meta", "metricnames", {q: q, keys : ['host', 'type', 'cpu']})
 	 */
 	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
 	public void jsonMetricNames(final JSONRequest request) {
@@ -418,7 +419,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = keySql.toString();
 					}
-					final int modPageSize = queryOptions.getPageSize() + 1;
+					final int modPageSize = queryOptions.getNextMaxLimit() + 1;
 					binds.add(modPageSize);
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
@@ -447,26 +448,46 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @return The set of UIDMetas to return
 	 */
 	protected static Set<UIDMeta> closeOutUIDMetaResult(final int modPageSize, final QueryContext ctx, final List<UIDMeta> readMetas) {
-		UIDMeta lastUIDMeta = null;
 		if(readMetas.isEmpty()) {
-			ctx.setExhausted(true);
-			ctx.setNextIndex(null);
+			ctx.setExhausted(true).setNextIndex(null);			
 			return EMPTY_UIDMETA_SET;
 		}
 		final int size = readMetas.size(); 
-		if(size <= modPageSize) {
-			ctx.setExhausted(true);
-			lastUIDMeta = readMetas.get(size-1);
+		if(size < modPageSize) {
+			// the result set size was less than actually requested
+			// so the query is exhausted
+			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
 		} else {
-			lastUIDMeta = readMetas.get(size-2);
-			readMetas.remove(size-1);							
+			// the result set size was equal to what was actually requested
+			// so the result set is still live.
+			// the result list has +1 over the caller specified, so:
+			//	1. The last item should be removed (it is excess)
+			//	2. The nextIndex is the index of the last item						
+			ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getUID()).incrementCummulative(size-1);
+			readMetas.remove(size-1);
 		}
-		if(lastUIDMeta!=null) {
-			ctx.setNextIndex(lastUIDMeta.getUID());
-		} else {
-			ctx.setNextIndex(null);
-		}		
 		return readMetas.isEmpty() ? EMPTY_UIDMETA_SET : new LinkedHashSet<UIDMeta>(readMetas);
+//		UIDMeta lastUIDMeta = null;
+//		if(readMetas.isEmpty()) {
+//			ctx.setExhausted(true);
+//			ctx.setNextIndex(null);
+//			return EMPTY_UIDMETA_SET;
+//		}
+//		final int size = readMetas.size(); 
+//		if(size <= modPageSize) {
+//			ctx.setExhausted(true);
+//			ctx.setNextIndex(null);
+//			lastUIDMeta = readMetas.get(size-1);
+//		} else {
+//			lastUIDMeta = readMetas.get(size-2);
+//			readMetas.remove(size-1);							
+//		}
+//		if(lastUIDMeta!=null) {
+//			ctx.setNextIndex(lastUIDMeta.getUID());
+//		} else {
+//			ctx.setNextIndex(null);
+//		}		
+//		return readMetas.isEmpty() ? EMPTY_UIDMETA_SET : new LinkedHashSet<UIDMeta>(readMetas);
 	}
 	
 	/**
@@ -477,26 +498,25 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param readMetas The materialized TSMetas being returned
 	 * @return The set of TSMetas to return
 	 */
-	protected static Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {
-		TSMeta lastTSMeta = null;
+	protected static Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {		
 		if(readMetas.isEmpty()) {
-			ctx.setExhausted(true);
-			ctx.setNextIndex(null);
+			ctx.setExhausted(true).setNextIndex(null);			
 			return EMPTY_TSMETA_SET;
 		}
-		final int size = readMetas.size(); 
+		final int size = readMetas.size(); 		
 		if(size < modPageSize) {
-			ctx.setExhausted(true);
-			lastTSMeta = readMetas.get(size-1);
+			// the result set size was less than actually requested
+			// so the query is exhausted
+			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
 		} else {
-			lastTSMeta = readMetas.get(size-2);
-			readMetas.remove(size-1);							
+			// the result set size was equal to what was actually requested
+			// so the result set is still live.
+			// the result list has +1 over the caller specified, so:
+			//	1. The last item should be removed (it is excess)
+			//	2. The nextIndex is the index of the last item						
+			ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getTSUID()).incrementCummulative(size-1);
+			readMetas.remove(size-1);
 		}
-		if(lastTSMeta!=null) {
-			ctx.setNextIndex(lastTSMeta.getTSUID());
-		} else {
-			ctx.setNextIndex(null);
-		}		
 		return readMetas.isEmpty() ? EMPTY_TSMETA_SET : new LinkedHashSet<TSMeta>(readMetas);
 	}
 	
@@ -588,7 +608,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = String.format(keySql.toString(), likeOrEquals.toArray());
 					}
-					final int modPageSize = queryOptions.getPageSize(); 
+					final int modPageSize = queryOptions.getNextMaxLimit() + 1; 
 					binds.add(modPageSize);
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
 					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
@@ -669,7 +689,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
 					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
-					final int modPageSize = queryOptions.getPageSize();
+					final int modPageSize = queryOptions.getNextMaxLimit() + 1;
 					binds.add(modPageSize);
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					
@@ -829,10 +849,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					sqlBuffer.append(INITIAL_XUID_START_SQL);
 				}
 				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
-				binds.add(queryOptions.getPageSize()+1);
+				final int modPageSize = queryOptions.getNextMaxLimit() + 1;
+				binds.add(modPageSize);
 				try {
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(queryOptions.getPageSize(), queryOptions, 
+					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryOptions, 
 							metaReader.readUIDMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.TAGV)
 					);
 					def.callback(uidMetas);

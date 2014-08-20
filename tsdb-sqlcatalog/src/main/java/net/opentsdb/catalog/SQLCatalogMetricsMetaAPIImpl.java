@@ -35,7 +35,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +72,6 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.utils.Config;
 import net.opentsdb.utils.JSON;
 
-import org.helios.jmx.util.helpers.SystemClock;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -82,6 +84,10 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stumbleupon.async.Callback;
@@ -446,6 +452,55 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(keys));		
 		getMetricNames(q.startExpiry(), keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+	}
+	
+	// public Deferred<Set<UIDMeta>> getTagKeys(final QueryContext queryOptions, final String metric, final String...tagKeys) {
+	/**
+	 * @param request
+	 */	
+	@JSONRequestHandler(name="tagkeys", description="Returns the Tag Key UIDs that match the passed metric name and tag keys")
+	public void jsonTagKeys(final JSONRequest request) {
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
+		final String metricName = request.getRequest().get("m").textValue();
+		final ArrayNode keysArr = (ArrayNode)request.getRequest().get("keys");
+		final String[] keys = new String[keysArr.size()];
+		for(int i = 0; i < keysArr.size(); i++) {
+			keys[i] = keysArr.get(i).asText();
+		}
+		log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(keys));		
+		getTagKeys(q.startExpiry(), metricName, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+	}
+		
+	/**
+	 * @param request
+	 */
+	@JSONRequestHandler(name="tagvalues", description="Returns the Tag Value UIDs that match the passed metric name and tag keys")
+	public void jsonTagValues(final JSONRequest request) { 
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
+		final String metricName = request.getRequest().get("m").textValue();
+		final String tagKey = request.getRequest().get("k").textValue();
+		final ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
+		final Map<String, String> tags = new TreeMap<String, String>();
+		Iterator<String> titer = tagNode.fieldNames();
+		while(titer.hasNext()) {
+			String key = titer.next();
+			tags.put(key, tagNode.get(key).asText());
+		}
+		log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);		
+		getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+	}
+	
+	
+
+	/**
+	 * @param request
+	 */
+	@JSONRequestHandler(name="tsmetaexpr", description="Returns the TSMetas that match the passed expression")
+	public void jsonTSMetaExpression(final JSONRequest request) { 
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
+		final String expression = request.getRequest().get("x").textValue();
+		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);		
+		evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
 	}
 	
 	/**
@@ -1250,6 +1305,107 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			cnt++;
 		}
 		return range;
+	}
+	
+	public static Map<String, String> tagMap(TSMeta tsMeta) {
+		List<UIDMeta> metas = tsMeta.getTags();
+		final int size = metas.size()/2;		
+		List<String> keys = new ArrayList<String>(size);
+		List<String> values = new ArrayList<String>(size);
+		Map<String, String> map = new LinkedHashMap<String, String>(size);
+		for(UIDMeta u: metas) {
+			if(u.getType()==UniqueId.UniqueIdType.TAGK) {
+				keys.add(u.getName());
+			} else {
+				values.add(u.getName());
+			}
+		}
+		for(int i = 0; i < size; i++) {
+			map.put(keys.get(i), values.get(i));			
+		}
+		return map;
+	}
+	
+	
+	public static class TSMetaTree {
+		@JsonProperty("a")
+		public final String name;							// the key, eg. dc
+		@JsonIgnore
+		public final boolean keyBase;
+		@JsonProperty("x")
+		public TSMetaTree[] children = {};		
+		
+		
+		
+		public TSMetaTree(String name, boolean keyBase) {
+			this.name = name;
+			this.keyBase = keyBase;
+		}
+		
+		public String toString() {
+			return name;
+		}
+		
+		public TSMetaTree(String name, Set<TSMeta> tsMetas) {
+			this(name, true);
+			Map<TSMeta, Map<String, String>> tsMetaMap = new HashMap<TSMeta, Map<String, String>>(tsMetas.size());
+			for(TSMeta t: tsMetas) {
+				tsMetaMap.put(t, tagMap(t));
+			}
+			pop(tsMetaMap);
+			popChildren(tsMetaMap);
+		}
+		
+		public void popChildren(final Map<TSMeta, Map<String, String>> tsMetas) {
+			for(TSMetaTree child: children) {
+				child.pop(tsMetas);
+				child.popChildren(tsMetas);
+			}
+		}
+		
+		public void pop(Map<TSMeta, Map<String, String>> tsMetas) {
+			if(tsMetas!=null && !tsMetas.isEmpty()) {				
+				List<TSMetaTree> childs = new ArrayList<TSMetaTree>();
+				StringBuilder b = new StringBuilder("\n\tPopulating [").append(name).append(", keyBase:").append(keyBase).append("]");
+				Set<String> taken = new HashSet<String>();
+				taken.add(name);
+				for(Map<String, String> tagMap: tsMetas.values()) {
+					if(keyBase) {
+						if(tagMap.containsKey(name)) {
+							String value = tagMap.remove(name);			
+							if(taken.contains(value)) continue;							
+							childs.add(new TSMetaTree(value, !keyBase));
+							taken.add(value);
+							b.append("\n\t\t").append(keyBase ? "key:[" : "value:[").append(value).append("]");
+							break;
+//							throw new RuntimeException();							
+						}
+					} else {
+						Set<String> values = new HashSet<String>(tagMap.keySet());							
+						for(Iterator<String> iter = values.iterator(); iter.hasNext();) {
+							String value = iter.next();
+							iter.remove();
+							if(taken.contains(value)) continue;
+							childs.add(new TSMetaTree(value, !keyBase));
+							taken.add(value);
+							tagMap.remove(value);
+							b.append("\n\t\t").append(keyBase ? "key:[" : "value:[").append(value).append("]");
+							break;
+//							throw new RuntimeException();	
+						}
+					}	
+					break;
+				}
+				log(b);
+				if(!childs.isEmpty()) {
+					this.children = childs.toArray(new TSMetaTree[0]);
+					for(TSMetaTree t: this.children) {
+						t.pop(tsMetas);
+						t.popChildren(tsMetas);
+					}
+				}
+			}
+		}
 	}
 	
 

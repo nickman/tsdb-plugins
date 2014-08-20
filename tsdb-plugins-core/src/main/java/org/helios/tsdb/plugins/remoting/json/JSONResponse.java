@@ -315,7 +315,9 @@ public class JSONResponse implements ChannelBufferizable {
 	public ChannelFuture[] send(ChannelFutureListener listener, Channel...channels) {		
 		if(channels!=null && channels.length>0) {
 			Set<ChannelFuture> futures = new HashSet<ChannelFuture>(channels.length);
-			opCode = "ok";
+			if(opCode==null) {
+				opCode = "ok";
+			}
 			TextWebSocketFrame frame = new TextWebSocketFrame(this.toChannelBuffer());
 			for(Channel channel: channels) {
 				if(channel!=null && channel.isWritable()) {

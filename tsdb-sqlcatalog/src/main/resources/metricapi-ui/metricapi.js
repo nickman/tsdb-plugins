@@ -9,16 +9,27 @@ function QueryContext(props) {
 	this.maxSize = (props && props.maxSize) ? props.maxSize : 5000;
 	this.exhausted = false;
 	this.cummulative = 0;
+	this.elapsed = -1;
+	this.expired = false;
 }
 
 QueryContext.newContext = function(props) {
 	return new QueryContext(props);
 }
 
+QueryContext.prototype.getElapsed = function() {
+	return this.elapsed;
+};
 
 QueryContext.prototype.getNextIndex = function() {
 	return this.nextIndex;
 };
+
+QueryContext.prototype.nextIndex = function(index) {
+	this.nextIndex = index;
+	return this;
+};
+
 
 QueryContext.prototype.getCummulative = function() {
 	return this.cummulative;
@@ -28,22 +39,40 @@ QueryContext.prototype.getPageSize = function() {
 	return this.pageSize;
 };
 
+QueryContext.prototype.pageSize = function(size) {
+	this.pageSize = size;
+	return this;
+};
+
+
 QueryContext.prototype.getMaxSize = function() {
 	return this.maxSize;
+};
+
+QueryContext.prototype.maxSize = function(size) {
+	this.maxSize = size;
+	return this;
 };
 
 QueryContext.prototype.isExhausted = function() {
 	return this.exhausted;
 };
 
+QueryContext.prototype.isExpired = function() {
+	return this.expired;
+};
+
 QueryContext.prototype.update = function(props) {
 	this.nextIndex = (props && props.nextIndex) ? props.nextIndex : null; 
 	this.exhausted = (props && props.exhausted) ? props.exhausted : false;
 	this.cummulative = (props && props.cummulative) ? props.exhausted : 0;	
+	this.elapsed = (props && props.elapsed) ? props.elapsed: -1;
+	this.expired = (props && props.expired) ? props.expired: -1;
+
 }
 
 QueryContext.prototype.toString = function() {
-	return "{nextIndex:" + this.nextIndex + ", pageSize:" + this.pageSize + ", maxSize:" + this.maxSize + ", exhausted:" + this.exhausted + ", cummulative:" + this.cummulative + "}";
+	return "{nextIndex:" + this.nextIndex + ", pageSize:" + this.pageSize + ", maxSize:" + this.maxSize + ", exhausted:" + this.exhausted + ", cummulative:" + this.cummulative + ", expired:" + this.expired + ", elapsed:" + this.elapsed + "}";
 };
 
 //========================================================================
@@ -92,7 +121,12 @@ WebSocketAPIClient.defaultHandlers = {
 		onmessage: function(evt, client) { 
 			console.info("WebSocket Message: [%O]", evt);
 			try {
-				console.info("Response: [%O]", JSON.parse(evt.data));
+				var result = JSON.parse(evt.data);
+				console.info("Response: [%O]", result);
+				var pendingRequest = WebSocketAPIClient.pendingRequests[result.rerid];
+				if(pendingRequest!=null) {
+					pendingRequest.cb(result);
+				}
 			} catch (e) {
 				console.error(e);
 			}
@@ -109,6 +143,8 @@ WebSocketAPIClient.defaultHandlers = {
 		onopen: function(evt, client) { console.info("WebSocket Opened: [%O]", evt); }
 };
 
+WebSocketAPIClient.pendingRequests = {};
+
 
 WebSocketAPIClient.prototype.close = function() {
 	if(this.ws) this.ws.close();
@@ -123,7 +159,7 @@ WebSocketAPIClient.prototype.close = function() {
 * If only f is specified, behave as if start was 0.
 * Note that the call to invoke() does not block: it returns right away.
 */
-WebSocketAPIClient.prototype.invokeOnOpen = function invoke(fx, args, start, interval, end) {
+WebSocketAPIClient.prototype.retry = function invoke(fx, args, start, interval, end) {
 	if (!start) start = 0;
 	// Default to 0 ms
 	if (arguments.length <= 3) {
@@ -143,16 +179,26 @@ WebSocketAPIClient.prototype.invokeOnOpen = function invoke(fx, args, start, int
 
 WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 	if(this.ws.readyState!=1) {
+		var self = this;
+		var args = [];
+		for(var i = 0, l = arguments.length; i < l; i++) {
+			args.push(arguments[i]);
+		}		
 		try {
-			this.invokeOnOpen(this.serviceRequest, arguments, 100);
+			var fx = function() {
+				console.info("Retrying svc:[%s], op:[%s], args ---> [%O]", service, opname, args);				
+				//self.serviceRequest(service, opname, args);
+				self.serviceRequest.apply(self, args);
+			}
+			this.retry(fx, args, 100);			
 		} catch (e) {
-			this.invokeOnOpen(this.serviceRequest, arguments, 100);
+			console.error("Delayed service request failed: svc:[%s], op:[%s], err:[%O]", service, opname, e);
 		}
 		return;
 		//throw "Failed to call service. Socket in state: [" + this.ws.readyState + "]";
 	}
 	// {"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }
-	this.ridseq++;
+	this.ridseq++;	
 	var obj = {
 			t: "req",
 			rid: this.ridseq,
@@ -178,7 +224,33 @@ WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 		}
 	}	
 	console.debug("Service Request: svc:[%s], op:[%s], payload:[%O]", service, opname, obj);
+	var Q = arguments[2].q;
+	var deferred = jQuery.Deferred();
+	
+	var pendingRequest = {
+		rid: obj.rid,
+		th: -1,
+		d: deferred,
+		q: Q,
+		self: this,
+		cb: function(result) {
+			console.info("THIS: ----> [%O]", this.self);
+			if(result.op=="ok") {
+				console.group("============ Call Successful ============");
+				console.info("Result: [%O]", result);
+				console.groupEnd();
+			} else {
+				console.group("============ Call Failed ============");
+				console.error("Code: [%s]", result.op);
+				console.groupEnd();
+			}
+		}
+	};
+	WebSocketAPIClient.pendingRequests[obj.rid] = pendingRequest;
+	//var timeoutHandle = setTimeout()
 	this.ws.send(JSON.stringify(obj));
+	return deferred.promise();
+	
 };
 
 WebSocketAPIClient.prototype.getMetricNames = function(queryContext, tagKeys) {

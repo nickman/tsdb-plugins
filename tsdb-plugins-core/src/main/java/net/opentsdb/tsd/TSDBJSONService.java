@@ -102,7 +102,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 		tsdb = TSDBPluginServiceLoader.getLoaderInstance().getTSDB();
 		pluginContext = TSDBPluginServiceLoader.getLoaderInstance().getPluginContext();		
 		pluginContext.addResourceListener(this);
-		RpcHandler rpcHandler = RpcHandler.getInstance(tsdb);
+//		RpcHandler rpcHandler = RpcHandler.getInstance(tsdb);
 //		loadInstanceOf("net.opentsdb.tsd.RpcHandler$DieDieDie", "diediedie", rpcHandler);
 //		final StaticFileRpc staticfile = new StaticFileRpc();
 //	    http_commands.put("favicon.ico", staticfile);

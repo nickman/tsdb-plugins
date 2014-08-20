@@ -61,10 +61,15 @@ import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
 import net.opentsdb.meta.api.QueryContext;
+import net.opentsdb.tsd.BadRequestException;
+import net.opentsdb.tsd.HttpQuery;
+import net.opentsdb.tsd.HttpRpc;
+import net.opentsdb.tsd.RpcHandler;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.utils.Config;
 import net.opentsdb.utils.JSON;
 
+import org.helios.jmx.util.helpers.SystemClock;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -172,7 +177,45 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.metaReader = metaReader;
 		tagPredicateCache = new TagPredicateCache(sqlWorker);
 		loadContent();
-		ctx.setResource(getClass().getSimpleName(), this);				
+		ctx.setResource(getClass().getSimpleName(), this);	
+		new MetricUIHandler();
+	}
+	
+	private class MetricUIHandler implements HttpRpc {
+		final String contentDir;
+		final String staticDir;
+		
+		  /**
+		   * Constructor.
+		   */
+		  public MetricUIHandler() {
+			  staticDir = tsdb.getConfig().getDirectoryName("tsd.http.staticroot");
+			  contentDir = System.getProperty("metricui.staticroot", staticDir);
+			  RpcHandler.getInstance().registerHandler("metricapi-ui", this);
+		  }
+
+		  public void execute(final TSDB tsdb, final HttpQuery query)
+		    throws IOException {
+		    final String uri = query.request().getUri();
+		    if ("/favicon.ico".equals(uri)) {
+		      query.sendFile(staticDir 
+		          + "/favicon.ico", 31536000 /*=1yr*/);
+		      return;
+		    }
+		    if (uri.length() < 3) {  // Must be at least 3 because of the "/s/".
+		      throw new BadRequestException("URI too short <code>" + uri + "</code>");
+		    }
+		    // Cheap security check to avoid directory traversal attacks.
+		    // TODO(tsuna): This is certainly not sufficient.
+		    if (uri.indexOf("..", 3) > 0) {
+		      throw new BadRequestException("Malformed URI <code>" + uri + "</code>");
+		    }
+		    final int questionmark = uri.indexOf('?', 3);
+		    final int pathend = questionmark > 0 ? questionmark : uri.length();
+		    query.sendFile(contentDir
+		                 + uri.substring(1, pathend),  // Drop the "/s"
+		                   uri.contains("nocache") ? 0 : 31536000 /*=1yr*/);
+		  }		
 	}
 	
 	public static void mainx(String[] args) {
@@ -350,6 +393,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		private final JSONRequest request;		
 		/** The current query context */
 		private final QueryContext ctx;
+		/** The result node */
+		private final ArrayNode an = JSON.getMapper().createArrayNode();
 		/**
 		 * Creates a new ResultCompleteCallback
 		 * @param request The original JSON request
@@ -361,11 +406,20 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		@Override
 		public Void call(T result) throws Exception {
-			try {
-				ArrayNode an = JSON.getMapper().createArrayNode();
-				an.insertPOJO(0, ctx);
-				an.insertPOJO(0, result);
-				JSON.getMapper().writeValue(request.response().getChannelOutputStream(), an);
+			try {				
+//				SystemClock.sleep(3100);
+				if(ctx.isExpired()) {
+					an.insertPOJO(0, ctx);
+					an.insert(0, "The request timed out");	
+//					request.response().setContent(an).send();
+					request.response().setOpCode("timeout").setContent(an).send();
+//					JSON.getMapper().writeValue(request.response().getChannelOutputStream(), an);					
+				} else {					
+					an.insertPOJO(0, ctx);
+					an.insertPOJO(0, result);
+					request.response().setContent(an).send();
+//					JSON.getMapper().writeValue(request.response().getChannelOutputStream(), an);
+				}
 			} catch (Exception e) {
 				request.error("Failed to get metric names", e);
 				log.error("Failed to get metric names", e);
@@ -391,7 +445,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			keys[i] = keysArr.get(i).asText();
 		}
 		log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(keys));		
-		getMetricNames(q, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+		getMetricNames(q.startExpiry(), keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
 	
 	/**
@@ -566,7 +620,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			tags.put(key, tagNode.get(key).asText());
 		}
 		log.info("Processing jsonMetricNamesWithTags. q: [{}], tags: {}", q, tags);		
-		getMetricNames(q, tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+		getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
 
 
@@ -683,7 +737,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			tags.put(key, tagNode.get(key).asText());
 		}
 		log.info("Processing jsonTSMetas. q: [{}], tags: {}", q, tags);		
-		getTSMetas(q, metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+		getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
 	}
 	
 	

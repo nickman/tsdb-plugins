@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 
 import net.opentsdb.utils.JSON;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -43,7 +44,12 @@ public class QueryContext {
 	/** The maximum size of each page of results to be returned */
 	protected int pageSize = 100;
 	/** The timeout on each submitted request in ms. */
-	protected long timeout = 3000;
+	protected long timeout = 3000L;
+	/** The timestamp at which the running asynch request will be expired */
+	@JsonIgnore
+	private long timeLimit = -1L;
+	/** The elapsed time of the last request in ms. */
+	protected long elapsed = -1L;
 	
 	/** The starting index for the next chunk */
 	protected Object nextIndex = null;
@@ -129,6 +135,8 @@ public class QueryContext {
 		StringBuilder builder = new StringBuilder();
 		builder.append("QueryContext [pageSize=").append(pageSize);
 		builder.append(", timeout=").append(timeout);
+		builder.append(", timeLimit=").append(timeLimit);
+		builder.append(", elapsed=").append(elapsed);
 		builder.append(", maxSize=").append(maxSize);
 		builder.append(", exhausted=").append(exhausted);
 		builder.append(", cummulative=").append(cummulative);
@@ -220,6 +228,54 @@ public class QueryContext {
 	public final QueryContext setTimeout(long timeout) {
 		this.timeout = timeout;
 		return this;
+	}
+
+	/**
+	 * Returns the timestamp at which the running asynch request will be expired 
+	 * @return the expired timestamp
+	 */
+	@JsonIgnore
+	public final long getTimeLimit() {
+		return timeLimit;
+	}
+	
+	/**
+	 * Indicates if the last submitted request in this context has expired
+	 * according to the start time and timeout. Also updates the elapsed time.
+	 * Should be called when the async response arrives.
+	 * @return true if the request has expired, false otherwise.
+	 */
+	public final boolean isExpired() {
+		if(timeLimit!=-1L) {
+			final long now = System.currentTimeMillis();
+			elapsed = now - timeLimit + timeout;
+			boolean exp =  now > timeLimit;
+			timeLimit = -1L;
+			return exp;
+		}
+		return false;
+	}
+	
+	@JsonIgnore
+	protected final void setExpired(boolean exp) {
+		
+	}
+
+	/**
+	 * Starts the expiration timeout clock
+	 * @return this QueryContext
+	 */
+	public QueryContext startExpiry() {
+		this.timeLimit = System.currentTimeMillis() + timeout;
+		return this;
+	}
+
+	/**
+	 * Returns the elapsed time of the last request in ms. 
+	 * @return the elapsed time
+	 */
+	public final long getElapsed() {
+		return elapsed;
 	}
 
 

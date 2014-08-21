@@ -46,7 +46,7 @@ tsmetas = metrics.evaluate(q.setPageSize(100), "sys.cpu:dc=dc1,host=WebServer1|W
 tsmetas.each() {
     println renderTags(it.getTags());
 }
-tree = new SQLCatalogMetricsMetaAPIImpl.TSMetaTree("dc", tsmetas);
+tree = SQLCatalogMetricsMetaAPIImpl.TSMetaTree.build("root", tsmetas);
 
 
 String json =  net.opentsdb.utils.JSON.serializeToString(tree);

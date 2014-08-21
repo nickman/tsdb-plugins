@@ -33,13 +33,13 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -72,6 +72,7 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.utils.Config;
 import net.opentsdb.utils.JSON;
 
+import org.helios.jmx.util.helpers.JMXHelper;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -84,10 +85,11 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stumbleupon.async.Callback;
@@ -1230,14 +1232,14 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	
 	
 
-	public static void main(String[] args) { 
-		log("Range Test");
-		String expr = "WebServer[8,9,11-20]";  // |DBServer[8,9,11-20]
-		List<Object> binds = new ArrayList<Object>();
-		log("Expression:" + expr);
-		log("Expanded:" + expandNumericRange(expr));
-		log("Expanded:" + fillInSQL(expandPredicate(expr, TAGK_SQL_BLOCK, binds), binds));
-	}
+//	public static void main(String[] args) { 
+//		log("Range Test");
+//		String expr = "WebServer[8,9,11-20]";  // |DBServer[8,9,11-20]
+//		List<Object> binds = new ArrayList<Object>();
+//		log("Expression:" + expr);
+//		log("Expanded:" + expandNumericRange(expr));
+//		log("Expanded:" + fillInSQL(expandPredicate(expr, TAGK_SQL_BLOCK, binds), binds));
+//	}
 	
 	/** Regex pattern that defines a range of numbers */
 	protected static final Pattern intRange = Pattern.compile("\\[(?:(([0-9]+(-[0-9]+)?)(,([0-9]+(-[0-9]+)?))*)\\])");
@@ -1307,6 +1309,22 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return range;
 	}
 	
+	public static Collection<Map<String, String>> tagMap(Collection<TSMeta> tsMetas) {
+		LinkedHashSet<Map<String, String>> set = new LinkedHashSet<Map<String, String>>(tsMetas.size());
+		for(TSMeta t: tsMetas) {
+			set.add(tagMap(t));
+		}
+		return set;
+	}
+
+	public static void main(String[] args) { 
+		log("Tree Test");
+		TSMetaTree t = TSMetaTree.buildFromObjectNames("root", new LinkedHashSet<ObjectName>(Arrays.asList(JMXHelper.query("*:*"))));
+		//log(JSON.serializeToString(t));
+		log(t.deepToString());
+	}
+
+	
 	public static Map<String, String> tagMap(TSMeta tsMeta) {
 		List<UIDMeta> metas = tsMeta.getTags();
 		final int size = metas.size()/2;		
@@ -1326,86 +1344,138 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return map;
 	}
 	
-	
-	public static class TSMetaTree {
-		@JsonProperty("a")
-		public final String name;							// the key, eg. dc
-		@JsonIgnore
-		public final boolean keyBase;
-		@JsonProperty("x")
-		public TSMetaTree[] children = {};		
-		
-		
-		
-		public TSMetaTree(String name, boolean keyBase) {
-			this.name = name;
-			this.keyBase = keyBase;
+	public static class TSMetaTreeSerializer extends JsonSerializer<TSMetaTree> {
+
+		@Override
+		public void serialize(TSMetaTree value, JsonGenerator jgen,
+				SerializerProvider provider) throws IOException,
+				JsonProcessingException {
+			jgen.writeStartObject();
+			jgen.writeStringField("name", value.name);
+//			jgen.writeStringField("key", Arrays.toString(value.key).replace("[", "").replace("]", ""));
+			jgen.writeFieldName("children");			
+			jgen.writeStartArray();
+			for(TSMetaTree t: value.children.values()) {
+				provider.defaultSerializeValue(t, jgen);
+			}
+			jgen.writeEndArray();
+			jgen.writeEndObject();
 		}
+		
+	}
+	
+	@JsonSerialize(using=TSMetaTreeSerializer.class)
+	public static class TSMetaTree {
+		public final String name;							// the key, eg. dc
+		public final Map<String, TSMetaTree> children = new LinkedHashMap<String, TSMetaTree>();		
+		
+		private TSMetaTree tag(String name) {
+			TSMetaTree tm = children.get(name);
+			if(tm==null) {
+				tm = new TSMetaTree(name);
+				children.put(name, tm);
+			}
+			return tm;
+		}
+		
+		public static TSMetaTree build(String rootName, Set<TSMeta> tsMetas) {
+			TSMetaTree root = new TSMetaTree(rootName);
+			load(root, tagMap(tsMetas));
+			return root;				
+		}
+		
+		public static TSMetaTree buildFromObjectNames(String rootName, Set<ObjectName> objectNames) {
+			TSMetaTree root = new TSMetaTree(rootName);
+			LinkedHashSet<Map<String, String>> set = new LinkedHashSet<Map<String, String>>(objectNames.size());
+			for(ObjectName on: objectNames) {
+				set.add(on.getKeyPropertyList());
+			}
+			load(root, set);
+			return root;
+		}
+		
+		
+		private static void load(final TSMetaTree root, final Collection<Map<String, String>> tags) {
+			TSMetaTree current = root;			
+			for(Map<String, String> tagMap: tags) {
+				for(Map.Entry<String, String> tag: tagMap.entrySet()) {
+					String key = tag.getKey(), value = tag.getValue();
+					log("Fetching Key child for [%s] in node %s", key, current);
+					current = current.tag(key);
+					//log(current);
+					log("Fetching Value child for [%s] in node %s", value, current);
+					current = current.tag(value);
+					//log(current);
+				}	
+				current = root;
+			}
+		}
+		
+		
+		private TSMetaTree(String name) {
+			this.name = name;
+		}
+		
+		private TSMetaTree(String name, String[] key) {
+			this.name = name;
+		}
+		
 		
 		public String toString() {
-			return name;
+			return name + "[" + children.size() + "]";
 		}
+		private static final ThreadLocal<StringBuilder> indent = new ThreadLocal<StringBuilder>();
 		
-		public TSMetaTree(String name, Set<TSMeta> tsMetas) {
-			this(name, true);
-			Map<TSMeta, Map<String, String>> tsMetaMap = new HashMap<TSMeta, Map<String, String>>(tsMetas.size());
-			for(TSMeta t: tsMetas) {
-				tsMetaMap.put(t, tagMap(t));
-			}
-			pop(tsMetaMap);
-			popChildren(tsMetaMap);
-		}
-		
-		public void popChildren(final Map<TSMeta, Map<String, String>> tsMetas) {
-			for(TSMetaTree child: children) {
-				child.pop(tsMetas);
-				child.popChildren(tsMetas);
-			}
-		}
-		
-		public void pop(Map<TSMeta, Map<String, String>> tsMetas) {
-			if(tsMetas!=null && !tsMetas.isEmpty()) {				
-				List<TSMetaTree> childs = new ArrayList<TSMetaTree>();
-				StringBuilder b = new StringBuilder("\n\tPopulating [").append(name).append(", keyBase:").append(keyBase).append("]");
-				Set<String> taken = new HashSet<String>();
-				taken.add(name);
-				for(Map<String, String> tagMap: tsMetas.values()) {
-					if(keyBase) {
-						if(tagMap.containsKey(name)) {
-							String value = tagMap.remove(name);			
-							if(taken.contains(value)) continue;							
-							childs.add(new TSMetaTree(value, !keyBase));
-							taken.add(value);
-							b.append("\n\t\t").append(keyBase ? "key:[" : "value:[").append(value).append("]");
-							break;
-//							throw new RuntimeException();							
-						}
-					} else {
-						Set<String> values = new HashSet<String>(tagMap.keySet());							
-						for(Iterator<String> iter = values.iterator(); iter.hasNext();) {
-							String value = iter.next();
-							iter.remove();
-							if(taken.contains(value)) continue;
-							childs.add(new TSMetaTree(value, !keyBase));
-							taken.add(value);
-							tagMap.remove(value);
-							b.append("\n\t\t").append(keyBase ? "key:[" : "value:[").append(value).append("]");
-							break;
-//							throw new RuntimeException();	
-						}
-					}	
-					break;
+		public String deepToString() {
+			final boolean root = indent.get()==null;
+			if(root) indent.set(new StringBuilder());
+			try {
+				StringBuilder b = new StringBuilder();
+				if(!root) indent.get().append("\t");
+				b.append(name).append("\n");
+				//indent.get().append("\t");
+				for(TSMetaTree t: this.children.values()) {
+					b.append(indent.get()).append(t.deepToString());					
 				}
-				log(b);
-				if(!childs.isEmpty()) {
-					this.children = childs.toArray(new TSMetaTree[0]);
-					for(TSMetaTree t: this.children) {
-						t.pop(tsMetas);
-						t.popChildren(tsMetas);
-					}
-				}
+				return b.toString();
+			} finally {
+				if(root) indent.remove();
 			}
 		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			return result;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			TSMetaTree other = (TSMetaTree) obj;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			return true;
+		}
+		
 	}
 	
 

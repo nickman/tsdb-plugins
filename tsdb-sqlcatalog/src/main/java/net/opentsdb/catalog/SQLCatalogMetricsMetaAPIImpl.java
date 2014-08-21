@@ -505,6 +505,22 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
 	}
 	
+	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
+	public void d3JsonTSMetaExpression(final JSONRequest request) { 
+		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
+		final String expression = request.getRequest().get("x").textValue();
+		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);		
+//		evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+		evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
+			@Override
+			public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
+				return TSMetaTree.build("org", tsMetas);
+			}
+		}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));
+	}
+	
+	// TSMetaTree t = TSMetaTree.buildFromObjectNames("root", ons);
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])
@@ -1316,14 +1332,38 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		return set;
 	}
+	
+	public static String print(ObjectName on) {
+		StringBuilder b = new StringBuilder();
+		for(Map.Entry<String, String> entry: on.getKeyPropertyList().entrySet()) {
+			b.append(entry.getKey()).append("=").append(entry.getValue()).append(",");
+		}
+		return b.deleteCharAt(b.length()-1).toString();
+	}
+	
 
 	public static void main(String[] args) { 
 		log("Tree Test");
-		TSMetaTree t = TSMetaTree.buildFromObjectNames("root", new LinkedHashSet<ObjectName>(Arrays.asList(JMXHelper.query("*:*"))));
-		//log(JSON.serializeToString(t));
+		final LinkedHashSet<ObjectName> ons = new LinkedHashSet<ObjectName>(Arrays.asList(JMXHelper.query("*:*")));
+		TSMetaTree t = TSMetaTree.buildFromObjectNames("root", ons);
+		log(JSON.serializeToString(t));
 		log(t.deepToString());
+		log("Done");
+		for(ObjectName on: ons) {
+			log(print(on));
+		}
+		
 	}
 
+	
+	public static String tagPath(TSMeta tsMeta) {
+		StringBuilder b = new StringBuilder();
+		for(Map.Entry<String, String> tag: tagMap(tsMeta).entrySet()) {
+			b.append(tag.getKey()).append("/").append(tag.getValue()).append("/");
+		}
+		if(b.length()>0) b.deleteCharAt(b.length()-1);
+		return b.toString();
+	}
 	
 	public static Map<String, String> tagMap(TSMeta tsMeta) {
 		List<UIDMeta> metas = tsMeta.getTags();
@@ -1344,6 +1384,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return map;
 	}
 	
+	public static String join(String delim, Object...arr) {
+		return Arrays.toString(arr).replace("[", "").replace("]", "").replace(", ", delim);
+	}
+	
 	public static class TSMetaTreeSerializer extends JsonSerializer<TSMetaTree> {
 
 		@Override
@@ -1352,13 +1396,46 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				JsonProcessingException {
 			jgen.writeStartObject();
 			jgen.writeStringField("name", value.name);
-//			jgen.writeStringField("key", Arrays.toString(value.key).replace("[", "").replace("]", ""));
-			jgen.writeFieldName("children");			
-			jgen.writeStartArray();
-			for(TSMetaTree t: value.children.values()) {
-				provider.defaultSerializeValue(t, jgen);
+			jgen.writeStringField("type", "branch");
+			jgen.writeStringField("path", value.path);
+//			if(value.metrics!=null) {
+//				jgen.writeFieldName("metrics");			
+//				jgen.writeStartArray();
+//				for(String m: value.metrics) {
+//					jgen.writeString(m);
+//				}
+//				jgen.writeEndArray();				
+//			}
+//			jgen.writeFieldName("path");			
+//			jgen.writeStartArray();
+//			for(String p: value.path) {
+//				jgen.writeString(p);
+//			}
+//			jgen.writeEndArray();
+			if(value.children!=null && !value.children.isEmpty()) {
+				jgen.writeFieldName("children");			
+				jgen.writeStartArray();
+				for(TSMetaTree t: value.children.values()) {
+					provider.defaultSerializeValue(t, jgen);
+				}
+				jgen.writeEndArray();
+			} else {
+				if(value.metrics!=null && !value.metrics.isEmpty()) {
+					jgen.writeFieldName("children");			
+					jgen.writeStartArray();
+					for(String m: value.metrics) {
+						jgen.writeStartObject();
+						jgen.writeStringField("name", m);
+						jgen.writeStringField("type", "leaf");
+						jgen.writeStringField("path", value.path + "/" + m);
+						jgen.writeFieldName("children");			
+						jgen.writeStartArray();
+						jgen.writeEndArray();
+						jgen.writeEndObject();
+					}
+					jgen.writeEndArray();				
+				}
 			}
-			jgen.writeEndArray();
 			jgen.writeEndObject();
 		}
 		
@@ -1367,24 +1444,51 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	@JsonSerialize(using=TSMetaTreeSerializer.class)
 	public static class TSMetaTree {
 		public final String name;							// the key, eg. dc
+		public final String path; 
+		protected Set<String> metrics = null;
 		public final Map<String, TSMetaTree> children = new LinkedHashMap<String, TSMetaTree>();		
 		
-		private TSMetaTree tag(String name) {
+		private TSMetaTree tag(final TSMetaTree parent, final String name) {
 			TSMetaTree tm = children.get(name);
 			if(tm==null) {
-				tm = new TSMetaTree(name);
+				tm = new TSMetaTree(name, parent.path);
 				children.put(name, tm);
 			}
 			return tm;
 		}
 		
-		public static TSMetaTree build(String rootName, Set<TSMeta> tsMetas) {
+		public void addMetric(String...metrics) {
+			if(this.metrics==null) {
+				this.metrics = new LinkedHashSet<String>();
+			}
+			Collections.addAll(this.metrics, metrics);
+		}
+		
+		public TSMetaTree getByPath(final String path) {
+			if(this.path.equals(path)) return this;
+			for(TSMetaTree t: children.values()) {
+				if(path.equals(t.path)) return t;
+			}
+			for(TSMetaTree t: children.values()) {
+				TSMetaTree tt = t.getByPath(path);
+				if(tt!=null) return tt;
+			}
+			return null;
+		}
+		
+		public static TSMetaTree build(final String rootName, final Set<TSMeta> tsMetas) {
 			TSMetaTree root = new TSMetaTree(rootName);
 			load(root, tagMap(tsMetas));
+			for(TSMeta t: tsMetas) {
+				TSMetaTree tree = root.getByPath(rootName + "/" + tagPath(t));
+				if(tree!=null) {
+					tree.addMetric(t.getMetric().getName());
+				}
+			}
 			return root;				
 		}
 		
-		public static TSMetaTree buildFromObjectNames(String rootName, Set<ObjectName> objectNames) {
+		public static TSMetaTree buildFromObjectNames(final String rootName, final Set<ObjectName> objectNames) {
 			TSMetaTree root = new TSMetaTree(rootName);
 			LinkedHashSet<Map<String, String>> set = new LinkedHashSet<Map<String, String>>(objectNames.size());
 			for(ObjectName on: objectNames) {
@@ -1400,11 +1504,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			for(Map<String, String> tagMap: tags) {
 				for(Map.Entry<String, String> tag: tagMap.entrySet()) {
 					String key = tag.getKey(), value = tag.getValue();
-					log("Fetching Key child for [%s] in node %s", key, current);
-					current = current.tag(key);
+					current = current.tag(current, key);
 					//log(current);
-					log("Fetching Value child for [%s] in node %s", value, current);
-					current = current.tag(value);
+					current = current.tag(current, value);
 					//log(current);
 				}	
 				current = root;
@@ -1412,17 +1514,19 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		
 		
-		private TSMetaTree(String name) {
+		private TSMetaTree(final String name) {
 			this.name = name;
+			this.path = name;
 		}
 		
-		private TSMetaTree(String name, String[] key) {
+		private TSMetaTree(final String name, final String parentPath) {
 			this.name = name;
+			path = parentPath + "/" + name;	
 		}
 		
 		
 		public String toString() {
-			return name + "[" + children.size() + "]";
+			return name + "[ path: [" + path + "], children:"  + children.size() + ": " + children.keySet() + "]";
 		}
 		private static final ThreadLocal<StringBuilder> indent = new ThreadLocal<StringBuilder>();
 		
@@ -1433,14 +1537,17 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				StringBuilder b = new StringBuilder();
 				if(!root) indent.get().append("\t");
 				b.append(name).append("\n");
+				final String state = indent.get().toString();
 				//indent.get().append("\t");
 				for(TSMetaTree t: this.children.values()) {
 					b.append(indent.get()).append(t.deepToString());					
 				}
+				indent.get().setLength(0);
+				indent.get().append(state);
 				return b.toString();
 			} finally {
 				if(root) indent.remove();
-			}
+			}			
 		}
 
 		/**
@@ -1481,72 +1588,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 }
 
-
-
-
 /*
-POIFECT VALUE SQL:
-==================
-SELECT
-*
-FROM
-(
-   SELECT
-   DISTINCT T.NODE, V.*
-   FROM TSD_TSMETA X,
-   TSD_METRIC M,
-   TSD_FQN_TAGPAIR T,
-   TSD_TAGPAIR P,
-   TSD_TAGK K,
-   TSD_TAGV V
-   WHERE M.XUID = X.METRIC_UID
-   AND X.FQNID = T.FQNID
-   AND T.XUID = P.XUID
-   AND P.TAGK = K.XUID
-   AND (M.NAME = 'sys.cpu')
-   AND P.TAGV = V.XUID
-   AND (K.NAME = 'dc')
-   AND (V.NAME = 'dc3' OR V.NAME = 'dc4') UNION
-   SELECT
-   DISTINCT T.NODE, V.*
-   FROM TSD_TSMETA X,
-   TSD_METRIC M,
-   TSD_FQN_TAGPAIR T,
-   TSD_TAGPAIR P,
-   TSD_TAGK K,
-   TSD_TAGV V
-   WHERE M.XUID = X.METRIC_UID
-   AND X.FQNID = T.FQNID
-   AND T.XUID = P.XUID
-   AND P.TAGK = K.XUID
-   AND (M.NAME = 'sys.cpu')
-   AND P.TAGV = V.XUID
-   AND (K.NAME = 'host')
-   AND (V.NAME LIKE 'Web%1') UNION
-   SELECT
-   DISTINCT T.NODE, V.*
-   FROM TSD_TSMETA X,
-   TSD_METRIC M,
-   TSD_FQN_TAGPAIR T,
-   TSD_TAGPAIR P,
-   TSD_TAGK K,
-   TSD_TAGV V
-   WHERE M.XUID = X.METRIC_UID
-   AND X.FQNID = T.FQNID
-   AND T.XUID = P.XUID
-   AND P.TAGK = K.XUID
-   AND (M.NAME = 'sys.cpu')
-   AND P.TAGV = V.XUID
-   AND (K.NAME = 'type')
-   AND (V.NAME = 'combined')
-)
-X
-WHERE NODE = 'L'
---WHERE X.TSUID <= 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
---ORDER BY X.TSUID DESC LIMIT 300
-ORDER BY X.XUID DESC LIMIT 300
 
-====================================
+JSON Serialization:
+===================
+	- Full
+	- Names only
+	- Tree (TSMetas only)
+	- 
+	- 				
+
 
 NON OVERFLOWING TSMETAS:
 ========================
@@ -1557,65 +1608,10 @@ NON OVERFLOWING TSMETAS:
 	HAVING SUM(CASE WHEN T.XUID IN (
 	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'dc') AND (V.NAME = 'dc1'))
 	   UNION ALL
-	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'host') AND (V.NAME = 'WebServer1'))
+	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'host') AND (V.NAME = 'WebServer1' OR V.NAME = 'WebServer2'))
 	   UNION ALL
-	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'type') AND (V.NAME = 'combined'))	
+	   SELECT DISTINCT P.XUID FROM TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V WHERE P.TAGK = K.XUID AND P.TAGV = V.XUID AND ((K.NAME = 'type') AND (V.NAME like '%'))	
 	) THEN 1 ELSE 0 END) = 3
-
-
-	SELECT X.* FROM TSD_FQN_TAGPAIR T, TSD_TSMETA X WHERE X.FQNID = T.FQNID GROUP BY X.FQNID HAVING SUM(CASE WHEN T.XUID IN ( ? ) THEN 1 ELSE 0 END) = ?  
-
-
-
-	public static final String TS_METAS_NO_OVERFLOW_SQL = 
-			"SELECT X.* FROM TSD_FQN_TAGPAIR T, TSD_TSMETA X WHERE X.FQNID = T.FQNID " + 
-			" %s " + // Metric Filter
-		    "AND %s " + // starting TSUID  (INITIAL_TSUID_START_SQL or TSUID_START_SQL)
-			"GROUP BY X.FQNID HAVING SUM(CASE WHEN T.XUID IN ( ? ) THEN 1 ELSE 0 END) = ? " + 						
-			"ORDER BY X.TSUID DESC LIMIT ?";
-	
-	public static final String TS_METAS_NO_OVERFLOW_METRIC_PREDICATE = 
-			"AND EXISTS(SELECT 1 FROM TSD_METRIC M WHERE M.XUID = X.METRIC_UID AND )";
-	
-	
-	//   INITIAL_TSUID_START_SQL = " X.TSUID <= '" + MAX_TSUID + "'";
-	//   TSUID_START_SQL = " X.TSUID < ? " ;
-
-	
-	public void tsMetasNoOverflow(final QueryContext queryOptions, final String metricName, final Map<String, String> tags) throws Exception {
-		final List<Object> binds = new ArrayList<Object>();
-		
-		// =======  Build Metric Filter  ======= 
-		String metricFilter = "";		
-		if(metricName!=null && !metricName.trim().isEmpty()) {
-			metricFilter = TS_METAS_NO_OVERFLOW_METRIC_PREDICATE + expandPredicate(metricName.trim(), " M.NAME %s ? ", binds);
-		}
-
-		// =======  Build Tag Predicates  =======
-		final String[] xuids = tagPredicateCache.newPredicateBuilder().appendTags(tags).get();		
-		binds.add(xuids);
-		binds.add(xuids.length);
-		
-		// =======  Build TSUID Starting Index  =======
-		String startingTSUID = INITIAL_TSUID_START_SQL;
-		if(queryOptions.getNextIndex()!=null && !queryOptions.getNextIndex().toString().trim().isEmpty()) {
-			startingTSUID = TSUID_START_SQL;
-			binds.add(queryOptions.getNextIndex().toString().trim());
-		}
-		
-		binds.add(queryOptions.getPageSize());
-		
-		String sql = String.format(TS_METAS_NO_OVERFLOW_SQL, metricFilter, startingTSUID);
-		log.info("Executing SQL [{}]", fillInSQL(sql, binds));
-		
-		
-		// 
-		
-	}
-
-	
-
-
 
 
 */

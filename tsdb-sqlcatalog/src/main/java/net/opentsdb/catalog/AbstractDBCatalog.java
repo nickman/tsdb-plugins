@@ -45,6 +45,8 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -695,7 +697,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		int ops = 0;
 		ElapsedTime et = SystemClock.startClock();
 		
-		Set<String> batchedUidPairs = new HashSet<String>(events.size());
+		Set<String> batchedUidPairs = new LinkedHashSet<String>(events.size());
 		Set<Annotation> annotations = new HashSet<Annotation>();
 		BatchMileStone latch = null;
 		final boolean trace = log.isTraceEnabled();
@@ -1322,12 +1324,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			updateTSMeta(conn, tsMeta);
 			return;
 		} 
-		Collection<UIDMeta> uidMetas = tsMeta.getTags();
+		List<UIDMeta> uidMetas = tsMeta.getTags();
 		uidMetas.add(tsMeta.getMetric());
 		preProcessUIDMeta(conn, uidMetas);
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
 		UIDMeta[] tagPair = new UIDMeta[2];
-		TreeMap<String, String> tags = new TreeMap<String, String>();
+		Map<String, String> tags = new LinkedHashMap<String, String>();
 		for(UIDMeta meta: tsMeta.getTags()) {
 			if(tagPair[0]==null) {
 				tagPair[0] = meta;

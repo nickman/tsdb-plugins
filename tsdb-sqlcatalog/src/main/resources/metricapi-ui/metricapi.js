@@ -11,7 +11,7 @@ function QueryContext(props) {
 	this.exhausted = false;
 	this.cummulative = 0;
 	this.elapsed = -1;
-	this.expired = false;
+	this.expired = false;	
 }
 
 QueryContext.newContext = function(props) {
@@ -85,7 +85,7 @@ QueryContext.prototype.refresh = function(props) {
 }
 
 QueryContext.prototype.toString = function() {
-	return "{nextIndex:" + this.nextIndex + ", pageSize:" + this.pageSize + ", maxSize:" + this.maxSize + ", exhausted:" + this.exhausted + ", cummulative:" + this.cummulative + ", expired:" + this.expired + ", elapsed:" + this.elapsed + "}";
+	return "{timeout:" + this.timeout + ", nextIndex:" + this.nextIndex + ", pageSize:" + this.pageSize + ", maxSize:" + this.maxSize + ", exhausted:" + this.exhausted + ", cummulative:" + this.cummulative + ", expired:" + this.expired + ", elapsed:" + this.elapsed + "}";
 };
 
 //========================================================================
@@ -361,37 +361,34 @@ WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKe
 WebSocketAPIClient.prototype.getMetricNamesByTags = function(queryContext, tags) {
 	if(tags==null || !jQuery.isPlainObject(tags) || jQuery.isEmptyObject(tags) ) throw new Error("The tags argument must be map of key values");
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "metricswtags", {q: queryContext, tags: tags});	
-	console.debug("Returning async result promise [%O]", prom);
-	return prom;
+	return this.serviceRequest("meta", "metricswtags", {q: queryContext, tags: tags});	
 };
 
 WebSocketAPIClient.prototype.getTSMetas = function(queryContext, metricName, tags) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "tsmetas", {q: queryContext, tags: tags||{}, m: metricName||"*"});	
-	console.debug("Returning async result promise [%O]", prom);
-	return prom;
+	return this.serviceRequest("meta", "tsmetas", {q: queryContext, tags: tags||{}, m: metricName||"*"});	
 };
 
 WebSocketAPIClient.prototype.getTagKeys = function(queryContext, metricName, tagKeys) {
 	if(tagKeys && (typeof tagKeys == 'object' && !Array.isArray(tagKeys))) throw new Error("The tagKeys argument must be an array of tag key values, or a single tag key value");
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "tagkeys", {q: queryContext, keys: tagKeys||[], m: metricName||""});	
-	console.debug("Returning async result promise [%O]", prom);
-	return prom;
+	return this.serviceRequest("meta", "tagkeys", {q: queryContext, keys: tagKeys||[], m: metricName||""});	
 };
 
 WebSocketAPIClient.prototype.getTagValues = function(queryContext, metricName, tagKey, tags) {
 	if(tags==null || !jQuery.isPlainObject(tags) || jQuery.isEmptyObject(tags) ) throw new Error("The tags argument must be map of key values");
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "tagvalues", {q: queryContext, tags: tags||{}, m: metricName||"", k: tagKey});	
-	console.debug("Returning async result promise [%O]", prom);
-	return prom;
+	return this.serviceRequest("meta", "tagvalues", {q: queryContext, tags: tags||{}, m: metricName||"", k: tagKey});	
 };
 
 WebSocketAPIClient.prototype.resolveTSMetas = function(queryContext, expression) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "tsmetaexpr", {q: queryContext, x: expression||"*:*"});	
+	return this.serviceRequest("meta", "tsmetaexpr", {q: queryContext, x: expression||"*:*"});	
+};
+
+WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
+	if(queryContext==null) queryContext= QueryContext.newContext();
+	var prom = this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
 	console.debug("Returning async result promise [%O]", prom);
 	return prom;
 };
@@ -439,6 +436,24 @@ function testAll() {
 
 };
 
+var EXPR = "*:dc=*";
+
+function testTree(expr) {
+	var ws = new WebSocketAPIClient();
+	var q = QueryContext.newContext({pageSize: 20000, maxSize: 20000, timeout: 10000});
+	console.info("QC: %s", q.toString());
+	if(EXPR == null) EXPR = "*:dc=*";
+
+	// ws.d3TSMetas(q, "sys.cpu:dc=dc1,host=WebServer1|WebServer5").then(
+	ws.d3TSMetas(q, expr || EXPR).then(	
+		function(d3Data) {
+			console.info("D3 Data: [%O]", d3Data.data);
+			dgo(d3Data.data);
+			console.info("QC: %O", q);
+		}
+	);
+}
+
 function dgo(root) {
 
   var nodes = cluster.nodes(root),
@@ -455,7 +470,7 @@ function dgo(root) {
     .enter().append("g")
       .attr("class", "node")
       .attr("transform", function(d) { 
-      	console.info("Transform: [%O]", d);
+      	//console.info("Transform: [%O]", d);
       	return "translate(" + d.y + "," + d.x + ")"; 
       })
 

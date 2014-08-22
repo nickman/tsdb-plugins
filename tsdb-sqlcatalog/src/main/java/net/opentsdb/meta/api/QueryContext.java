@@ -50,6 +50,9 @@ public class QueryContext {
 	private long timeLimit = -1L;
 	/** The elapsed time of the last request in ms. */
 	protected long elapsed = -1L;
+	/** Indicates if the query will be continuous, self re-executing until are pages are returned */
+	protected boolean continuous = false;
+
 	
 	/** The starting index for the next chunk */
 	protected Object nextIndex = null;
@@ -135,6 +138,7 @@ public class QueryContext {
 		StringBuilder builder = new StringBuilder();
 		builder.append("QueryContext [pageSize=").append(pageSize);
 		builder.append(", timeout=").append(timeout);
+		builder.append(", continuous=").append(continuous);		
 		builder.append(", timeLimit=").append(timeLimit);
 		builder.append(", elapsed=").append(elapsed);
 		builder.append(", maxSize=").append(maxSize);
@@ -145,6 +149,14 @@ public class QueryContext {
 		}
 		builder.append("]");
 		return builder.toString();
+	}
+	
+	/**
+	 * Indicates if the query should be run again for continuity
+	 * @return true to continue, false otherwise
+	 */
+	public boolean shouldContinue() {
+		return continuous && nextIndex != null && !isExpired() && !isExhausted() && cummulative < maxSize;
 	}
 
 	/**
@@ -246,14 +258,20 @@ public class QueryContext {
 	 * @return true if the request has expired, false otherwise.
 	 */
 	public final boolean isExpired() {
-		if(timeLimit!=-1L) {
-			final long now = System.currentTimeMillis();
-			elapsed = now - timeLimit + timeout;
-			boolean exp =  now > timeLimit;
-			timeLimit = -1L;
-			return exp;
+		final long now = System.currentTimeMillis();
+		try {
+			if(timeLimit!=-1L) {				
+				elapsed = now - timeLimit + timeout;
+				boolean exp =  now > timeLimit;
+				timeLimit = -1L;
+				return exp;
+			}
+			return false;
+		} finally {
+			if(continuous) {
+				timeLimit = now + timeout;
+			}
 		}
-		return false;
 	}
 	
 	@JsonIgnore
@@ -276,6 +294,24 @@ public class QueryContext {
 	 */
 	public final long getElapsed() {
 		return elapsed;
+	}
+
+	/**
+	 * Indicates if the query will be continuous, self re-executing until are pages are returned
+	 * @return true if continuous, false if the caller will handle 
+	 */
+	public boolean isContinuous() {
+		return continuous;
+	}
+
+	/**
+	 * Sets the continuity of the query
+	 * @param continuous true if continuous, false if the caller will handle 
+	 * @return this QueryContext
+	 */
+	public QueryContext setContinuous(boolean continuous) {
+		this.continuous = continuous;
+		return this;
 	}
 
 

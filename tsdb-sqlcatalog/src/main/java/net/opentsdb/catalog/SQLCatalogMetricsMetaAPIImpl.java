@@ -75,6 +75,7 @@ import net.opentsdb.utils.JSON;
 import org.helios.jmx.util.helpers.JMXHelper;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.PluginContext;
@@ -428,6 +429,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					an.insertPOJO(0, result);
 					request.response().setContent(an).send();
 //					JSON.getMapper().writeValue(request.response().getChannelOutputStream(), an);
+				}
+				if(ctx.shouldContinue()) {
+					//getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+					//JSONRequestRouter.getInstance().route(request);
 				}
 			} catch (Exception e) {
 				request.error("Failed to get metric names", e);
@@ -792,6 +797,20 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	public static final String TSUID_START_SQL = " X.TSUID < ? " ;
 
 	
+	
+	private class ContinuationCallback implements Callback<Boolean, QueryContext> {
+		/**
+		 * {@inheritDoc}
+		 * @see com.stumbleupon.async.Callback#call(java.lang.Object)
+		 */
+		@Override
+		public Boolean call(QueryContext qc) throws Exception {
+			return qc.shouldContinue();
+		}
+	}
+	
+	private final ContinuationCallback continueCallback = new ContinuationCallback();
+	
 	/**
 	 * HTTP and WebSocket exposed interface to {@link #getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)} 
 	 * @param request The JSON request
@@ -812,6 +831,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}
 		log.info("Processing jsonTSMetas. q: [{}], tags: {}", q, tags);		
 		getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+		
 	}
 	
 	

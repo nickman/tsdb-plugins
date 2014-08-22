@@ -8,10 +8,12 @@ function QueryContext(props) {
 	this.pageSize = (props && props.pageSize) ? props.pageSize : 100;
 	this.maxSize = (props && props.maxSize) ? props.maxSize : 5000;
 	this.timeout = (props && props.timeout) ? props.timeout : 3000;
+	this.continuous = (props && props.continuous) ? props.continuous : false;	
 	this.exhausted = false;
 	this.cummulative = 0;
 	this.elapsed = -1;
 	this.expired = false;	
+	
 }
 
 QueryContext.newContext = function(props) {
@@ -25,6 +27,11 @@ QueryContext.prototype.getElapsed = function() {
 QueryContext.prototype.getNextIndex = function() {
 	return this.nextIndex;
 };
+
+QueryContext.prototype.isContinuous = function() {
+	return this.continuous;
+};
+
 
 QueryContext.prototype.nextIndex = function(index) {
 	this.nextIndex = index;
@@ -54,6 +61,12 @@ QueryContext.prototype.maxSize = function(size) {
 	this.maxSize = size;
 	return this;
 };
+
+QueryContext.prototype.continuous = function(enabled) {
+	return this.continuous = enabled;
+	return this;
+};
+
 
 QueryContext.prototype.isExhausted = function() {
 	return this.exhausted;
@@ -208,10 +221,10 @@ WebSocketAPIClient.prototype.completePendingRequest = function(rid) {
 	var pendingRequest = this.pendingRequests[rid];
 	if(pendingRequest!=null) {
 		delete this.pendingRequests[rid];
-		console.debug("Deleted Pending Request for RID:%s", rid);
+		//console.debug("Deleted Pending Request for RID:%s", rid);
 		try { 
 			clearTimeout(pendingRequest.th);			
-			console.debug("Cleared Timeout for RID:%s", rid);
+			//console.debug("Cleared Timeout for RID:%s", rid);
 		} catch (e) {}
 	}
 	return pendingRequest;
@@ -357,6 +370,14 @@ Array.prototype.last = function() {
 	}
 }
 
+Object.prototype.clone = function() {
+    try {
+    	return JSON.parse(JSON.stringify(this));
+    } catch (e) {
+    	throw new Error("Unable to copy this! Its type isn't supported.");
+    }
+}
+
 WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKeys) {
 	if(tagKeys && (typeof tagKeys == 'object' && !Array.isArray(tagKeys))) throw new Error("The tagKeys argument must be an array of tag key values, or a single tag key value");
 	if(queryContext==null) queryContext= QueryContext.newContext();
@@ -402,39 +423,73 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	return prom;
 };
 
+WebSocketAPIClient.mapTags = function(tsmeta) {
+	var map = {};
+	var key = null, value = null;
+	for(var i = 0, x = tsmeta.tags.length; i < x; i++) {
+		var tag = tsmeta.tags[i];
+		if(tag.type=="TAGK") key = tag.name;
+		else {
+			value = tag.name;
+			map[key] = value;
+		}
+	}
+	return map;
+}
+
+WebSocketAPIClient.arrTags = function(tsmeta) {
+	var arr = [];
+	for(var i = 0, x = tsmeta.tags.length; i < x; i++) {
+		push(tsmeta.tags[i].name);
+	}
+	return arr;
+}
+
 function testIncremental(startingKey) {
 	var ws = new WebSocketAPIClient();
-	var q = QueryContext.newContext();
+	var q = QueryContext.newContext({timeout: 10000});
 
-	var incr = [
-		{key:startingKey, value:''}
-	];
-	var keysIncr = [startingKey];
-	var onKey = function(data) {
-		var lastKey = data.data[data.data.length-1].name
-		var init = incr[incr.length-1];
-		console.info("Last Key: [%s]", lastKey);
-		if(keysIncr[keysIncr.length-1] != lastKey) {
-			keysIncr.push(lastKey);
-			console.info("Appended new key. Key Set: [%O]", keysIncr);
+	var root = MetaTree.newInstance(startingKey);	
+
+	var onKey = function(data, tree, state) {
+		console.group("================ onKey ================");
+		try {
+			if(data==null || data.data==null || data.data.length==0) {
+				console.info("Key Exhausted at [%O]", state);
+				return;
+			}
+
+			var key = data.data.last().name;
+			state.keys.push(key);
+			//console.info("Last Key: [%s]", key);
+			var nextTree = tree.tag(tree, key);
+			ws.getTagValues(QueryContext.newContext({timeout: 10000}), 'sys.cpu', key, state.tags).then(function(data) { onValue(data, nextTree, state); });	
+		} finally {
+			console.groupEnd();
 		}
 		//ws.getTagKeys(q, 'sys.cpu', ['dc']).then(	
 	}
-	var onValue = function(data) {
+	var onValue = function(data, tree, state) {
 		//ws.getTagValues(q, 'sys.cpu', 'type', {host:'*Server*', cpu:'*'}).then(
 		//data.data[x].name 
-		var init = incr.last();
-		init.value = [];
-		jQuery.each(data.data, function(index, uid){
-			init.value.push(uid.name);
-			ws.getTagKeys(q, 'sys.cpu', keysIncr).then(onKey);
-		});
-		console.info("Values for key [%s] --> [%O]", init.key, init.value);
-		
-
+		console.group("================ onValue ================");
+		//console.debug("Data: [%O], Tree: [%O], State: [%O]", data, tree, state);
+		try {
+			jQuery.each(data.data, function(index, uid){
+				//console.info("value: [%s]", uid.name);
+				var nextTree = tree.tag(tree, uid.name);
+				state.tags[state.keys.last()];
+				ws.getTagKeys(QueryContext.newContext({timeout: 10000}), 'sys.cpu', state.keys).then(function(data) { onKey(data, nextTree, state.clone()); });
+			});
+		} finally {
+			console.groupEnd();
+		}
 	}
-	var init = incr[incr.length-1];
-	ws.getTagValues(q, 'sys.cpu', init.key, {}).then(onValue);
+	var state = {
+		tags: {},
+		keys: [startingKey]
+	}
+	ws.getTagValues(QueryContext.newContext({timeout: 10000}), 'sys.cpu', startingKey, {}).then(function(data) { onValue(data, root, state); });
 
 
 }
@@ -455,7 +510,7 @@ function testAll() {
 	// 	},
 	// 	function() { console.error("MetricNamesByTags Failed: [%O]", arguments);}
 	// )
-	ws.getTSMetas(q, 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
+	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 5, timeout: 60000}), 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
 		function(result) { console.info("TSMetas Result: [%O]", result); 
 			//console.debug("JSON: [%s]", JSON.stringify(result));
 		},
@@ -634,3 +689,49 @@ function flare() {
 		console.info("Initialized jQuery");
 	});				
 })( jQuery );	
+
+
+function syntaxHighlight(json) {
+    if (typeof json != 'string') {
+         json = JSON.stringify(json, undefined, 2);
+    }
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+
+/*
+
+var obj = {a:1, 'b':'foo', c:[false,'false',null, 'null', {d:{e:1.3e5,f:'1.3e5'}}]};
+var str = JSON.stringify(obj, undefined, 4);
+
+output(str);
+output(syntaxHighlight(str));
+
+=================== CSS  =====================
+
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: darkorange; }
+.boolean { color: blue; }
+.null { color: magenta; }
+.key { color: red; }
+
+
+
+
+ */

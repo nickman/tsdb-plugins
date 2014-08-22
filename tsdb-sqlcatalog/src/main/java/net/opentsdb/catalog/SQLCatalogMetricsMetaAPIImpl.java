@@ -168,7 +168,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		/** The initial start range if a starting index is supplied. Token is the target table alias */
 		public static final String XUID_START_SQL = " X.XUID < ? " ;
 
-	
+
+
 	
 	/**
 	 * Creates a new SQLCatalogMetricsMetaAPIImpl
@@ -870,9 +871,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
-				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_XUID_START_SQL)); 
+				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_TSUID_START_SQL)); 
 			} else {
-				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, XUID_START_SQL));
+				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, TSUID_START_SQL));
 				binds.add(queryOptions.getNextIndex());
 			}
 			if(hasMetricName) binds.add(metricName);

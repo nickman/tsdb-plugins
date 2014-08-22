@@ -349,6 +349,14 @@ WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 	
 };
 
+Array.prototype.last = function() {
+	if(this.length>0) {
+		return this[this.length-1];
+	} else {
+		return null;
+	}
+}
+
 WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKeys) {
 	if(tagKeys && (typeof tagKeys == 'object' && !Array.isArray(tagKeys))) throw new Error("The tagKeys argument must be an array of tag key values, or a single tag key value");
 	if(queryContext==null) queryContext= QueryContext.newContext();
@@ -375,8 +383,9 @@ WebSocketAPIClient.prototype.getTagKeys = function(queryContext, metricName, tag
 	return this.serviceRequest("meta", "tagkeys", {q: queryContext, keys: tagKeys||[], m: metricName||""});	
 };
 
-WebSocketAPIClient.prototype.getTagValues = function(queryContext, metricName, tagKey, tags) {
-	if(tags==null || !jQuery.isPlainObject(tags) || jQuery.isEmptyObject(tags) ) throw new Error("The tags argument must be map of key values");
+WebSocketAPIClient.prototype.getTagValues = function(queryContext, metricName, tagKey, tags) {   // || jQuery.isEmptyObject(tags)
+	if(tags==null) tags = {};
+	if(!jQuery.isPlainObject(tags)) throw new Error("The tags argument must be map of key values");
 	if(queryContext==null) queryContext= QueryContext.newContext();
 	return this.serviceRequest("meta", "tagvalues", {q: queryContext, tags: tags||{}, m: metricName||"", k: tagKey});	
 };
@@ -392,6 +401,43 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	console.debug("Returning async result promise [%O]", prom);
 	return prom;
 };
+
+function testIncremental(startingKey) {
+	var ws = new WebSocketAPIClient();
+	var q = QueryContext.newContext();
+
+	var incr = [
+		{key:startingKey, value:''}
+	];
+	var keysIncr = [startingKey];
+	var onKey = function(data) {
+		var lastKey = data.data[data.data.length-1].name
+		var init = incr[incr.length-1];
+		console.info("Last Key: [%s]", lastKey);
+		if(keysIncr[keysIncr.length-1] != lastKey) {
+			keysIncr.push(lastKey);
+			console.info("Appended new key. Key Set: [%O]", keysIncr);
+		}
+		//ws.getTagKeys(q, 'sys.cpu', ['dc']).then(	
+	}
+	var onValue = function(data) {
+		//ws.getTagValues(q, 'sys.cpu', 'type', {host:'*Server*', cpu:'*'}).then(
+		//data.data[x].name 
+		var init = incr.last();
+		init.value = [];
+		jQuery.each(data.data, function(index, uid){
+			init.value.push(uid.name);
+			ws.getTagKeys(q, 'sys.cpu', keysIncr).then(onKey);
+		});
+		console.info("Values for key [%s] --> [%O]", init.key, init.value);
+		
+
+	}
+	var init = incr[incr.length-1];
+	ws.getTagValues(q, 'sys.cpu', init.key, {}).then(onValue);
+
+
+}
 
 
 function testAll() {

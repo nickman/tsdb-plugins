@@ -27,9 +27,10 @@ package net.opentsdb.meta.api;
 import java.util.Map;
 import java.util.Set;
 
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
-
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -46,16 +47,25 @@ import com.stumbleupon.async.Deferred;
 
 public interface MetricsMetaAPI {
 	
+	
+	/**
+	 * Finds {@link UIDMeta}s of the specified type that match the passed name pattern
+	 * @param queryContext The query context for this call
+	 * @param type The type of UIDMetas to search for
+	 * @param name The name or name pattern
+	 * @return a set of matching {@link UIDMeta}s
+	 */
+	public Deferred<Set<UIDMeta>> find(QueryContext queryContext, UniqueIdType type, String name); 
 
 	/**
 	 * Returns the tag keys associated with the passed metric name.
 	 * Wildcards will be honoured on metric names and tag keys.
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @param metric The metric name to match
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getTagKeys(QueryContext queryOptions, String metric, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getTagKeys(QueryContext queryContext, String metric, String...tagKeys);
 	
 	/**
 	 * <p>Returns the tag values associated with the passed metric name and tag keys.</p>
@@ -69,7 +79,7 @@ public interface MetricsMetaAPI {
 	 * contains the resolved tag keys.</p>
 	 * position zero is the resolved tag values at the tree position 
 	 * Wildcards will be honoured on metric names and tag keys.
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @param metric The metric name to match
 	 * @param tagPairs The tag pairs to match
 	 * @param tagKey 
@@ -78,34 +88,34 @@ public interface MetricsMetaAPI {
 	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
 	 *  </ul>
 	 */
-	public Deferred<Set<UIDMeta>> getTagValues(QueryContext queryOptions, String metric, Map<String, String> tagPairs, String tagKey);
+	public Deferred<Set<UIDMeta>> getTagValues(QueryContext queryContext, String metric, Map<String, String> tagPairs, String tagKey);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag keys.
 	 * Wildcards will be honoured on tag keys.
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryOptions, String...tagKeys);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryContext, String...tagKeys);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag pairs.
 	 * Wildcards will be honoured on metric names and tag keys.
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryOptions, Map<String, String> tags);
+	public Deferred<Set<UIDMeta>> getMetricNames(QueryContext queryContext, Map<String, String> tags);
 	
 	/**
 	 * Returns the TSMetas matching the passed metric name and tags
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @param metricName The metric name to match
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching TSMetas 
 	 */
-	public Deferred<Set<TSMeta>> getTSMetas(QueryContext queryOptions, String metricName, Map<String, String> tags);
+	public Deferred<Set<TSMeta>> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
 	
 	
 
@@ -114,9 +124,16 @@ public interface MetricsMetaAPI {
 	 * Evaluates the passed TSUIDEXPR expression and returns the matches.
 	 * Wildcards will be honoured on metric names, tag keys and tag values.
 	 * @param expression The TSUIDEXPR expression to evaluate
-	 * @param queryOptions The query options for this call
+	 * @param queryContext The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Deferred<Set<TSMeta>> evaluate(QueryContext queryOptions, String expression);
+	public Deferred<Set<TSMeta>> evaluate(QueryContext queryContext, String expression);
+	
+	
+	public Deferred<Set<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);
+	
+	public Deferred<Set<Annotation>> getGlobalAnnotations(QueryContext queryContext, long... startTimeEndTime);
+	
+	
 	
 }

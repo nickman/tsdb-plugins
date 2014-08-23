@@ -534,7 +534,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 					@Override
 					public void onResourceRegistered(String name, Object resource) {
 						((JSONRequestRouter)resource).registerJSONService(finalMe);
-						((JSONRequestRouter)resource).registerJSONService(metricsMetaService);	
+						((JSONRequestRouter)resource).registerJSONService(new JSONMetricsAPIService(metricsMetaService));	
 					}
 				},
 				new IPluginContextResourceFilter() {

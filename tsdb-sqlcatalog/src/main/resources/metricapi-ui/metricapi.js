@@ -20,7 +20,18 @@ QueryContext.newContext = function(props) {
 	return new QueryContext(props);
 }
 
+QueryContext.readContext = function(props) {
+	var q = new QueryContext(props);
+	q.exhausted = (props && props.exhausted) ? props.exhausted : false;
+	q.cummulative = (props && props.cummulative) ? props.cummulative : 0;
+	q.elapsed = (props && props.elapsed) ? props.elapsed : -1;
+	q.expired = (props && props.expired) ? props.expired : false;
+
+	return q;
+}
+
 QueryContext.prototype.shouldContinue = function() {
+	console.info("Max: c:[%s], m:[%s]", this.cummulative , this.maxSize)
 	return this.continuous && this.nextIndex != null && !this.isExpired() && !this.isExhausted() && (this.cummulative < this.maxSize);
 }
 
@@ -173,7 +184,7 @@ WebSocketAPIClient.defaultHandlers = {
 			try {
 				var result = JSON.parse(evt.data);
 				if(result.rerid) {
-					var continuing = QueryContext.newContext(result.msg[1]).shouldContinue();
+					var continuing = QueryContext.readContext(result.msg[1]).shouldContinue();
 					// console.info("Response: [%O]", result);
 					var pendingRequest = continuing ? client.getPendingRequest(result.rerid) : client.completePendingRequest(result.rerid);
 					if(pendingRequest!=null) {
@@ -396,12 +407,17 @@ Array.prototype.last = function() {
 }
 
 
+WebSocketAPIClient.prototype.findUids= function(queryContext, type, name) {	
+	if(queryContext==null) queryContext= QueryContext.newContext();
+	var prom = this.serviceRequest("meta", "finduid", {q: queryContext, name: name, type: type});
+	return prom;
+};
+
 WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKeys) {
 	if(tagKeys && (typeof tagKeys == 'object' && !Array.isArray(tagKeys))) throw new Error("The tagKeys argument must be an array of tag key values, or a single tag key value");
 	if(queryContext==null) queryContext= QueryContext.newContext();
 	var keys = new Array().concat(tagKeys);
 	var prom = this.serviceRequest("meta", "metricnames", {q: queryContext, keys: keys});
-	console.debug("Returning async result promise [%O]", prom);
 	return prom;
 };
 
@@ -516,6 +532,14 @@ function testIncremental(startingKey) {
 function testAll() {
 	var ws = new WebSocketAPIClient();
 	var q = null;
+	ws.findUids(q, "TAGV", "Web*").then(
+		function(result) { console.info("findUids Result: [%O]", result); 
+			//console.debug("JSON: [%s]", JSON.stringify(result));
+		},
+		function() { console.error("findUids Failed: [%O]", arguments);}
+	);
+
+
 	// ws.getMetricNamesByKeys(q, ['host', 'type', 'cpu']).then(
 	// 	function(result) { console.info("MetricNamesByKeys Result: [%O]", result); 
 	// 		//console.debug("JSON: [%s]", JSON.stringify(result));
@@ -529,7 +553,7 @@ function testAll() {
 	// 	function() { console.error("MetricNamesByTags Failed: [%O]", arguments);}
 	// )
 	// ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 50, timeout: 60000}), 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
-	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 500, timeout: 60000}), 'sys.cpu', {host:'*'}).then(		
+	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 500, timeout: 60000, maxSize: 40000}), '*', {dc:'*'}).then(		
 		function(result) { console.info("TSMetas FINAL Result: [%O]  --  cummulative: %s", result, result.q.cummulative);},
 		function() { console.error("TSMetas Failed: [%O]", arguments);},
 		function(result) { console.info("TSMetas INTERRIM Result: [%O]", result);}

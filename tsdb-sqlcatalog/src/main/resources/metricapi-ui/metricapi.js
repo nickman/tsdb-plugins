@@ -20,6 +20,19 @@ QueryContext.newContext = function(props) {
 	return new QueryContext(props);
 }
 
+QueryContext.prototype.shouldContinue = function() {
+	return this.continuous && this.nextIndex != null && !this.isExpired() && !this.isExhausted() && (this.cummulative < this.maxSize);
+}
+
+QueryContext.prototype.clone = function() {
+    try {
+    	return JSON.parse(JSON.stringify(this));
+    } catch (e) {
+    	throw new Error("Unable to copy this! Its type isn't supported.");
+    }
+}
+
+
 QueryContext.prototype.getElapsed = function() {
 	return this.elapsed;
 };
@@ -159,27 +172,36 @@ WebSocketAPIClient.defaultHandlers = {
 			// console.info("WebSocket Message: [%O]", evt);
 			try {
 				var result = JSON.parse(evt.data);
-				// console.info("Response: [%O]", result);
-				var pendingRequest = client.completePendingRequest(result.rerid);
-				if(pendingRequest!=null) {
-					console.debug("Retrieved Pending Request XXX [%O]", pendingRequest);
-					if(pendingRequest.cb) pendingRequest.cb(result);
-					try {
-						if(pendingRequest.d) {
-	 						pendingRequest.request.q.refresh(result.msg[1]);
-	 						delete pendingRequest.request.q;	 						
-							pendingRequest.d.resolveWith(client, [{
-								data: result.msg[0],
-								q: result.msg[1],
-								id: result.id,
-								op: result.op,
-								rerid: result.rerid,
-								type: result.t,
-								request: pendingRequest.request
-							}]);
+				if(result.rerid) {
+					var continuing = QueryContext.newContext(result.msg[1]).shouldContinue();
+					// console.info("Response: [%O]", result);
+					var pendingRequest = continuing ? client.getPendingRequest(result.rerid) : client.completePendingRequest(result.rerid);
+					if(pendingRequest!=null) {
+						console.debug("Retrieved Pending Request XXX [%O]", pendingRequest);
+						if(pendingRequest.cb) pendingRequest.cb(result);
+						try {
+							if(pendingRequest.d) {
+		 						pendingRequest.request.q.refresh(result.msg[1]);
+		 						if(!continuing) delete pendingRequest.request.q;	 						
+		 						var callback =  [{
+									data: result.msg[0],
+									q: result.msg[1],
+									id: result.id,
+									op: result.op,
+									rerid: result.rerid,
+									type: result.t,
+									request: pendingRequest.request
+								}];
+								if(continuing) {
+									pendingRequest.d.notifyWith(client,callback);
+								} else {
+									pendingRequest.d.resolveWith(client,callback);
+								}
+								
+							}
+						} catch (e) {
+							console.error("Failed to marshall response: [%O]", e);
 						}
-					} catch (e) {
-						console.error("Failed to marshall response: [%O]", e);
 					}
 				}
 			} catch (e) {
@@ -230,6 +252,9 @@ WebSocketAPIClient.prototype.completePendingRequest = function(rid) {
 	return pendingRequest;
 }
 
+WebSocketAPIClient.prototype.getPendingRequest = function(rid) {
+	return this.pendingRequests[rid];
+}
 
 WebSocketAPIClient.prototype.close = function() {
 	if(this.ws) this.ws.close();
@@ -370,13 +395,6 @@ Array.prototype.last = function() {
 	}
 }
 
-Object.prototype.clone = function() {
-    try {
-    	return JSON.parse(JSON.stringify(this));
-    } catch (e) {
-    	throw new Error("Unable to copy this! Its type isn't supported.");
-    }
-}
 
 WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKeys) {
 	if(tagKeys && (typeof tagKeys == 'object' && !Array.isArray(tagKeys))) throw new Error("The tagKeys argument must be an array of tag key values, or a single tag key value");
@@ -510,11 +528,11 @@ function testAll() {
 	// 	},
 	// 	function() { console.error("MetricNamesByTags Failed: [%O]", arguments);}
 	// )
-	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 5, timeout: 60000}), 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
-		function(result) { console.info("TSMetas Result: [%O]", result); 
-			//console.debug("JSON: [%s]", JSON.stringify(result));
-		},
-		function() { console.error("TSMetas Failed: [%O]", arguments);}
+	// ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 50, timeout: 60000}), 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
+	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 500, timeout: 60000}), 'sys.cpu', {host:'*'}).then(		
+		function(result) { console.info("TSMetas FINAL Result: [%O]  --  cummulative: %s", result, result.q.cummulative);},
+		function() { console.error("TSMetas Failed: [%O]", arguments);},
+		function(result) { console.info("TSMetas INTERRIM Result: [%O]", result);}
 	);
 	// ws.getTagKeys(q, 'sys.cpu', ['dc', 'host', 'cpu']).then(
 	// 	function(result) { console.info("TagKeys Result: [%O]", result); 

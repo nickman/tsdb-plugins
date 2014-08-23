@@ -5,7 +5,9 @@ package org.helios.tsdb.plugins.remoting.json;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import net.opentsdb.utils.JSON;
@@ -18,6 +20,7 @@ import org.jboss.netty.buffer.DirectChannelBufferFactory;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelLocal;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -80,6 +83,14 @@ public class JSONResponse implements ChannelBufferizable {
 	@JsonIgnore
 	private static final ChannelBufferFactory bufferFactory = new DirectChannelBufferFactory(2048);
 	
+	/** A channel local map of options, set upstream, to configure how downstream handlers serialize objects */
+	@JsonIgnore
+	private static final ChannelLocal<Map<String, Object>> channelLocal = new ChannelLocal<Map<String, Object>>(true) {
+		@Override
+		protected Map<String, Object> initialValue(Channel channel) {
+			return new HashMap<String, Object>(4);
+		}
+	};
 	
 	
 	/** The shared json mapper */
@@ -162,6 +173,58 @@ public class JSONResponse implements ChannelBufferizable {
 	public Object getContent() {
 		return content;
 	}
+	
+	
+	/**
+	 * Sets a channel option
+	 * @param name The option name
+	 * @param value The option value
+	 * @return this JSONResponse
+	 */
+	public JSONResponse setChannelOption(final String name, final Object value) {
+		channelLocal.get(channel).put(name, value);
+		return this;
+	}
+	
+	/**
+	 * Clears the channel options
+	 * @return this JSONResponse
+	 */
+	public JSONResponse clearChannelOptions() {
+		channelLocal.get(channel).clear();
+		return this;
+	}
+	
+	/**
+	 * Removes a channel option
+	 * @param name The name of the option to remove
+	 * @return this JSONReponse
+	 */
+	public JSONResponse removeChannelOption(final String name) {
+		channelLocal.get(channel).remove(name);
+		return this;
+	}		
+
+	/**
+	 * Retrieves a channel option
+	 * @param name The name of the option to retrieve
+	 * @param defaultOption The default value to return if the named option was not bound.
+	 * @return the named channel option or the defalt if it was not found.
+	 */
+	public Object getChannelOption(final String name, final Object defaultOption) {
+		Object value = channelLocal.get(channel).get(name); 
+		return value!=null ? value : defaultOption;
+	}		
+
+	/**
+	 * Retrieves a channel option
+	 * @param name The name of the option to retrieve
+	 * @return the named channel option or null if it was not found.
+	 */
+	public Object getChannelOption(final String name) {
+		return getChannelOption(name, null);
+	}
+	
 
 	/**
 	 * Sets the payload content

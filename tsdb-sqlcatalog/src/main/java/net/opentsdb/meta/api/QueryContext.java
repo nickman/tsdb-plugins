@@ -220,7 +220,7 @@ public class QueryContext {
 	 * @return this QueryContext
 	 */
 	public final QueryContext incrementCummulative(int cummulative) {
-		this.cummulative = cummulative;
+		this.cummulative += cummulative;
 		return this;
 	}
 

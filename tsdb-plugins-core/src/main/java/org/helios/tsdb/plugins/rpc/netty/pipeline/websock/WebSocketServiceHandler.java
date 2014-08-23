@@ -42,6 +42,7 @@ import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
 import org.helios.tsdb.plugins.util.StringHelper;
@@ -123,15 +124,18 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
 		if((message instanceof ChannelBuffer)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame((ChannelBuffer)message), channel.getRemoteAddress()));
 		} else if((message instanceof JsonNode)) {  			
-			String json = marshaller.writerWithDefaultPrettyPrinter().writeValueAsString(message);
+			String json = marshaller.writeValueAsString(message);
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(json), channel.getRemoteAddress()));			
 		} else if((message instanceof ChannelBufferizable)) {
 			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(((ChannelBufferizable)message).toChannelBuffer()), channel.getRemoteAddress()));
-		} else if((message instanceof JSONResponse) || (message instanceof CharSequence)) {				
-			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));					
+		} else if((message instanceof CharSequence)) {
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(marshaller.writeValueAsString(message)), channel.getRemoteAddress()));
+		} else if((message instanceof JSONResponse)) {				
+			ObjectMapper mapper = (ObjectMapper)((JSONResponse)message).getChannelOption("mapper", TSDBTypeSerializer.DEFAULT.getMapper());			
+			ctx.sendDownstream(new DownstreamMessageEvent(channel, Channels.future(channel), new TextWebSocketFrame(mapper.writeValueAsString(message)), channel.getRemoteAddress()));					
 		} else {
             ctx.sendUpstream(e);
-		}
+		}		
 	}
 
 	/**

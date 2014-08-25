@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
+import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
@@ -221,6 +223,42 @@ public class JSONMetricsAPIService {
 		});	
 	}
 	
+	@JSONRequestHandler(name="annotations", description="Returns all Annotations associated to TSMetas defined in the expression")
+	public void jsonGetAnnotations(final JSONRequest request) {
+		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
+		final String expr = request.getRequest().has("x") ? request.getRequest().get("x").asText() : null; 
+		ArrayNode ar = (ArrayNode)request.getRequest().get("x");
+		final int sz = ar.size();
+		final long[] range = new long[ar.size()];
+		for(int i = 0; i < sz; i++) {
+			range[i] = ar.get(i).asLong();
+		}
+		doGetAnnotations(request, q, expr, range);
+	}
+
+	protected void doGetAnnotations(final JSONRequest request, final QueryContext q, final String expression, final long... range) {
+		final Deferred<Set<Annotation>> def;
+		if(expression==null) {
+			def = metricApi.getGlobalAnnotations(q, range);
+		} else {
+			def = metricApi.getAnnotations(q, expression, range);
+		}
+		
+		def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						doGetAnnotations(request, ctx, expression, range);
+					}
+					return null;
+				}
+			});	
+		}
+	
+	
+	
+	// public Deferred<Set<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);
 	
 	/**
 	 * <p>Title: ResultCompleteCallback</p>
@@ -256,6 +294,7 @@ public class JSONMetricsAPIService {
 				} else {					
 					an.insertPOJO(0, ctx);
 					an.insertPOJO(0, result);
+					an.insertPOJO(0, TSDBTypeSerializer.DEFAULT);
 					request.response().setContent(an).send();
 				}
 			} catch (Exception e) {

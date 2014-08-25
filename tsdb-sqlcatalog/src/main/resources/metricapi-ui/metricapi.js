@@ -409,8 +409,25 @@ Array.prototype.last = function() {
 
 WebSocketAPIClient.prototype.findUids= function(queryContext, type, name) {	
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "finduid", {q: queryContext, name: name, type: type});
+	var prom = this.serviceRequest("meta", "finduid", {q: queryContext, x: expression, type: type});
 	return prom;
+};
+
+WebSocketAPIClient.prototype.getAnnotations = function(queryContext, expression, startTime, endTime) {	
+	if(queryContext==null) queryContext= QueryContext.newContext();
+	var payload = {
+		q: queryContext, 
+		x: expression	
+	}
+	var range = [];
+	if(startTime!=null) {
+		range.push(startTime);
+	}
+	if(endTime!=null) {
+		range.push(endTime);	
+	}	
+	payload.r = range();
+	return this.serviceRequest("meta", "annotations", payload);
 };
 
 WebSocketAPIClient.prototype.getMetricNamesByKeys = function(queryContext, tagKeys) {
@@ -452,9 +469,7 @@ WebSocketAPIClient.prototype.resolveTSMetas = function(queryContext, expression)
 
 WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
-	console.debug("Returning async result promise [%O]", prom);
-	return prom;
+	return this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
 };
 
 WebSocketAPIClient.mapTags = function(tsmeta) {
@@ -528,6 +543,38 @@ function testIncremental(startingKey) {
 
 }
 
+var ANNOTATION_URL = 'http://' + document.location.host + '/api/annotation'; 
+
+function postGlobalAnnotations() {
+	var callback = function(result) {
+		console.info("Global Annotation Post Result: [%O]", result);
+	}
+	for(var i = 0; i < 100; i++) {
+		var data = {
+			startTime : new Date().getTime() - (i * 1000),
+		  	description : "Test Annotation #" + i,
+		  	notes : "This is a test annotation, with id [" + i + "]",
+		  	custom : {
+		    	type : "Global"
+		  	}
+		};
+		$.post(ANNOTATION_URL, JSON.stringify(data), callback, "json");
+	}
+}
+
+function postTSUIDAnnotations() {
+	var callback = function(result) {
+		console.info("TSUID Annotation Post Result: [%O]", result);
+	}
+	var ws = new WebSocketAPIClient();
+	var q = QueryContext.newContext({pageSize: 100, maxSize: 100, timeout: 10000});	
+	ws.resolveTSMetas(q, "sys*:dc=dc1,host=WebServer*").then(
+		function(data) {
+			console.info("TSUID: [%O]", data);
+		}
+	);
+}
+
 
 function testAll() {
 	var ws = new WebSocketAPIClient();
@@ -538,7 +585,7 @@ function testAll() {
 		},
 		function() { console.error("findUids Failed: [%O]", arguments);}
 	);
-
+	//ws.getAnnotations(q, "sys*:dc=dc1,host=WebServer1|WebServer5", startTime, endTime) {	
 
 	// ws.getMetricNamesByKeys(q, ['host', 'type', 'cpu']).then(
 	// 	function(result) { console.info("MetricNamesByKeys Result: [%O]", result); 

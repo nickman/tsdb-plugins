@@ -50,6 +50,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.common.cache.Cache;
 
 /**
  * <p>Title: Serializers</p>
@@ -63,6 +65,8 @@ public class Serializers {
 	
 	/** TSDB used to retrieve TSMetas associated to annotations */
 	private static volatile TSDB tsdb = null;
+	/** TSMeta cache as an alternative to going to TSDB */
+	private static volatile Cache<String, TSMeta> tsMetaCache = null;
 	
 	/**
 	 * Sets the TSDB for the annotation serializers
@@ -71,6 +75,15 @@ public class Serializers {
 	public static void setTSDB(TSDB tsdb) {
 		Serializers.tsdb = tsdb;
 	}
+
+	/**
+	 * Sets the TSMeta cache for the annotation serializers
+	 * @param tsMetaCache cache used to retrieve TSMetas associated to annotations
+	 */
+	public static void setCache(Cache<String, TSMeta> tsMetaCache) {
+		Serializers.tsMetaCache = tsMetaCache;
+	}
+
 	
 	/**
 	 * Retrieves the TSMeta for the passed tsuid
@@ -78,6 +91,11 @@ public class Serializers {
 	 * @return the TSMeta or null if the tsdb was null, or the retrieval timed out
 	 */
 	public static TSMeta getTSMeta(String tsuid) {
+//		if(tsMetaCache!=null) {
+//			try {
+//				TSMeta t = tsMetaCache.get(tsuid, valueLoader)
+//			} catch (Exception x) {/* No Op */}
+//		}
 		if(tsdb==null) return null;
 		try {
 			return TSMeta.getTSMeta(tsdb, tsuid).joinUninterruptibly(500);
@@ -93,7 +111,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaFullSerializer</code></p>
 	 */
-	public static class TSMetaFullSerializer extends JsonSerializer<TSMeta> {
+	public static class TSMetaFullSerializer extends StdSerializer<TSMeta> {
+		public TSMetaFullSerializer() {
+			super(TSMeta.class);
+		}
+		
 		@Override
 		public void serialize(TSMeta t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -130,7 +152,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.UIDMetaFullSerializer</code></p>
 	 */
-	public static class UIDMetaFullSerializer extends JsonSerializer<UIDMeta> {
+	public static class UIDMetaFullSerializer extends StdSerializer<UIDMeta> {
+		public UIDMetaFullSerializer() {
+			super(UIDMeta.class);
+		}
+		
 		@Override
 		public void serialize(UIDMeta u, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -164,7 +190,10 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.AnnotationFullSerializer</code></p>
 	 */	
-	public static class AnnotationFullSerializer extends JsonSerializer<Annotation> {
+	public static class AnnotationFullSerializer extends StdSerializer<Annotation> {
+		public AnnotationFullSerializer() {
+			super(Annotation.class);
+		}
 		@Override
 		public void serialize(Annotation a, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -202,7 +231,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.AnnotationDefaultSerializer</code></p>
 	 */	
-	public static class AnnotationDefaultSerializer extends JsonSerializer<Annotation> {
+	public static class AnnotationDefaultSerializer extends StdSerializer<Annotation> {
+		public AnnotationDefaultSerializer() {
+			super(Annotation.class);
+		}
+
 		@Override
 		public void serialize(Annotation a, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -243,7 +276,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.AnnotationDefaultSerializer</code></p>
 	 */	
-	public static class AnnotationNameSerializer extends JsonSerializer<Annotation> {
+	public static class AnnotationNameSerializer extends StdSerializer<Annotation> {
+		public AnnotationNameSerializer() {
+			super(Annotation.class);
+		}
+		
 		@Override
 		public void serialize(Annotation a, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -273,7 +310,10 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaDefaultSerializer</code></p>
 	 */
-	public static class TSMetaDefaultSerializer extends JsonSerializer<TSMeta> {
+	public static class TSMetaDefaultSerializer extends StdSerializer<TSMeta> {
+		public TSMetaDefaultSerializer() {
+			super(TSMeta.class);
+		}		
 		@Override
 		public void serialize(TSMeta t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -338,7 +378,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaNameSerializer</code></p>
 	 */
-	public static class TSMetaNameSerializer extends JsonSerializer<TSMeta> {
+	public static class TSMetaNameSerializer extends StdSerializer<TSMeta> {
+		public TSMetaNameSerializer() {
+			super(TSMeta.class);
+		}		
+		
 		@Override
 		public void serialize(TSMeta t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -357,7 +401,10 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaArrayD3Serializer</code></p>
 	 */
-	public static class TSMetaArrayD3Serializer extends JsonSerializer<TSMeta[]> {
+	public static class TSMetaArrayD3Serializer extends StdSerializer<TSMeta[]> {
+		public TSMetaArrayD3Serializer() {
+			super(TSMeta[].class);
+		}
 		@Override
 		public void serialize(TSMeta[] t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -376,7 +423,13 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaCollectionD3Serializer</code></p>
 	 */
-	public static class TSMetaCollectionD3Serializer extends JsonSerializer<LinkedHashSet<TSMeta>> {
+	public static class TSMetaCollectionD3Serializer extends StdSerializer<LinkedHashSet<TSMeta>> {
+		private static final Class<?> c = new LinkedHashSet<TSMeta>(0).getClass();
+		
+		public TSMetaCollectionD3Serializer() {
+			super((Class<LinkedHashSet<TSMeta>>) c);
+		}
+		
 		@Override
 		public void serialize(LinkedHashSet<TSMeta> t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -393,7 +446,13 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaD3Serializer</code></p>
 	 */
-	public static class TSMetaD3Serializer extends JsonSerializer<TSMeta> {
+	public static class TSMetaD3Serializer extends StdSerializer<TSMeta> {
+		
+		public TSMetaD3Serializer() {
+			super(TSMeta.class);
+		}
+
+		
 		@Override
 		public void serialize(TSMeta t, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -411,7 +470,11 @@ public class Serializers {
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
 	 * <p><code>org.helios.tsdb.plugins.remoting.json.serialization.Serializers.UIDMetaNameSerializer</code></p>
 	 */
-	public static class UIDMetaNameSerializer extends JsonSerializer<UIDMeta> {
+	public static class UIDMetaNameSerializer extends StdSerializer<UIDMeta> {
+		public UIDMetaNameSerializer() {
+			super(UIDMeta.class);
+		}
+
 		@Override
 		public void serialize(UIDMeta u, JsonGenerator json,
 				SerializerProvider provider) throws IOException,
@@ -605,8 +668,10 @@ public class Serializers {
 		
 	}
 
-	public static class TSMetaTreeSerializer extends JsonSerializer<TSMetaTree> {
-
+	public static class TSMetaTreeSerializer extends StdSerializer<TSMetaTree> {
+		public TSMetaTreeSerializer() {
+			super(TSMetaTree.class);
+		}
 		@Override
 		public void serialize(TSMetaTree value, JsonGenerator jgen,
 				SerializerProvider provider) throws IOException,
@@ -668,12 +733,12 @@ public class Serializers {
 		TSDBTypeSerializer.FULL.registerSerializer(Annotation.class, new AnnotationFullSerializer());
 		
 		TSDBTypeSerializer.DEFAULT.registerSerializer(TSMeta.class, new TSMetaDefaultSerializer());
-		TSDBTypeSerializer.DEFAULT.registerSerializer(UIDMeta.class, new UIDMetaFullSerializer());
-		TSDBTypeSerializer.DEFAULT.registerSerializer(Annotation.class, new AnnotationDefaultSerializer());
+//		TSDBTypeSerializer.DEFAULT.registerSerializer(UIDMeta.class, new UIDMetaFullSerializer());
+//		TSDBTypeSerializer.DEFAULT.registerSerializer(Annotation.class, new AnnotationDefaultSerializer());
 
 		TSDBTypeSerializer.NAME.registerSerializer(TSMeta.class, new TSMetaNameSerializer());
-		TSDBTypeSerializer.NAME.registerSerializer(UIDMeta.class, new UIDMetaNameSerializer());
-		TSDBTypeSerializer.NAME.registerSerializer(Annotation.class, new AnnotationNameSerializer());
+//		TSDBTypeSerializer.NAME.registerSerializer(UIDMeta.class, new UIDMetaNameSerializer());
+//		TSDBTypeSerializer.NAME.registerSerializer(Annotation.class, new AnnotationNameSerializer());
 		
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta.class, new TSMetaD3Serializer());
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta[].class, new TSMetaArrayD3Serializer());

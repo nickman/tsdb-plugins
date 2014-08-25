@@ -12,6 +12,7 @@ import java.util.Set;
 
 import net.opentsdb.utils.JSON;
 
+import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferFactory;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
@@ -31,6 +32,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.POJONode;
 
 /**
  * <p>Title: JSONResponse</p>
@@ -320,11 +324,29 @@ public class JSONResponse implements ChannelBufferizable {
 				channelOutputStream.flush();
 				return channelOutputStream.buffer();
 			}
-			return ChannelBuffers.wrappedBuffer(jsonMapper.writeValueAsBytes(this));
+			ObjectMapper om = getObjectMapper(content);
+			om.registerModule(new SimpleModule().addSerializer(JSONResponse.class, new JSONChannelBufferSerializer()));
+			return ChannelBuffers.wrappedBuffer(om.writeValueAsBytes(this));
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to write object as JSON bytes", ex);
 		}
 	}
+	
+	protected final ObjectMapper getObjectMapper(final Object value) {
+		if(value instanceof ArrayNode) {
+			ArrayNode an = (ArrayNode)value;
+			if(an.size()==3 && (an.get(0) instanceof POJONode)) {
+				POJONode pojo = (POJONode)an.get(0);
+				Object pojoContent = pojo.getPojo(); 
+				if(pojoContent instanceof TSDBTypeSerializer) {
+					an.remove(0);					
+					return ((TSDBTypeSerializer)pojoContent).getMapper();
+				}
+			}
+		}
+		return JSON.getMapper();
+	}
+	
 	
 	/**
 	 * {@inheritDoc}

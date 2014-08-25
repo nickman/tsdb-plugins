@@ -80,6 +80,7 @@ import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.remoting.json.serialization.Serializers;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.PluginContextImpl;
 import org.helios.tsdb.plugins.util.ConfigurationHelper;
@@ -191,10 +192,23 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				"AND P.TAGV = V.XUID " +
 				"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
 				"AND (%s) ";					// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
-		
-		/** The Metric Name Retrieval SQL template when tag pairs are provided */
+
+		/** The FQNID Retrieval SQL template for matching annotations */
 		public static final String GET_TSMETAS_SQL =
 				"SELECT DISTINCT X.* FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
+				"WHERE M.XUID = X.METRIC_UID  " +
+				"AND X.FQNID = T.FQNID  " +
+				"AND T.XUID = P.XUID " +
+				"AND P.TAGK = K.XUID " +
+				"AND (%s) " + 						// M.NAME = ?    --> METRIC_SQL_BLOCK
+				"AND P.TAGV = V.XUID " +
+				"AND (%s) " +					// K.NAME % ? 	  --- > TAGK_SQL_BLOCK		 			
+				"AND (%s) ";				// V.NAME % ? 	  --- > TAGV_SQL_BLOCK
+		
+		
+		/** The Metric Name Retrieval SQL template when tag pairs are provided */
+		public static final String GET_ANN_TSMETAS_SQL =
+				"SELECT DISTINCT X.FQNID FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
 				"WHERE M.XUID = X.METRIC_UID  " +
 				"AND X.FQNID = T.FQNID  " +
 				"AND T.XUID = P.XUID " +
@@ -273,6 +287,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		metaQueryExecutor.registerUncaughtExceptionHandler(this);
 		this.sqlWorker = sqlWorker;
 		this.tsdb = tsdb;
+		Serializers.setTSDB(tsdb);
 		this.metaReader = metaReader;
 		tagPredicateCache = new TagPredicateCache(sqlWorker);
 		loadContent();
@@ -723,7 +738,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			
 		} else {
 			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-			prepareGetTSMetasSQL(metricName, tags, binds, keySql);
+			prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL);
 			keySql.append(") X ");
 			if(queryOptions.getNextIndex()==null) {
 				keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
@@ -736,24 +751,24 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}		
 	}
 		
-	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql) {
+	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql) {
 		// // expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 		if(!firstEntry) {
 			sql.append(" INTERSECT ");
 		}
 		
-		sql.append(String.format(GET_TSMETAS_SQL,  
+		sql.append(String.format(driverTsMetaSql,  
 				expandPredicate(metricName, METRIC_SQL_BLOCK, binds),
 				expandPredicate(tag.getKey(), TAGK_SQL_BLOCK, binds),
 				expandPredicate(tag.getValue(), TAGV_SQL_BLOCK, binds)
 		));
 	}
 	
-	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql) {
+	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql) {
 		Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
-		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql);
+		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql, GET_TSMETAS_SQL);
 		while(iter.hasNext()) {
-			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql);
+			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql, GET_TSMETAS_SQL);
 		}
 	}
 	
@@ -869,11 +884,34 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		if(startTimeEndTime.length!=1 && startTimeEndTime.length!=2) { 
 			return Deferred.fromError(new IllegalArgumentException("Invalid startTimeEndTime " + Arrays.toString(startTimeEndTime)));
 		}
-		
+		final ObjectName on;
+		try {
+			on = new ObjectName(expression.trim());
+		} catch (Exception ex) {
+			return Deferred.fromError(new IllegalArgumentException("Invalid TSMeta expression", ex));
+		}
 		final Deferred<Set<Annotation>> def = new Deferred<Set<Annotation>>();		
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {
-//				final List<Object> binds = new ArrayList<Object>();
+				final List<Object> binds = new ArrayList<Object>();
+				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_ANNOTATION A WHERE FQNID IN ( ");
+				prepareGetTSMetasSQL(on.getDomain(), on.getKeyPropertyList(), binds, sqlBuffer, GET_ANN_TSMETAS_SQL); // FIXME:  REPLACE  TSMETAS_SQL
+				sqlBuffer.append(") ");
+				
+				
+//				StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
+//				prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL);
+//				keySql.append(") X ");
+//				if(queryOptions.getNextIndex()==null) {
+//					keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
+//				} else {
+//					keySql.append(" WHERE ").append(TSUID_START_SQL);
+//					binds.add(queryOptions.getNextIndex());
+//				}
+//				keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
+//				sqlBuffer.append(keySql.toString());
+				
+				
 //				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_")
 //					.append(type.name()).append(" X WHERE (")
 //					.append(expandPredicate(name.trim(), "X.NAME %s ?", binds))

@@ -529,6 +529,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		JMXHelper.registerMBean(this, JMXHelper.objectName(new StringBuilder(getClass().getPackage().getName()).append(":service=TSDBCatalog")));
 		final AbstractDBCatalog finalMe = this;
 		metricsMetaService = new SQLCatalogMetricsMetaAPIImpl(sqlWorker, this, tsdb, pluginContext);
+		pluginContext.setResource("meta-api", metricsMetaService);
 		pluginContext.addResourceListener(
 				new IPluginContextResourceListener() {
 					@Override

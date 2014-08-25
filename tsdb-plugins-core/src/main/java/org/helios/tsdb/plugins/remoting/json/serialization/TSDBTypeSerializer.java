@@ -54,17 +54,21 @@ public enum TSDBTypeSerializer {
 	/** D3.js optimized serializer */
 	D3;
 	
+
+	private final Map<Class<?>, ObjectMapper> serializers = new ConcurrentHashMap<Class<?>, ObjectMapper>();
+	private static final Map<TSDBTypeSerializer, Set<JsonSerializer<?>>> byTypeSerializers;
+	
 	
 	static {
+		byTypeSerializers = new EnumMap<TSDBTypeSerializer, Set<JsonSerializer<?>>>(TSDBTypeSerializer.class);
 		Serializers.register();
 		for(TSDBTypeSerializer t: TSDBTypeSerializer.values()) {
 			t.rebuildMapper();
 		}
 	}
 	
-	private final Map<Class<?>, ObjectMapper> serializers = new ConcurrentHashMap<Class<?>, ObjectMapper>();
 	private volatile ObjectMapper allTypesMapper = null;
-	private static final Map<TSDBTypeSerializer, Set<JsonSerializer<?>>> byTypeSerializers = new EnumMap<TSDBTypeSerializer, Set<JsonSerializer<?>>>(TSDBTypeSerializer.class);
+	
 	
 	private void rebuildMapper() {
 		ObjectMapper om = new ObjectMapper();
@@ -75,7 +79,8 @@ public enum TSDBTypeSerializer {
 				sm.addSerializer(js);
 			}
 			om.registerModule(sm);
-		}		
+		}	
+		allTypesMapper = om;
 	}
 	
 	/**

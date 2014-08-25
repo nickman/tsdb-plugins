@@ -25,11 +25,15 @@
 package net.opentsdb.meta.api;
 
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import net.opentsdb.utils.JSON;
 
+import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * <p>Title: QueryContext</p>
@@ -52,6 +56,8 @@ public class QueryContext {
 	protected long elapsed = -1L;
 	/** Indicates if the query will be continuous, self re-executing until are pages are returned */
 	protected boolean continuous = false;
+	/** The JSON seralization format to use for serializing the response objects for this query context */
+	protected String format = "DEFAULT";
 
 	
 	/** The starting index for the next chunk */
@@ -140,6 +146,7 @@ public class QueryContext {
 		builder.append(", timeout=").append(timeout);
 		builder.append(", continuous=").append(continuous);		
 		builder.append(", timeLimit=").append(timeLimit);
+		builder.append(", format=").append(format);
 		builder.append(", elapsed=").append(elapsed);
 		builder.append(", maxSize=").append(maxSize);
 		builder.append(", exhausted=").append(exhausted);
@@ -312,6 +319,42 @@ public class QueryContext {
 	public QueryContext setContinuous(boolean continuous) {
 		this.continuous = continuous;
 		return this;
+	}
+
+	/**
+	 * Returns the JSON seralization format name to use for serializing the response objects for this query context 
+	 * @return the serializer format name
+	 */
+	public String getFormat() {
+		return format;
+	}
+
+	/**
+	 * Sets the JSON seralization format to use for serializing the response objects for this query context 
+	 * @param serializer the serializer name to set
+	 */
+	public void setFormat(String serializer) {
+		if(serializer==null || serializer.trim().isEmpty()) throw new IllegalArgumentException("The passed serialization name was null or empty");
+		final String serName = serializer.trim().toUpperCase();
+		try {
+			TSDBTypeSerializer.valueOf(serName);
+		} catch (Exception ex) {
+			throw new IllegalArgumentException("The passed serialization name [" + serializer + "] was invalid. Valid names are:" + Arrays.toString(TSDBTypeSerializer.values()));
+		}
+		this.format = serName;
+	}
+	
+	/**
+	 * Returns the ObjectMapper defined by the format
+	 * @return the ObjectMapper defined by the format
+	 */
+	@JsonIgnore
+	public ObjectMapper getMapper() {
+		try {
+			return TSDBTypeSerializer.valueOf(format).getMapper();
+		} catch (Exception ex) {
+			return TSDBTypeSerializer.DEFAULT.getMapper();
+		}
 	}
 
 

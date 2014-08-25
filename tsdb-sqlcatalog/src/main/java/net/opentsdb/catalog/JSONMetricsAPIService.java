@@ -9,18 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.helios.tsdb.plugins.remoting.json.JSONRequest;
-import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
-import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
-import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.stumbleupon.async.Callback;
-import com.stumbleupon.async.Deferred;
-
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -28,6 +16,18 @@ import net.opentsdb.meta.api.MetricsMetaAPI;
 import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSON;
+
+import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stumbleupon.async.Callback;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: JSONMetricsAPIService</p>
@@ -148,13 +148,13 @@ public class JSONMetricsAPIService {
 		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
 		final String expression = request.getRequest().get("x").textValue();
 		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);		
-		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
-//		evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
-//			@Override
-//			public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
-//				return TSMetaTree.build("org", tsMetas);
-//			}
-//		}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));
+//		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+		metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
+			@Override
+			public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
+				return TSMetaTree.build("org", tsMetas);
+			}
+		}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));
 	}
 	
 	/**
@@ -227,7 +227,7 @@ public class JSONMetricsAPIService {
 	public void jsonGetAnnotations(final JSONRequest request) {
 		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
 		final String expr = request.getRequest().has("x") ? request.getRequest().get("x").asText() : null; 
-		ArrayNode ar = (ArrayNode)request.getRequest().get("x");
+		ArrayNode ar = (ArrayNode)request.getRequest().get("r");
 		final int sz = ar.size();
 		final long[] range = new long[ar.size()];
 		for(int i = 0; i < sz; i++) {
@@ -294,8 +294,11 @@ public class JSONMetricsAPIService {
 				} else {					
 					an.insertPOJO(0, ctx);
 					an.insertPOJO(0, result);
-					an.insertPOJO(0, TSDBTypeSerializer.DEFAULT);
-					request.response().setContent(an).send();
+					request.response()
+						.setOverrideObjectMapper(ctx.getMapper())
+						.setContent(an)
+						.send();
+//					request.response().setContent(an).send();
 				}
 			} catch (Exception e) {
 				request.error("Failed to get metric names", e);

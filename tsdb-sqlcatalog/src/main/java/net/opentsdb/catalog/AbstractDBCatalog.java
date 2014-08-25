@@ -1222,7 +1222,9 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 				startTs,
 				annotation.getDescription(),
 				annotation.getNotes(),
-				annotation.getTSUID()==null ? null : H2Support.fqnId(conn, annotation.getTSUID()),
+				annotation.getTSUID()==null ? 
+						null : 
+						H2Support.fqnId(conn, annotation.getTSUID()),
 				endTime==0 ? null : new Timestamp(utoms(endTime)),
 				JSONMapSupport.nokToString(annotation.getCustom())
 		);

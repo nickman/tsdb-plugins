@@ -57,8 +57,12 @@ public class JSONResponse implements ChannelBufferizable {
 	
 	/** The content payload */
 	@JsonProperty("msg")
-	@JsonSerialize(using = JSONChannelBufferSerializer.class, as=Object.class)
+	//@JsonSerialize(using = JSONChannelBufferSerializer.class, as=Object.class)
 	protected Object content = null;
+	
+	/** An object mapper override for custom/dynamic JSON serialization */
+	@JsonIgnore
+	protected volatile ObjectMapper mapperOverride = null;
 	
 	
 	
@@ -142,6 +146,16 @@ public class JSONResponse implements ChannelBufferizable {
 		this.reRequestId = reRequestId;
 		this.type = type;
 		this.channel = channel;
+	}
+	
+	/**
+	 * Sets the override ObjectMapper
+	 * @param mapper the override ObjectMapper
+	 * @return this JSONResponse
+	 */
+	public JSONResponse setOverrideObjectMapper(ObjectMapper mapper) {
+		this.mapperOverride = mapper;
+		return this;
 	}
 	
 	/**
@@ -324,28 +338,16 @@ public class JSONResponse implements ChannelBufferizable {
 				channelOutputStream.flush();
 				return channelOutputStream.buffer();
 			}
-			ObjectMapper om = getObjectMapper(content);
-			om.registerModule(new SimpleModule().addSerializer(JSONResponse.class, new JSONChannelBufferSerializer()));
+			ObjectMapper om = mapperOverride;
+			if(om==null) {
+				om = jsonMapper;
+			}
 			return ChannelBuffers.wrappedBuffer(om.writeValueAsBytes(this));
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to write object as JSON bytes", ex);
 		}
 	}
 	
-	protected final ObjectMapper getObjectMapper(final Object value) {
-		if(value instanceof ArrayNode) {
-			ArrayNode an = (ArrayNode)value;
-			if(an.size()==3 && (an.get(0) instanceof POJONode)) {
-				POJONode pojo = (POJONode)an.get(0);
-				Object pojoContent = pojo.getPojo(); 
-				if(pojoContent instanceof TSDBTypeSerializer) {
-					an.remove(0);					
-					return ((TSDBTypeSerializer)pojoContent).getMapper();
-				}
-			}
-		}
-		return JSON.getMapper();
-	}
 	
 	
 	/**
@@ -355,7 +357,11 @@ public class JSONResponse implements ChannelBufferizable {
 	@Override
 	public void write(ChannelBuffer buffer) {
 		try {
-			buffer.writeBytes(jsonMapper.writeValueAsBytes(this));
+			ObjectMapper om = mapperOverride;
+			if(om==null) {
+				om = jsonMapper;
+			}			
+			buffer.writeBytes(om.writeValueAsBytes(this));
 		} catch (JsonProcessingException ex) {
 			throw new RuntimeException("Failed to write object as JSON bytes", ex);
 		}		

@@ -136,6 +136,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	private static final Set<UIDMeta> EMPTY_UIDMETA_SET =  Collections.unmodifiableSet(new LinkedHashSet<UIDMeta>(0));
 	/** Empty TSMeta set const */
 	private static final Set<TSMeta> EMPTY_TSMETA_SET =  Collections.unmodifiableSet(new LinkedHashSet<TSMeta>(0));
+	/** Empty Annotation set const */
+	private static final Set<Annotation> EMPTY_ANNOTATION_SET =  Collections.unmodifiableSet(new LinkedHashSet<Annotation>(0));
 	
 	
 	/** Empty string array const */
@@ -573,6 +575,37 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	}
 	
 	/**
+	 * Closes out an Annotation query result, updating the QueryContext to indicate if the results are exhausted,
+	 * and if not, what the next page start index is
+	 * @param modPageSize The modified page size (one more than what was requested)
+	 * @param ctx The query context to update
+	 * @param readAnnotations The materialized Annotations being returned
+	 * @return The set of Annotations to return
+	 */
+	protected static Set<Annotation> closeOutAnnotationResult(final int modPageSize, final QueryContext ctx, final List<Annotation> readAnnotations) {
+		if(readAnnotations.isEmpty()) {
+			ctx.setExhausted(true).setNextIndex(null);			
+			return EMPTY_ANNOTATION_SET;
+		}
+		final int size = readAnnotations.size(); 
+		if(size < modPageSize) {
+			// the result set size was less than actually requested
+			// so the query is exhausted
+			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
+		} else {
+			// the result set size was equal to what was actually requested
+			// so the result set is still live.
+			// the result list has +1 over the caller specified, so:
+			//	1. The last item should be removed (it is excess)
+			//	2. The nextIndex is the index of the last item						
+			ctx.setExhausted(false).setNextIndex(readAnnotations.get(size-2).getStartTime()).incrementCummulative(size-1);
+			readAnnotations.remove(size-1);
+		}
+		return readAnnotations.isEmpty() ? EMPTY_ANNOTATION_SET : new LinkedHashSet<Annotation>(readAnnotations);
+	}
+	
+	
+	/**
 	 * Closes out a TSMeta query result, updating the QueryContext to indicate if the results are exhausted,
 	 * and if not, what the next page start index is
 	 * @param modPageSize The modified page size (one more than what was requested)
@@ -687,7 +720,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 //				String sql = null;
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags);
+					generateTSMetaSQL(sqlBuffer, binds, queryOptions, metricName, tags, "INTERSECT");
 					final int modPageSize = queryOptions.getNextMaxLimit() + 1;
 					binds.add(modPageSize);
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
@@ -725,7 +758,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
 	 */
-	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags) {
+	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String mergeOp) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
@@ -738,7 +771,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			
 		} else {
 			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-			prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL);
+			prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL, mergeOp);
 			keySql.append(") X ");
 			if(queryOptions.getNextIndex()==null) {
 				keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
@@ -751,10 +784,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		}		
 	}
 		
-	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql) {
+	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql, String mergeOp) {
 		// // expandPredicate(entry.getKey(), TAGK_SQL_BLOCK, binds),
 		if(!firstEntry) {
-			sql.append(" INTERSECT ");
+			sql.append("\n ").append(mergeOp).append("  \n");
+			
 		}
 		
 		sql.append(String.format(driverTsMetaSql,  
@@ -764,11 +798,11 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		));
 	}
 	
-	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql) {
+	protected void prepareGetTSMetasSQL(final String metricName, final Map<String, String> tags, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql, String mergeOp) {
 		Iterator<Map.Entry<String, String>> iter = tags.entrySet().iterator();
-		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql, GET_TSMETAS_SQL);
+		doGetTSMetasSQLTagValues(true, metricName, iter.next(), binds, sql, driverTsMetaSql, mergeOp);
 		while(iter.hasNext()) {
-			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql, GET_TSMETAS_SQL);
+			doGetTSMetasSQLTagValues(false, metricName, iter.next(), binds, sql, driverTsMetaSql, mergeOp);
 		}
 	}
 	
@@ -877,7 +911,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getAnnotations(net.opentsdb.meta.api.QueryContext, java.lang.String, long[])
 	 */
 	@Override
-	public Deferred<Set<Annotation>> getAnnotations(final QueryContext queryOptions, final String expression, final long... startTimeEndTime) {
+	public Deferred<Set<Annotation>> getAnnotations(final QueryContext queryContext, final String expression, final long... startTimeEndTime) {
 		if(expression==null || expression.trim().isEmpty()) { 
 			return Deferred.fromError(new IllegalArgumentException("The passed expression was null or empty"));
 		}
@@ -894,9 +928,56 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		this.metaQueryExecutor.execute(new Runnable() {
 			public void run() {
 				final List<Object> binds = new ArrayList<Object>();
-				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_ANNOTATION A WHERE FQNID IN ( ");
-				prepareGetTSMetasSQL(on.getDomain(), on.getKeyPropertyList(), binds, sqlBuffer, GET_ANN_TSMETAS_SQL); // FIXME:  REPLACE  TSMETAS_SQL
-				sqlBuffer.append(") ");
+				final boolean hasExpression = (expression!=null && !expression.trim().isEmpty());
+				final Object nextKey = queryContext.getNextIndex();
+				final int timeRanges;
+				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_ANNOTATION A WHERE ");
+				if(startTimeEndTime==null || startTimeEndTime.length==0) {
+					sqlBuffer.append( " 1 = 1 ");
+					timeRanges = 0;
+				} else {
+					if(startTimeEndTime.length==1) {
+						sqlBuffer.append( " START_TIME = ? ");
+						binds.add(startTimeEndTime[0]);
+						timeRanges = 1;
+					} else {
+						sqlBuffer.append( " START_TIME >= ? AND END_TIME <= ? ");
+						binds.add(startTimeEndTime[0]);						
+						binds.add(startTimeEndTime[1]);
+						timeRanges = 2;
+					}
+				}
+				if(hasExpression) {
+					sqlBuffer.append(" AND FQNID IN ( ");
+					prepareGetTSMetasSQL(on.getDomain(), on.getKeyPropertyList(), binds, sqlBuffer, GET_ANN_TSMETAS_SQL, "UNION ALL");					
+				}				
+				sqlBuffer.append(" ) ");
+				if(hasExpression) {
+					if(nextKey == null) {
+						sqlBuffer.append(" AND FQNID >= 0 ");
+					} else {
+						sqlBuffer.append(" AND FQNID > ? ");
+					}
+				}
+				switch(timeRanges) {
+					case 0:
+						sqlBuffer.append(" AND START_TIME >= 0 ");
+						
+				}
+				sqlBuffer.append(" ORDER BY START_TIME desc, FQNID desc, END_TIME desc ");
+				final int modPageSize = queryContext.getNextMaxLimit() + 1;
+				binds.add(modPageSize);
+				try {
+					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
+					final Set<Annotation> annotations = closeOutAnnotationResult(modPageSize, queryContext, 
+							metaReader.readAnnotations(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])))
+					);
+					def.callback(annotations);
+				} catch (Exception ex) {
+					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
+					def.callback(ex);					
+				}				
+				
 				
 				
 //				StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");

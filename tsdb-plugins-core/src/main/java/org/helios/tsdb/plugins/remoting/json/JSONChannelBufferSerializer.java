@@ -47,28 +47,22 @@ public class JSONChannelBufferSerializer extends JsonSerializer<Object> {
 			jgen.writeString(buff.toString(UTF8_CHARSET));
 			buff.clear();
 		} else {			
-//			provider.defaultSerializeValue(value, jgen);
-			
-			ObjectMapper mapper = getObjectMapper(value);
-			mapper.getSerializerProvider().defaultSerializeValue(value, jgen);
-//			OutputStream out = (OutputStream)jgen.getOutputTarget();
-//			out.write(mapper.writeValueAsBytes(value));
-//			out.flush();
+			provider.defaultSerializeValue(value, jgen);
 		}
 	}
 	
-	protected final ObjectMapper getObjectMapper(final Object value) {
-		if(value instanceof ArrayNode) {
-			ArrayNode an = (ArrayNode)value;
-			if(an.size()==3 && (an.get(2) instanceof POJONode)) {
-				POJONode pojo = (POJONode)an.get(2);
-				Object pojoContent = pojo.getPojo(); 
-				if(pojoContent instanceof TSDBTypeSerializer) {
-					return ((TSDBTypeSerializer)pojoContent).getMapper();
-				}
-			}
-		}
-		return JSON.getMapper();
-	}
+//	protected final ObjectMapper getObjectMapper(final Object value) {
+//		if(value instanceof ArrayNode) {
+//			ArrayNode an = (ArrayNode)value;
+//			if(an.size()==3 && (an.get(2) instanceof POJONode)) {
+//				POJONode pojo = (POJONode)an.get(2);
+//				Object pojoContent = pojo.getPojo(); 
+//				if(pojoContent instanceof TSDBTypeSerializer) {
+//					return ((TSDBTypeSerializer)pojoContent).getMapper();
+//				}
+//			}
+//		}
+//		return JSON.getMapper();
+//	}
 
 }

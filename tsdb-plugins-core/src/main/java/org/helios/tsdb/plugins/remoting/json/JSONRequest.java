@@ -53,6 +53,10 @@ public class JSONRequest {
 	/** The original request, in case there is other stuff in there that the data service needs */
 	protected final JsonNode request;
 	
+	/** The response prepared to send back to the caller submitting this request */
+	@JsonIgnore
+	protected volatile JSONResponse response = null;
+	
 	/** Indicates if argument accessors should return default values, or throw exceptions */
 	protected boolean allowDefaults = true;
 	
@@ -192,7 +196,10 @@ public class JSONRequest {
 	 * @return a {@link JSONResponse} for this request
 	 */
 	public JSONResponse response() {
-		return new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP, channel);
+		if(response==null) {
+			response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP, channel);
+		}
+		return response;
 	}
 	
 	/**

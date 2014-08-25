@@ -9,6 +9,7 @@ function QueryContext(props) {
 	this.maxSize = (props && props.maxSize) ? props.maxSize : 5000;
 	this.timeout = (props && props.timeout) ? props.timeout : 3000;
 	this.continuous = (props && props.continuous) ? props.continuous : false;	
+	this.format = (props && props.format) ? props.format : "DEFAULT";	
 	this.exhausted = false;
 	this.cummulative = 0;
 	this.elapsed = -1;
@@ -42,6 +43,17 @@ QueryContext.prototype.clone = function() {
     	throw new Error("Unable to copy this! Its type isn't supported.");
     }
 }
+
+
+QueryContext.prototype.getFormat = function() {
+	return this.format;
+};
+
+QueryContext.prototype.format = function(format) {
+	var f = format.replace(/ /g, "").toUpperCase();
+	this.format = f;
+	return this;
+};
 
 
 QueryContext.prototype.getElapsed = function() {
@@ -117,6 +129,7 @@ QueryContext.prototype.refresh = function(props) {
 		this.cummulative = props.cummulative || 0;
 		this.elapsed = props.elapsed || -1;
 		this.expired = props.expired || false;
+		this.format = props.format || "DEFAULT";	
 		if(props.timeout) this.timeout = props.timeout;
 	}
 }
@@ -409,8 +422,7 @@ Array.prototype.last = function() {
 
 WebSocketAPIClient.prototype.findUids= function(queryContext, type, name) {	
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	var prom = this.serviceRequest("meta", "finduid", {q: queryContext, x: expression, type: type});
-	return prom;
+	return this.serviceRequest("meta", "finduid", {q: queryContext, name: name, type: type});
 };
 
 WebSocketAPIClient.prototype.getAnnotations = function(queryContext, expression, startTime, endTime) {	
@@ -426,7 +438,7 @@ WebSocketAPIClient.prototype.getAnnotations = function(queryContext, expression,
 	if(endTime!=null) {
 		range.push(endTime);	
 	}	
-	payload.r = range();
+	payload.r = range;
 	return this.serviceRequest("meta", "annotations", payload);
 };
 
@@ -569,8 +581,23 @@ function postTSUIDAnnotations() {
 	var ws = new WebSocketAPIClient();
 	var q = QueryContext.newContext({pageSize: 100, maxSize: 100, timeout: 10000});	
 	ws.resolveTSMetas(q, "sys*:dc=dc1,host=WebServer*").then(
-		function(data) {
-			console.info("TSUID: [%O]", data);
+		function(result) {
+			console.info("TSUID: [%O]", result);
+			for(var i = 0, x = result.data.length; i < x; i++) {
+				var t = result.data[i];
+				var data = {
+					startTime : new Date().getTime() - (i * 1000),
+				  	description : "Test TSUID Annotation #" + i,
+				  	notes : "This is a test annotation, with id [" + i + "]",
+				  	tsuid : t.tsuid,
+				  	custom : {
+				    	type : "TSUID",
+				    	tsuid : t.tsuid,
+				    	name: t.name
+				  	}
+				};
+				$.post(ANNOTATION_URL, JSON.stringify(data), callback, "json");
+			}
 		}
 	);
 }
@@ -579,13 +606,16 @@ function postTSUIDAnnotations() {
 function testAll() {
 	var ws = new WebSocketAPIClient();
 	var q = null;
-	ws.findUids(q, "TAGV", "Web*").then(
-		function(result) { console.info("findUids Result: [%O]", result); 
-			//console.debug("JSON: [%s]", JSON.stringify(result));
-		},
-		function() { console.error("findUids Failed: [%O]", arguments);}
+	// ws.findUids(q, "TAGV", "Web*").then(
+	// 	function(result) { console.info("findUids Result: [%O]", result); },
+	// 	function() { console.error("findUids Failed: [%O]", arguments);}
+	// );
+	ws.getAnnotations(q, "sys*:dc=dc1,host=WebServer1|WebServer5", 0).then(
+		function(result) { console.info("globalAnnotations Result: [%O]", result); },
+		function() { console.error("globalAnnotations Failed: [%O]", arguments);}
 	);
-	//ws.getAnnotations(q, "sys*:dc=dc1,host=WebServer1|WebServer5", startTime, endTime) {	
+
+	
 
 	// ws.getMetricNamesByKeys(q, ['host', 'type', 'cpu']).then(
 	// 	function(result) { console.info("MetricNamesByKeys Result: [%O]", result); 
@@ -600,11 +630,11 @@ function testAll() {
 	// 	function() { console.error("MetricNamesByTags Failed: [%O]", arguments);}
 	// )
 	// ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 50, timeout: 60000}), 'sys.cpu', {host:'WebServer*', type:'combined', cpu:'*'}).then(
-	ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 500, timeout: 60000, maxSize: 40000}), '*', {dc:'*'}).then(		
-		function(result) { console.info("TSMetas FINAL Result: [%O]  --  cummulative: %s", result, result.q.cummulative);},
-		function() { console.error("TSMetas Failed: [%O]", arguments);},
-		function(result) { console.info("TSMetas INTERRIM Result: [%O]", result);}
-	);
+	// ws.getTSMetas(QueryContext.newContext({continuous:true, pageSize: 500, timeout: 60000, maxSize: 40000}), '*', {dc:'*'}).then(		
+	// 	function(result) { console.info("TSMetas FINAL Result: [%O]  --  cummulative: %s", result, result.q.cummulative);},
+	// 	function() { console.error("TSMetas Failed: [%O]", arguments);},
+	// 	function(result) { console.info("TSMetas INTERRIM Result: [%O]", result);}
+	// );
 	// ws.getTagKeys(q, 'sys.cpu', ['dc', 'host', 'cpu']).then(
 	// 	function(result) { console.info("TagKeys Result: [%O]", result); 
 	// 		//console.debug("JSON: [%s]", JSON.stringify(result));

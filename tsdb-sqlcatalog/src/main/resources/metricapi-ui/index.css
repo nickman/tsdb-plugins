@@ -1,0 +1,98 @@
+	.node circle {
+	  fill: #fff;
+	  stroke: steelblue;
+	  stroke-width: 1.5px;
+	}
+	
+	.node {
+	  font: 10px sans-serif;
+	}
+	
+	.link {
+	  fill: none;
+	  stroke: #ccc;
+	  stroke-width: 1.5px;
+	}
+	
+	body,p,h1,h2,h3,h4,table,td,th,ul,ol,textarea,input {
+		font-family:verdana,helvetica,arial,sans-serif;
+		font-weight: bold;
+	}	
+	
+	input {
+		font-size:10px;
+		font-weight: bold;
+	}
+	
+	html {
+   		height:100%;   
+	}
+	
+	body {
+		display: inline-block;
+		margin: 1px;
+		height: 100%;
+		width: 100%;
+	}
+	
+	
+	#leftbar {
+	 	float:left;  		
+        height: 100%;
+        width: 350px;
+        -webkit-transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        -webkit-transform-style: preserve-3d;
+        background-image: none;
+        background-color: rgb(206, 219, 221);
+        opacity: 0.7;
+        border-width: 1px;
+        border-style: groove;
+        border-top-left-radius: 1px;
+        border-top-right-radius: 0px;
+        border-bottom-left-radius: 1px;
+        border-bottom-right-radius: 1px;
+        overflow: auto;
+        margin-right: 2px
+	}
+	
+	#exprfield {
+		width: 98%;
+	}
+
+	
+	#main {
+		overflow:hidden;
+		margin: 1px;
+		height: 100%;
+		width: 1000px;
+	}
+	
+	#jsonOutput {
+		height: 500px;
+		width: inherit;
+		overflow: auto;
+	}
+	
+	#content {
+		display: inline;
+		margin: 1px;
+		height: 100%;
+		width: 100%;
+	}
+	
+	#outputDataForm {
+		display: block;
+		margin: 1px;
+		height: 70%;
+		width: 100%;	
+	}
+	
+	
+	pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+	.string { color: green; }
+	.number { color: darkorange; }
+	.boolean { color: blue; }
+	.null { color: magenta; }
+	.key { color: red; }
+	
+	

@@ -32,6 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.opentsdb.utils.JSON;
 
+import org.helios.tsdb.plugins.remoting.json.JSONChannelBufferSerializer;
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -73,8 +76,9 @@ public enum TSDBTypeSerializer {
 	private void rebuildMapper() {
 		ObjectMapper om = new ObjectMapper();
 		Set<JsonSerializer<?>> set = byTypeSerializers.get(this);
-		if(set!=null && !set.isEmpty()) {
-			SimpleModule sm = new SimpleModule("All Serializers for [" + name() + "]");
+		SimpleModule sm = new SimpleModule("All Serializers for [" + name() + "]");
+		sm.addSerializer(ChannelBuffer.class, new JSONChannelBufferSerializer());
+		if(set!=null && !set.isEmpty()) {			
 			for(JsonSerializer<?> js: set) {
 				sm.addSerializer(js);
 			}

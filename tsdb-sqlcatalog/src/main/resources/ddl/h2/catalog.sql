@@ -134,10 +134,10 @@ CREATE TABLE IF NOT EXISTS TSD_ANNOTATION (
 	START_TIME TIMESTAMP NOT NULL COMMENT 'The effective start time for this annotation',
 	LAST_UPDATE TIMESTAMP NOT NULL DEFAULT SYSDATE COMMENT 'The timestamp of the last update of the Annotation',
 	DESCRIPTION VARCHAR(120) NOT NULL COMMENT 'The mandatory description for this annotation',
-    NOTES VARCHAR(120) COMMENT 'Optional notes for this annotation',
+    NOTES VARCHAR(2000) COMMENT 'Optional notes for this annotation',
 	FQNID BIGINT COMMENT 'An optional reference to the associated TSMeta. If null, this will be a global annotation',
     END_TIME TIMESTAMP COMMENT 'The optional effective end time for this annotation',
-    CUSTOM VARCHAR(120) COMMENT 'An optional map of key/value pairs encoded in JSON for this annotation'    
+    CUSTOM VARCHAR(2000) COMMENT 'An optional map of key/value pairs encoded in JSON for this annotation'    
 ); COMMENT ON TABLE TSD_ANNOTATION IS 'Table storing created annotations';
 
 ALTER TABLE TSD_ANNOTATION ADD CONSTRAINT IF NOT EXISTS TSD_ANNOTATION_PK PRIMARY KEY ( ANNID ) ;

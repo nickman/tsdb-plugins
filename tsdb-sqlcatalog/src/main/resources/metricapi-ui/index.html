@@ -26,6 +26,23 @@
 	  			Clear Initial Query Context: <input type="checkbox" name="clearqc" id="clearqc" checked="checked">
 	  		</fieldset>	
 		</form>
+		<br>
+		<form id="inputQCForm">
+			<fieldset>
+				<legend>Input Query Context:</legend>
+				Page Size:<input type="number" id="qinPageSize" size="5" value="100"><br>
+				Max Size:<input type="number" id="qinMaxSize" size="5" value="2000"><br>
+				Timeout (ms):<input type="number" id="qinTimeout" size="5" value="500"><br>
+				Continuous:<input type="checkbox" id="qinContinuous"><br>
+				Format:<select id="qinFormat">  
+					<option value="FULL">Full</option>
+					<option value="DEFAULT" selected="selected">Default</option>
+					<option value="NAME">Names Only</option>
+					<option value="D3">D3.js (TSMetas)</option>
+				</select>
+			</fieldset>
+		</form>
+		
 		<form id="goAction">
 			<fieldset>
 	  			<legend>Output:</legend>
@@ -46,13 +63,13 @@
 					<div id="jsonOutput"></div>
 				</fieldset>
 			</form>
-			<br><br>
+			
 			<form id="outputQCForm">
 				<fieldset>
 					<legend>Output Query Context:</legend>
 					Count:<input type="text" id="qoutCummulative" disabled="disabled" size="7">
 					Elapsed (ms):<input type="text" id="qoutElapsed" disabled="disabled"size="7">
-					Next Index:<input type="text" id="qoutNextIndex" disabled="disabled">					
+					Next Index:<input type="text" id="qoutNextIndex" disabled="disabled" size="70">					
 					Exhausted:<input type="text" id="qoutExhausted" disabled="disabled" size="5">
 					Expired:<input type="text" id="qoutExpired" disabled="disabled" size="5">
 				</fieldset>

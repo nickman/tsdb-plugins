@@ -80,10 +80,15 @@
 		width: 100%;
 	}
 	
-	#outputDataForm {
+	#outputDataForm {		
 		display: block;
 		margin: 1px;
 		height: 70%;
+		width: 100%;	
+	}
+	
+	#outputQCForm {
+		position: absolute; bottom: 0;
 		width: 100%;	
 	}
 	

@@ -2521,27 +2521,27 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @throws Exception
 	 */
 	public long synchronizeFromStore() throws Exception {
-		try {
-			Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
-			Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
-			method.setAccessible(true);
-			Number x = (Number)method.invoke(null, tsdb);
-			return x.longValue();
-			//UIDManager.private static int metaSync(final TSDB tsdb) 
-		} catch (Exception ex) {
-			Throwable t = ex.getCause();
-			while(t!=null) {
-				if("Shouldn't be here".equals(t.getMessage().trim())) {
-					log.warn("AutoSync encountered empty Hbase");
-					return 0;
-				}
-				t = t.getCause();
-			}
-			log.error("Failed to run SynchronizeFromStore", ex);
-			throw ex;
-		}
-//		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-//		return ms.metasync();
+//		try {
+//			Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
+//			Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
+//			method.setAccessible(true);
+//			Number x = (Number)method.invoke(null, tsdb);
+//			return x.longValue();
+//			//UIDManager.private static int metaSync(final TSDB tsdb) 
+//		} catch (Exception ex) {
+//			Throwable t = ex.getCause();
+//			while(t!=null) {
+//				if("Shouldn't be here".equals(t.getMessage().trim())) {
+//					log.warn("AutoSync encountered empty Hbase");
+//					return 0;
+//				}
+//				t = t.getCause();
+//			}
+//			log.error("Failed to run SynchronizeFromStore", ex);
+//			throw ex;
+//		}
+		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
+		return ms.metasync();
 		
 	}
 	

@@ -40,8 +40,6 @@
 	 	float:left;  		
         height: 100%;
         width: 350px;
-        -webkit-transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-        -webkit-transform-style: preserve-3d;
         background-image: none;
         background-color: rgb(206, 219, 221);
         opacity: 0.7;
@@ -55,8 +53,15 @@
         margin-right: 2px
 	}
 	
+	.foo {
+        -webkit-transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        -webkit-transform-style: preserve-3d;
+	}
+	
 	#exprfield {
 		width: 98%;
+		-webkit-user-modify: read-write-plaintext-only;
+		z-index: 100;
 	}
 
 	

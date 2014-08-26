@@ -126,11 +126,23 @@ public class JSONMetricsAPIService {
 			String key = titer.next();
 			tags.put(key, tagNode.get(key).asText());
 		}
-		log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);		
-		metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+		log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
+		doJsonTagValues(request, q, metricName, tags, tagKey);
+//		metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
 	
-	
+	protected void doJsonTagValues(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags, final String tagKey) {
+		metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+		.addCallback(new Callback<Void, QueryContext>() {
+			@Override
+			public Void call(QueryContext ctx) throws Exception {
+				if(ctx.shouldContinue()) {
+					doJsonTagValues(request, q, metricName, tags, tagKey);
+				}
+				return null;
+			}
+		});				
+	}
 
 	/**
 	 * @param request
@@ -139,9 +151,23 @@ public class JSONMetricsAPIService {
 	public void jsonTSMetaExpression(final JSONRequest request) { 
 		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
 		final String expression = request.getRequest().get("x").textValue();
-		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);		
-		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
+		doJsonTSMetaExpression(request, q, expression);		
 	}
+	
+	protected void doJsonTSMetaExpression(final JSONRequest request, final QueryContext q, final String expression) { 
+		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
+		.addCallback(new Callback<Void, QueryContext>() {
+			@Override
+			public Void call(QueryContext ctx) throws Exception {
+				if(ctx.shouldContinue()) {
+					doJsonTSMetaExpression(request, ctx, expression);
+				}
+				return null;
+			}
+		});		
+	}
+	
 	
 	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
 	public void d3JsonTSMetaExpression(final JSONRequest request) { 
@@ -197,7 +223,6 @@ public class JSONMetricsAPIService {
 				return null;
 			}
 		});		
-		
 	}
 	
 	@JSONRequestHandler(name="finduid", description="Returns all UIDMetas of the specified type that match the passed name")

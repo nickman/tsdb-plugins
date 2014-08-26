@@ -2,19 +2,27 @@ var ws = null;
 var q = null;
 
 $( document ).ready(function() {
+	$(window).resize(function() {
+		$("#main").width($(window).width()-$("#leftbar").width() - 50);
+		$("#jsonOutput").height($(window).height()-$("#outputQCForm").height() - 70);		
+	});
 	ws = new WebSocketAPIClient();
 	q = QueryContext.newContext();
+	$("#goBtn").click(function(e) {
+	    goAction();		        
+        return false;
+	});
 	$("#exprfield").focus();
 	$("#exprfield").keypress(function(e) {
 	    if(e.which == 13) {
-		    goAction();		        
-	        return false;
+		    goAction();		        	        
 	    }
+	    return false;
 	});
 	$("#exprfield").removeAttr("disabled");
+	$("#goBtn").removeAttr("disabled");
 	$("#main").width($(window).width()-$("#leftbar").width() - 50);
 	$("#jsonOutput").height($(window).height()-$("#outputQCForm").height() - 70);
-	
 	console.info("Index.js Loaded");
 });
 
@@ -60,9 +68,6 @@ function updateOutputContext(qctx) {
 };
 
 function getInputContext() {
-	$("#qinFormat").val();
-	$('#clearqc').is(':checked');
-	
 	return QueryContext.newContext({
 		pageSize: parseInt($("#qinPageSize").val()),
 		maxSize: parseInt($("#qinMaxSize").val()),
@@ -81,11 +86,11 @@ function doFullTree() {
 	ws.resolveTSMetas(q, expr).then(
 		function(result) {
 			$('#jsonOutput').empty();
-			console.info("Output Size: [%s], [%s]", $('#jsonOutput').width(), $('#jsonOutput').height());
+			console.info("Output Size: [%s], [%s]", $('#jsonOutput').width()-30, $('#jsonOutput').height());
 			updateOutputContext(result.q);
 			//$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
 			//$('#jsonOutput').json2html(convert('json',result.data,'open'),transforms.object);
-			var cluster = d3.layout.cluster().size([$('#jsonOutput').height(), $('#jsonOutput').width()]);
+			var cluster = d3.layout.cluster().size([$('#jsonOutput').height()-50, $('#jsonOutput').width()]);
 			var diagonal = d3.svg.diagonal()
 		    .projection(function(d) { 
 		    	return [d.y, d.x]; 
@@ -93,14 +98,15 @@ function doFullTree() {
 
 			
 			var svg = d3.select("div#jsonOutput").append("svg")
-		    .attr("width", $('#jsonOutput').width()) // width + margin.right + margin.left)
-		    .attr("height", $('#jsonOutput').height()) //height + margin.top + margin.bottom)
+		    .attr("width", $('#jsonOutput').width()-30) // width + margin.right + margin.left)
+		    .attr("height", $('#jsonOutput').height()-50) //height + margin.top + margin.bottom)
 		    .append("g")
 		    .attr("transform", "translate(10,0)");
 			
 			
 		var nodes = cluster.nodes(result.data),
 		links = cluster.links(nodes);
+		nodes.forEach(function(d) { d.y = d.depth * 90; });
 
 		  var link = svg.selectAll(".link")
 		      .data(links)
@@ -112,6 +118,7 @@ function doFullTree() {
 		      .data(nodes)
 		    .enter().append("g")
 		      .attr("class", "node")
+//		      .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
 		      .attr("transform", function(d) { 
 		      	//console.info("Transform: [%O]", d);
 		      	return "translate(" + d.y + "," + d.x + ")"; 
@@ -123,7 +130,10 @@ function doFullTree() {
 		  node.append("text")
 		      .attr("dx", function(d) { return d.children ? -8 : 8; })
 		      .attr("dy", 3)
-		      .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
+//		      .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+		      .style("text-anchor", function(d) { 
+		    	  return d.children ? "end" : "start"; }
+		      )
 		      .text(function(d) { return d.name; });
 			
 			

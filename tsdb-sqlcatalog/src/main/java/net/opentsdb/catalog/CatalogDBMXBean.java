@@ -95,6 +95,13 @@ public interface CatalogDBMXBean extends LoggerManager {
 	public int getAnnotationCount();
 	
 	/**
+	 * Indicates if this catalog is in memory and needs to be synched on TSDB startup
+	 * @return true if this catalog is in memory, false otherwise
+	 */
+	public boolean isInMem();
+	
+	
+	/**
 	 * Returns the number of TSMetas in HBase
 	 * @return the number of TSMetas in HBase
 	 */

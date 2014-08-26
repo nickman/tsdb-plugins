@@ -111,6 +111,11 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 		objectName = JMXHelper.objectName(getClass().getPackage().getName() + ":service=" + getClass().getSimpleName());
 		compilerConfigurationObjectName = JMXHelper.objectName(objectName.toString() + ",type=CompilerConfiguration");
 		imports.add("import org.helios.apmrouter.groovy.annotations.*");
+		imports.add("import net.opentsdb.core.*");
+		imports.add("import net.opentsdb.meta.*");
+		imports.add("import net.opentsdb.search.*");
+		imports.add("import net.opentsdb.tsd.*");
+		imports.add("import net.opentsdb.uid.*");
 		compilerConfiguration.setOptimizationOptions(Collections.singletonMap("indy", true));
 		groovyClassLoader =  new GroovyClassLoader(getClass().getClassLoader(), compilerConfiguration);
 		registerLoadListener(this);
@@ -130,6 +135,7 @@ public class GroovyService implements GroovyLoadedScriptListener, GroovyServiceM
 			}
 		});
 		beans.put("pluginContext", pluginContext);
+		beans.put("tsdb", tsdb);
 		for(String name: pluginContext.getResourceNames()) {
 			beans.put(name, pluginContext.getResource(name.toLowerCase(), Object.class));
 		}		

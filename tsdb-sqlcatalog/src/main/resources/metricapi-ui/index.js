@@ -15,9 +15,10 @@ $( document ).ready(function() {
 	$("#exprfield").focus();
 	$("#exprfield").keypress(function(e) {
 	    if(e.which == 13) {
-		    goAction();		        	        
+		    goAction();
+		    return false;
 	    }
-	    return false;
+	    return true;
 	});
 	$("#exprfield").removeAttr("disabled");
 	$("#goBtn").removeAttr("disabled");
@@ -43,15 +44,35 @@ function goAction() {
 function doDisplayJson() {
 	var expr = $('#exprfield').val();
 	console.info("Executing fetch for expression [%s]", expr);
+	var handle = function(result) {			
+		updateOutputContext(result.q);
+		if(!result.q.continuous) {
+			$('#jsonOutput').empty();
+			$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
+		} else {
+			responseCount++;
+			var index = responseCount;
+			var app = "<a id='link" + index + "'>Response #" + index + " (Results:" + result.data.length + ")";
+			app += "<div id='data" + index + "'><pre>";
+			app += syntaxHighlight(result.data);
+			app += "</pre></div></a><br>";
+			$('#jsonOutput').append($(app));
+			$('#data' + index).toggle();
+			$('#link' + index).click(function(){
+				
+				$('#data' + index).toggle();
+			});
+		}
+	};
+	var handleError = function() {
+		console.error("resolveTSMetas Failed: [%O]", arguments);
+	}
+ 
 	// Retrieve data using expr call.
 	// write formatted data to jsonOutput
+	var responseCount = 0;
 	ws.resolveTSMetas(q, expr).then(
-		function(result) {
-			$('#jsonOutput').empty();
-			updateOutputContext(result.q);
-			$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
-			//$('#jsonOutput').json2html(convert('json',result.data,'open'),transforms.object);
-		}	
+			handle, handleError, handle
 	);
 };
 

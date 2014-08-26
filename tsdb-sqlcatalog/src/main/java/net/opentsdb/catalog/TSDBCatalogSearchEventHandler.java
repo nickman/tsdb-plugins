@@ -192,18 +192,8 @@ public class TSDBCatalogSearchEventHandler extends EmptySearchEventHandler imple
 		processingQueue = new PriorityBlockingQueue<TSDBSearchEvent>(queueSize, new TSDBSearchEventComparator());
 		//processingQueue = new ArrayBlockingQueue<TSDBSearchEvent>(queueSize, false);
 		dbInterface = loadDB(initerClassName);
-		Connection conn = null;
 		
-		boolean inMem = false;
-		try {
-			conn = dbInterface.getDataSource().getConnection();
-			String jdbcUrl = conn.getMetaData().getURL();
-			inMem = jdbcUrl!=null && jdbcUrl.contains("jdbc:h2:mem");
-		} catch (Exception ex) {
-			/* No Op */
-		} finally {
-			if(conn!=null) try { conn.close(); } catch (Exception ex) {}
-		}
+		final boolean inMem = dbInterface.isInMem();
 		dataSource = dbInterface.getDataSource();
 		log.info("Acquired DataSource");	
 		queueProcessorThread = new Thread(this, "TSDBCatalogQueueProcessor");

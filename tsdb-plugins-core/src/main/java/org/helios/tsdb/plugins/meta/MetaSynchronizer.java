@@ -221,7 +221,7 @@ public class MetaSynchronizer {
 		final Set<String> seenUids = new HashSet<String>();
 
 		long max_id = getMaxMetricID(tsdb);
-		if(max_id==0) return 0L;
+		if(max_id < 1L) return 0L;
 		start_time = System.currentTimeMillis();
 		final AtomicLong tsMetaCount = new AtomicLong(0);
 		final long[][] segments = new long[SEGMENT_COUNT][2];
@@ -356,6 +356,7 @@ public class MetaSynchronizer {
 			row = tsdb.getClient().get(get).joinUninterruptibly(2000);
 			if (row == null || row.isEmpty()) {
 				log.warn("No data in the metric max UID cell. Empty DB ?");
+				return -1L;
 //				throw new IllegalStateException("No data in the metric max UID cell");
 			}
 			final byte[] id_bytes = row.get(0).value();

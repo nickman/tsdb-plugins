@@ -128,6 +128,12 @@ public interface CatalogDBInterface {
 	// ===================================================================================================
 	
 	/**
+	 * Indicates if this catalog is in memory and needs to be synched on TSDB startup
+	 * @return true if this catalog is in memory, false otherwise
+	 */
+	public boolean isInMem();
+	
+	/**
 	 * Sets a locally scoped property on the passed connection
 	 * @param conn The connection to set the property on
 	 * @param key The property key

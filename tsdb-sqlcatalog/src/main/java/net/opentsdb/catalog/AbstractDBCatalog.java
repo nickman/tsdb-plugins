@@ -2461,6 +2461,15 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 		return dbVersion;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.CatalogDBInterface#isInMem()
+	 */
+	@Override
+	public boolean isInMem() {
+		return false;
+	}
+	
 	
 	/**
 	 * {@inheritDoc}

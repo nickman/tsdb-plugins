@@ -226,6 +226,15 @@ public class H2DBCatalog extends AbstractDBCatalog {
 		try { h2Stats.shutdown(); } catch (Exception x) {/* No Op */}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.AbstractDBCatalog#isInMem()
+	 */
+	@Override
+	public boolean isInMem() {
+		return dbUrl!=null && dbUrl.contains("jdbc:h2:mem");
+	}
+
     
     /**
      * {@inheritDoc}

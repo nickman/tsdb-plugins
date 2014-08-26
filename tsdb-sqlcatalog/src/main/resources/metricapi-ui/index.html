@@ -23,14 +23,7 @@
 	<body>
 		<script src="index.js" type="text/javascript" ></script>		
 	<div id="leftbar">
-		<form>
-			<fieldset>
-	  			<legend>Metric Expression:</legend>
-	  			<input id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5"  ><br>
-	  			Clear Initial Query Context: <input type="checkbox" name="clearqc" id="clearqc" checked="checked">
-          <button id="goBtn" disabled="disabled" >Run</button>
-	  		</fieldset>	
-		</form>
+    <br>
 		<form id="inputQCForm">
 			<fieldset>
 				<legend>Input Query Context:</legend>
@@ -43,18 +36,29 @@
 					<option value="DEFAULT" selected="selected">Default</option>
 					<option value="NAME">Names Only</option>
 					<option value="D3">D3.js (TSMetas)</option>
-				</select>
+				</select><br>
+        Clear Initial Query Context: <input type="checkbox" name="clearqc" id="clearqc" checked="checked">
 			</fieldset>
 		</form>
+
+    <form id="goAction">
+      <fieldset>
+          <legend>Output:</legend>
+          <input type="radio" name="goaction" value="json" checked="checked">JSON
+          <input type="radio" name="goaction" value="fulltree">Full Tree
+          <input type="radio" name="goaction" value="incrtree">Incr. Tree
+        </fieldset> 
+    </form>
+
+    <form>
+      <fieldset>
+          <legend>Metric Expression:</legend>
+          <input id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5"  ><br>
+          
+          <button id="goBtn" disabled="disabled" >Run</button>
+        </fieldset> 
+    </form>
 		
-		<form id="goAction">
-			<fieldset>
-	  			<legend>Output:</legend>
-					<input type="radio" name="goaction" value="json" checked="checked">JSON
-					<input type="radio" name="goaction" value="fulltree">Full Tree
-					<input type="radio" name="goaction" value="incrtree">Incr. Tree
-	  		</fieldset>	
-		</form>
 		
 		
 		

@@ -52,7 +52,7 @@ function doDisplayJson() {
 		} else {
 			responseCount++;
 			var index = responseCount;
-			var app = "<a id='link" + index + "'>Response #" + index + " (Results:" + result.data.length + ")";
+			var app = "<a id='link" + index + "'>Response #" + index + " -- Results:" + result.data.length + "&nbsp;<font size='-2'>(Click to Expand)</font>";
 			app += "<div id='data" + index + "'><pre>";
 			app += syntaxHighlight(result.data);
 			app += "</pre></div></a><br>";

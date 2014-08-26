@@ -18,6 +18,10 @@
 		font-family:verdana,helvetica,arial,sans-serif;
 		font-weight: bold;
 	}	
+
+	a {
+		color: steelblue;
+	}
 	
 	input {
 		font-size:10px;

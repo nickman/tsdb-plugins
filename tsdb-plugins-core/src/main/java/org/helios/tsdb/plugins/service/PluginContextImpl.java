@@ -161,7 +161,6 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.service.PluginContext#getResource(java.lang.String, java.lang.Class)
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T getResource(String name, Class<?> type) {
 		return (T)namedResources.get(name);

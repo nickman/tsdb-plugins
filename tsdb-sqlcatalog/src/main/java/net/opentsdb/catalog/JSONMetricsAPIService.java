@@ -5,9 +5,9 @@ package net.opentsdb.catalog;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -59,20 +59,33 @@ public class JSONMetricsAPIService {
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricswtags", "q": { "pageSize" : 10 }, "tags" : {"host" : "*", "type" : "combined"}}
 	 * </pre></p>
 	 */
+	/**
+	 * @param request
+	 * @param q
+	 * @param tags
+	 */
 	@JSONRequestHandler(name="metricswtags", description="Returns the MetricNames that match the passed tag pairs")
-	public void jsonMetricNamesWithTags(final JSONRequest request) {
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
-		final Map<String, String> tags = new TreeMap<String, String>();
-		Iterator<String> titer = tagNode.fieldNames();
-		while(titer.hasNext()) {
-			String key = titer.next();
-			tags.put(key, tagNode.get(key).asText());
+	public void jsonMetricNamesWithTags(final JSONRequest request, final QueryContext q, final Map<String, String> tags) {
+		if(q==null) {
+			jsonMetricNamesWithTags(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				getMap(request, "tags")				
+			);
+		} else {
+			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);		
+			metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						jsonMetricNamesWithTags(request, ctx, tags);
+					}
+					return null;
+				}
+			});					
 		}
-		log.info("Processing jsonMetricNamesWithTags. q: [{}], tags: {}", q, tags);		
-		metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 	}
-	
 	
 	/**
 	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])} 
@@ -82,105 +95,146 @@ public class JSONMetricsAPIService {
 	 * </pre></p>
 	 * API:  ws.serviceRequest("meta", "metricnames", {q: q, keys : ['host', 'type', 'cpu']})
 	 */
-	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
-	public void jsonMetricNames(final JSONRequest request) {
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final ArrayNode keysArr = (ArrayNode)request.getRequest().get("keys");
-		final String[] keys = new String[keysArr.size()];
-		for(int i = 0; i < keysArr.size(); i++) {
-			keys[i] = keysArr.get(i).asText();
-		}
-		log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(keys));		
-		metricApi.getMetricNames(q.startExpiry(), keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
-	}
-	
-	// public Deferred<Set<UIDMeta>> getTagKeys(final QueryContext queryOptions, final String metric, final String...tagKeys) {
 	/**
 	 * @param request
-	 */	
-	@JSONRequestHandler(name="tagkeys", description="Returns the Tag Key UIDs that match the passed metric name and tag keys")
-	public void jsonTagKeys(final JSONRequest request) {
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final String metricName = request.getRequest().get("m").textValue();
-		final ArrayNode keysArr = (ArrayNode)request.getRequest().get("keys");
-		final String[] keys = new String[keysArr.size()];
-		for(int i = 0; i < keysArr.size(); i++) {
-			keys[i] = keysArr.get(i).asText();
+	 * @param q
+	 * @param tagKeys
+	 */
+	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
+	public void jsonMetricNames(final JSONRequest request, final QueryContext q, final String...tagKeys) {
+		if(q==null) {
+			jsonMetricNames(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				getStringArray(request, "keys")				
+			);
+		} else {
+			log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(tagKeys));		
+			metricApi.getMetricNames(q.startExpiry(), tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						jsonMetricNames(request, ctx, tagKeys);
+					}
+					return null;
+				}
+			});					
 		}
-		log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(keys));		
-		metricApi.getTagKeys(q.startExpiry(), metricName, keys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+	}
+	
+	/**
+	 * @param request
+	 * @param q
+	 * @param metric
+	 * @param tagKeys
+	 */
+	@JSONRequestHandler(name="tagkeys", description="Returns the Tag Key UIDs that match the passed metric name and tag keys")
+	public void jsonTagKeys(final JSONRequest request, final QueryContext q, final String metric, final String...tagKeys) {
+		if(q==null) {
+			jsonTagKeys(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("m").textValue(),
+				getStringArray(request, "keys")	
+			);
+		} else {
+			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metric, Arrays.toString(tagKeys));		
+			metricApi.getTagKeys(q.startExpiry(), metric, tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						jsonTagKeys(request, ctx, metric, tagKeys);
+					}
+					return null;
+				}
+			});
+		}
 	}
 		
 	/**
 	 * @param request
+	 * @param q
+	 * @param metricName
+	 * @param tags
+	 * @param tagKey
 	 */
 	@JSONRequestHandler(name="tagvalues", description="Returns the Tag Value UIDs that match the passed metric name and tag keys")
-	public void jsonTagValues(final JSONRequest request) { 
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final String metricName = request.getRequest().get("m").textValue();
-		final String tagKey = request.getRequest().get("k").textValue();
-		final ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
-		final Map<String, String> tags = new TreeMap<String, String>();
-		Iterator<String> titer = tagNode.fieldNames();
-		while(titer.hasNext()) {
-			String key = titer.next();
-			tags.put(key, tagNode.get(key).asText());
-		}
-		log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
-		doJsonTagValues(request, q, metricName, tags, tagKey);
-//		metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
-	}
-	
-	protected void doJsonTagValues(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags, final String tagKey) {
-		metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-		.addCallback(new Callback<Void, QueryContext>() {
-			@Override
-			public Void call(QueryContext ctx) throws Exception {
-				if(ctx.shouldContinue()) {
-					doJsonTagValues(request, q, metricName, tags, tagKey);
+	public void jsonTagValues(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags, final String tagKey) {
+		if(q==null) {
+			jsonTagValues(
+				request, 
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("m").textValue(),
+				getMap(request, "tags"),
+				request.getRequest().get("k").textValue()
+			);
+		} else {
+			log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
+			metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						jsonTagValues(request, q, metricName, tags, tagKey);
+					}
+					return null;
 				}
-				return null;
-			}
-		});				
+			});							
+		}
 	}
 
 	/**
 	 * @param request
+	 * @param q 
+	 * @param expression 
 	 */
-	@JSONRequestHandler(name="tsmetaexpr", description="Returns the TSMetas that match the passed expression")
-	public void jsonTSMetaExpression(final JSONRequest request) { 
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
-		final String expression = request.getRequest().get("x").textValue();
-		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
-		doJsonTSMetaExpression(request, q, expression);		
-	}
-	
-	protected void doJsonTSMetaExpression(final JSONRequest request, final QueryContext q, final String expression) { 
-		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
-		.addCallback(new Callback<Void, QueryContext>() {
-			@Override
-			public Void call(QueryContext ctx) throws Exception {
-				if(ctx.shouldContinue()) {
-					doJsonTSMetaExpression(request, ctx, expression);
+	@JSONRequestHandler(name="tsMetaEval", description="Returns the TSMetas that match the passed expression")
+	public void tsMetaX(final JSONRequest request, final QueryContext q, final String expression) {		
+		if(q==null) {
+			tsMetaX(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("x").textValue()					
+			);			
+		} else {
+			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
+			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						tsMetaX(request, ctx, expression);
+					}
+					return null;
 				}
-				return null;
-			}
-		});		
+			});					
+		}
 	}
 	
 	
+	/**
+	 * @param request
+	 * @param q
+	 * @param expression
+	 */
 	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
-	public void d3JsonTSMetaExpression(final JSONRequest request) { 
-		QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);		
-		final String expression = request.getRequest().get("x").textValue();
-		log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);		
-//		metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
-		metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
-			@Override
-			public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
-				return TSMetaTree.build("org", tsMetas);
-			}
-		}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));
+	public void d3JsonTSMetaExpression(final JSONRequest request, final QueryContext q, final String expression) {
+		if(q==null) {
+			d3JsonTSMetaExpression(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("x").textValue()
+			);
+		} else {
+			metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
+				@Override
+				public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
+					return TSMetaTree.build("org", tsMetas);
+				}
+			}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));			
+		}
 	}
 	
 	/**
@@ -190,100 +244,148 @@ public class JSONMetricsAPIService {
 	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"tsmetas", "q": { "pageSize" : 10 }, "m":"sys.cp*", "overflow":false,  "tags" : {"host" : "*NWHI*"}}
 	 * </pre></p>
 	 */
+	/**
+	 * @param request
+	 * @param q
+	 * @param metricName
+	 * @param tags
+	 */
 	@JSONRequestHandler(name="tsmetas", description="Returns the MetricNames that match the passed tag pairs")
-	public void jsonTSMetas(final JSONRequest request) {
-		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final String metricName = request.getRequest().get("m").textValue();
-		final ObjectNode tagNode = (ObjectNode)request.getRequest().get("tags");
-		final Map<String, String> tags = new TreeMap<String, String>();
-		Iterator<String> titer = tagNode.fieldNames();
-		while(titer.hasNext()) {
-			String key = titer.next();
-			tags.put(key, tagNode.get(key).asText());
-		}
-		log.info("Processing jsonTSMetas. q: [{}], tags: {}", q, tags);
-		doJsonMetas(request, q, metricName, tags);
-//		getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
-//			.addCallback(new Callback<Void, QueryContext>() {
-//				@Override
-//				public Void call(QueryContext ctx) throws Exception {
-//					return null;
-//				}
-//			});		
-	}
-	
-	protected void doJsonMetas(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags) {
-		metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
-		.addCallback(new Callback<Void, QueryContext>() {
-			@Override
-			public Void call(QueryContext ctx) throws Exception {
-				if(ctx.shouldContinue()) {
-					doJsonMetas(request, ctx, metricName, tags);
-				}
-				return null;
-			}
-		});		
-	}
-	
-	@JSONRequestHandler(name="finduid", description="Returns all UIDMetas of the specified type that match the passed name")
-	public void find(final JSONRequest request) {
-		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final String name = request.getRequest().get("name").textValue();
-		final UniqueIdType type = UniqueIdType.valueOf(request.getRequest().get("type").textValue().trim().toUpperCase());
-		doFind(request, q, type, name);		
-	}
-	
-	
-	protected void doFind(final JSONRequest request, final QueryContext q, final UniqueIdType type, final String name) {
-		// public Deferred<Set<UIDMeta>> find(final QueryContext queryContext, final UniqueIdType type, final String name) {
-		metricApi.find(q, type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-		.addCallback(new Callback<Void, QueryContext>() {
-			@Override
-			public Void call(QueryContext ctx) throws Exception {
-				if(ctx.shouldContinue()) {
-					doFind(request, ctx, type, name);
-				}
-				return null;
-			}
-		});	
-	}
-	
-	@JSONRequestHandler(name="annotations", description="Returns all Annotations associated to TSMetas defined in the expression")
-	public void jsonGetAnnotations(final JSONRequest request) {
-		final QueryContext q = JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class);
-		final String expr = request.getRequest().has("x") ? request.getRequest().get("x").asText() : null; 
-		ArrayNode ar = (ArrayNode)request.getRequest().get("r");
-		final int sz = ar.size();
-		final long[] range = new long[ar.size()];
-		for(int i = 0; i < sz; i++) {
-			range[i] = ar.get(i).asLong();
-		}
-		doGetAnnotations(request, q, expr, range);
-	}
-
-	protected void doGetAnnotations(final JSONRequest request, final QueryContext q, final String expression, final long... range) {
-		final Deferred<Set<Annotation>> def;
-		if(expression==null) {
-			def = metricApi.getGlobalAnnotations(q, range);
+	public void jsonTSMetas(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags) {
+		if(q==null) {
+			jsonTSMetas(
+				request, 
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("m").textValue(),
+				getMap(request, "tags")
+			);
 		} else {
-			def = metricApi.getAnnotations(q, expression, range);
-		}
-		
-		def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
+			metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
 				public Void call(QueryContext ctx) throws Exception {
 					if(ctx.shouldContinue()) {
-						doGetAnnotations(request, ctx, expression, range);
+						jsonTSMetas(request, ctx, metricName, tags);
+					}
+					return null;
+				}
+			});		
+		}
+	}
+	
+	
+	/**
+	 * @param request
+	 * @param q
+	 * @param type
+	 * @param name
+	 */
+	@JSONRequestHandler(name="finduid", description="Returns all UIDMetas of the specified type that match the passed name")
+	public void find(final JSONRequest request, final QueryContext q, final UniqueIdType type, final String name) {
+		if(q==null) {
+			find(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				UniqueIdType.valueOf(request.getRequest().get("type").textValue().trim().toUpperCase()),
+				request.getRequest().get("name").textValue()
+			);
+		} else {
+			metricApi.find(q.startExpiry(), type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						find(request, ctx, type, name);
+					}
+					return null;
+				}
+			});				
+		}
+	}
+	
+	/**
+	 * @param request
+	 * @param q
+	 * @param expression
+	 * @param range
+	 */
+	@JSONRequestHandler(name="annotations", description="Returns all Annotations associated to TSMetas defined in the expression")
+	public void jsonGetAnnotations(final JSONRequest request, final QueryContext q, final String expression, final long... range) {
+		if(q==null) {
+			jsonGetAnnotations(
+					request,
+					JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+					request.getRequest().has("x") ? request.getRequest().get("x").asText() : null,
+							getLongArray(request, "r")
+					);
+		} else {
+			final Deferred<Set<Annotation>> def;
+			if(expression==null) {
+				def = metricApi.getGlobalAnnotations(q, range);
+			} else {
+				def = metricApi.getAnnotations(q, expression, range);
+			}
+			def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
+			.addCallback(new Callback<Void, QueryContext>() {
+				@Override
+				public Void call(QueryContext ctx) throws Exception {
+					if(ctx.shouldContinue()) {
+						jsonGetAnnotations(request, ctx, expression, range);
 					}
 					return null;
 				}
 			});	
 		}
+	}
+
+	
+	/**
+	 * Extracts the named string array from the JSONRequest
+	 * @param request the JSONRequest to get the array from
+	 * @param key the json name of the array
+	 * @return the read string array
+	 */
+	public static String[] getStringArray(final JSONRequest request, final String key) {
+		final ArrayNode arrayNode = (ArrayNode)request.getRequest().get(key);
+		final String[] arr = new String[arrayNode.size()];
+		for(int i = 0; i < arrayNode.size(); i++) {
+			arr[i] = arrayNode.get(i).asText();
+		}		
+		return arr;
+	}
+	
+	/**
+	 * Extracts the named long array from the JSONRequest
+	 * @param request the JSONRequest to get the array from
+	 * @param key the json name of the array
+	 * @return the read long array
+	 */
+	public static long[] getLongArray(final JSONRequest request, final String key) {
+		final ArrayNode arrayNode = (ArrayNode)request.getRequest().get(key);
+		final long[] arr = new long[arrayNode.size()];
+		for(int i = 0; i < arrayNode.size(); i++) {
+			arr[i] = arrayNode.get(i).asLong();
+		}		
+		return arr;
+	}
 	
 	
-	
-	// public Deferred<Set<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);
+	/**
+	 * Extracts the named map from the JSONRequest
+	 * @param request the JSONRequest to get the map from
+	 * @param key the json name of the map
+	 * @return the read map
+	 */
+	public static Map<String, String> getMap(final JSONRequest request, final String key) {
+		ObjectNode tagNode = (ObjectNode)request.getRequest().get(key);
+		final Map<String, String> map = new LinkedHashMap<String, String>();
+		Iterator<String> titer = tagNode.fieldNames();
+		while(titer.hasNext()) {
+			String k = titer.next();
+			map.put(k, tagNode.get(key).asText());
+		}
+		return map;		
+	}
 	
 	/**
 	 * <p>Title: ResultCompleteCallback</p>
@@ -303,11 +405,11 @@ public class JSONMetricsAPIService {
 		/**
 		 * Creates a new ResultCompleteCallback
 		 * @param request The original JSON request
-		 * @parma ctx The current query context
+		 * @param q The current query context
 		 */
-		public ResultCompleteCallback(JSONRequest request, QueryContext ctx) {
+		public ResultCompleteCallback(JSONRequest request, QueryContext q) {
 			this.request = request;
-			this.ctx = ctx;
+			this.ctx = q;
 		}
 		@Override
 		public QueryContext call(T result) throws Exception {

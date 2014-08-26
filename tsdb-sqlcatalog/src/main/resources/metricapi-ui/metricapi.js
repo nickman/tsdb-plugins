@@ -476,7 +476,7 @@ WebSocketAPIClient.prototype.getTagValues = function(queryContext, metricName, t
 
 WebSocketAPIClient.prototype.resolveTSMetas = function(queryContext, expression) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
-	return this.serviceRequest("meta", "tsmetaexpr", {q: queryContext, x: expression||"*:*"});	
+	return this.serviceRequest("meta", "tsMetaEval", {q: queryContext, x: expression||"*:*"});	
 };
 
 WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {

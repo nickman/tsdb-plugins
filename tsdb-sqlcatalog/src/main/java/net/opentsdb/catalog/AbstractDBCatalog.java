@@ -2549,8 +2549,10 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 //			log.error("Failed to run SynchronizeFromStore", ex);
 //			throw ex;
 //		}
-		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-		return ms.metasync();
+//		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
+//		return ms.metasync();
+		//return MetaSynchronizer.synchronize(tsdb);
+		return 0;
 		
 	}
 	

@@ -24,13 +24,18 @@
  */
 package org.helios.tsdb.plugins.meta;
 
+import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -44,6 +49,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.hbase.async.Bytes;
 import org.hbase.async.GetRequest;
@@ -339,6 +345,231 @@ public class MetaSynchronizer {
 	}
 	
 	
+	
+	// org.helios.tsdb.plugins.meta.MetaSynchronizer.synchronize(tsdb);
+	
+	public static long synchronize(final TSDB tsdb) {
+		log.info("\n\tSTARTING METASYNC\n");
+		ThreadPoolExecutor tpe = null;
+		final AtomicLong tsMetaCounter = new AtomicLong(0L);
+		final Set<Scanner> scanners = new HashSet<Scanner>();
+		try {
+			
+			final AtomicInteger taskCount = new AtomicInteger(0);
+			final Map<String, UIDMeta> UIDMETACACHE = new ConcurrentHashMap<String, UIDMeta>(2048);
+			final ThreadGroup threadGroup = new ThreadGroup("MetaSyncThreadGroup");
+			final ThreadFactory threadFactory = new ThreadFactory() {
+				final AtomicInteger serial = new AtomicInteger(0);
+				@Override
+				public Thread newThread(Runnable r) {
+					Thread t = new Thread(threadGroup, r, "MetaSyncThread#" + serial.incrementAndGet());
+					t.setDaemon(true);
+					return t;
+				}
+			};
+			final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(2048, false);
+			final int tcount = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() * 2;
+			tpe = new ThreadPoolExecutor(tcount, tcount, 60000, TimeUnit.MILLISECONDS, queue, threadFactory, new ThreadPoolExecutor.CallerRunsPolicy());
+			tpe.prestartAllCoreThreads();
+			log.info("MetaSync ThreadPool Started");
+			byte[] startKey = null;
+			Scanner scanner = null;
+			long totalCount = 0;
+			long loopCount = 0;
+			final int loopSize = 1024;
+			final Set<Future<?>> tasks = new HashSet<Future<?>>(1024);
+			
+			while(true) {
+				try {
+					scanner = tsdb.getClient().newScanner(tsdb.metaTable());
+					//scanners.add(scanner);
+					scanner.setMaxNumRows(loopSize);
+					scanner.setFamily("name".getBytes(CHARSET));
+					final boolean keyWasNull = startKey==null; 
+					if(keyWasNull) {
+						if(loopCount>0) break;						
+					} else {
+						scanner.setStartKey(startKey);
+					}
+					final Scanner closeScanner = scanner;
+					ArrayList<ArrayList<KeyValue>> rows = scanner.nextRows(loopSize).joinUninterruptibly(10000);
+					if(!keyWasNull) rows.remove(0);
+					final int rowCount = getRowCount(rows);
+					totalCount += rowCount;
+					if(rows==null) break;
+					
+					for(final ArrayList<KeyValue> rowSet: rows) {
+						tasks.add(tpe.submit(new Runnable(){
+							public void run() {
+								try {
+									boolean fullStack = false;
+									for(KeyValue kv: rowSet) {
+										final int klength = kv.key().length;
+										final int vlength = kv.value().length;
+										try {
+//											if(vlength!=8) continue;
+											final byte[] tsuid = UniqueId.getTSUIDFromKey(kv.key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);
+											String tsuid_string = UniqueId.uidToString(tsuid);
+											TSMeta t = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
+//											TSMeta t = TSMeta.parseFromColumn(tsdb, kv, true).joinUninterruptibly(500);
+											tsdb.indexUIDMeta(t.getMetric());
+											for(UIDMeta u: t.getTags()) {
+												tsdb.indexUIDMeta(u);
+											}
+											tsdb.indexTSMeta(t);											
+											tsMetaCounter.incrementAndGet();
+										} catch (Exception ex) {
+											if(fullStack) {
+												log.error("TSMeta Fetch Error k:[{}] : v:[{}] ---> {}", klength, vlength, ex.toString());
+											} else {
+												log.error("TSMeta Fetch Error k:[{}] : v:[{}]", klength, vlength, ex);
+												fullStack = true;
+											}
+										}
+									}
+								} finally {
+									try { closeScanner.close(); } catch (Exception ex) {}
+								}
+							}
+						}));
+					}
+					if(rowCount < (keyWasNull ? loopCount : loopCount-1)) {
+						log.info("\n\t=========\n\tRowCount was [{}], so breaking\n\t=========\n", rowCount);
+						break;
+					}
+					loopCount++;
+					if(rows.isEmpty()) break;
+					ArrayList<KeyValue> lastRowSet = rows.get(rows.size()-1);
+					if(lastRowSet.isEmpty()) break;
+					KeyValue kv = lastRowSet.get(lastRowSet.size()-1);
+					startKey = kv.key();
+					log.info("Row Count: {}, TSMeta Count: {}, Last Key: {}", rowCount, totalCount, Arrays.toString(startKey));
+				} catch (Exception ex) {
+					log.error("Unexpected exception in MetaSync", ex);
+					throw new RuntimeException("Unexpected exception in MetaSync", ex);
+				} finally {
+					//if(scanner!=null) try { scanner.close(); } catch (Exception x) {/* No Op */}
+				}
+			}
+			try {
+				tpe.shutdown();
+				boolean finished = tpe.awaitTermination(120, TimeUnit.MINUTES);
+				log.info("TPE Termination Status:" + finished);
+			} catch (Exception ex) {
+				log.error("Failure waiting on TPE Completion", ex);
+			}
+			return tsMetaCounter.get();
+		} finally {
+			for(Scanner scanner: scanners) {
+				try { scanner.close(); } catch (Exception x) {/* No Op */}
+			}
+			scanners.clear();
+			if(tpe!=null) {
+				tpe.shutdownNow();
+			}
+			log.info("FINAL: TSMetaCount:" + tsMetaCounter.get());
+		}
+	}
+	
+	public static int getRowCount(ArrayList<ArrayList<KeyValue>> rows) {
+		int cnt = 0;
+		if(rows!=null) {
+			for(final ArrayList<KeyValue> rowSet: rows) {
+				cnt += rowSet.size();
+			}
+		}
+		return cnt;
+	}
+	
+	
+	
+	// org.helios.tsdb.plugins.meta.MetaSynchronizer.getMetricIds(tsdb);
+	
+	public static Set<String> getMetricIds(final TSDB tsdb) {
+		final Set<String> metricIds = new LinkedHashSet<String>(1024);
+//		final int metricCount = (int)getMaxMetricID(tsdb)+1;
+//		log.info("Fetching Metric IDs ---> {}", metricCount);
+//		
+//		Scanner scanner = tsdb.getClient().newScanner(tsdb.uidTable());
+//		scanner.setMaxNumRows(metricCount);
+//		scanner.setFamily("id".getBytes(CHARSET));
+//		scanner.setQualifier("metrics".getBytes(CHARSET));
+//		try {
+//			ArrayList<ArrayList<KeyValue>> rows = scanner.nextRows(metricCount).joinUninterruptibly(10000);
+//			int rowCount = 0;
+//			for(ArrayList<KeyValue> row: rows) {
+//				rowCount += row.size();
+//			}
+//			log.info("Scanner Rows: [{}]", rowCount);
+//			for(ArrayList<KeyValue> row: rows) {
+//				for(KeyValue kv: row) {
+//					if(kv.value().length!=3) continue;
+//					try {						
+//						metricIds.add(tsdb.getUidName(UniqueIdType.METRIC, kv.value()).joinUninterruptibly(200));
+//					} catch (Exception ex) {}
+//				}
+//			}
+//
+//		} catch (Exception e1) {
+//			log.info("Failed to get Scanner Rows:", e1);
+//		}
+		//final byte[] FAMILY = { 't' };
+		//scanner.setStartKey(start_key);
+		
+		byte[] startKey = null;
+		Scanner scanner = null;
+		long totalCount = 0;
+		long loopCount = 0;
+		
+		try {
+			do {
+				scanner = tsdb.getClient().newScanner(tsdb.metaTable());
+				scanner.setMaxNumRows(1024);
+				scanner.setFamily("name".getBytes(CHARSET));
+				
+				if(startKey!=null) {
+					scanner.setStartKey(startKey);
+				} else {
+					if(loopCount!=0) break;
+				}
+				loopCount++;
+				ArrayList<ArrayList<KeyValue>> rows = scanner.nextRows().joinUninterruptibly(10000);
+				if(rows==null) break;
+				log.info("Loaded RowSet");
+				for(ArrayList<KeyValue> row: rows) {
+					for(KeyValue kv: row) {
+						startKey =  kv.key();
+						
+						try {
+							TSMeta t = TSMeta.parseFromColumn(tsdb, kv, false).joinUninterruptibly(300);
+							totalCount++;
+//							StringBuilder b = new StringBuilder(t.getMetric().getName()).append(":");
+//							for(UIDMeta u: t.getTags()) {
+//								if(u.getType()==UniqueIdType.TAGK) b.append(u.getName()).append("=");
+//								else b.append(u.getName()).append(",");
+//							}
+//							b.deleteCharAt(b.length()-1);
+//							log.info("TSMeta: [{}]", b.toString());							
+						} catch (Exception ex) {}
+					}
+				}
+				scanner.close();
+				scanner = null;
+			} while(startKey!=null);
+			log.info("Total TSMetas: {}", totalCount);
+
+	} catch (Exception e1) {
+		log.info("Failed to get Scanner Rows:", e1);
+	} finally {
+		if(scanner!=null) try { scanner.close(); } catch (Exception x) {}
+	}
+		
+		
+		
+		
+		return metricIds;
+	}
+	
 	/**
 	 * Returns the max metric ID from the UID table
 	 * @param tsdb The TSDB to use for data access
@@ -359,11 +590,13 @@ public class MetaSynchronizer {
 				return -1L;
 //				throw new IllegalStateException("No data in the metric max UID cell");
 			}
+			log.info("Processing [{}] Rows", row.size());
 			final byte[] id_bytes = row.get(0).value();
 			if (id_bytes.length != 8) {
 				log.error("Invalid metric max UID, wrong # of bytes");
 				throw new IllegalStateException("Invalid metric max UID, wrong # of bytes");
 			}
+			try { log.info("Retrieved [{}]", tsdb.getUidName(UniqueIdType.METRIC, id_bytes).join(200)); } catch (Exception ex) {}
 			long maxId = Bytes.getLong(id_bytes);
 			log.info("MAX ID: [{}]", maxId);
 			return maxId;

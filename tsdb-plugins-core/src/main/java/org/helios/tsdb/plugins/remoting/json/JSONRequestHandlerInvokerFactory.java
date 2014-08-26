@@ -28,7 +28,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javassist.ClassClassPath;
@@ -39,10 +41,12 @@ import javassist.CtField;
 import javassist.CtMethod;
 import javassist.CtNewConstructor;
 import javassist.CtNewMethod;
+import javassist.LoaderClassPath;
 import javassist.Modifier;
 
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
+import org.helios.tsdb.plugins.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +91,8 @@ public class JSONRequestHandlerInvokerFactory {
 		cp.appendClassPath(new ClassClassPath(handlerInstance.getClass()));
 		cp.appendClassPath(new ClassClassPath(AbstractJSONRequestHandlerInvoker.class));
 		cp.importPackage(handlerInstance.getClass().getPackage().getName());
-		
+		Set<ClassLoader> classPathsAdded = new HashSet<ClassLoader>();
+		Set<String> packagesImported = new HashSet<String>(); 
 		try {
 			final CtClass jsonRequestCtClass = cp.get(JSONRequest.class.getName());
 			final CtClass parent = cp.get(AbstractJSONRequestHandlerInvoker.class.getName());
@@ -115,10 +120,65 @@ public class JSONRequestHandlerInvokerFactory {
 					invokerClass.addConstructor(invokerCtor);					
 				}
 				CtMethod invokerMethod = CtNewMethod.copy(parent.getDeclaredMethod("doInvoke", new CtClass[] {jsonRequestCtClass}), invokerClass, null); 
-						
-				invokerMethod.setBody("{this.typedTarget." + m.getName() + "($1);}");
+				StringBuilder b = new StringBuilder("{this.typedTarget.")
+					.append(m.getName())
+					.append("($1");
+				final Class<?>[] ptypes = m.getParameterTypes();
+				final int remainingParamCount = ptypes.length-1;
+//				Set<Class<?>> classPathsAdded = new HashSet<Class<?>>();
+//				Set<String> packagesImported = new HashSet<String>(); 				
+				if(remainingParamCount>0) {
+					for(int i = 0; i < remainingParamCount; i++) {						
+						final Class<?> type = ptypes[i+1];
+						if(type.getName().contains("UniqueIdType")) {
+							System.err.println("Comin Up....");
+						}
+						if(type.isPrimitive()) {
+							b.append(", (").append(type.getName()).append(") null");
+						} else {
+							if(classPathsAdded.add(type.getClassLoader())) {
+								cp.appendClassPath(new LoaderClassPath(type.getClassLoader()));
+							}
+							try {								
+								Package p = type.getPackage();
+								if(p==null) {
+									if(type.isArray()) {
+										if(!type.getComponentType().isPrimitive()) {
+											p = type.getComponentType().getPackage();
+										}
+									}
+								}
+								if(type.isEnum()) {
+									final String f = type.getEnclosingClass().getName() + "." + type.getSimpleName();
+									b.append(", (").append(f).append(") null");
+									String pack = type.getEnclosingClass().getPackage().getName();
+									if(packagesImported.add(pack)) {
+										cp.importPackage(pack);	
+									}									
+									continue;
+								}
+
+								
+								if(p!=null) {									
+									if(packagesImported.add(p.getName())) {
+										cp.importPackage(p.getName());
+									}
+								}
+							} catch (Exception ex) {
+								ex.printStackTrace(System.err);
+							}
+							b.append(", (").append(type.getSimpleName()).append(") null");
+						}						
+					}
+				}
+				
+				b.append(");}");
+				System.out.println("[" + m.getName() + "]: [" + b.toString() + "]");
+				//invokerMethod.setBody("{this.typedTarget." + m.getName() + "($1);}");
+				invokerMethod.setBody(b.toString());
 				invokerMethod.setModifiers(invokerMethod.getModifiers() & ~Modifier.ABSTRACT);
 				invokerClass.addMethod(invokerMethod);
+				//invokerClass.writeFile(System.getProperty("java.io.tmpdir") + File.separator + "jsoninvokers");
 				Class<?> clazz = invokerClass.toClass(handlerInstance.getClass().getClassLoader(), handlerInstance.getClass().getProtectionDomain());
 				Constructor<?> ctor = null;
 				AbstractJSONRequestHandlerInvoker invokerInstance = null;
@@ -148,10 +208,27 @@ public class JSONRequestHandlerInvokerFactory {
 	
 	@JSONRequestService(name="foo")
 	public static class FooService {
-		@JSONRequestHandler(name="bar")
-		public void bar(JSONRequest request) {
+		@JSONRequestHandler(name="bar1")
+		public void bar1(JSONRequest request, String a) {
 			
 		}
+		@JSONRequestHandler(name="bar0")
+		public void bar0(JSONRequest request) {
+			
+		}
+		@JSONRequestHandler(name="bar3")
+		public void bar3(JSONRequest request, String a, Integer x, Long...longs) {
+			
+		}
+		
+	}
+	
+	private static boolean containsPrimitives(Class<?>[] ptypes) {
+		if(ptypes==null || ptypes.length==0) return false;
+		for(Class<?> c: ptypes) {
+			if(c.isPrimitive()) return true;
+		}
+		return false;
 	}
 	
 	/**
@@ -165,22 +242,34 @@ public class JSONRequestHandlerInvokerFactory {
 			JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
 			if(jsonHandler!=null) {
 				Class<?>[] paramTypes = m.getParameterTypes();
-				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+				if(paramTypes.length<1 || !JSONRequest.class.equals(paramTypes[0]) || containsPrimitives(paramTypes)) {
 					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
 					continue;
 				}
-				mappedMethods.put(m.getName(), m);
+				mappedMethods.put(StringHelper.getMethodDescriptor(m), m);
+//				Class<?>[] paramTypes = m.getParameterTypes();
+//				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+//					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
+//					continue;
+//				}
+//				mappedMethods.put(m.getName(), m);
 			}
 		}
 		for(Method m: clazz.getDeclaredMethods()) {
 			JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
 			if(jsonHandler!=null) {
 				Class<?>[] paramTypes = m.getParameterTypes();
-				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+				if(paramTypes.length<1 || !JSONRequest.class.equals(paramTypes[0])) {
 					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
 					continue;
 				}
-				mappedMethods.put(m.getName(), m);
+				mappedMethods.put(StringHelper.getMethodDescriptor(m), m);
+//				Class<?>[] paramTypes = m.getParameterTypes();
+//				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
+//					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
+//					continue;
+//				}
+//				mappedMethods.put(m.getName(), m);
 			}			
 		}
 		return mappedMethods.values();

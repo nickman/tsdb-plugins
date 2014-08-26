@@ -27,12 +27,18 @@ package org.helios.tsdb.plugins.remoting.json;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.management.Notification;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
+
 import net.opentsdb.tsd.TSDBJSONService;
 
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices;
+import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
+import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +65,8 @@ public class JSONRequestRouter {
 	protected final ConcurrentHashMap<String, Map<String, AbstractJSONRequestHandlerInvoker>> invokerMap = new ConcurrentHashMap<String, Map<String, AbstractJSONRequestHandlerInvoker>>();
 	/** The json node factory */
 	private final JsonNodeFactory nodeFactory = JsonNodeFactory.instance; 
+	/** The pplugin context */
+	final PluginContext pluginContext;
 	
 	
 	/**
@@ -83,7 +91,9 @@ public class JSONRequestRouter {
 		registerJSONService(this);
 		registerJSONService(new SystemJSONServices());
 		registerJSONService(new TSDBJSONService());
-		TSDBPluginServiceLoader.getLoaderInstance().getPluginContext().setResource(getClass().getSimpleName(), this);
+		pluginContext = TSDBPluginServiceLoader.getLoaderInstance().getPluginContext(); 
+		pluginContext.setResource(getClass().getSimpleName(), this);
+
 	}
 	
 	/**
@@ -96,6 +106,16 @@ public class JSONRequestRouter {
 			invokerMap.putIfAbsent(entry.getKey(), entry.getValue());
 			log.info("Added [{}] JSONRequest Operations for Service [{}] from impl [{}]", entry.getValue().size(), entry.getKey(), service.getClass().getName());
 		}
+		StringBuilder b = new StringBuilder("\n\t=========================================================\n\tJSONRequestRouter Routes\n\t=========================================================");
+		for(Map.Entry<String, Map<String, AbstractJSONRequestHandlerInvoker>> serviceEntry: invokerMap.entrySet()) {
+			b.append("\n\t").append(serviceEntry.getKey());
+			for(String key: serviceEntry.getValue().keySet()) {
+				b.append("\n\t\t").append(key);
+			}
+		}						
+		b.append("\n\t=========================================================\n");
+		log.info(b.toString());
+		
 	}
 	
 	/**

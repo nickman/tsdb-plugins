@@ -107,11 +107,10 @@ function doFullTree() {
 	ws.resolveTSMetas(q, expr).then(
 		function(result) {
 			$('#jsonOutput').empty();
-			console.info("Output Size: [%s], [%s]", $('#jsonOutput').width()-30, $('#jsonOutput').height());
 			updateOutputContext(result.q);
 			//$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
 			//$('#jsonOutput').json2html(convert('json',result.data,'open'),transforms.object);
-			var cluster = d3.layout.cluster().size([$('#jsonOutput').height()-50, $('#jsonOutput').width()]);
+			var cluster = d3.layout.cluster().size([$('#jsonOutput').height()*5, $('#jsonOutput').width()*5]);
 			var diagonal = d3.svg.diagonal()
 		    .projection(function(d) { 
 		    	return [d.y, d.x]; 
@@ -119,10 +118,10 @@ function doFullTree() {
 
 			
 			var svg = d3.select("div#jsonOutput").append("svg")
-		    .attr("width", $('#jsonOutput').width()-30) // width + margin.right + margin.left)
-		    .attr("height", $('#jsonOutput').height()-50) //height + margin.top + margin.bottom)
+		    .attr("width", $('#jsonOutput').width()) // width + margin.right + margin.left)
+		    .attr("height", $('#jsonOutput').height()) //height + margin.top + margin.bottom)
 		    .append("g")
-		    .attr("transform", "translate(10,0)");
+		    .attr("transform", "translate(10,3)");
 			
 			
 		var nodes = cluster.nodes(result.data),
@@ -159,5 +158,8 @@ function doFullTree() {
 			
 			
 		}	
-	);
+	).then(function(){
+		$('svg g').attr('id', 'viewport');
+		$('svg').svgPan('viewport', true, true, true);
+	});
 };

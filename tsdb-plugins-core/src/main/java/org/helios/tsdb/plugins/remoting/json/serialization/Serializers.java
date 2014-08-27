@@ -733,12 +733,12 @@ public class Serializers {
 		TSDBTypeSerializer.FULL.registerSerializer(Annotation.class, new AnnotationFullSerializer());
 		
 		TSDBTypeSerializer.DEFAULT.registerSerializer(TSMeta.class, new TSMetaDefaultSerializer());
-//		TSDBTypeSerializer.DEFAULT.registerSerializer(UIDMeta.class, new UIDMetaFullSerializer());
-//		TSDBTypeSerializer.DEFAULT.registerSerializer(Annotation.class, new AnnotationDefaultSerializer());
+		TSDBTypeSerializer.DEFAULT.registerSerializer(UIDMeta.class, new UIDMetaFullSerializer());
+		TSDBTypeSerializer.DEFAULT.registerSerializer(Annotation.class, new AnnotationDefaultSerializer());
 
 		TSDBTypeSerializer.NAME.registerSerializer(TSMeta.class, new TSMetaNameSerializer());
-//		TSDBTypeSerializer.NAME.registerSerializer(UIDMeta.class, new UIDMetaNameSerializer());
-//		TSDBTypeSerializer.NAME.registerSerializer(Annotation.class, new AnnotationNameSerializer());
+		TSDBTypeSerializer.NAME.registerSerializer(UIDMeta.class, new UIDMetaNameSerializer());
+		TSDBTypeSerializer.NAME.registerSerializer(Annotation.class, new AnnotationNameSerializer());
 		
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta.class, new TSMetaD3Serializer());
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta[].class, new TSMetaArrayD3Serializer());

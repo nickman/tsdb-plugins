@@ -3,6 +3,10 @@
 	  stroke: steelblue;
 	  stroke-width: 1.5px;
 	}
+
+	.node {
+  		cursor: pointer;
+ 	}	
 	
 	.node {
 	  font: 10px sans-serif;

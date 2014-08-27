@@ -1,5 +1,6 @@
 var ws = null;
 var q = null;
+var svgContext = {};
 
 $( document ).ready(function() {
 	$(window).resize(function() {
@@ -8,14 +9,14 @@ $( document ).ready(function() {
 	});
 	ws = new WebSocketAPIClient();
 	q = QueryContext.newContext();
-	$("button.runActionBtn").click(function(e) {
+	$("button.runAction").click(function(e) {
 	    goAction(e);		
 	    return false;        
 	});
-	$("#exprfield").focus();
-	$("#exprfield").keypress(function(e) {
+	
+	$("input.runAction").keypress(function(e) {
 	    if(e.which == 13) {
-		    goAction();
+		    goAction(e);
 		    return false;
 	    }
 	    return true;
@@ -24,34 +25,110 @@ $( document ).ready(function() {
 	$("#jsonOutput").height($(window).height()-$("#outputQCForm").height() - 70);
 	console.info("Index.js Loaded");
 });
-/*
-	metricExpressionTest
-	findUIDTest
-	findTagKeysTest
-	findTagValuesTest
-	findMetricNamesTest
 
-*/
+var defaultErrorHandler = function() {
+	console.error("Default Error Handler Called ---  [%O]", arguments);
+}
+var defaultJsonHandler = function(result) {
+	updateOutputContext(result.q);
+	$('#jsonOutput').empty();
+	$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
+}
 
-function goAction(e) {
-	
+
+function goAction(e) {	
 	var command = $(e.currentTarget).parents('form').first().attr('id');
 	var commandFx = window[command];
 	if(commandFx==null || !jQuery.isFunction(commandFx)) {
 		throw new Error("Command not recognized (" + command + ")");
 	}
-	commandFx.call();
-};
-
-function metricExpressionTest() {
 	if($('#clearqc').is(':checked')) {
 		q = getInputContext();
-	} 	
+	} 		
+	try {
+		commandFx.call();
+	} finally {
+		return false;
+	}
+};
+
+
+
+function findTagValuesTest() {
+	var selected = $('input[name=goaction]:checked', '#goAction').val();	
+	if("json"!=selected) {
+		 showError("Find Tag Values", "Find Tag Values can only be output to JSON");
+		 return;
+	}
+	var metric = getText("tvMetric", "*");			// e.g. sys.cpu
+	var tagPairs = getObject("tvTagsPairs", {});   // e.g.  {'host':'*Server*', 'cpu':'*'},   OR   host, *Server*, cpu, *
+	var tagKey = getText("tvTagKey", "*");			// e.g. type
+	ws.getTagValues(q, metric, tagKey, tagPairs).then(
+		defaultJsonHandler, defaultErrorHandler, defaultJsonHandler
+	);
+
+}
+
+function findMetricNamesTest() {
+	var selected = $('input[name=goaction]:checked', '#goAction').val();	
+	if("json"!=selected) {
+		 showError("Find Tag Values", "Find Tag Values can only be output to JSON");
+		 return;
+	}
+	var isTags = $('#fmByTags').is(':checked');							// e.g. [byKeys]: host, type, cpu   OR [byTags]:   host, WebServer1
+	var x = isTags ? getObject("fmTags", {}) : getArr("fmTags", []);
+	if(isTags) {
+		ws.getMetricNamesByTags(q, x).then(
+			defaultJsonHandler, defaultErrorHandler, defaultJsonHandler
+		);
+	} else {
+		ws.getMetricNamesByKeys(q, x).then(
+			defaultJsonHandler, defaultErrorHandler, defaultJsonHandler
+		);
+	}
+}
+
+
+function findTagKeysTest() {
+	var selected = $('input[name=goaction]:checked', '#goAction').val();	
+	if("json"!=selected) {
+		 showError("Find Tag Keys", "Find Tag Keys can only be output to JSON");
+		 return;
+	}
+	var metric = getText("tkMetric", "*");
+	var tagKeys = getArr("tkTagsKeys", []);
+	ws.getTagKeys(q, metric, tagKeys).then(
+		defaultJsonHandler, defaultErrorHandler, defaultJsonHandler
+	);
+}
+
+
+
+function findUIDTest() {
+	var selected = $('input[name=goaction]:checked', '#goAction').val();	
+	if("json"!=selected) {
+		 showError("Find UID", "Find UID can only be output to JSON");
+		 return;
+	}
+	var pattern = getText("uidwc", "*");	
+	var type = $("#uidType").val();
+	ws.findUids(q, type, pattern).then(
+		defaultJsonHandler, defaultErrorHandler, defaultJsonHandler
+	);
+}
+
+
+function metricExpressionTest() {
 	var selected = $('input[name=goaction]:checked', '#goAction').val();
 	console.info("GO!  (Action is [%s])", selected);
 	$('#jsonOutput').empty();
-	if("json"==selected) doDisplayJson();
-	else if("fulltree"==selected) doFullTree();	
+	if("json"==selected) {
+		doDisplayJson();
+	} else if("fulltree"==selected) {
+		doFullTree();	
+	} else if("incrtree"==selected) {
+		doIncrementalTree();	
+	}
 }
 
 function printServices() {
@@ -126,6 +203,166 @@ function getInputContext() {
 	});
 }
 
+function updateSvgTree(root) {	
+	 var i = svgContext.i;
+
+
+  // Compute the new svgContext.tree layout.
+  var nodes = svgContext.tree.nodes(root).reverse(),
+   links = svgContext.tree.links(nodes);
+
+  // Normalize for fixed-depth.
+  nodes.forEach(function(d) { d.y = d.depth * 120; });
+
+  // Declare the nodesâ€¦
+  var node = svgContext.svg.selectAll("g.node")
+   .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+  // Enter the nodes.
+  var nodeEnter = node.enter().append("g")
+   .attr("class", "node")
+   .attr("transform", function(d) { 
+    	return "translate(" + d.y + "," + d.x + ")"; 
+	}).on("click", click);
+
+  nodeEnter.append("circle")
+   .attr("r", 5)
+   .style("fill", "#fff");
+
+  nodeEnter.append("text")
+   .attr("x", function(d) { 
+    return d.children || d._children ? -13 : 13; })
+   .attr("dy", ".35em")
+   .attr("text-anchor", function(d) { 
+    return d.children || d._children ? "end" : "start"; })
+   .text(function(d) { return d.name; })
+   .style("fill-opacity", 1);
+   
+
+  // Declare the linksâ€¦
+  var link = svgContext.svg.selectAll("path.link")
+   .data(links, function(d) { return d.target.id; });
+
+  // Enter the links.
+  link.enter().insert("path", "g")
+   .attr("class", "link")
+   .attr("d", svgContext.diagonal);
+
+}
+
+
+function doIncrementalTree() {
+	$('#jsonOutput').empty();
+	var mt = MetaTree.newInstance("org", []);
+	mt.get("org").addChild("dc", "org");
+
+
+	try {
+		initTree(mt);
+		// mt.update();
+		updateSvgTree(mt) ;
+		
+	} catch (e) {
+		console.error(e);
+	}
+
+
+
+	// var expr = $('#exprfield').val();
+	// console.info("Executing fetch for expression [%s]", expr);
+	// ws.resolveTSMetas(q, expr).then(
+	// 	function(result) {
+	// 		updateOutputContext(result.q);
+	// 		var mt = MetaTree.newInstance("org", result.data);
+			
+	// 	}
+	// );	
+}
+
+
+
+function initTree(root) {
+
+	var canvasWidth = $('#jsonOutput').width(),
+	canvasHeight = $('#jsonOutput').height(),
+	margin = {top: 30, right: 30, bottom: 30, left: 30},
+ 	svgWidth = canvasWidth - margin.right - margin.left,
+ 	svgHeight = canvasHeight - margin.top - margin.bottom;
+
+	var tree = d3.layout.tree()
+	 .size([svgWidth, svgHeight]);
+
+	var diagonal = d3.svg.diagonal()
+	 .projection(function(d) { return [d.y, d.x]; });
+
+	var svg = d3.select("#jsonOutput").append("svg")
+	 .attr("width", svgWidth + margin.right + margin.left)
+	 .attr("height", svgHeight + margin.top + margin.bottom)
+	  .append("g")
+	 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		
+	$('svg g').attr('id', 'viewport');
+	$('svg').svgPan('viewport', true, true, true);
+
+
+
+	svgContext.tree = tree;
+	svgContext.svg = svg;
+	svgContext.diagonal = diagonal;
+	svgContext.i = 0;
+	
+	
+}
+
+function click(d) {
+	var isKey = d.depth%2!=0;
+	console.info("Node Click:  type:[%s] [%O]", isKey,  d);
+	if(isKey) {
+		ws.getTagValues(q, "*", d.name, {}).then(
+			function(result) {
+				for(var i = 0, x = result.data.length; i < x; i++) {
+					d.addChild(result.data[i].name, d.path);					
+				}
+				updateSvgTree(d.getRoot());
+			}
+		).then(
+			function() {
+				console.info("Updated (TagValues) d: [%O]", d);
+			}
+		)
+	} else {
+		ws.getTagKeys(q, "*", [d.parent.name]).then(
+			function(result) {
+				var last = result.data.last();
+				d.addChild(last.name, d.path);					
+				updateSvgTree(d.getRoot());
+			}
+		).then(
+			function() {
+				console.info("Updated (TagKeys) d: [%O]", d);
+			}
+		)
+	}
+
+
+	// 2014-08-27 15:23:16.918Node Click:  type:[true] [MetaTreedepth: 1id: 1metrics: nullname: "dc"parent: MetaTreepath: "org/dc"x: 159.703125y: 60
+
+	// if (d.children) {
+ // 		d._children = d.children;
+ // 		d.children = null;
+ //  	} else {
+ // 		d.children = d._children;
+ // 		d._children = null;
+ //  	}	
+ //  	update(d);
+}
+
+
+
+
+
+
 function doFullTree() {
 	var expr = $('#exprfield').val();
 	console.info("Executing fetch for expression [%s]", expr);
@@ -191,3 +428,63 @@ function doFullTree() {
 		$('svg').svgPan('viewport', true, true, true);
 	});
 };
+
+
+function showError(topic, message) {
+	$('#jsonOutput').empty();
+	$('#jsonOutput').append("<font color='red'><p>Error executing [" + topic + "]</p><p>" + message + "</p></font>");
+}
+
+function getText(key, defaultv) {
+	var v = $('#' + key).val();
+	if(v!=null) {
+		v = v.replace(/ /g, '');
+		if(v=='') v = defaultv;		
+	} else {
+		v = defaultv;
+	}
+	$('#' + key).val(v);		
+	return v;
+}
+
+function getArr(key, defaultv) {
+	var v = $('#' + key).val();
+	if(v!=null) {
+		v = v.replace(/ /g, '');
+		if(v=='') v = defaultv;		
+		return v.split(',');
+	} else {
+		return defaultv;
+	}
+}
+
+function getObject(key, defaultv) {
+	var v = $('#' + key).val();
+	if(v!=null) {
+		v = v.replace(/ /g, '').replace(/'/g, '"')
+		if(v.indexOf("{")==0) {
+			try {
+				var o = JSON.parse(v);
+				return o;
+			} catch (e) {}
+		}
+		if(v=='') v = defaultv;		
+		var arr = v.split(',');
+		var x = arr.length;
+		if(x%2 != 0) {			
+			var err = Error("Invalid number of members in [" + v + "]. Must be an even number of values to create key value pair object");
+			console.error(err);
+			throw err;
+		}
+		var obj = {};
+		for(var i = 0; i < x; i++) {
+			var key = arr[i];
+			i++;
+			var value = arr[i];
+			obj[key] = value;
+		}
+		return obj;
+	} else {
+		return defaultv;
+	}
+}

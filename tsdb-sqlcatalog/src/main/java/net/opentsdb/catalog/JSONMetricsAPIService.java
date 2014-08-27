@@ -21,6 +21,7 @@ import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaTree;
+import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);		
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -110,6 +112,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(tagKeys));		
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.getMetricNames(q.startExpiry(), tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -139,7 +142,8 @@ public class JSONMetricsAPIService {
 				getStringArray(request, "keys")	
 			);
 		} else {
-			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metric, Arrays.toString(tagKeys));		
+			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metric, Arrays.toString(tagKeys));					
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.getTagKeys(q.startExpiry(), metric, tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -172,6 +176,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -200,7 +205,8 @@ public class JSONMetricsAPIService {
 			);			
 		} else {
 			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
-			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
+			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))			
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
 				public Void call(QueryContext ctx) throws Exception {
@@ -228,6 +234,7 @@ public class JSONMetricsAPIService {
 				request.getRequest().get("x").textValue()
 			);
 		} else {
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
 				@Override
 				public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
@@ -260,6 +267,7 @@ public class JSONMetricsAPIService {
 				getMap(request, "tags")
 			);
 		} else {
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -290,6 +298,7 @@ public class JSONMetricsAPIService {
 				request.getRequest().get("name").textValue()
 			);
 		} else {
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			metricApi.find(q.startExpiry(), type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
 			.addCallback(new Callback<Void, QueryContext>() {
 				@Override
@@ -319,6 +328,7 @@ public class JSONMetricsAPIService {
 							getLongArray(request, "r")
 					);
 		} else {
+			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
 			final Deferred<Set<Annotation>> def;
 			if(expression==null) {
 				def = metricApi.getGlobalAnnotations(q, range);
@@ -382,7 +392,7 @@ public class JSONMetricsAPIService {
 		Iterator<String> titer = tagNode.fieldNames();
 		while(titer.hasNext()) {
 			String k = titer.next();
-			map.put(k, tagNode.get(key).asText());
+			map.put(k, tagNode.get(k).asText());
 		}
 		return map;		
 	}

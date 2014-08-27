@@ -54,48 +54,49 @@
     <form id="metricExpressionTest">
       <fieldset>
           <legend>Metric Expression:</legend>
-          <input id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5"><br>          
-          <button class="runActionBtn">Run</button>
+          <input class="runAction" id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5" size="40"><br>          
+          <button class="runAction">Run</button>
         </fieldset> 
     </form>
 		
     <form id="findUIDTest">
       <fieldset>
           <legend>Find UID:</legend>
-          UID Name: <input id="uidwc" type="text" value=""><br>
+          UID Name: <input id="uidwc" class="runAction" type="text" value=""><br>
           Type:<select id="uidType">  
           <option value="METRIC" selected="selected">Metric</option>
           <option value="TAGK">Tag Key</option>
           <option value="TAGV">Tag Value</option>
         </select>
-         <button class="runActionBtn">Run</button>
+         <button class="runAction">Run</button>
         </fieldset> 
     </form>
 		
     <form id="findTagKeysTest">
       <fieldset>
           <legend>Find Tag Keys:</legend>
-          Metric: <input id="tkMetric" type="text" value=""><br>
-          Tag Keys: <input id="tkTagsKeys" type="text" value="">
-         <button class="runActionBtn">Run</button>
+          Metric: <input class="runAction" id="tkMetric" type="text" value=""><br>
+          Tag Keys: <input class="runAction"  id="tkTagsKeys" type="text" value="">
+         <button class="runAction">Run</button>
         </fieldset> 
     </form>
 		
     <form id="findTagValuesTest">
       <fieldset>
           <legend>Find Tag Values:</legend>
-          Metric: <input id="tvMetric" type="text" value=""><br>
-          Tag Key: <input id="tvTagKey" type="text" value=""><br>
-          Tag Pairs: <input id="tvTagsPairs" type="text" value="{}">
-         <button class="runActionBtn">Run</button>
+          Metric: <input class="runAction" id="tvMetric" type="text" value=""><br>
+          Tag Pairs: <input class="runAction" id="tvTagsPairs" type="text" value="{}"><br>
+          Tag Key: <input class="runAction" id="tvTagKey" type="text" value="">
+         <button class="runAction">Run</button>
         </fieldset> 
     </form>
 
     <form id="findMetricNamesTest">
       <fieldset>
           <legend>Find Metric Names:</legend>          
-          Tag Keys/Pairs: <input id="fmTags" type="text" value=""><br>
-         <button class="runActionBtn">Run</button>
+          Keys/Pairs:<input class="runAction" id="fmTags" type="text" value="">Tags:<input id="fmByTags" type="checkbox">
+          <br>
+         <button class="runAction">Run</button>
         </fieldset> 
     </form>
 		

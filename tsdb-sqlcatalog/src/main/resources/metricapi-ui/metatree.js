@@ -21,9 +21,29 @@ MetaTree.prototype.getChild = function(name) {
     return null;
 }
 
+MetaTree.prototype.getRoot = function() {
+	if(this.depth && this.depth==0) return this;
+	if(this.parent==null) return null;
+	var d = -1;
+	var startingParent = this.parent;
+	while(true) {
+		if(startingParent.depth==null) return null;
+		d = startingParent.depth;
+		if(d==0) return startingParent;
+		if(!startingParent.parent) return null;
+		startingParent = startingParent.parent;
+	}
+}
+
+
 MetaTree.prototype.addChild = function(name, path) {
 	if(name==null) throw new Error("The passed name was null");
-	var child = this.getChild(name);
+	var child = null;
+	if(this.children==null) {
+		this.children = [];
+	} else {
+		child = this.getChild(name);
+	}	
 	if(child!=null) return child;
 	if(path==null) path = name;
 	this.children.push(new MetaTree(name, path));
@@ -90,7 +110,7 @@ MetaTree.arrTags = function(tsmeta) {
 }
 
 MetaTree.import = function(rootName, tsmetas) {
-	var root = MetaTree.newInstance(rootName);
+	var root = MetaTree.newInstance(rootName, tsmetas);
 	var current = root;
 	for(var i = 0, x = tsmetas.length; i < x; i++) {
 		var tsmeta = tsmetas[i];
@@ -106,12 +126,12 @@ MetaTree.import = function(rootName, tsmetas) {
 
 
 function testWsMetaTree() {
-	var ws = new WebSocketAPIClient();
-	var q = null;
+	// var ws = new WebSocketAPIClient();
+	// var q = null;
 	ws.resolveTSMetas(q, "sys*:dc=dc1,host=WebServer1|WebServer5").then(
 		function(result) { 
 			console.info("resolveTSMetas Result: [%O]", result); 
-			var mt = MetaTree.import("org", result.data);
+			var mt = MetaTree.newInstance("org", result.data);
 			console.info("resolveTSMetas MetaTree: [%O]", mt); 
 			dgo(mt);
 		},

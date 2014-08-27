@@ -202,26 +202,36 @@ WebSocketAPIClient.defaultHandlers = {
 					var pendingRequest = continuing ? client.getPendingRequest(result.rerid) : client.completePendingRequest(result.rerid);
 					if(pendingRequest!=null) {
 						console.debug("Retrieved Pending Request XXX [%O]", pendingRequest);
+						if(!pendingRequest.request || !pendingRequest.request.q) {
+							pendingRequest.d.resolveWith(client,[evt.data]);
+							return;
+						}
 						if(pendingRequest.cb) pendingRequest.cb(result);
 						try {
 							if(pendingRequest.d) {
-		 						pendingRequest.request.q.refresh(result.msg[1]);
-		 						if(!continuing) delete pendingRequest.request.q;	 						
-		 						var callback =  [{
-									data: result.msg[0],
-									q: result.msg[1],
-									id: result.id,
-									op: result.op,
-									rerid: result.rerid,
-									type: result.t,
-									request: pendingRequest.request
-								}];
-								if(continuing) {
-									pendingRequest.d.notifyWith(client,callback);
+								if(pendingRequest.request && pendingRequest.request.q) {
+			 						pendingRequest.request.q.refresh(result.msg[1]);
+			 						if(!continuing) delete pendingRequest.request.q;	 						
+			 						var callback =  [{
+										data: result.msg[0],
+										q: result.msg[1],
+										id: result.id,
+										op: result.op,
+										rerid: result.rerid,
+										type: result.t,
+										request: pendingRequest.request
+									}];
+									if(pendingRequest.d.startTime) {
+										callback[0].q.elapsedTime = performance.now() - pendingRequest.d.startTime;
+									}
+									if(continuing) {
+										pendingRequest.d.notifyWith(client,callback);
+									} else {
+										pendingRequest.d.resolveWith(client,callback);
+									}
 								} else {
-									pendingRequest.d.resolveWith(client,callback);
-								}
-								
+									pendingRequest.d.resolveWith(client,[evt.data]);
+								}								
 							}
 						} catch (e) {
 							console.error("Failed to marshall response: [%O]", e);
@@ -247,7 +257,13 @@ WebSocketAPIClient.defaultHandlers = {
 WebSocketAPIClient.prototype.pendingRequests = {};
 
 WebSocketAPIClient.prototype.addPendingRequest = function(pr) {	
-	if(pr!=null && pr.rid!=null && pr.q!=null) {
+	var timeout = 1000;
+	try {
+		timeout = pr.q.getTimeout();
+	} catch (e) {
+		timeout = 1000;
+	}
+	if(pr!=null && pr.rid!=null) {
 		var self = this;
 		this.pendingRequests[pr.rid] = pr;		
 		var thandle = setTimeout(function(){
@@ -256,7 +272,7 @@ WebSocketAPIClient.prototype.addPendingRequest = function(pr) {
 			if(pr.d) {
 				pr.d.rejectWith(self, ["timeout", pr]);
 			}
-		}, pr.q.getTimeout());
+		}, timeout);
 		pr.th = thandle;
 	} else {
 		throw new Error("Invalid Pending Request: [" + ((pr==null) ? null : pr + "]")); // TODO: need a render for pendingRequest
@@ -323,6 +339,7 @@ WebSocketAPIClient.prototype.retry = function invoke(fx, args, start, interval, 
 
 WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 	var deferred = jQuery.Deferred();
+	deferred.startTime = performance.now();
 	if(this.ws.readyState!=1) {
 		var self = this;
 		var args = [];
@@ -378,7 +395,8 @@ WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 		}
 	}	
 	console.debug("Service Request: rid:[%s] svc:[%s], op:[%s], payload:[%O]", RID, service, opname, obj);
-	var Q = arguments[minArgSize].q;
+	var Q = null;
+	try { Q = arguments[minArgSize].q; } catch (e) {}
 	
 	
 	var pendingRequest = {
@@ -483,6 +501,13 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
 	return this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
 };
+
+WebSocketAPIClient.prototype.services = function() {	
+	return this.serviceRequest("router", "services");	
+};
+
+
+
 
 WebSocketAPIClient.mapTags = function(tsmeta) {
 	var map = {};

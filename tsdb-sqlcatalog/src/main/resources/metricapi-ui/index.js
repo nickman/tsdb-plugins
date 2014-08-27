@@ -8,9 +8,9 @@ $( document ).ready(function() {
 	});
 	ws = new WebSocketAPIClient();
 	q = QueryContext.newContext();
-	$("#goBtn").click(function(e) {
-	    goAction();		        
-        return false;
+	$("button.runActionBtn").click(function(e) {
+	    goAction(e);		
+	    return false;        
 	});
 	$("#exprfield").focus();
 	$("#exprfield").keypress(function(e) {
@@ -20,14 +20,30 @@ $( document ).ready(function() {
 	    }
 	    return true;
 	});
-	$("#exprfield").removeAttr("disabled");
-	$("#goBtn").removeAttr("disabled");
 	$("#main").width($(window).width()-$("#leftbar").width() - 50);
 	$("#jsonOutput").height($(window).height()-$("#outputQCForm").height() - 70);
 	console.info("Index.js Loaded");
 });
+/*
+	metricExpressionTest
+	findUIDTest
+	findTagKeysTest
+	findTagValuesTest
+	findMetricNamesTest
 
-function goAction() {	
+*/
+
+function goAction(e) {
+	
+	var command = $(e.currentTarget).parents('form').first().attr('id');
+	var commandFx = window[command];
+	if(commandFx==null || !jQuery.isFunction(commandFx)) {
+		throw new Error("Command not recognized (" + command + ")");
+	}
+	commandFx.call();
+};
+
+function metricExpressionTest() {
 	if($('#clearqc').is(':checked')) {
 		q = getInputContext();
 	} 	
@@ -35,10 +51,17 @@ function goAction() {
 	console.info("GO!  (Action is [%s])", selected);
 	$('#jsonOutput').empty();
 	if("json"==selected) doDisplayJson();
-	else if("fulltree"==selected) doFullTree();
-};
+	else if("fulltree"==selected) doFullTree();	
+}
 
-
+function printServices() {
+	var handle = function(result) {
+		console.group("=============== WebSock Services ===============");
+		console.dir(result.data);
+		console.groupEnd();
+	}
+	ws.services(handle, null, handle);
+}
 
 
 function doDisplayJson() {
@@ -86,6 +109,11 @@ function updateOutputContext(qctx) {
 	$('#qoutNextIndex').val(ctx.getNextIndex());
 	$('#qoutExhausted').val(ctx.isExhausted());
 	$('#qoutExpired').val(ctx.isExpired());	
+	if(qctx.elapsedTime) {
+		try {
+			$('#qoutRTElapsed').val(Math.round(qctx.elapsedTime));
+		} catch (e) {}
+	}
 };
 
 function getInputContext() {

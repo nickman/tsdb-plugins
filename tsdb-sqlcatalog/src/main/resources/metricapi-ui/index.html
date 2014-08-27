@@ -51,17 +51,53 @@
         </fieldset> 
     </form>
 
-    <form>
+    <form id="metricExpressionTest">
       <fieldset>
           <legend>Metric Expression:</legend>
-          <input id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5"  ><br>
-          
-          <button id="goBtn" disabled="disabled" >Run</button>
+          <input id="exprfield" type="text" value="sys*:dc=dc*,host=WebServer1|WebServer5"><br>          
+          <button class="runActionBtn">Run</button>
         </fieldset> 
     </form>
 		
+    <form id="findUIDTest">
+      <fieldset>
+          <legend>Find UID:</legend>
+          UID Name: <input id="uidwc" type="text" value=""><br>
+          Type:<select id="uidType">  
+          <option value="METRIC" selected="selected">Metric</option>
+          <option value="TAGK">Tag Key</option>
+          <option value="TAGV">Tag Value</option>
+        </select>
+         <button class="runActionBtn">Run</button>
+        </fieldset> 
+    </form>
 		
+    <form id="findTagKeysTest">
+      <fieldset>
+          <legend>Find Tag Keys:</legend>
+          Metric: <input id="tkMetric" type="text" value=""><br>
+          Tag Keys: <input id="tkTagsKeys" type="text" value="">
+         <button class="runActionBtn">Run</button>
+        </fieldset> 
+    </form>
 		
+    <form id="findTagValuesTest">
+      <fieldset>
+          <legend>Find Tag Values:</legend>
+          Metric: <input id="tvMetric" type="text" value=""><br>
+          Tag Key: <input id="tvTagKey" type="text" value=""><br>
+          Tag Pairs: <input id="tvTagsPairs" type="text" value="{}">
+         <button class="runActionBtn">Run</button>
+        </fieldset> 
+    </form>
+
+    <form id="findMetricNamesTest">
+      <fieldset>
+          <legend>Find Metric Names:</legend>          
+          Tag Keys/Pairs: <input id="fmTags" type="text" value=""><br>
+         <button class="runActionBtn">Run</button>
+        </fieldset> 
+    </form>
 		
 	</div>
 	<div id="main">
@@ -77,10 +113,12 @@
 				<fieldset>
 					<legend>Output Query Context:</legend>
 					Count:<input type="text" id="qoutCummulative" disabled="disabled" size="7">
-					Elapsed (ms):<input type="text" id="qoutElapsed" disabled="disabled"size="7">
+					Elapsed (ms):<input type="text" id="qoutElapsed" disabled="disabled"size="7">          
+          RTrip (ms):<input type="text" id="qoutRTElapsed" disabled="disabled"size="7">
 					Next Index:<input type="text" id="qoutNextIndex" disabled="disabled" size="70">					
 					Exhausted:<input type="text" id="qoutExhausted" disabled="disabled" size="5">
 					Expired:<input type="text" id="qoutExpired" disabled="disabled" size="5">
+
 				</fieldset>
 			</form>
 			

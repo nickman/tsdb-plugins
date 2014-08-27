@@ -246,7 +246,7 @@ public class JSONRequestHandlerInvokerFactory {
 					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
 					continue;
 				}
-				mappedMethods.put(StringHelper.getMethodDescriptor(m), m);
+				mappedMethods.put(m.getName() + "(" + StringHelper.getMethodDescriptor(m) + ")", m);
 //				Class<?>[] paramTypes = m.getParameterTypes();
 //				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
 //					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
@@ -263,7 +263,7 @@ public class JSONRequestHandlerInvokerFactory {
 					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());
 					continue;
 				}
-				mappedMethods.put(StringHelper.getMethodDescriptor(m), m);
+				mappedMethods.put(m.getName() + "(" + StringHelper.getMethodDescriptor(m) + ")", m);
 //				Class<?>[] paramTypes = m.getParameterTypes();
 //				if(paramTypes.length!=1 || !JSONRequest.class.equals(paramTypes[0])) {
 //					LOG.warn("Invalid @JSONRequestHandler annotated method [{}]", m.toGenericString());

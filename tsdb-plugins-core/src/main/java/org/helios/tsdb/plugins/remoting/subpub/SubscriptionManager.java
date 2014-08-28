@@ -34,12 +34,15 @@ import net.opentsdb.utils.JSON;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
+import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
 import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 
@@ -53,7 +56,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.SubscriptionManager</code></p>
  */
 
-public class SubscriptionManager extends AbstractRPCService {
+public class SubscriptionManager extends AbstractRPCService implements ChannelFutureListener {
 	/** A channel group of channels with subscriptions */
 	protected final ChannelGroup subscribedChannels = new DefaultChannelGroup(getClass().getSimpleName());
 	
@@ -97,10 +100,96 @@ public class SubscriptionManager extends AbstractRPCService {
 		});
 	}
 	
-	public static void buildAndSend(final long subscriptionId, final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid, final Set<Channel> channels) {
+	/**
+	 * {@inheritDoc}
+	 * @see org.jboss.netty.channel.ChannelFutureListener#operationComplete(org.jboss.netty.channel.ChannelFuture)
+	 */
+	@Override
+	public void operationComplete(final ChannelFuture future) throws Exception {
+		cleanupForChannel(future.getChannel());
+	}
+	
+	protected void cleanupForChannel(final Channel channel) {
+		if(channel==null) return;
+		final long channelId = channel.getId().longValue();
+		Set<Subscription> channelSubs = channelSubscriptions.remove(channelId);
+		if(channelSubs!=null && !channelSubs.isEmpty()) {
+			for(Subscription s: channelSubs) {
+				final int remaining = s.removeSubscriber();
+				Set<Channel> subChannels = subscriptionChannels.get(s.getSubscriptionId());
+				if(subChannels!=null && !subChannels.isEmpty()) {
+					subChannels.remove(channel);
+				}
+				if(remaining==0) {
+					allSubscriptions.remove(s);
+					subscriptionChannels.remove(s.getSubscriptionId());
+					if(!subChannels.isEmpty()) {
+						log.info("Subscription [{}] indicated zero subscribers, but [{}] channels remain subscribed", s, subChannels.size());
+						// notify the orphan channels
+						subChannels.clear();
+					} 
+				}
+			}
+		}
+		
+	}
+	
+	/**
+	 * Subscribes the passed channel to a subscription for the passed channel
+	 * @param channel The channel to subscribe
+	 * @param pattern The pattern of the subscription
+	 */
+	public void subscribe(final Channel channel, final CharSequence pattern) {
+		if(channel==null) throw new IllegalArgumentException("The passed channel was null");
+		if(pattern==null) throw new IllegalArgumentException("The passed pattern was null");
+		if(metricSvc==null) throw new IllegalStateException("The SubscriptionManager has not been initialized", new Throwable());
+		final String _pattern = pattern.toString().trim();
+		if(_pattern.isEmpty()) throw new IllegalArgumentException("The passed pattern was empty");
+		final long channelId = channel.getId().longValue();
+		Subscription sub = allSubscriptions.get(_pattern);
+		if(sub==null) {
+			synchronized(allSubscriptions) {
+				sub = allSubscriptions.get(_pattern);
+				if(sub==null) {
+					sub = new Subscription(_pattern);
+					allSubscriptions.put(_pattern, sub);
+				}
+			}
+		}
+		Set<Channel> subChannels = subscriptionChannels.get(sub.getSubscriptionId());
+		if(subChannels==null) {
+			synchronized(subscriptionChannels) {
+				subChannels = subscriptionChannels.get(sub.getSubscriptionId());
+				if(subChannels==null) {
+					subChannels = new NonBlockingHashSet<Channel>();
+					subscriptionChannels.put(sub.getSubscriptionId(), subChannels);
+				}
+			}
+		}
+		subChannels.add(channel);
+		
+		
+		sub.addSubscriber();
+		Set<Subscription> channelSubs = channelSubscriptions.get(channelId);
+		if(channelSubs==null) {
+			synchronized(channelSubscriptions) {
+				channelSubs = channelSubscriptions.get(channelId);
+				if(channelSubs==null) {
+					channelSubs = new NonBlockingHashSet<Subscription>();
+					channelSubscriptions.put(channelId, channelSubs);
+				}
+			}
+		}
+		channelSubs.add(sub);
+		if(subscribedChannels.add(channel)) {
+			channel.getCloseFuture().addListener(this);
+		}
+	}
+	
+	public static ObjectNode build(final long subscriptionId, final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
 		final ObjectNode on = JSON.getMapper().createObjectNode();
 		on.put("metric", metric);
-		on.put("sub", subscriptionId);
+		on.put("subid", subscriptionId);
 		on.put("ts", timestamp);
 		on.put("value", value);
 		on.put("type", "d");
@@ -110,8 +199,25 @@ public class SubscriptionManager extends AbstractRPCService {
 			tagMap.put(e.getKey(), e.getValue());
 		}
 		on.put("tags", tagMap);
-		
+		return on;
 	}
+	
+	public static ObjectNode build(final long subscriptionId, final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
+		final ObjectNode on = JSON.getMapper().createObjectNode();
+		on.put("metric", metric);
+		on.put("subid", subscriptionId);
+		on.put("ts", timestamp);
+		on.put("value", value);
+		on.put("type", "l");
+		
+		final ObjectNode tagMap = JSON.getMapper().createObjectNode();
+		for(Map.Entry<String, String> e: tags.entrySet()) {
+			tagMap.put(e.getKey(), e.getValue());
+		}
+		on.put("tags", tagMap);
+		return on;
+	}
+	
 
 	
 	/**
@@ -125,20 +231,21 @@ public class SubscriptionManager extends AbstractRPCService {
 	 */
 	public void onDataPoint(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
 		try {
+			ObjectNode node = null;
 			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
 			for(Subscription s: allSubscriptions.values()) {
 				if(s.isMemberOf(cs)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {
+						if(node==null) node = build(s.getSubscriptionId(), metric, timestamp, value, tags, tsuid);
 						for(Channel ch: channels) {
-							ch.write(message)
+							ch.write(node);
 						}
 					}
 				}
-			}
-			
+			}			
 		} catch (Exception ex) {
-			
+			log.error("Failed to process data point", ex);
 		}
 	}
 	
@@ -152,8 +259,26 @@ public class SubscriptionManager extends AbstractRPCService {
 	 * @param tsuid The timeseries uid
 	 */
 	public void onDataPoint(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
-		
+		try {
+			ObjectNode node = null;
+			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
+			for(Subscription s: allSubscriptions.values()) {
+				if(s.isMemberOf(cs)) {
+					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
+					if(channels!=null && !channels.isEmpty()) {
+						if(node==null) node = build(s.getSubscriptionId(), metric, timestamp, value, tags, tsuid);
+						for(Channel ch: channels) {
+							ch.write(node);
+						}
+					}
+				}
+			}			
+		} catch (Exception ex) {
+			log.error("Failed to process data point", ex);
+		}		
 	}
+
+
 	
 
 

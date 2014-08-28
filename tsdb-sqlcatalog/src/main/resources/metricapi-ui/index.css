@@ -23,6 +23,13 @@
 		
 	}	
 
+	#treeG {
+        background-color: rgb(206, 219, 221);
+        opacity: 0.7;
+        border-width: 1px;
+        border-style: groove;		
+	}
+
 	a {
 		color: steelblue;
 	}

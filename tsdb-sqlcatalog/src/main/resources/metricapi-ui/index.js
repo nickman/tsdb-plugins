@@ -223,7 +223,10 @@ function updateSvgTree(root) {
    .attr("class", "node")
    .attr("transform", function(d) { 
     	return "translate(" + d.y + "," + d.x + ")"; 
-	}).on("click", click);
+	}) .on("click", function(d){
+   		click(d);
+   	})
+
 
   nodeEnter.append("circle")
    .attr("r", 5)
@@ -290,7 +293,7 @@ function initTree(root) {
  	svgHeight = canvasHeight - margin.top - margin.bottom;
 
 	var tree = d3.layout.tree()
-	 .size([svgWidth, svgHeight]);
+	 .size([svgHeight, svgWidth]);
 
 	var diagonal = d3.svg.diagonal()
 	 .projection(function(d) { return [d.y, d.x]; });
@@ -303,7 +306,16 @@ function initTree(root) {
 
 		
 	$('svg g').attr('id', 'viewport');
-	$('svg').svgPan('viewport', true, true, true);
+	var treeZoom = d3.behavior.zoom();
+	treeZoom.on("zoom", zoomed);
+	d3.select("svg").call(treeZoom); 
+	function zoomed() {
+		var zoomTranslate = treeZoom.translate();
+		d3.select("#viewport").attr("transform", "translate("+zoomTranslate[0]+","+zoomTranslate[1]+")");
+	
+	};
+
+	//$('svg').svgPan('viewport', true, true, true);
 
 
 
@@ -425,7 +437,15 @@ function doFullTree() {
 		}	
 	).then(function(){
 		$('svg g').attr('id', 'viewport');
-		$('svg').svgPan('viewport', true, true, true);
+		var treeZoom = d3.behavior.zoom();
+		treeZoom.on("zoom", zoomed);
+		d3.select("svg").call(treeZoom); 
+		function zoomed() {
+			var zoomTranslate = treeZoom.translate();
+			d3.select("#viewport").attr("transform", "translate("+zoomTranslate[0]+","+zoomTranslate[1]+")");
+		
+		};
+		//$('svg').svgPan('viewport', true, true, true);
 	});
 };
 

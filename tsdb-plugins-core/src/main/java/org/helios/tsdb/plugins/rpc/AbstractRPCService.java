@@ -35,16 +35,19 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.stats.StatsCollector;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
+import org.helios.tsdb.plugins.event.PluginType;
 import org.helios.tsdb.plugins.handlers.TSDBServiceMXBean;
 import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
 import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
+import org.helios.tsdb.plugins.service.PluginContext;
+import org.helios.tsdb.plugins.shell.Plugin;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractService;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Service;
+import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: AbstractRPCService</p>
@@ -54,7 +57,7 @@ import com.google.common.util.concurrent.Service;
  * <p><code>org.helios.tsdb.plugins.rpc.AbstractRPCService</code></p>
  */
 
-public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXBean {
+public abstract class AbstractRPCService  implements Plugin, IRPCService, TSDBServiceMXBean {
 	/** The RPC service shared executor */
 	protected static volatile AsyncDispatcherExecutor rpcExecutor = null;
 	/** The initialization lock for the rpc executor */
@@ -65,7 +68,8 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	protected final LoggerManager loggerManager = LoggerManagerFactory.getLoggerManager(getClass());
 	/** The object name for this service's management interface */
 	protected ObjectName objectName = JMXHelper.objectName("tsdb.plugin.service:name=" + getClass().getSimpleName());
-	
+	/** The plugin context */
+	protected PluginContext pluginContext = null;
 	/** The parent TSDB instance */
 	protected final TSDB tsdb;
 	/** The extracted configuration */
@@ -106,6 +110,7 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 				notifyStopped();
 			}
 		};
+		
 	}
 
 
@@ -312,6 +317,58 @@ public abstract class AbstractRPCService  implements IRPCService, TSDBServiceMXB
 	 */
 	public final Throwable failureCause() {
 		return abstractService.failureCause();
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#getPluginType()
+	 */
+	@Override
+	public PluginType getPluginType() {
+		return PluginType.RPC;
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#initialize(net.opentsdb.core.TSDB)
+	 */
+	@Override
+	public void initialize(TSDB tsdb) {
+		
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#shutdown()
+	 */
+	@Override
+	public Deferred<Object> shutdown() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#version()
+	 */
+	@Override
+	public String version() {
+		return getClass().getPackage().getImplementationVersion();
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.shell.Plugin#setPluginContext(org.helios.tsdb.plugins.service.PluginContext)
+	 */
+	@Override
+	public void setPluginContext(PluginContext ctx) {
+		pluginContext = ctx;
+		
 	}
 	
 }

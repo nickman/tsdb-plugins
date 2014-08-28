@@ -65,6 +65,15 @@
 		<groupId>org.helios.jmx-tools</groupId>
 		<artifactId>jmx-core</artifactId>
 	</dependency>
+
+	      <!-- ==========================================================
+		Chronicle Support
+		  ========================================================== -->
+    
+		<dependency>
+		  <groupId>net.openhft</groupId>
+		  <artifactId>chronicle</artifactId>
+		</dependency>    
     
 
 	<!--

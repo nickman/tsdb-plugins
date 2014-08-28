@@ -24,18 +24,58 @@
  */
 package org.helios.tsdb.plugins.remoting;
 
+import net.opentsdb.stats.StatsCollector;
+
+import org.helios.tsdb.plugins.service.PluginContext;
+import org.helios.tsdb.plugins.util.JMXHelper;
+
 /**
- * <p>Title: IRemoteServices</p>
+ * <p>Title: IRemoteService</p>
  * <p>Description: Defines the remotely invocable services available for OpenTSDB and Plugin Services.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.remoting.IRemoteServices</code></p>
+ * <p><code>org.helios.tsdb.plugins.remoting.IRemoteService</code></p>
  * <br>
  * <p><ul>
  * <li><b></b>:</li>
  * </ul></p>
  */
 
-public interface IRemoteServices {
+public interface IRemoteService {
+	
+	/**
+	 * Initializes the remoting service
+	 * @param pc The plugin context
+	 */
+	public void initialize(PluginContext pc);
+
+	/**
+	 * Shuts down and cleans up the remoting service
+	 */
+	public void shutdown();
+
+	/**
+	 * Collects stats on the remoting service
+	 * @param collector the stats collector
+	 */
+	public void collectStats(StatsCollector collector);
+
+	/**
+	 * Returns the actual logger level for the remoting service
+	 * @return the actual logger level
+	 */
+	public String getLoggerLevel();
+
+	/**
+	 * Returns the effective logger level for the remoting service
+	 * @return the effective  logger level
+	 */
+	public String getLoggerEffectiveLevel();
+
+	/**
+	 * Sets the effective logger level for the remoting service
+	 * @param level the level name to set
+	 */
+	public void setLoggerLevel(String level);
 	
 }

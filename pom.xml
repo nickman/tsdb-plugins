@@ -58,6 +58,7 @@
 		<bonecp.version>0.8.0.RELEASE</bonecp.version>
 		<hbase-test.version>0.94.16</hbase-test.version>
 		<phoenix.version>4.0.0-incubating</phoenix.version>
+		<chronicle.version>3.2.1</chronicle.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -283,7 +284,16 @@
       <artifactId>activemq-camel</artifactId>
        <version>5.8.0.redhat-60024</version>
     </dependency>
+
+	      <!-- ==========================================================
+		Chronicle Support
+		  ========================================================== -->
     
+		<dependency>
+		  <groupId>net.openhft</groupId>
+		  <artifactId>chronicle</artifactId>
+		  <version>${chronicle.version}</version>
+		</dependency>    
 
 
 	      <!-- ==========================================================

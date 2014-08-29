@@ -25,7 +25,6 @@
 package org.helios.tsdb.plugins.rpc.netty;
 
 import org.helios.tsdb.plugins.event.TSDBEvent;
-import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.event.TSDBPublishEvent;
 import org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler;
 import org.helios.tsdb.plugins.service.PluginContext;

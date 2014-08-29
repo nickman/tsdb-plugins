@@ -530,7 +530,11 @@ public abstract class AbstractTSDBPluginService implements ITSDBPluginService, R
 					}
 					@SuppressWarnings("unchecked")
 					Class<IRPCService> clazz = (Class<IRPCService>)_clazz;
-					rpcServices.add(ConfigurationHelper.inst(clazz, RPC_SVC_SIG, tsdb, config));
+					IRPCService instance = ConfigurationHelper.inst(clazz, RPC_SVC_SIG, tsdb, config);					
+					rpcServices.add(instance);
+					if(instance instanceof Plugin) {
+						((Plugin) instance).setPluginContext(pluginContext);
+					}
 					log.info("Configured RPC Service [{}]", className);
 				} catch (Exception ex) {
 					throw new IllegalArgumentException("Failed to load configured RPC Service [" + className + "]", ex);

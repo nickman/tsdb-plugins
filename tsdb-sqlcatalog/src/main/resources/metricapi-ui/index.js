@@ -282,7 +282,70 @@ function doIncrementalTree() {
 	// );	
 }
 
+function testTree() {
+	q = getInputContext();
+	q.format = "D3";
+	$('#jsonOutput').empty().append($("<div id='mysvg'></div>"))
+	var expr = $('#exprfield').val();
 
+	var onNotif = function(data) {
+		console.info("Test Tree Notif: [%O]", data);
+		popTestTree(data.data);
+	}
+	var onDone = function(data) {
+		console.info("Test Tree Done: [%O]", data);
+		popTestTree(data.data);
+	}	
+	ws.resolveTSMetas(q, expr).then(
+		onNotif,
+		defaultErrorHandler,
+		onDone
+	)
+
+}
+
+function popTestTree(root) {
+	var canvasWidth = $('#jsonOutput').width(),
+	canvasHeight = $('#jsonOutput').height(),
+	margin = {top: 30, right: 30, bottom: 30, left: 30},
+ 	svgWidth = canvasWidth - margin.right - margin.left,
+ 	svgHeight = canvasHeight - margin.top - margin.bottom;
+
+	var tree = d3.layout.tree()
+	 .size([svgHeight, svgWidth]);
+
+	var diagonal = d3.svg.diagonal()
+	 .projection(function(d) { return [d.y, d.x]; });
+
+	var svg = d3.select("#mysvg").append("svg")
+	 .attr("width", svgWidth)
+	 .attr("height", svgHeight)
+	 .data(root)
+	  .append("g")
+	 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		
+	$('svg g').attr('id', 'viewport');
+	var treeZoom = d3.behavior.zoom();
+	treeZoom.on("zoom", zoomed);
+	d3.select("svg").call(treeZoom); 
+	function zoomed() {
+		var zoomTranslate = treeZoom.translate();
+		d3.select("#viewport").attr("transform", "translate("+zoomTranslate[0]+","+zoomTranslate[1]+")");
+	
+	};
+
+	//$('svg').svgPan('viewport', true, true, true);
+
+
+
+	svgContext.tree = tree;
+	svgContext.svg = svg;
+	svgContext.diagonal = diagonal;
+	svgContext.i = 0;
+	
+
+}
 
 function initTree(root) {
 

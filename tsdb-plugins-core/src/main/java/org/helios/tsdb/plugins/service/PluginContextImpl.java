@@ -225,7 +225,11 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 	 */
 	@Override
 	public void addResourceListener(IPluginContextResourceListener listener) {
-		addResourceListener(listener, null);
+		if(listener instanceof IPluginContextResourceFilter) {
+			addResourceListener(listener, (IPluginContextResourceFilter)listener);
+		} else {
+			addResourceListener(listener, null);
+		}
 	}
 	
 

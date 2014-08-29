@@ -23,9 +23,9 @@
 		
 	}	
 
-	#treeG {
+	#mysvg {
         background-color: rgb(206, 219, 221);
-        opacity: 0.7;
+        opacity: 0.3;
         border-width: 1px;
         border-style: groove;		
 	}

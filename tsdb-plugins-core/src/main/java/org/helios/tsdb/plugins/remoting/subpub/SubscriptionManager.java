@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -35,6 +36,8 @@ import net.opentsdb.utils.JSON;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
+import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
 import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
@@ -55,8 +58,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.SubscriptionManager</code></p>
  */
-
-public class SubscriptionManager extends AbstractRPCService implements ChannelFutureListener {
+@JSONRequestService(name="pubsub", description="Manages subscriptions on behalf of remote subscribers")
+public class SubscriptionManager extends AbstractRPCService implements ChannelFutureListener, SubscriptionManagerMXBean {
 	/** A channel group of channels with subscriptions */
 	protected final ChannelGroup subscribedChannels = new DefaultChannelGroup(getClass().getSimpleName());
 	
@@ -88,16 +91,27 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	@Override
 	public void setPluginContext(final PluginContext ctx) {
 		super.setPluginContext(ctx);		
+		final SubscriptionManager rez = this;
 		ctx.addResourceListener(new IPluginContextResourceListener() {
 			public void onResourceRegistered(String name, Object resource) {
 				metricSvc = (MetricsMetaAPI)resource;
-				ctx.setResource(getClass().getSimpleName(), this);
+				ctx.setResource(SubscriptionManager.class.getSimpleName(), rez);
 			}
 		}, new IPluginContextResourceFilter() {
 			public boolean include(String name, Object resource) {				
 				return (resource!=null && (resource instanceof MetricsMetaAPI));
 			}
 		});
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionManagerMXBean#getSubscriptions()
+	 */
+	@Override
+	public SubscriptionMBean[] getSubscriptions() {
+		final Set<SubscriptionMBean> copy = new HashSet<SubscriptionMBean>(allSubscriptions.values());		
+		return copy.toArray(new SubscriptionMBean[copy.size()]);
 	}
 	
 	/**
@@ -109,6 +123,10 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		cleanupForChannel(future.getChannel());
 	}
 	
+	/**
+	 * Cleans up resources allocated for the specified channel
+	 * @param channel the channel to clean up for
+	 */
 	protected void cleanupForChannel(final Channel channel) {
 		if(channel==null) return;
 		final long channelId = channel.getId().longValue();
@@ -130,7 +148,11 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 					} 
 				}
 			}
-		}
+		}		
+	}
+	
+	@JSON
+	public void subscribe(JSONRequest request, String expression) {
 		
 	}
 	
@@ -139,7 +161,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	 * @param channel The channel to subscribe
 	 * @param pattern The pattern of the subscription
 	 */
-	public void subscribe(final Channel channel, final CharSequence pattern) {
+	protected void subscribe(final Channel channel, final CharSequence pattern) {
 		if(channel==null) throw new IllegalArgumentException("The passed channel was null");
 		if(pattern==null) throw new IllegalArgumentException("The passed pattern was null");
 		if(metricSvc==null) throw new IllegalStateException("The SubscriptionManager has not been initialized", new Throwable());
@@ -186,10 +208,18 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		}
 	}
 	
-	public static ObjectNode build(final long subscriptionId, final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
+	/**
+	 * Builds an ObjectNode to publish a double value datapoint to subscribers
+	 * @param metric The data point metric name
+	 * @param timestamp The data point timestamp
+	 * @param value The data point value
+	 * @param tags The data point tags
+	 * @param tsuid The data point time series id
+	 * @return the built object node to publish
+	 */
+	public static ObjectNode build(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
 		final ObjectNode on = JSON.getMapper().createObjectNode();
 		on.put("metric", metric);
-		on.put("subid", subscriptionId);
 		on.put("ts", timestamp);
 		on.put("value", value);
 		on.put("type", "d");
@@ -202,14 +232,21 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		return on;
 	}
 	
-	public static ObjectNode build(final long subscriptionId, final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
+	/**
+	 * Builds an ObjectNode to publish a long value datapoint to subscribers
+	 * @param metric The data point metric name
+	 * @param timestamp The data point timestamp
+	 * @param value The data point value
+	 * @param tags The data point tags
+	 * @param tsuid The data point time series id
+	 * @return the built object node to publish
+	 */
+	public static ObjectNode build(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
 		final ObjectNode on = JSON.getMapper().createObjectNode();
 		on.put("metric", metric);
-		on.put("subid", subscriptionId);
 		on.put("ts", timestamp);
 		on.put("value", value);
-		on.put("type", "l");
-		
+		on.put("type", "l");		
 		final ObjectNode tagMap = JSON.getMapper().createObjectNode();
 		for(Map.Entry<String, String> e: tags.entrySet()) {
 			tagMap.put(e.getKey(), e.getValue());
@@ -230,14 +267,16 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	 * @param tsuid The timeseries uid
 	 */
 	public void onDataPoint(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
+		if(allSubscriptions.isEmpty()) return;
 		try {
 			ObjectNode node = null;
 			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
 			for(Subscription s: allSubscriptions.values()) {
 				if(s.isMemberOf(cs)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
-					if(channels!=null && !channels.isEmpty()) {
-						if(node==null) node = build(s.getSubscriptionId(), metric, timestamp, value, tags, tsuid);
+					if(channels!=null && !channels.isEmpty()) {						
+						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
+						node.put("subid", s.getSubscriptionId());
 						for(Channel ch: channels) {
 							ch.write(node);
 						}
@@ -245,7 +284,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 				}
 			}			
 		} catch (Exception ex) {
-			log.error("Failed to process data point", ex);
+			log.error("Failed to process double data point", ex);
 		}
 	}
 	
@@ -259,6 +298,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	 * @param tsuid The timeseries uid
 	 */
 	public void onDataPoint(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
+		if(allSubscriptions.isEmpty()) return;
 		try {
 			ObjectNode node = null;
 			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
@@ -266,7 +306,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 				if(s.isMemberOf(cs)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {
-						if(node==null) node = build(s.getSubscriptionId(), metric, timestamp, value, tags, tsuid);
+						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
+						node.put("subid", s.getSubscriptionId());
 						for(Channel ch: channels) {
 							ch.write(node);
 						}
@@ -274,7 +315,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 				}
 			}			
 		} catch (Exception ex) {
-			log.error("Failed to process data point", ex);
+			log.error("Failed to process long data point", ex);
 		}		
 	}
 

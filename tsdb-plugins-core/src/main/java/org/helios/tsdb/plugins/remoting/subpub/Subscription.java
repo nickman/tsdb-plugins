@@ -30,11 +30,18 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
+import net.opentsdb.meta.TSMeta;
+
 import org.hbase.async.jsr166e.LongAdder;
+import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
+import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.bloom.UnsafeBloomFilter;
 
 import com.google.common.hash.Funnel;
+import com.google.common.hash.Funnels;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.google.common.hash.PrimitiveSink;
 
 /**
@@ -54,23 +61,26 @@ import com.google.common.hash.PrimitiveSink;
  */
 public class Subscription implements SubscriptionMBean {
 	/** The filter to quickly determine if an incoming message matches this subscription */
-	private UnsafeBloomFilter<CharSequence> filter; 
+	private UnsafeBloomFilter<byte[]> filter; 
 	/** The charset of the incoming messages */
 	public static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 	/** The default number of insertions */
 	public static final int DEFAULT_INSERTIONS = 10000;
+	private static final HashFunction hasher = Hashing.murmur3_128();
 	/** The ingestion funnel for incoming qualified messages */
-	public enum subFunnel implements Funnel<CharSequence> {
+	public enum subFunnel implements Funnel<byte[]> {
 	     /** The singleton funnel */
 	    INSTANCE;
-	     public void funnel(final CharSequence cs, final PrimitiveSink into) {
-	    	 into.putString(cs, DEFAULT_CHARSET);
+	     public void funnel(final byte[] tsuid, final PrimitiveSink into) {	    	 
+	    	 into.putBytes(hasher.hashBytes(tsuid).asBytes());
 	     }
 	   }	
 	
 	/** A serial number sequence for Subscription instances */
 	private static final AtomicLong serial = new AtomicLong();
 	
+	/** A EWMA for measuring the elapsed time of isMemberOf */
+	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
 	/** The subscription pattern */
 	protected final CharSequence pattern;
 	/** The subscription pattern as an ObjectName */
@@ -97,10 +107,14 @@ public class Subscription implements SubscriptionMBean {
 	 * @param expectedInsertions The number of expected insertions
 	 */
 	public Subscription(final CharSequence pattern, final int expectedInsertions) {
-		filter = UnsafeBloomFilter.create(subFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
+		filter = UnsafeBloomFilter.create(Funnels.byteArrayFunnel(), expectedInsertions, DEFAULT_PROB);
 		this.pattern = pattern;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();
+	}
+	
+	public DirectEWMAMBean getEWMA() {
+		return ewma;
 	}
 	
 	/**
@@ -148,24 +162,30 @@ public class Subscription implements SubscriptionMBean {
 	
 	/**
 	 * Indicates if the passed message is a member of this subscription
-	 * @param cs The message to determine the membership of
+	 * @param bytes The message to determine the membership of
 	 * @return false if the message is definitely NOT a member of this subscription, true if it is a member.
 	 */
-	public boolean isMemberOf(CharSequence cs) {
-		if(cs==null) return false;
-		if(filter.mightContain(cs)) {
-			try {
-				if(patternObjectName.apply(JMXHelper.objectName(cs))) {
-					index(cs);
-					totalMatched.increment();
-					return true;
+	public boolean isMemberOf(final byte[] bytes) {
+		if(bytes==null) return false;
+		final long start = System.nanoTime();
+		try {
+			if(filter.mightContain(hasher.hashBytes(bytes).asBytes())) {
+				try {
+					final String strVal = new String(bytes, Charset.defaultCharset());
+					if(patternObjectName.apply(JMXHelper.objectName(strVal))) {
+						index(bytes);
+						totalMatched.increment();
+						return true;
+					}
+				} catch (Exception ex) {
+					/* No Op */
 				}
-			} catch (Exception ex) {
-				/* No Op */
 			}
+			totalDropped.increment();
+			return false;
+		} finally {
+			ewma.append(System.nanoTime() - start);
 		}
-		totalDropped.increment();
-		return false;
 	}
 	
 	/**
@@ -174,21 +194,47 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public boolean test(String message) {
-		return isMemberOf(message);
+		return isMemberOf(message.getBytes(Charset.defaultCharset()));
 	}
 	
 	/**
 	 * Indexes the passed message after it has been determined to be a member of this subscription 
-	 * @param cs the message to index
+	 * @param bytes the message to index
 	 */
-	public void index(CharSequence cs) {
-		if(cs!=null) {
-			if(filter.put(cs)) {
+	public void index(final byte[] bytes) {
+		if(bytes!=null) {
+			if(filter.put(hasher.hashBytes(bytes).asBytes())) {
 				retained.incrementAndGet();
 			}
 		}
 	}
 
+	/**
+	 * Indexes a time series id
+	 * @param tsMeta the time series
+	 */
+	public void index(final TSMeta tsMeta) {		
+		if(tsMeta!=null) {
+			if(filter.put(SubscriptionManager.buildObjectName(tsMeta.getMetric().getName(), tsMeta.getTags()).toString().getBytes())) {
+				retained.incrementAndGet();
+			}
+		}		
+	}
+	
+
+	/**
+	 * Indexes a time series id. Internal version that does not trigger stats or pubs.
+	 * @param tsMeta the time series
+	 */
+	void _internalIndex(final TSMeta tsMeta) {		
+		if(tsMeta!=null) {
+			if(filter.put(SubscriptionManager.buildObjectName(tsMeta.getMetric().getName(), tsMeta.getTags()).toString().getBytes())) {
+				retained.incrementAndGet();
+			}
+		}		
+	}
+
+	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getMatches()
@@ -260,6 +306,25 @@ public class Subscription implements SubscriptionMBean {
 	public String getDescription() {
 		return toString();
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getMeanMatch()
+	 */
+	@Override
+	public double getMeanMatch() {
+		return ewma.getMean();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getEWMAMatch()
+	 */
+	@Override
+	public double getEWMAMatch() {
+		return ewma.getAverage();
+	}
+	
 
 	/**
 	 * {@inheritDoc}

@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
+
 /**
  * <p>Title: SubscriptionMBean</p>
  * <p>Description: MBean interface for Subscriptions</p> 
@@ -88,4 +90,18 @@ public interface SubscriptionMBean {
 	 * @return a message describing the subscription and state
 	 */
 	public String getDescription();
+	
+	/**
+	 * Returns the mean elapsed time for the filter match in ns.
+	 * @return the mean elapsed time for the filter match in ns.
+	 */
+	public double getMeanMatch();
+	
+	/**
+	 * Returns the rolling average elapsed time for the filter match in ns.
+	 * @return the rolling average elapsed time for the filter match in ns.
+	 */
+	public double getEWMAMatch();
+
+	
 }

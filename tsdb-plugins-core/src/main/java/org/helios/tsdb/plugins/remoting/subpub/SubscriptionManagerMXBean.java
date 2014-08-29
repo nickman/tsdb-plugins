@@ -24,8 +24,7 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
-import java.util.HashSet;
-
+import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
 import org.helios.tsdb.plugins.handlers.TSDBServiceMXBean;
 
 /**
@@ -42,4 +41,25 @@ public interface SubscriptionManagerMXBean extends TSDBServiceMXBean {
 	 * @return the active subscriptions
 	 */
 	public SubscriptionMBean[] getSubscriptions();
+	
+
+	
+	/**
+	 * Returns the number of channel dispatched events
+	 * @return the number of channel dispatched events
+	 */
+	public long getEventCount();
+	
+	/**
+	 * Returns the number of subscribed channels
+	 * @return the number of subscribed channels
+	 */
+	public int getChannelCount();
+	
+	/**
+	 * Returns the number of active subscriptions
+	 * @return the number of active subscriptions
+	 */
+	public int getSubscriptionCount();
+	
 }

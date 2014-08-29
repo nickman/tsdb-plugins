@@ -25,24 +25,31 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import net.opentsdb.core.TSDB;
+import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
+import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.utils.JSON;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
+import org.hbase.async.jsr166e.LongAdder;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
+import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
 import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
-import org.helios.tsdb.plugins.util.JMXHelper;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -50,6 +57,7 @@ import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stumbleupon.async.Callback;
 
 /**
  * <p>Title: SubscriptionManager</p>
@@ -74,6 +82,11 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	
 	/** The metric lookup service to prime subscription members */
 	protected MetricsMetaAPI metricSvc = null;
+	
+	/** Counter for propagated event messages */
+	protected final LongAdder events = new LongAdder();
+	
+	
 	
 	/**
 	 * Creates a new SubscriptionManager
@@ -102,7 +115,31 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 				return (resource!=null && (resource instanceof MetricsMetaAPI));
 			}
 		});
+		pluginContext.addResourceListener(
+				new IPluginContextResourceListener() {
+					@Override
+					public void onResourceRegistered(String name, Object resource) {
+						((JSONRequestRouter)resource).registerJSONService(rez);						
+					}
+				},
+				new IPluginContextResourceFilter() {
+					@Override
+					public boolean include(String name, Object resource) {						
+						return name.equals(JSONRequestRouter.class.getSimpleName());
+					}
+				}
+		);		
+		
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionManagerMXBean#getEventCount()
+	 */
+	public long getEventCount() {
+		return events.longValue();
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -139,9 +176,9 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 					subChannels.remove(channel);
 				}
 				if(remaining==0) {
-					allSubscriptions.remove(s);
+					allSubscriptions.remove(s.pattern.toString());
 					subscriptionChannels.remove(s.getSubscriptionId());
-					if(!subChannels.isEmpty()) {
+					if(subChannels!=null && !subChannels.isEmpty()) {
 						log.info("Subscription [{}] indicated zero subscribers, but [{}] channels remain subscribed", s, subChannels.size());
 						// notify the orphan channels
 						subChannels.clear();
@@ -151,17 +188,28 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		}		
 	}
 	
-	@JSON
-	public void subscribe(JSONRequest request, String expression) {
-		
+	/**
+	 * Subscribes the calling client to a subscription of events matching the passed expression
+	 * @param request The JSON request
+	 * <p>Invoker:<b><code>sendRemoteRequest('ws://localhost:4243/ws', {svc:'pubsub', op:'sub', {x:'sys*:dc=dc*,host=WebServer1|WebServer5'}});</code></b>
+	 */
+	@JSONRequestHandler(name="sub", sub=true, unsub="unsub", description="Creates a new subscription on behalf of the calling client")
+	public void subscribe(JSONRequest request) {
+		final String expression = request.getRequest().get("x").textValue();
+		final Channel channel = request.channel;
+		Subscription sub = subscribe(channel, expression);
+		request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).setContent(JSON.getMapper().createObjectNode().put("subId", sub.getSubscriptionId())).send();
 	}
+	
+	
 	
 	/**
 	 * Subscribes the passed channel to a subscription for the passed channel
 	 * @param channel The channel to subscribe
 	 * @param pattern The pattern of the subscription
+	 * @return The new or already existing subscription
 	 */
-	protected void subscribe(final Channel channel, final CharSequence pattern) {
+	protected Subscription subscribe(final Channel channel, final CharSequence pattern) {
 		if(channel==null) throw new IllegalArgumentException("The passed channel was null");
 		if(pattern==null) throw new IllegalArgumentException("The passed pattern was null");
 		if(metricSvc==null) throw new IllegalStateException("The SubscriptionManager has not been initialized", new Throwable());
@@ -174,6 +222,47 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 				sub = allSubscriptions.get(_pattern);
 				if(sub==null) {
 					sub = new Subscription(_pattern);
+					try {
+						final QueryContext q = new QueryContext().setContinuous(true).setMaxSize(10240);
+						final Subscription finalSub = sub;
+						final long startTime = System.currentTimeMillis();
+						metricSvc.evaluate(q.startExpiry(), pattern.toString()).addCallback(new Callback<Void, Set<TSMeta>>() {
+							int count = 0;
+							@Override
+							public Void call(Set<TSMeta> tsMetas) throws Exception {
+								try {
+									for(TSMeta tsMeta: tsMetas) {
+										finalSub._internalIndex(tsMeta);
+									}
+									count += tsMetas.size();
+									log.info("Q: {}", q);
+									if(!q.shouldContinue()) {
+										long elapsed = System.currentTimeMillis() - startTime;
+										log.info("Loaded [{}] TSMetas into Subscription Bloom Filter for pattern [{}] in [{}] ms.", count, finalSub.pattern, elapsed);
+									}
+								} catch (Exception ex) {
+									log.error("Failed to process load callback", ex);
+								}
+								return null;
+							}
+						}).addErrback(new Callback<Void, Throwable>() {
+							@Override
+							public Void call(Throwable t) throws Exception {
+								log.info("TSMeta Bloom Filter Load Failed for pattern [{}]", finalSub.pattern, t);
+								allSubscriptions.remove(finalSub.pattern.toString());
+								Set<Channel> channels = subscriptionChannels.remove(finalSub.getSubscriptionId());
+								if(channels!=null) {
+									for(Channel ch: channels) {
+										try { channelSubscriptions.get(ch.getId()).remove(finalSub); } catch (Exception x) {/* No Op */}
+									}
+								}
+								return null;
+							}
+						});
+						
+					} catch (Exception ex) {
+						throw new RuntimeException("Timed out on populating subscription for expression [" + pattern + "]");
+					}
 					allSubscriptions.put(_pattern, sub);
 				}
 			}
@@ -206,6 +295,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		if(subscribedChannels.add(channel)) {
 			channel.getCloseFuture().addListener(this);
 		}
+		return sub;
 	}
 	
 	/**
@@ -270,9 +360,9 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		if(allSubscriptions.isEmpty()) return;
 		try {
 			ObjectNode node = null;
-			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
+			final CharSequence cs = buildObjectName(metric, tags);
 			for(Subscription s: allSubscriptions.values()) {
-				if(s.isMemberOf(cs)) {
+				if(s.isMemberOf(tsuid)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {						
 						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
@@ -280,6 +370,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						for(Channel ch: channels) {
 							ch.write(node);
 						}
+						events.increment();
 					}
 				}
 			}			
@@ -301,9 +392,9 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		if(allSubscriptions.isEmpty()) return;
 		try {
 			ObjectNode node = null;
-			final CharSequence cs = JMXHelper.objectName(metric, tags).toString();
+			final CharSequence cs = buildObjectName(metric, tags);
 			for(Subscription s: allSubscriptions.values()) {
-				if(s.isMemberOf(cs)) {
+				if(s.isMemberOf(tsuid)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {
 						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
@@ -311,6 +402,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						for(Channel ch: channels) {
 							ch.write(node);
 						}
+						events.increment();
 					}
 				}
 			}			
@@ -318,7 +410,70 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 			log.error("Failed to process long data point", ex);
 		}		
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionManagerMXBean#getChannelCount()
+	 */
+	@Override
+	public int getChannelCount() {
+		return subscribedChannels.size();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionManagerMXBean#getSubscriptionCount()
+	 */
+	@Override
+	public int getSubscriptionCount() {
+		return allSubscriptions.size();
+	}
+	
 
+	static final ThreadLocal<StringBuilder> stringBuilder = new ThreadLocal<StringBuilder>() {
+		@Override
+		protected StringBuilder initialValue() {
+			return new StringBuilder(128);
+		}
+		@Override
+		public StringBuilder get() {
+			StringBuilder b = super.get();
+			b.setLength(0);
+			return b;
+		}
+	};
+	
+	
+	
+	static final CharSequence buildObjectName(final String metric, final List<UIDMeta> tags) {
+		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
+		String mname = metric==null || metric.isEmpty() ? "*" : metric;
+		StringBuilder b = stringBuilder.get().append(mname).append(":");
+		boolean k = true;		
+		for(final UIDMeta meta: tags) {
+			b.append(meta.getName());
+			if(k) {
+				b.append("=");
+			} else {
+				b.append(",");
+			}
+			k = !k;
+		}
+		b.deleteCharAt(b.length()-1);
+		return b.toString();
+		
+	}
+	
+	static final CharSequence buildObjectName(final String metric, final Map<String, String> tags) {
+		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
+		String mname = metric==null || metric.isEmpty() ? "*" : metric;
+		StringBuilder b = stringBuilder.get().append(mname).append(":");
+		for(final Map.Entry<String, String> e: tags.entrySet()) {
+			b.append(e.getKey()).append("=").append(e.getValue()).append(",");
+		}
+		b.deleteCharAt(b.length()-1);
+		return b.toString();
+	}
 
 	
 

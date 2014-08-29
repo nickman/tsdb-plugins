@@ -150,6 +150,7 @@ public class QueryContext {
 		builder.append(", elapsed=").append(elapsed);
 		builder.append(", maxSize=").append(maxSize);
 		builder.append(", exhausted=").append(exhausted);
+		builder.append(", expired=").append(isExpired());
 		builder.append(", cummulative=").append(cummulative);
 		if(nextIndex != null) {
 			builder.append(", nextIndex=").append(nextIndex);

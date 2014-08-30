@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.management.ObjectName;
 
 import net.opentsdb.meta.TSMeta;
+import net.opentsdb.uid.UniqueId;
 
 import org.hbase.async.jsr166e.LongAdder;
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
@@ -215,7 +216,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	public void index(final TSMeta tsMeta) {		
 		if(tsMeta!=null) {
-			if(filter.put(SubscriptionManager.buildObjectName(tsMeta.getMetric().getName(), tsMeta.getTags()).toString().getBytes())) {
+			if(filter.put(hasher.hashBytes(UniqueId.stringToUid(tsMeta.getTSUID())).asBytes())) {
 				retained.incrementAndGet();
 			}
 		}		
@@ -224,11 +225,11 @@ public class Subscription implements SubscriptionMBean {
 
 	/**
 	 * Indexes a time series id. Internal version that does not trigger stats or pubs.
-	 * @param tsMeta the time series
+	 * @param tsuid the time series TSUID bytes
 	 */
-	void _internalIndex(final TSMeta tsMeta) {		
-		if(tsMeta!=null) {
-			if(filter.put(SubscriptionManager.buildObjectName(tsMeta.getMetric().getName(), tsMeta.getTags()).toString().getBytes())) {
+	void _internalIndex(final byte[] tsuid) {		
+		if(tsuid!=null) {
+			if(filter.put(hasher.hashBytes(tsuid).asBytes())) {
 				retained.incrementAndGet();
 			}
 		}		

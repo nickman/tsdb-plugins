@@ -37,14 +37,12 @@ import com.stumbleupon.async.Deferred;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><b><code>net.opentsdb.catalog.JSONMetricsAPIService</code></b>
  */
-@JSONRequestService(name="meta")
+@JSONRequestService(name="meta", description="JSON service to implement remoting for the Metric API over HTTP and WebSockets")
 public class JSONMetricsAPIService {
 	/** The Metric Meta API impl used to serve this JSON service */
 	protected final MetricsMetaAPI metricApi;
 	/** Instance logger */
 	protected Logger log = LoggerFactory.getLogger(getClass());
-	
-	
 	/**
 	 * Creates a new JSONMetricsAPIService 
 	 * @param metricApi The Metric Meta API impl used to serve this JSON service
@@ -54,21 +52,30 @@ public class JSONMetricsAPIService {
 	}
 	
 	/**
-	 * HTTP and WebSocket exposed interface to {@link #getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])} 
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])}
 	 * @param request The JSON request
+	 * @param q The query context
+	 * @param tags The TSMeta tags to match the metric names for
 	 * <p>Sample request:<pre>
-	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricswtags", "q": { "pageSize" : 10 }, "tags" : {"host" : "*", "type" : "combined"}}
+		{
+		  "t": "req",
+		  "rid": 1,
+		  "svc": "meta",
+		  "op": "metricswtags",
+		  "q": {
+		    "pageSize": 10
+		  },
+		  "tags": {
+		    "host": "*",
+		    "type": "combined"
+		  }
+		}
 	 * </pre></p>
 	 */
-	/**
-	 * @param request
-	 * @param q
-	 * @param tags
-	 */
 	@JSONRequestHandler(name="metricswtags", description="Returns the MetricNames that match the passed tag pairs")
-	public void jsonMetricNamesWithTags(final JSONRequest request, final QueryContext q, final Map<String, String> tags) {
+	public void getMetricNamesWithTagsJSON(final JSONRequest request, final QueryContext q, final Map<String, String> tags) {
 		if(q==null) {
-			jsonMetricNamesWithTags(
+			getMetricNamesWithTagsJSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				getMap(request, "tags")				
@@ -76,36 +83,24 @@ public class JSONMetricsAPIService {
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);		
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonMetricNamesWithTags(request, ctx, tags);
-					}
-					return null;
-				}
-			});					
+			metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 		}
 	}
 	
 	/**
-	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])} 
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])}
 	 * @param request The JSON request
+	 * @param q The query context
+	 * @param tagKeys an array of tag keys to exclude
 	 * <p>Sample request:<pre>
-	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"metricnames", "q": { "pageSize" : 10 }, "keys" : ["host", "type", "cpu"] }
+	 * 
 	 * </pre></p>
-	 * API:  ws.serviceRequest("meta", "metricnames", {q: q, keys : ['host', 'type', 'cpu']})
-	 */
-	/**
-	 * @param request
-	 * @param q
-	 * @param tagKeys
+	 * FIXME: merge metric name functions
 	 */
 	@JSONRequestHandler(name="metricnames", description="Returns the MetricNames that match the passed tag keys")
-	public void jsonMetricNames(final JSONRequest request, final QueryContext q, final String...tagKeys) {
+	public void getMetricNamesJSON(final JSONRequest request, final QueryContext q, final String...tagKeys) {
 		if(q==null) {
-			jsonMetricNames(
+			getMetricNamesJSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				getStringArray(request, "keys")				
@@ -113,61 +108,96 @@ public class JSONMetricsAPIService {
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(tagKeys));		
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getMetricNames(q.startExpiry(), tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonMetricNames(request, ctx, tagKeys);
-					}
-					return null;
-				}
-			});					
+			metricApi.getMetricNames(q.startExpiry(), tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 		}
 	}
 	
 	/**
-	 * @param request
-	 * @param q
-	 * @param metric
-	 * @param tagKeys
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTagKeys(QueryContext, String, String...)}
+	 * @param request The JSON request
+	 * @param q The query context
+	 * @param metricName The optional TSMeta metric name to match
+	 * @param tagKeys The tag keys to match
+	 * <p>Sample request:<pre>
+			{
+			  "t": "req",
+			  "rid": 4,
+			  "svc": "meta",
+			  "op": "tagkeys",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "DEFAULT",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "keys": [
+			    "dc",
+			    "host"
+			  ],
+			  "m": "sys*"
+			}
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="tagkeys", description="Returns the Tag Key UIDs that match the passed metric name and tag keys")
-	public void jsonTagKeys(final JSONRequest request, final QueryContext q, final String metric, final String...tagKeys) {
+	public void getTagKeysJSON(final JSONRequest request, final QueryContext q, final String metricName, final String...tagKeys) {
 		if(q==null) {
-			jsonTagKeys(
+			getTagKeysJSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				request.getRequest().get("m").textValue(),
 				getStringArray(request, "keys")	
 			);
 		} else {
-			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metric, Arrays.toString(tagKeys));					
+			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(tagKeys));					
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTagKeys(q.startExpiry(), metric, tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonTagKeys(request, ctx, metric, tagKeys);
-					}
-					return null;
-				}
-			});
+			metricApi.getTagKeys(q.startExpiry(), metricName, tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 		}
 	}
 		
 	/**
-	 * @param request
-	 * @param q
-	 * @param metricName
-	 * @param tags
-	 * @param tagKey
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTagValues(QueryContext, String, Map, String)}
+	 * @param request The JSON request
+	 * @param q The query context
+	 * @param metricName The optional TSMeta metric name to match
+	 * @param tags The TSMeta tags to match
+	 * @param tagKey The value of the tag key to get values for
+	 * <p>Sample request:<pre>
+			{
+			  "t": "req",
+			  "rid": 12,
+			  "svc": "meta",
+			  "op": "tagvalues",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "DEFAULT",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "tags": {
+			    "host": "*Server*",
+			    "cpu": "*"
+			  },
+			  "m": "sys.cpu",
+			  "k": "type"
+			}
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="tagvalues", description="Returns the Tag Value UIDs that match the passed metric name and tag keys")
-	public void jsonTagValues(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags, final String tagKey) {
+	public void getTagValuesJSON(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags, final String tagKey) {
 		if(q==null) {
-			jsonTagValues(
+			getTagValuesJSON(
 				request, 
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				request.getRequest().get("m").textValue(),
@@ -177,28 +207,44 @@ public class JSONMetricsAPIService {
 		} else {
 			log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonTagValues(request, q, metricName, tags, tagKey);
-					}
-					return null;
-				}
-			});							
+			metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 		}
 	}
 
+	
 	/**
-	 * @param request
-	 * @param q 
-	 * @param expression 
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTagValues(QueryContext, String, Map, String)}
+	 * @param request The JSON request
+	 * @param q The query context
+	 * @param expression The TSMeta fully qualified metric name pattern to match. An expression is basically an {@link javax.management.ObjectName} analog where
+	 * the {@link javax.management.ObjectName#getDomain()} value is the metric name and the {@link javax.management.ObjectName#getKeyPropertyList()}
+	 * map represents the tags. Supports <b><code>*</code></b> wildcards for all segments and <b><code>|</code></b> multipliers for tag keys. 
+	 * <p>Sample request:<pre>
+			{
+			  "t": "req",
+			  "rid": 13,
+			  "svc": "meta",
+			  "op": "tsMetaEval",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "DEFAULT",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "x": "sys*:dc=dc*,host=WebServer1|WebServer5"
+			}
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="tsMetaEval", description="Returns the TSMetas that match the passed expression")
-	public void tsMetaX(final JSONRequest request, final QueryContext q, final String expression) {		
+	public void evaluateJSON(final JSONRequest request, final QueryContext q, final String expression) {		
 		if(q==null) {
-			tsMetaX(
+			evaluateJSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				request.getRequest().get("x").textValue()					
@@ -206,29 +252,45 @@ public class JSONMetricsAPIService {
 		} else {
 			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))			
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						tsMetaX(request, ctx, expression);
-					}
-					return null;
-				}
-			});					
+			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));			
 		}
 	}
 	
 	
 	/**
-	 * @param request
-	 * @param q
-	 * @param expression
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTagValues(QueryContext, String, Map, String)}
+	 * returning <a href="http://d3js.org"></a> friendly formatted JSON.
+	 * @param request The JSON request
+	 * @param q The query context
+	 * @param expression The TSMeta fully qualified metric name pattern to match. An expression is basically an {@link javax.management.ObjectName} analog where
+	 * the {@link javax.management.ObjectName#getDomain()} value is the metric name and the {@link javax.management.ObjectName#getKeyPropertyList()}
+	 * map represents the tags. Supports <b><code>*</code></b> wildcards for all segments and <b><code>|</code></b> multipliers for tag keys. 
+	 * <p>Sample request:<pre>
+			{
+			  "t": "req",
+			  "rid": 14,
+			  "svc": "meta",
+			  "op": "tsMetaEval",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "D3",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "x": "sys*:dc=dc*,host=WebServer1|WebServer5"
+			}
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
-	public void d3JsonTSMetaExpression(final JSONRequest request, final QueryContext q, final String expression) {
+	public void evaluateD3JSON(final JSONRequest request, final QueryContext q, final String expression) {
 		if(q==null) {
-			d3JsonTSMetaExpression(
+			evaluateD3JSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				request.getRequest().get("x").textValue()
@@ -245,22 +307,38 @@ public class JSONMetricsAPIService {
 	}
 	
 	/**
-	 * HTTP and WebSocket exposed interface to {@link #getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)} 
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)}
 	 * @param request The JSON request
+	 * @param q The query context
+	 * @param metricName The TSMeta metric name
+	 * @param tags The TSMeta metric tags
 	 * <p>Sample request:<pre>
-	 * 				{"t":"req", "rid":1, "svc":"meta", "op":"tsmetas", "q": { "pageSize" : 10 }, "m":"sys.cp*", "overflow":false,  "tags" : {"host" : "*NWHI*"}}
+			{
+			  "t": "req",
+			  "rid": 1,
+			  "svc": "meta",
+			  "op": "tsmetas",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "DEFAULT",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "m" : "sys*",
+			  "tags": {"dc" : "dc*", "host" : "WebServer1|WebServer5"}
+			}
 	 * </pre></p>
 	 */
-	/**
-	 * @param request
-	 * @param q
-	 * @param metricName
-	 * @param tags
-	 */
 	@JSONRequestHandler(name="tsmetas", description="Returns the MetricNames that match the passed tag pairs")
-	public void jsonTSMetas(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags) {
+	public void getTSMetasJSON(final JSONRequest request, final QueryContext q, final String metricName, final Map<String, String> tags) {
 		if(q==null) {
-			jsonTSMetas(
+			getTSMetasJSON(
 				request, 
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				request.getRequest().get("m").textValue(),
@@ -268,30 +346,44 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonTSMetas(request, ctx, metricName, tags);
-					}
-					return null;
-				}
-			});		
+			metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
 		}
 	}
 	
 	
 	/**
-	 * @param request
-	 * @param q
-	 * @param type
-	 * @param name
+	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#find(QueryContext, UniqueIdType, String)}
+	 * @param request The JSON request
+	 * @param q The query context
+	 * @param type The UID type as enumerated in {@link UniqueIdType}
+	 * @param name The UID name pattern to match. Supports <b><code>*</code></b> wildcards for all segments and <b><code>|</code></b> multipliers for tag keys.
+	 * <p>Sample request:<pre>
+			{
+			  "t": "req",
+			  "rid": 5,
+			  "svc": "meta",
+			  "op": "finduid",
+			  "q": {
+			    "nextIndex": null,
+			    "pageSize": 100,
+			    "maxSize": 2000,
+			    "timeout": 500,
+			    "continuous": false,
+			    "format": "DEFAULT",
+			    "exhausted": false,
+			    "cummulative": 0,
+			    "elapsed": -1,
+			    "expired": false
+			  },
+			  "name": "sys*",
+			  "type": "METRIC"
+			} 
+	 * </pre></p>
 	 */
 	@JSONRequestHandler(name="finduid", description="Returns all UIDMetas of the specified type that match the passed name")
-	public void find(final JSONRequest request, final QueryContext q, final UniqueIdType type, final String name) {
+	public void findJSON(final JSONRequest request, final QueryContext q, final UniqueIdType type, final String name) {
 		if(q==null) {
-			find(
+			findJSON(
 				request,
 				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
 				UniqueIdType.valueOf(request.getRequest().get("type").textValue().trim().toUpperCase()),
@@ -299,16 +391,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.find(q.startExpiry(), type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						find(request, ctx, type, name);
-					}
-					return null;
-				}
-			});				
+			metricApi.find(q.startExpiry(), type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
 		}
 	}
 	

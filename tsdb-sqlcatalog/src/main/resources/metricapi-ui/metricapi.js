@@ -422,6 +422,9 @@ WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
 	};
 	pendingRequest.self = pendingRequest;
 	this.addPendingRequest(pendingRequest);
+	console.group("Raw JSON Request");
+	console.info(JSON.stringify(obj))
+	console.groupEnd();	
 	this.ws.send(JSON.stringify(obj));
 	var promise = deferred.promise();
 	promise.rid = RID;

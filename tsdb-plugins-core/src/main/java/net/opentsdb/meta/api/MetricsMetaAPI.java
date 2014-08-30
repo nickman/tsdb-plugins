@@ -31,7 +31,12 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
+
+import org.jdeferred.Promise;
+
 import com.stumbleupon.async.Deferred;
+
+
 
 /**
  * <p>Title: MetricsMetaAPI</p>
@@ -113,9 +118,9 @@ public interface MetricsMetaAPI {
 	 * @param queryContext The query options for this call
 	 * @param metricName The metric name to match
 	 * @param tags The tag pairs to match
-	 * @return A deferred set of matching TSMetas 
+	 * @return A continuous observable set of matching TSMetas 
 	 */
-	public Deferred<Set<TSMeta>> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
+	public Promise<Void, Throwable, Set<TSMeta>> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
 	
 	
 
@@ -127,7 +132,7 @@ public interface MetricsMetaAPI {
 	 * @param queryContext The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Deferred<Set<TSMeta>> evaluate(QueryContext queryContext, String expression);
+	public Promise<Void, Throwable, Set<TSMeta>> evaluate(QueryContext queryContext, String expression);
 	
 	
 	public Deferred<Set<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);

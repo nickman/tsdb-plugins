@@ -31,6 +31,8 @@ import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 
+
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -345,10 +347,6 @@ public class QueryContext {
 		this.format = serName;
 	}
 	
-	/**
-	 * Returns the ObjectMapper defined by the format
-	 * @return the ObjectMapper defined by the format
-	 */
 	@JsonIgnore
 	public ObjectMapper getMapper() {
 		try {
@@ -359,9 +357,5 @@ public class QueryContext {
 	}
 
 
-
-
-	
-	
 
 }

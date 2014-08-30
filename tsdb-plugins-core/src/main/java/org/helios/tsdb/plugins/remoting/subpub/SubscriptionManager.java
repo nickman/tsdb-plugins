@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.management.openmbean.CompositeData;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -44,6 +46,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.hbase.async.jsr166e.LongAdder;
+import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
@@ -85,12 +88,16 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	
 	
 	/** The metric lookup service to prime subscription members */
-	protected MetricsMetaAPI metricSvc = null;
-	
+	protected MetricsMetaAPI metricSvc = null;	
 	/** Counter for propagated event messages */
 	protected final LongAdder events = new LongAdder();
+	/** A EWMA for measuring the elapsed time of processing an event */
+	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
+
 	
-	
+	/** The default multiplier factor where a subscription's bloom filter will be the size of the initial load
+	 * multiplied by this value */  // FIXME: this should be configurable
+	public static final float DEFAULT_BLOOM_FILTER_SPACE_FACTOR = 1.2f;
 	
 	/**
 	 * Creates a new SubscriptionManager
@@ -217,7 +224,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		
 	}
 	
-	public static final float DEFAULT_BLOOM_FILTER_SPACE_FACTOR = 1.2f;
+	
 	
 	/**
 	 * Subscribes the passed channel to a subscription for the passed channel
@@ -389,9 +396,9 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	 */
 	public void onDataPoint(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
 		if(allSubscriptions.isEmpty()) return;
+		final long startTime = System.nanoTime();
 		try {
 			ObjectNode node = null;
-			final CharSequence cs = buildObjectName(metric, tags);
 			for(Subscription s: allSubscriptions.values()) {
 				if(s.isMemberOf(tsuid)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
@@ -404,8 +411,10 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						events.increment();
 					}
 				}
-			}			
+			}
+			ewma.append(System.nanoTime()-startTime);
 		} catch (Exception ex) {
+			ewma.error();
 			log.error("Failed to process double data point", ex);
 		}
 	}
@@ -422,8 +431,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	public void onDataPoint(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
 		if(allSubscriptions.isEmpty()) return;
 		try {
-			ObjectNode node = null;
-			final CharSequence cs = buildObjectName(metric, tags);
+			final long startTime = System.nanoTime();
+			ObjectNode node = null;			
 			for(Subscription s: allSubscriptions.values()) {
 				if(s.isMemberOf(tsuid)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
@@ -436,8 +445,10 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						events.increment();
 					}
 				}
-			}			
+			}		
+			ewma.append(System.nanoTime()-startTime);
 		} catch (Exception ex) {
+			ewma.error();
 			log.error("Failed to process long data point", ex);
 		}		
 	}
@@ -460,7 +471,18 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		return allSubscriptions.size();
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionManagerMXBean#getEWMA()
+	 */
+	@Override
+	public CompositeData getEWMA() {
+		return ewma.toCompositeData(null);
+	}
 
+	
+	
+	/** Fast string builder support */
 	static final ThreadLocal<StringBuilder> stringBuilder = new ThreadLocal<StringBuilder>() {
 		@Override
 		protected StringBuilder initialValue() {
@@ -476,6 +498,12 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	
 	
 	
+	/**
+	 * Builds a stringy from the passed metric name and UID tags
+	 * @param metric The metric name
+	 * @param tags The UID tags
+	 * @return a stringy
+	 */
 	static final CharSequence buildObjectName(final String metric, final List<UIDMeta> tags) {
 		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
 		String mname = metric==null || metric.isEmpty() ? "*" : metric;

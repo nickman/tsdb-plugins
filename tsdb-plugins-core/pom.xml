@@ -39,6 +39,12 @@
 		</dependency>    
 -->
 
+			<dependency>
+			  <groupId>org.jdeferred</groupId>
+			  <artifactId>jdeferred-core</artifactId>
+			</dependency>
+
+
         <dependency>
 	  <groupId>net.sf.trove4j</groupId>
 	  <artifactId>trove4j</artifactId>

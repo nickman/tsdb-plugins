@@ -59,6 +59,7 @@
 		<hbase-test.version>0.94.16</hbase-test.version>
 		<phoenix.version>4.0.0-incubating</phoenix.version>
 		<chronicle.version>3.2.1</chronicle.version>
+		<jdeferred.version>1.2.3</jdeferred.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -215,7 +216,20 @@
 			  <version>${lucene.version}</version>
 			  <scope>test</scope>
 			</dependency>				
-			
+
+		    <!--
+		      ========================================
+		      JDeferred Artifacts
+		      ========================================
+		      -->
+
+			<dependency>
+			  <groupId>org.jdeferred</groupId>
+			  <artifactId>jdeferred-core</artifactId>
+			  <version>${jdeferred.version}</version>
+			</dependency>
+
+
 		    <!--
 		      ========================================
 		      JDBC DB Artifacts

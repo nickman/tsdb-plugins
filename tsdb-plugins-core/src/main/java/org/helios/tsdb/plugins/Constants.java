@@ -137,7 +137,7 @@ public class Constants {
 	/** The config property name for the async dispatcher work queue size */
 	public static final String ASYNC_QUEUE_SIZE = "helios.events.async.queuesize";
 	/** The default async dispatcher work queue size */
-	public static final int DEFAULT_ASYNC_QUEUE_SIZE = 1024;
+	public static final int DEFAULT_ASYNC_QUEUE_SIZE = 10240;
 	
 	/** The config property name for the thread pool name */
 	public static final String ASYNC_EXECUTOR_NAME = "helios.events.async.name";

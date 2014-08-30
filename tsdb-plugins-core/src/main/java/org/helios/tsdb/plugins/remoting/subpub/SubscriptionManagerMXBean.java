@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import javax.management.openmbean.CompositeData;
+
 import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
 import org.helios.tsdb.plugins.handlers.TSDBServiceMXBean;
 
@@ -42,6 +44,11 @@ public interface SubscriptionManagerMXBean extends TSDBServiceMXBean {
 	 */
 	public SubscriptionMBean[] getSubscriptions();
 	
+	/**
+	 * Returns the EWMA performance metrics for event processing
+	 * @return the EWMA performance metrics for event processing
+	 */
+	public CompositeData getEWMA();
 
 	
 	/**

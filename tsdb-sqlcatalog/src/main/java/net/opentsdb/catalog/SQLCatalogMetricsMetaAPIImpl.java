@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -79,12 +80,12 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jdeferred.Promise;
+import org.jdeferred.impl.DeferredObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-
 
 /**
  * <p>Title: SQLCatalogMetricsMetaAPIImpl</p>
@@ -737,10 +738,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+	public Promise<Void, Throwable, Set<TSMeta>> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
 		return getTSMetas(null, queryContext, metricName, tags);
 	}
-		
 	
 	/**
 	 * Executes a TSMetas query
@@ -751,8 +751,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tags The optional TSMeta tags. Will be substituted with an empty map if null.
 	 * @return the deferred result
 	 */
-	protected Deferred<Set<TSMeta>> getTSMetas(final Deferred<Set<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
-		final Deferred<Set<TSMeta>> def = priorDeferred==null ? new Deferred<Set<TSMeta>>() : priorDeferred;
+	protected Promise<Void, Throwable, Set<TSMeta>> getTSMetas(final org.jdeferred.Deferred<Void, Throwable, Set<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+		final org.jdeferred.Deferred<Void, Throwable, Set<TSMeta>> def = priorDeferred==null ? new org.jdeferred.impl.DeferredObject<Void, Throwable, Set<TSMeta>>() : priorDeferred;
 		final String _metricName = (metricName==null || metricName.trim().isEmpty()) ? "*" : metricName.trim();
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
 		this.metaQueryExecutor.execute(new Runnable() {
@@ -782,17 +782,20 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryContext, 
 							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
 					); 
-					def.callback(tsMetas);
+					
+					def.notify(tsMetas);					
 					if(queryContext.shouldContinue()) {
 						getTSMetas(def, queryContext, _metricName, _tags);
+					} else {
+						def.resolve(null);
 					}
 				} catch (Exception ex) {
 					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
-					def.callback(ex);					
+					def.reject(ex);			
 				}
 			}
 		});
-		return def;
+		return def.promise();
 		
 	}
 	
@@ -937,16 +940,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<TSMeta>> evaluate(final QueryContext queryContext, final String expression) {
+	public Promise<Void, Throwable, Set<TSMeta>> evaluate(final QueryContext queryContext, final String expression) {
 		if(expression==null || expression.trim().isEmpty()) {
-			return Deferred.fromError(new IllegalArgumentException("The passed expression was null or empty"));
+			throw new IllegalArgumentException("The passed expression was null or empty");
 		}
 		final String expr = expression.trim();
 		try {			
 			final ObjectName on = JMXHelper.objectName(expr);
 			return getTSMetas(null, queryContext, on.getDomain(), on.getKeyPropertyList());
 		} catch (Exception ex) {
-			return Deferred.fromError(new Exception("Failed to evaluate expression [" + expr + "]", ex));
+			return new DeferredObject<Void, Throwable, Set<TSMeta>>().reject(ex).promise();
 		}
 	}
 	

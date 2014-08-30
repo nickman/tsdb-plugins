@@ -505,6 +505,12 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	return this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
 };
 
+WebSocketAPIClient.prototype.subscribe = function(expression) {
+	this.ws.send(JSON.stringify(
+		{t: "req", rid: 1, svc:'pubsub', op:'sub', x:expression}
+	));
+};
+
 WebSocketAPIClient.prototype.services = function() {	
 	return this.serviceRequest("router", "services");	
 };

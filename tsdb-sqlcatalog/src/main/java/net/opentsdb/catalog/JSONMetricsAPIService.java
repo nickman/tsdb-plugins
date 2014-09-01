@@ -18,6 +18,7 @@ import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSON;
 
+import org.helios.jmx.util.helpers.StringHelper;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -511,8 +512,6 @@ public class JSONMetricsAPIService {
 		protected void reset() {
 			try {
 				firstResult = false;
-				jgen = response.writeHeader(false);				
-				jgen.writeStartArray();
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to create JSON output streamer", ex);
 			}			
@@ -522,10 +521,14 @@ public class JSONMetricsAPIService {
 		protected void handleError(final Throwable t) {
 			ctx.setExhausted(true);
 			try {
+				response.setOpCode("error");
+				jgen = response.writeHeader(false);				
+
 				jgen.writeObject(ctx);
-				jgen.writeObject(t);
+				jgen.writeObject(t.getMessage());
+				jgen.writeObject(StringHelper.formatStackTrace(t));
 //				jgen.writeString("The request timed out");
-				response = response.setOpCode("error").closeGenerator();
+				response = response.closeGenerator();
 				log.warn("Timeout message dispatched");
 				throw new RuntimeException("Request Expired");
 			} catch (Exception ex) {
@@ -545,16 +548,17 @@ public class JSONMetricsAPIService {
 				log.info("Calling complete on thread [{}]", Thread.currentThread().getName());
 				complete();
 				return;
-			} else {
-				try {
-					if(!firstResult) {
-						jgen.setCodec(ctx.getMapper());
-						firstResult = true;
-					}
-					jgen.writeObject(t);
-				} catch (Exception ex) {
-					throw new RuntimeException("Failed to write accepted instance to JSON output streamer", ex);
+			}
+			try {
+				if(!firstResult) {
+					jgen.setCodec(ctx.getMapper());
+					jgen = response.writeHeader(false);				
+					jgen.writeStartArray();					
+					firstResult = true;
 				}
+				jgen.writeObject(t);
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to write accepted instance to JSON output streamer", ex);
 			}
 		}
 		

@@ -797,7 +797,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 //		this.metaQueryExecutor.execute(new Runnable() {
 			@SuppressWarnings("boxing")
 			public void run() {				
-				SystemClock.sleep(2000);
+				SystemClock.sleep(0);
 				final List<Object> binds = new ArrayList<Object>();
 //				String sql = null;
 				final StringBuilder sqlBuffer = new StringBuilder();
@@ -840,7 +840,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					final int pageRows = queryContext.getPageSize();
 					Iterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
 					if(queryContext.isExpired()) {
-						def.acceptEvent(new Event(new TimeoutException()));
+						def.acceptEvent(new Event(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms.]")));
 						try { rset.close(); } catch (Exception ex) {}
 						return;
 					}

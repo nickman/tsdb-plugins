@@ -12,7 +12,6 @@ import java.util.Set;
 
 import net.opentsdb.utils.JSON;
 
-import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferFactory;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
@@ -30,11 +29,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.POJONode;
 
 /**
  * <p>Title: JSONResponse</p>
@@ -286,6 +282,8 @@ public class JSONResponse implements ChannelBufferizable {
 			jsonGen.writeNumberField("id", id);
 			jsonGen.writeNumberField("rerid", reRequestId);
 			jsonGen.writeStringField("t", type);
+			jsonGen.writeStringField("op", opCode);
+			
 			if(openedAsMap) {
 				jsonGen.writeObjectFieldStart("msg");
 			} else {
@@ -295,6 +293,19 @@ public class JSONResponse implements ChannelBufferizable {
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to create JsonGenerator", ex);
 		}
+	}
+	
+	private static String printOutputContext(JsonStreamContext ctx) {
+		return new StringBuilder("JSONContext [")
+		.append("\n\tCurrent Index:").append(ctx.getCurrentIndex())
+		.append("\n\tCurrent Name:").append(ctx.getCurrentName())
+		.append("\n\tEntry Count:").append(ctx.getEntryCount())
+		.append("\n\tType Desc:").append(ctx.getTypeDesc())
+		.append("\n\tIn Array:").append(ctx.inArray())
+		.append("\n\tIn Object:").append(ctx.inObject())
+		.append("\n\tIn Root:").append(ctx.inRoot())
+		.append("\n]").toString();
+		
 	}
 	
 	/**
@@ -309,7 +320,7 @@ public class JSONResponse implements ChannelBufferizable {
 			} else {
 				jsonGen.writeEndArray();
 			}
-			System.out.println("Output Context: " + jsonGen.getOutputContext().getCurrentName() + ", " +  jsonGen.getOutputContext().getTypeDesc() + ": " + jsonGen.getOutputContext().inObject() + ":  " + jsonGen.getOutputContext().inRoot()) ;
+			System.out.println(printOutputContext(jsonGen.getOutputContext())) ;
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();

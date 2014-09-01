@@ -25,6 +25,7 @@
 package net.opentsdb.catalog;
 
 import java.sql.ResultSet;
+import java.util.Iterator;
 import java.util.List;
 
 import net.opentsdb.meta.Annotation;
@@ -73,6 +74,21 @@ public interface MetaReader {
 	 * @return a [possibly empty] collection of TSMetas
 	 */
 	public List<TSMeta> readTSMetas(ResultSet rset, boolean includeUIDs);
+	
+	/**
+	 * Returns a TSMeta iterator for the passed result set (no UIDMetas for the metric or tags)
+	 * @param rset The result set to read from
+	 * @return a TSMeta iterator
+	 */
+	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset);
+	
+	/**
+	 * Returns a TSMeta iterator for the passed result set 
+	 * @param rset The result set to read from
+	 * @param includeUIDs true to load UIDs, false otherwise
+	 * @return the TSMeta iterator
+	 */
+	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset, final boolean includeUIDs);	
 	
 	/**
 	 * Returns a collection of {@link Annotation}s read from the passed {@link ResultSet}.

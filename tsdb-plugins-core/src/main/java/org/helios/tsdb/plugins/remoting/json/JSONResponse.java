@@ -277,7 +277,7 @@ public class JSONResponse implements ChannelBufferizable {
 	 * should be written using the returned generator, followed by a call to closeGenerator.
 	 * @return the created generator.
 	 */
-	public JsonGenerator writeHeader(boolean map) {
+	public JsonGenerator writeHeader(final boolean map) {
 		if(jsonGen!=null) throw new RuntimeException("The json generator has already been set");
 		try {
 			openedAsMap = map;
@@ -309,12 +309,16 @@ public class JSONResponse implements ChannelBufferizable {
 			} else {
 				jsonGen.writeEndArray();
 			}
+			System.out.println("Output Context: " + jsonGen.getOutputContext().getCurrentName() + ", " +  jsonGen.getOutputContext().getTypeDesc() + ": " + jsonGen.getOutputContext().inObject() + ":  " + jsonGen.getOutputContext().inRoot()) ;
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();
-			return this;
+			return this.clone();
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to close JsonGenerator", ex);
+		} finally {
+			jsonGen = null;
+			channelOutputStream = null;
 		}
 		
 	}

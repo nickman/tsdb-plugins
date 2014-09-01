@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.channels.FileChannel;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,12 +41,12 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.JarEntry;
@@ -72,6 +73,7 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
 
+import org.helios.jmx.util.helpers.SystemClock;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.serialization.Serializers;
 import org.helios.tsdb.plugins.service.PluginContext;
@@ -80,10 +82,13 @@ import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jdeferred.Promise;
-import org.jdeferred.impl.DeferredObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import reactor.core.Environment;
+import reactor.core.composable.Stream;
+import reactor.core.composable.spec.Streams;
+import reactor.event.Event;
 
 import com.stumbleupon.async.Deferred;
 
@@ -98,6 +103,10 @@ import com.stumbleupon.async.Deferred;
 public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExceptionHandler {
 	/** The MetricsMetaAPIService service executor */
 	protected final AsyncDispatcherExecutor metaQueryExecutor;
+	/** The reactor dispatcher */
+	protected final SuppliedTPEMultiThreadDispatcher dispatcher;
+	/** The reactor environment */
+	protected final Environment env;
 	/** The SQLWorker to manage JDBC Ops */
 	protected final SQLWorker sqlWorker;
 	/** The TSDB instance */
@@ -126,6 +135,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	/** Empty Annotation set const */
 	private static final Set<Annotation> EMPTY_ANNOTATION_SET =  Collections.unmodifiableSet(new LinkedHashSet<Annotation>(0));
 	
+	
+	/** The reactor dispatcher name */
+	public static final String DISPATCHER_NAME = "MetricsMetaAPIDispatcher";
 	
 	/** Empty string array const */
 	public static final String[] EMPTY_STR_ARR = {};
@@ -225,7 +237,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	/** The initial start range if no starting index is supplied. Token is the target table alias  */
 	public static final String INITIAL_TSUID_START_SQL = " X.TSUID <= '" + MAX_TSUID + "'";
 	/** The initial start range if a starting index is supplied. Token is the target table alias */
-	public static final String TSUID_START_SQL = " X.TSUID < ? " ;
+	public static final String TSUID_START_SQL = " X.TSUID <= ? " ;
 
 	/*
 	 * 
@@ -274,6 +286,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	public SQLCatalogMetricsMetaAPIImpl(SQLWorker sqlWorker, MetaReader metaReader, TSDB tsdb, PluginContext ctx) {
 		metaQueryExecutor = new AsyncDispatcherExecutor("MetricsMetaAPIService", ctx.getExtracted());
 		metaQueryExecutor.registerUncaughtExceptionHandler(this);
+		dispatcher = new SuppliedTPEMultiThreadDispatcher(metaQueryExecutor);
+		env = new Environment();
+		env.addDispatcher(DISPATCHER_NAME, dispatcher);
+		
 		this.sqlWorker = sqlWorker;
 		this.tsdb = tsdb;
 		Serializers.setTSDB(tsdb);
@@ -733,13 +749,25 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	/** An empty tags map const */
 	public static final Map<String, String> EMPTY_TAGS = Collections.unmodifiableMap(new HashMap<String, String>(0));
 	
+	private <T> reactor.core.composable.Deferred<T, Stream<T>> getDeferredStream() {
+		return Streams.<T>defer()
+//		  .env(env)
+//		  .dispatcher(DISPATCHER_NAME)
+				//.dispatcher(new SynchronousDispatcher())
+				.dispatcher(this.dispatcher)
+		  .get();
+	}
+	
+	
+	
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)
 	 */
 	@Override
-	public Promise<Void, Throwable, Set<TSMeta>> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
-		return getTSMetas(null, queryContext, metricName, tags);
+	public Stream<TSMeta> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+		return getTSMetas(null, queryContext.startExpiry(), metricName, tags);
 	}
 	
 	/**
@@ -751,13 +779,25 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tags The optional TSMeta tags. Will be substituted with an empty map if null.
 	 * @return the deferred result
 	 */
-	protected Promise<Void, Throwable, Set<TSMeta>> getTSMetas(final org.jdeferred.Deferred<Void, Throwable, Set<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
-		final org.jdeferred.Deferred<Void, Throwable, Set<TSMeta>> def = priorDeferred==null ? new org.jdeferred.impl.DeferredObject<Void, Throwable, Set<TSMeta>>() : priorDeferred;
+	protected Stream<TSMeta> getTSMetas(final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+		final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> def;
+		if(priorDeferred != null) {
+			def = priorDeferred;
+		} else {
+			def = getDeferredStream();
+		}
+		final Stream<TSMeta> stream = def.compose();
+//		
+//		= priorDeferred==null ? getComposable(queryContext.isContinuous()) : priorDeferred;
+//		final Composable<Set<TSMeta>> def = priorDeferred==null ? getComposable(queryContext.isContinuous()) : priorDeferred;
 		final String _metricName = (metricName==null || metricName.trim().isEmpty()) ? "*" : metricName.trim();
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
-		this.metaQueryExecutor.execute(new Runnable() {
+		
+		this.dispatcher.execute(new Runnable() {
+//		this.metaQueryExecutor.execute(new Runnable() {
 			@SuppressWarnings("boxing")
 			public void run() {				
+				SystemClock.sleep(2000);
 				final List<Object> binds = new ArrayList<Object>();
 //				String sql = null;
 				final StringBuilder sqlBuffer = new StringBuilder();
@@ -779,23 +819,73 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					//	LOADS TSMETAS FROM THE SQL CATALOG DB
 					// =================================================================================================================================
 					
-					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryContext, 
-							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
-					); 
 					
-					def.notify(tsMetas);					
-					if(queryContext.shouldContinue()) {
-						getTSMetas(def, queryContext, _metricName, _tags);
-					} else {
-						def.resolve(null);
+//					protected static Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {		
+//						if(readMetas.isEmpty()) {
+//							ctx.setExhausted(true).setNextIndex(null);			
+//							return EMPTY_TSMETA_SET;
+//						}
+//						final int size = readMetas.size(); 		
+//						if(size < modPageSize) {
+//							ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
+//						} else {
+//							ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getTSUID()).incrementCummulative(size-1);
+//							readMetas.remove(size-1);
+//						}
+//						return readMetas.isEmpty() ? EMPTY_TSMETA_SET : new LinkedHashSet<TSMeta>(readMetas);
+//					}
+					
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), false, binds.toArray(new Object[0]));
+					int rowsRead = 0;
+					final int pageRows = queryContext.getPageSize();
+					Iterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
+					if(queryContext.isExpired()) {
+						def.acceptEvent(new Event(new TimeoutException()));
+						try { rset.close(); } catch (Exception ex) {}
+						return;
 					}
+					while(rowsRead < pageRows && iter.hasNext()) {						
+						def.accept(iter.next());
+//						def.flush();
+						rowsRead++;
+					}
+					log.info("Deferred Accepted [{}] rows", rowsRead);
+					if(iter.hasNext()) {
+						log.info("Iter had next");
+						queryContext.setExhausted(false).setNextIndex(iter.next().getTSUID()).incrementCummulative(rowsRead);
+					} else {
+						log.info("Iter final");
+						queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
+					}
+					try { rset.close(); } catch (Exception x) {/* No Op */}
+					
+					log.info("Sending end on thread [{}]", Thread.currentThread().getName());
+					def.accept((TSMeta)null);
+					
+					
+					if(queryContext.shouldContinue()) {
+						log.info("QC Still has rows.");
+						
+						getTSMetas(def, queryContext.startExpiry(), _metricName, _tags);
+					}
+					
+					
+//					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryContext, 
+//							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
+//					); 
+//					for(TSMeta tsMeta: tsMetas) {
+//						def.accept(tsMeta);
+//					}
+					
+					
+										
 				} catch (Exception ex) {
 					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
-					def.reject(ex);			
+					def.accept(new Exception("Failed to execute getTSMetas", ex));
 				}
 			}
 		});
-		return def.promise();
+		return stream;
 		
 	}
 	
@@ -940,16 +1030,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String)
 	 */
 	@Override
-	public Promise<Void, Throwable, Set<TSMeta>> evaluate(final QueryContext queryContext, final String expression) {
+	public Stream<TSMeta> evaluate(final QueryContext queryContext, final String expression) {
 		if(expression==null || expression.trim().isEmpty()) {
 			throw new IllegalArgumentException("The passed expression was null or empty");
 		}
 		final String expr = expression.trim();
 		try {			
 			final ObjectName on = JMXHelper.objectName(expr);
-			return getTSMetas(null, queryContext, on.getDomain(), on.getKeyPropertyList());
+			return getTSMetas(null, queryContext.startExpiry(), on.getDomain(), on.getKeyPropertyList());
 		} catch (Exception ex) {
-			return new DeferredObject<Void, Throwable, Set<TSMeta>>().reject(ex).promise();
+			throw new RuntimeException("Failed to process expression [" + expr + "]", ex);
 		}
 	}
 	

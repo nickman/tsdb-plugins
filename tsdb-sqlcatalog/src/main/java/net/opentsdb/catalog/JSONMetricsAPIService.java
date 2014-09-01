@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -18,13 +19,16 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
-import org.helios.tsdb.plugins.remoting.json.serialization.Serializers.TSMetaTree;
 import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.function.Consumer;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stumbleupon.async.Callback;
@@ -251,8 +255,8 @@ public class JSONMetricsAPIService {
 			);			
 		} else {
 			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.evaluate(q.startExpiry(), expression).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));			
+			//request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
+			metricApi.evaluate(q, expression).consume(new ResultConsumer<TSMeta>(request, q));			
 		}
 	}
 	
@@ -287,24 +291,24 @@ public class JSONMetricsAPIService {
 			}
 	 * </pre></p>
 	 */
-	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
-	public void evaluateD3JSON(final JSONRequest request, final QueryContext q, final String expression) {
-		if(q==null) {
-			evaluateD3JSON(
-				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
-				request.getRequest().get("x").textValue()
-			);
-		} else {
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
-				@Override
-				public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
-					return TSMetaTree.build("org", tsMetas);
-				}
-			}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));			
-		}
-	}
+//	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
+//	public void evaluateD3JSON(final JSONRequest request, final QueryContext q, final String expression) {
+//		if(q==null) {
+//			evaluateD3JSON(
+//				request,
+//				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+//				request.getRequest().get("x").textValue()
+//			);
+//		} else {
+//			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
+//			metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
+//				@Override
+//				public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
+//					return TSMetaTree.build("org", tsMetas);
+//				}
+//			}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));			
+//		}
+//	}
 	
 	/**
 	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)}
@@ -345,8 +349,8 @@ public class JSONMetricsAPIService {
 				getMap(request, "tags")
 			);
 		} else {
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTSMetas(q.startExpiry(), metricName, tags).addCallback(new ResultCompleteCallback<Set<TSMeta>>(request, q));
+//			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
+			metricApi.getTSMetas(q, metricName, tags).consume(new ResultConsumer<TSMeta>(request, q));
 		}
 	}
 	
@@ -478,6 +482,96 @@ public class JSONMetricsAPIService {
 			map.put(k, tagNode.get(k).asText());
 		}
 		return map;		
+	}
+	
+	class ResultConsumer<T> implements Consumer<T> {
+		/** The original JSON request */
+		private final JSONRequest request;		
+		/** The current query context */
+		private final QueryContext ctx;
+		/** The streaming json generator */
+		private JsonGenerator jgen;
+		
+		private JSONResponse response = null;
+		private boolean firstResult = false;
+		
+		/**
+		 * Creates a new ResultConsumer
+		 * @param request The original JSON request
+		 * @param ctx The current query context
+		 */
+		public ResultConsumer(JSONRequest request, QueryContext ctx) {
+			super();
+			this.request = request;
+			this.ctx = ctx;
+			response = request.response();
+			reset();			
+		}
+		
+		protected void reset() {
+			try {
+				firstResult = false;
+				jgen = response.writeHeader(false);				
+				jgen.writeStartArray();
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to create JSON output streamer", ex);
+			}			
+		}
+		
+
+		protected void handleError(final Throwable t) {
+			ctx.setExhausted(true);
+			try {
+				jgen.writeObject(ctx);
+				jgen.writeObject(t);
+//				jgen.writeString("The request timed out");
+				response = response.setOpCode("error").closeGenerator();
+				log.warn("Timeout message dispatched");
+				throw new RuntimeException("Request Expired");
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
+			}							
+		}
+		
+		@Override
+		public synchronized void accept(final T t) {
+			
+//			log.info("Accepting [{}]", t);
+			if(t!=null && t instanceof Throwable) {
+				handleError((Throwable)t);
+				return;
+			}
+			if(t==null) {
+				log.info("Calling complete on thread [{}]", Thread.currentThread().getName());
+				complete();
+				return;
+			} else {
+				try {
+					if(!firstResult) {
+						jgen.setCodec(ctx.getMapper());
+						firstResult = true;
+					}
+					jgen.writeObject(t);
+				} catch (Exception ex) {
+					throw new RuntimeException("Failed to write accepted instance to JSON output streamer", ex);
+				}
+			}
+		}
+		
+		private void complete() {
+			try {
+				jgen.writeEndArray();
+				jgen.writeObject(ctx);				
+				response = response.closeGenerator();
+				log.info("\n\t**********************\n\tElapsed:{} ms.\n\t**********************", ctx.getElapsed());
+				reset();				
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to close array in JSON output stream", ex);
+			} finally {
+				
+			}
+		}
+		
 	}
 	
 	/**

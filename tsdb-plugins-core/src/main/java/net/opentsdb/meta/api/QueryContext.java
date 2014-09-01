@@ -33,6 +33,9 @@ import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +50,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 
 public class QueryContext {
+	/** Static class logger */
+	@JsonIgnore
+	protected static final Logger log = LoggerFactory.getLogger(QueryContext.class);
+	
 	/** The maximum size of each page of results to be returned */
 	protected int pageSize = 100;
 	/** The timeout on each submitted request in ms. */
@@ -60,6 +67,8 @@ public class QueryContext {
 	protected boolean continuous = false;
 	/** The JSON seralization format to use for serializing the response objects for this query context */
 	protected String format = "DEFAULT";
+	/** Indicates hard expired */
+	protected boolean expired = false;
 
 	
 	/** The starting index for the next chunk */
@@ -72,26 +81,18 @@ public class QueryContext {
 	protected int cummulative = 0;
 	
 	
-	public static void main(String[] args) {
-		System.out.println(new QueryContext());
-		System.out.println("===");
-		String s = new String(new QueryContext().toJSON(), Charset.defaultCharset());
-		System.out.println(s);
-		System.out.println("===");
-		System.out.println(QueryContext.parse(s.getBytes()));
+
+	public byte[] toJSON() {
+		return JSON.serializeToBytes(this);
 	}
 
-		public byte[] toJSON() {
-			return JSON.serializeToBytes(this);
-		}
-	
-	  public static QueryContext parse(final byte[] bytes) {
-		  return JSON.parseToObject(bytes, QueryContext.class);
-	  }
-	  
-	  public static QueryContext parse(final JsonNode node) {
-		  return JSON.parseToObject(JSON.serializeToBytes(node), QueryContext.class);
-	  }
+	public static QueryContext parse(final byte[] bytes) {
+		return JSON.parseToObject(bytes, QueryContext.class);
+	}
+
+	public static QueryContext parse(final JsonNode node) {
+		return JSON.parseToObject(JSON.serializeToBytes(node), QueryContext.class);
+	}
 
 
 
@@ -268,13 +269,18 @@ public class QueryContext {
 	 * @return true if the request has expired, false otherwise.
 	 */
 	public final boolean isExpired() {
+		if(expired) return true;
 		final long now = System.currentTimeMillis();
 		try {
 			if(timeLimit!=-1L) {				
 				elapsed = now - timeLimit + timeout;
+				log.info("\n\t***************\n\tTime Limit: {}\n\tNow: {}\n\tTimeout: {}\n\tElapsed: {}\n\t***************\n", timeLimit, now, timeout, elapsed);
 				boolean exp =  now > timeLimit;
 				timeLimit = -1L;
+				expired = exp;
 				return exp;
+			} else {
+//				log.info("\n\t***************\n\tTime Limit Not Set\n");
 			}
 			return false;
 		} finally {
@@ -284,17 +290,16 @@ public class QueryContext {
 		}
 	}
 	
-	@JsonIgnore
-	protected final void setExpired(boolean exp) {
-		
-	}
 
 	/**
 	 * Starts the expiration timeout clock
 	 * @return this QueryContext
 	 */
 	public QueryContext startExpiry() {
-		this.timeLimit = System.currentTimeMillis() + timeout;
+		if(this.timeLimit==-1L) {
+			this.timeLimit = System.currentTimeMillis() + timeout;
+			log.info("\n\t**********************\n\tTimeLimit set with timeout [{}] to [{}]\n", timeout, timeLimit);
+		}
 		return this;
 	}
 

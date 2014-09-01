@@ -251,78 +251,78 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						final QueryContext q = new QueryContext().setContinuous(true).setMaxSize(10240);
 						final long startTime = System.currentTimeMillis();
 						final SubscriptionManager finalSm = this;
-						metricSvc.evaluate(q.startExpiry(), pattern.toString()).addCallbacks(new Callback<Subscription, Set<TSMeta>>() {
-
-							int count = 0;
-							List<byte[]> tsuids = new ArrayList<byte[]>(128);
-							@Override
-							public Subscription call(final Set<TSMeta> tsMetas) throws Exception {
-								try {
-									for(final Iterator<TSMeta> titer = tsMetas.iterator(); titer.hasNext();) {
-										tsuids.add(UniqueId.stringToUid(titer.next().getTSUID()));
-										titer.remove();
-									}
-									count += tsMetas.size();
-									log.info("Q: {}", q);
-									
-									if(!q.shouldContinue()) {
-										long elapsed = System.currentTimeMillis() - startTime;
-										log.info("Loaded [{}] TSMetas into Subscription Bloom Filter for pattern [{}] in [{}] ms.", count, _pattern, elapsed);
-										final int bloomFactor = Math.round(DEFAULT_BLOOM_FILTER_SPACE_FACTOR * count);
-										final Subscription poppedSub = new Subscription(_pattern, bloomFactor);
-										for(final Iterator<byte[]> biter = tsuids.iterator(); biter.hasNext();) {
-											poppedSub._internalIndex(biter.next());
-											biter.remove();
-										}
-										return poppedSub;
-									}									
-								} catch (Exception ex) {
-									log.error("Failed to process load callback", ex);
-								}
-								return null;								
-							}
-						}, new Callback<Void, Throwable>() {
-							@Override
-							public Void call(Throwable t) throws Exception {
-								log.info("TSMeta Bloom Filter Load Failed for pattern [{}]", _pattern, t);
-								deferredSub.callback(t);
-								return null;
-							}
-						}).addCallback(new Callback<Void, Subscription>() {
-							@Override
-							public Void call(final Subscription subscription) throws Exception { 
-								if(subscription==null) return null;
-								Set<Channel> subChannels = subscriptionChannels.get(subscription.getSubscriptionId());
-								if(subChannels==null) {
-									synchronized(subscriptionChannels) {
-										subChannels = subscriptionChannels.get(subscription.getSubscriptionId());
-										if(subChannels==null) {
-											subChannels = new NonBlockingHashSet<Channel>();
-											subscriptionChannels.put(subscription.getSubscriptionId(), subChannels);
-										}
-									}
-								}
-								subChannels.add(channel);
-								subscription.addSubscriber();
-								Set<Subscription> channelSubs = channelSubscriptions.get(channelId);
-								if(channelSubs==null) {
-									synchronized(channelSubscriptions) {
-										channelSubs = channelSubscriptions.get(channelId);
-										if(channelSubs==null) {
-											channelSubs = new NonBlockingHashSet<Subscription>();
-											channelSubscriptions.put(channelId, channelSubs);
-										}
-									}
-								}
-								channelSubs.add(subscription);
-								if(subscribedChannels.add(channel)) {
-									channel.getCloseFuture().addListener(finalSm);
-								}
-								deferredSub.callback(subscription);
-								allSubscriptions.put(_pattern, subscription);								
-								return null;
-							}
-						});						
+//						metricSvc.evaluate(q.startExpiry(), pattern.toString()).addCallbacks(new Callback<Subscription, Set<TSMeta>>() {
+//
+//							int count = 0;
+//							List<byte[]> tsuids = new ArrayList<byte[]>(128);
+//							@Override
+//							public Subscription call(final Set<TSMeta> tsMetas) throws Exception {
+//								try {
+//									for(final Iterator<TSMeta> titer = tsMetas.iterator(); titer.hasNext();) {
+//										tsuids.add(UniqueId.stringToUid(titer.next().getTSUID()));
+//										titer.remove();
+//									}
+//									count += tsMetas.size();
+//									log.info("Q: {}", q);
+//									
+//									if(!q.shouldContinue()) {
+//										long elapsed = System.currentTimeMillis() - startTime;
+//										log.info("Loaded [{}] TSMetas into Subscription Bloom Filter for pattern [{}] in [{}] ms.", count, _pattern, elapsed);
+//										final int bloomFactor = Math.round(DEFAULT_BLOOM_FILTER_SPACE_FACTOR * count);
+//										final Subscription poppedSub = new Subscription(_pattern, bloomFactor);
+//										for(final Iterator<byte[]> biter = tsuids.iterator(); biter.hasNext();) {
+//											poppedSub._internalIndex(biter.next());
+//											biter.remove();
+//										}
+//										return poppedSub;
+//									}									
+//								} catch (Exception ex) {
+//									log.error("Failed to process load callback", ex);
+//								}
+//								return null;								
+//							}
+//						}, new Callback<Void, Throwable>() {
+//							@Override
+//							public Void call(Throwable t) throws Exception {
+//								log.info("TSMeta Bloom Filter Load Failed for pattern [{}]", _pattern, t);
+//								deferredSub.callback(t);
+//								return null;
+//							}
+//						}).addCallback(new Callback<Void, Subscription>() {
+//							@Override
+//							public Void call(final Subscription subscription) throws Exception { 
+//								if(subscription==null) return null;
+//								Set<Channel> subChannels = subscriptionChannels.get(subscription.getSubscriptionId());
+//								if(subChannels==null) {
+//									synchronized(subscriptionChannels) {
+//										subChannels = subscriptionChannels.get(subscription.getSubscriptionId());
+//										if(subChannels==null) {
+//											subChannels = new NonBlockingHashSet<Channel>();
+//											subscriptionChannels.put(subscription.getSubscriptionId(), subChannels);
+//										}
+//									}
+//								}
+//								subChannels.add(channel);
+//								subscription.addSubscriber();
+//								Set<Subscription> channelSubs = channelSubscriptions.get(channelId);
+//								if(channelSubs==null) {
+//									synchronized(channelSubscriptions) {
+//										channelSubs = channelSubscriptions.get(channelId);
+//										if(channelSubs==null) {
+//											channelSubs = new NonBlockingHashSet<Subscription>();
+//											channelSubscriptions.put(channelId, channelSubs);
+//										}
+//									}
+//								}
+//								channelSubs.add(subscription);
+//								if(subscribedChannels.add(channel)) {
+//									channel.getCloseFuture().addListener(finalSm);
+//								}
+//								deferredSub.callback(subscription);
+//								allSubscriptions.put(_pattern, subscription);								
+//								return null;
+//							}
+//						});						
 					} catch (Exception ex) {
 						throw new RuntimeException("Timed out on populating subscription for expression [" + pattern + "]");
 					}					

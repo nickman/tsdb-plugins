@@ -177,15 +177,11 @@ function doDisplayJson() {
 };
 
 function updateOutputContext(qctx) {	
-	var ctx = QueryContext.readContext(qctx);
-	if(ctx.isExpired()|ctx.isExhausted()|ctx.getNextIndex()==null) {
-		q = QueryContext.newContext({timeout: 10000});
-	}	
-	$('#qoutCummulative').val(ctx.getCummulative());
-	$('#qoutElapsed').val(ctx.getElapsed());
-	$('#qoutNextIndex').val(ctx.getNextIndex());
-	$('#qoutExhausted').val(ctx.isExhausted());
-	$('#qoutExpired').val(ctx.isExpired());	
+	$('#qoutCummulative').val(q.getCummulative());
+	$('#qoutElapsed').val(q.getElapsed());
+	$('#qoutNextIndex').val(q.getNextIndex());
+	$('#qoutExhausted').val(q.isExhausted());
+	$('#qoutExpired').val(q.isExpired());	
 	if(qctx.elapsedTime) {
 		try {
 			$('#qoutRTElapsed').val(Math.round(qctx.elapsedTime));

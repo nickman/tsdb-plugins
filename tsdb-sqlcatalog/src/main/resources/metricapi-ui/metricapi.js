@@ -22,13 +22,7 @@ QueryContext.newContext = function(props) {
 }
 
 QueryContext.readContext = function(props) {
-	var q = new QueryContext(props);
-	q.exhausted = (props && props.exhausted) ? props.exhausted : false;
-	q.cummulative = (props && props.cummulative) ? props.cummulative : 0;
-	q.elapsed = (props && props.elapsed) ? props.elapsed : -1;
-	q.expired = (props && props.expired) ? props.expired : false;
-
-	return q;
+	return new QueryContext(props);	
 }
 
 QueryContext.prototype.shouldContinue = function() {
@@ -124,13 +118,14 @@ QueryContext.prototype.timeout = function(time) {
 
 QueryContext.prototype.refresh = function(props) {
 	if(props!=null) {
-		this.nextIndex = props.nextIndex || null;
-		this.exhausted = props.exhausted || false;
-		this.cummulative = props.cummulative || 0;
-		this.elapsed = props.elapsed || -1;
-		this.expired = props.expired || false;
-		this.format = props.format || "DEFAULT";	
-		if(props.timeout) this.timeout = props.timeout;
+		this.nextIndex = props.nextIndex!=null ? props.nextIndex : null;
+		this.exhausted = props.exhausted!=null ? props.exhausted : false;
+		this.cummulative = props.cummulative!=null ? props.cummulative : 0;
+		this.elapsed = props.elapsed!=null ? props.elapsed : -1;
+		console.info("ReadContext Elapsed: [%s]", this.elapsed);
+		this.expired = props.expired!=null ? props.expired : false;
+		this.format = props.format!=null ? props.formar : "DEFAULT";	
+		if(props.timeout!=null) this.timeout = props.timeout;
 	}
 }
 
@@ -196,6 +191,9 @@ WebSocketAPIClient.defaultHandlers = {
 			// console.info("WebSocket Message: [%O]", evt);
 			try {
 				var result = JSON.parse(evt.data);
+				console.group("=================  Raw Result =================");
+				console.dir(result);
+				console.groupEnd();
 				if(result.rerid) {
 					var continuing = QueryContext.readContext(result.msg[1]).shouldContinue();
 					// console.info("Response: [%O]", result);
@@ -211,7 +209,8 @@ WebSocketAPIClient.defaultHandlers = {
 							if(pendingRequest.d) {
 								if(pendingRequest.request && pendingRequest.request.q) {
 			 						pendingRequest.request.q.refresh(result.msg[1]);
-			 						if(!continuing) delete pendingRequest.request.q;	 						
+			 						if(!continuing) delete pendingRequest.request.q;	 
+			 						else client.resetPendingRequest(result.rerid);
 			 						var callback =  [{
 										data: result.msg[0],
 										q: result.msg[1],
@@ -294,6 +293,29 @@ WebSocketAPIClient.prototype.completePendingRequest = function(rid) {
 
 WebSocketAPIClient.prototype.getPendingRequest = function(rid) {
 	return this.pendingRequests[rid];
+}
+
+WebSocketAPIClient.prototype.resetPendingRequest = function(rid) {
+	var pr = this.pendingRequests[rid];
+	if(pr.th) {
+		clearTimeout(pr.th);		
+		console.debug("Cleared Timeout [%s]", pr.th);	
+	}
+	var timeout = 1000;
+	try {
+		timeout = pr.q.getTimeout();
+	} catch (e) {
+		timeout = 1000;
+	}
+	var self = this;	
+	pr.th = setTimeout(function(){
+		console.warn("Pending Request Timeout id [%s]: [%O]", pr.th,  pr);
+		delete self.pendingRequests[pr.rid];
+		if(pr.d) {
+			pr.d.rejectWith(self, ["timeout", pr]);
+		}
+	}, timeout);	
+	console.debug("Timeout Reset to [%s] for [%s]", timeout, pr.th);
 }
 
 WebSocketAPIClient.prototype.close = function() {

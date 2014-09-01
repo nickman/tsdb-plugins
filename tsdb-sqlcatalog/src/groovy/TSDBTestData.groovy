@@ -1,3 +1,4 @@
+import java.util.concurrent.*;
 TSDBHOST = "localhost";
 TSDBPORT = 4242;
 tsdbSocket = null;
@@ -52,37 +53,43 @@ try {
     tsdbSocket = new Socket(TSDBHOST, TSDBPORT);
     println "Connected";
     while(true) {
+    	//CountDownLatch latch = new CountDownLatch(5);
     	long start = System.currentTimeMillis();
-	    for(d in 1..5) {
-	    	dc = "dc$d";   
-	    	for(h in 1..(d%2==0 ? 10 : 20)) {
-	    		["WebServer", "AppServer", "DBServer"].each() { hostType ->
-	    			host = "$hostType$h";
-	    			['root', 'var', 'tmp'].each() { vol ->
-	    				trace("sys.fs.free", nextInt(), ['dc':dc, 'host':host, 'vol': vol]);
-	    				trace("sys.fs.writes", nextLong(), ['dc':dc, 'host':host, 'vol': vol]);
-	    				trace("sys.fs.reads", nextLong(), ['dc':dc, 'host':host, 'vol': vol]);
-	    			}
-	    			if(host.equals("WebServer3")) {    			
 
-	    			} else if(hostType.equals("WebServer")) {
-			    			['combined', 'idle', 'sys', 'wait'].each() { ctype ->    				
-			    				for(c in 0..cpuCounts[hostType]) {
-			    					trace("sys.cpu", nextInt(), ['dc':dc, 'host':host, 'cpu':c, 'type': ctype]);
-			    				}
-			    			}    			
-	    			} else {
-			    			['combined', 'idle', 'irq', 'nice', 'softirq', 'stolen', 'sys', 'user', 'wait'].each() { ctype ->    				
-			    				for(c in 0..cpuCounts[hostType]) {
-			    					trace("sys.cpu", nextInt(), ['dc':dc, 'host':host, 'cpu':c, 'type': ctype]);
-			    				}
-			    			}    			
-	    			}
-	    		}
-	    	}
-	    	flush();	    	
-	    	println "Completed $dc";
+	    for(d in 1..5) {
+	    	//Thread.startDaemon("TestDataThread#$d", {
+		    	dc = "dc$d";   
+		    	for(h in 1..(d%2==0 ? 10 : 20)) {
+		    		["WebServer", "AppServer", "DBServer"].each() { hostType ->
+		    			host = "$hostType$h";
+		    			['root', 'var', 'tmp'].each() { vol ->
+		    				trace("sys.fs.free", nextInt(), ['dc':dc, 'host':host, 'vol': vol]);
+		    				trace("sys.fs.writes", nextLong(), ['dc':dc, 'host':host, 'vol': vol]);
+		    				trace("sys.fs.reads", nextLong(), ['dc':dc, 'host':host, 'vol': vol]);
+		    			}
+		    			if(host.equals("WebServer3")) {    			
+
+		    			} else if(hostType.equals("WebServer")) {
+				    			['combined', 'idle', 'sys', 'wait'].each() { ctype ->    				
+				    				for(c in 0..cpuCounts[hostType]) {
+				    					trace("sys.cpu", nextInt(), ['dc':dc, 'host':host, 'cpu':c, 'type': ctype]);
+				    				}
+				    			}    			
+		    			} else {
+				    			['combined', 'idle', 'irq', 'nice', 'softirq', 'stolen', 'sys', 'user', 'wait'].each() { ctype ->    				
+				    				for(c in 0..cpuCounts[hostType]) {
+				    					trace("sys.cpu", nextInt(), ['dc':dc, 'host':host, 'cpu':c, 'type': ctype]);
+				    				}
+				    			}    			
+		    			}
+		    		}
+		    	}
+		    	flush();	    	
+		    	println "Completed $dc";
+		    	//latch.countDown();
+		    //});
     	}
+    	//latch.await(10, TimeUnit.SECONDS);
     	long elapsed = System.currentTimeMillis() - start;
     	println "Completed trace in $elapsed ms."
     	if(!cont) break;

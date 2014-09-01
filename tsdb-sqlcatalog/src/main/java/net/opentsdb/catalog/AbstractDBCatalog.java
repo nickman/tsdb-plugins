@@ -45,11 +45,13 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -1610,8 +1612,49 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBInterface#readTSMetas(java.sql.ResultSet)
 	 */
 	@Override
-	public List<TSMeta> readTSMetas(ResultSet rset) {
+	public List<TSMeta> readTSMetas(final ResultSet rset) {
 		return readTSMetas(rset, false);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.MetaReader#iterateTSMetas(java.sql.ResultSet)
+	 */
+	@Override
+	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset) {
+		return iterateTSMetas(rset, false);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.catalog.MetaReader#iterateTSMetas(java.sql.ResultSet, boolean)
+	 */
+	@Override
+	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset, final boolean includeUIDs) {
+		return new Iterator<TSMeta>() {
+			private boolean hasnext = true;
+			@Override
+			public boolean hasNext() {
+				try {
+					hasnext = rset.next();
+					return hasnext;
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+			}
+
+			@Override
+			public TSMeta next() {
+				if(!hasnext) throw new NoSuchElementException();
+				return buildTSMeta(rset, includeUIDs);
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException("Remove not supported for this iterator");
+			}
+			
+		};
 	}
 	
 	/**
@@ -1619,41 +1662,51 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBInterface#readTSMetas(java.sql.ResultSet, boolean)
 	 */
 	@Override
-	public List<TSMeta> readTSMetas(ResultSet rset, boolean includeUIDs) {
+	public List<TSMeta> readTSMetas(final ResultSet rset, final boolean includeUIDs) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<TSMeta> tsMetas = new ArrayList<TSMeta>();
 		try {
 			while(rset.next()) {
-				TSMeta meta = new TSMeta(UniqueId.stringToUid(rset.getString("TSUID")), mstou(rset.getTimestamp("CREATED").getTime()));
-				String mapStr = rset.getString("CUSTOM");
-				if(mapStr!=null) {
-					meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
-				}
-				meta.setDescription(rset.getString("DESCRIPTION"));
-				meta.setNotes(rset.getString("NOTES"));
-				meta.setDisplayName(rset.getString("DISPLAY_NAME"));
-				meta.setDataType(rset.getString("DATA_TYPE"));
-				meta.setMax(rset.getDouble("MAX_VALUE"));
-				meta.setMin(rset.getDouble("MIN_VALUE"));
-				meta.setRetention(rset.getInt("RETENTION"));
-				meta.setUnits(rset.getString("UNITS"));
-				final long fqnId = rset.getLong("FQNID");
-//				if(custom==null) {
-//					custom = new HashMap<String, String>(3);
-//					custom.put(PK_KEY, "" + fqnId);
-//				}
-				if(includeUIDs) {
-					loadUIDs(
-							rset.isClosed() ? null : 
-								rset.getStatement().getConnection(), 
-								meta, rset.getString("METRIC_UID"), fqnId);
-				}
-				tsMetas.add(meta);
+				tsMetas.add(buildTSMeta(rset, includeUIDs));
 			}
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to read TSMetas from ResultSet", ex);
 		}
 		return tsMetas;
+	}
+	
+	/**
+	 * Biulds a TSMeta from the current row in the passed result set
+	 * @param rset The result set to read from
+	 * @param includeUIDs true to load UIDs, false otherwise
+	 * @return the built TSMeta
+	 */
+	private TSMeta buildTSMeta(final ResultSet rset, final boolean includeUIDs) {
+		try {
+			TSMeta meta = new TSMeta(UniqueId.stringToUid(rset.getString("TSUID")), mstou(rset.getTimestamp("CREATED").getTime()));
+			String mapStr = rset.getString("CUSTOM");
+			if(mapStr!=null) {
+				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
+			}
+			meta.setDescription(rset.getString("DESCRIPTION"));
+			meta.setNotes(rset.getString("NOTES"));
+			meta.setDisplayName(rset.getString("DISPLAY_NAME"));
+			meta.setDataType(rset.getString("DATA_TYPE"));
+			meta.setMax(rset.getDouble("MAX_VALUE"));
+			meta.setMin(rset.getDouble("MIN_VALUE"));
+			meta.setRetention(rset.getInt("RETENTION"));
+			meta.setUnits(rset.getString("UNITS"));
+			final long fqnId = rset.getLong("FQNID");
+			if(includeUIDs) {
+				loadUIDs(
+						rset.isClosed() ? null : 
+							rset.getStatement().getConnection(), 
+							meta, rset.getString("METRIC_UID"), fqnId);
+			}
+			return meta;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to read TSMetas from ResultSet", ex);
+		}
 	}
 	
 	/** The SQL to retrieve the tags for a TSMeta */

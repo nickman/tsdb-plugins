@@ -43,6 +43,11 @@
 			  <groupId>org.jdeferred</groupId>
 			  <artifactId>jdeferred-core</artifactId>
 			</dependency>
+			
+			<dependency>
+			  <groupId>org.projectreactor</groupId>
+			  <artifactId>reactor-core</artifactId>
+			</dependency>			
 
 
         <dependency>

@@ -6,9 +6,9 @@ package net.opentsdb.catalog;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -18,7 +18,6 @@ import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSON;
 
-import org.helios.jmx.util.helpers.StringHelper;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
@@ -27,6 +26,7 @@ import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.composable.Stream;
 import reactor.function.Consumer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -86,9 +86,8 @@ public class JSONMetricsAPIService {
 				getMap(request, "tags")				
 			);
 		} else {
-			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);		
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getMetricNames(q.startExpiry(), tags).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);					
+			attachHandlers(metricApi.getMetricNames(q, tags), q, request);			
 		}
 	}
 	
@@ -112,8 +111,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(tagKeys));		
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getMetricNames(q.startExpiry(), tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+			attachHandlers(metricApi.getMetricNames(q.startExpiry(), tagKeys), q, request);	
 		}
 	}
 	
@@ -159,9 +157,8 @@ public class JSONMetricsAPIService {
 				getStringArray(request, "keys")	
 			);
 		} else {
-			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(tagKeys));					
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTagKeys(q.startExpiry(), metricName, tagKeys).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(tagKeys));
+			attachHandlers(metricApi.getTagKeys(q.startExpiry(), metricName, tagKeys), q, request);			
 		}
 	}
 		
@@ -211,8 +208,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+			attachHandlers(metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey), q, request);
 		}
 	}
 
@@ -256,9 +252,58 @@ public class JSONMetricsAPIService {
 			);			
 		} else {
 			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
-			//request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.evaluate(q, expression).consume(new ResultConsumer<TSMeta>(request, q));			
+			attachHandlers(metricApi.evaluate(q, expression), q, request);			
 		}
+	}
+	
+	
+	/**
+	 * Attaches the consume and error handlers to the passed stream
+	 * @param stream The stream to attach handlers to
+	 * @param q The query context
+	 * @param request The JSONRequest
+	 */
+	protected final <T> void attachHandlers(Stream<T> stream, final QueryContext q, final JSONRequest request) {
+		stream.consume(new Consumer<T>(){
+			@Override
+			public void accept(T t) {
+				try {
+					final JSONResponse response = request.response();
+					response.setOpCode("results");						
+					JsonGenerator jgen = response.writeHeader(true);
+					jgen.setCodec(q.getMapper());
+					jgen.writeObjectField("results", t);	
+					jgen.writeObjectField("q", q);	
+					response.closeGenerator();
+				}  catch (Exception ex) {
+					log.error("Failed to write result batch", ex);
+					throw new RuntimeException("Failed to write result batch", ex);
+				}					
+			}
+		})
+		.when(Throwable.class, new Consumer<Throwable>(){
+			@Override
+			public void accept(Throwable t) {
+				q.setExhausted(true);
+				final JSONResponse response = request.response();					
+				try {
+					response.resetChannelOutputStream();
+					response.setOpCode("error");
+					final JsonGenerator jgen = response.writeHeader(true);							
+					String message = t.getMessage();
+					if(message==null || message.trim().isEmpty()) {
+						message = t.getClass().getSimpleName();
+					}
+					jgen.writeObjectField("error", message);
+					jgen.writeObjectField("q", q);
+					response.closeGenerator();
+					log.warn("Exception message dispatched");
+				} catch (Exception ex) {
+					throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
+				}												
+			}
+		});
+//		.timeout(q.getTimeout());		
 	}
 	
 	
@@ -351,7 +396,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 //			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTSMetas(q, metricName, tags).consume(new ResultConsumer<TSMeta>(request, q));
+			metricApi.getTSMetas(q, metricName, tags).consume(new ResultConsumer<List<TSMeta>>(request, q));
 		}
 	}
 	
@@ -394,9 +439,8 @@ public class JSONMetricsAPIService {
 				UniqueIdType.valueOf(request.getRequest().get("type").textValue().trim().toUpperCase()),
 				request.getRequest().get("name").textValue()
 			);
-		} else {
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.find(q.startExpiry(), type, name).addCallback(new ResultCompleteCallback<Set<UIDMeta>>(request, q));
+		} else {			
+			attachHandlers(metricApi.find(q.startExpiry(), type, name), q, request);			
 		}
 	}
 	

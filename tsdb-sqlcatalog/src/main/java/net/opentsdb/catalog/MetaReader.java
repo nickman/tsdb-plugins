@@ -80,7 +80,7 @@ public interface MetaReader {
 	 * @param rset The result set to read from
 	 * @return a TSMeta iterator
 	 */
-	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset);
+	public IndexProvidingIterator<TSMeta> iterateTSMetas(ResultSet rset);
 	
 	/**
 	 * Returns a TSMeta iterator for the passed result set 
@@ -88,7 +88,17 @@ public interface MetaReader {
 	 * @param includeUIDs true to load UIDs, false otherwise
 	 * @return the TSMeta iterator
 	 */
-	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset, final boolean includeUIDs);	
+	public IndexProvidingIterator<TSMeta> iterateTSMetas(ResultSet rset, boolean includeUIDs);
+	
+	
+	/**
+	 * Returns a UIDMeta iterator for the passed result set 
+	 * @param rset The result set to read from
+	 * @param uidType THe UID type to iterate 
+	 * @return the UIDMeta iterator
+	 */
+	public IndexProvidingIterator<UIDMeta> iterateUIDMetas(ResultSet rset, UniqueIdType uidType);	
+	
 	
 	/**
 	 * Returns a collection of {@link Annotation}s read from the passed {@link ResultSet}.

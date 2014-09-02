@@ -26,15 +26,14 @@ package net.opentsdb.catalog;
 
 import net.opentsdb.meta.api.QueryContext;
 
-import org.helios.jmx.util.helpers.StringHelper;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import reactor.function.Consumer;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * <p>Title: ResultConsumer</p>
@@ -48,17 +47,10 @@ import reactor.function.Consumer;
 public class ResultConsumer<T> implements Consumer<T> {
 	/** static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(ResultConsumer.class);
-
-	/** The original JSON request */
-	private final JSONRequest request;		
 	/** The current query context */
 	private final QueryContext ctx;
-	/** The streaming json generator */
-	private JsonGenerator jgen;	
 	/** The current response we're writing results to */
 	private JSONResponse response = null;
-	/** If true, we're still waiting on the first non-null/non-exception {@link #accept(Object)} call */
-	private boolean firstResult = true;
 	
 	/**
 	 * Creates a new ResultConsumerX
@@ -66,50 +58,11 @@ public class ResultConsumer<T> implements Consumer<T> {
 	 * @param ctx The current query context
 	 */
 	public ResultConsumer(JSONRequest request, QueryContext ctx) {
-		this.request = request;
 		this.ctx = ctx;
 		response = request.response();
-		reset();			
+		response.setOpCode("results");	
 	}
 	
-	/**
-	 * Resets the consumer once a result package has been dispatched to the caller
-	 */
-	protected void reset() {
-		try {
-			firstResult = true;
-			jgen = response.writeHeader(false);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to create JSON output streamer", ex);
-		}			
-	}
-	
-
-	/**
-	 * Handles an exception accepted by the reactor's deferred
-	 * @param t The exception accepted
-	 */
-	protected void handleError(final Throwable t) {
-		ctx.setExhausted(true);
-		try {
-			response.resetChannelOutputStream();
-			response.setOpCode("error");
-			jgen = response.writeHeader(false);							
-			String message = t.getMessage();
-			if(message==null || message.trim().isEmpty()) {
-				message = t.getClass().getSimpleName();
-			}
-			jgen.writeObject(message);
-			jgen.writeObject(ctx);
-			//jgen.writeObject(StringHelper.formatStackTrace(t));
-//			jgen.writeString("The request timed out");
-			response = response.closeGenerator();
-			log.warn("Timeout message dispatched");
-			//throw new RuntimeException("Request Expired");
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
-		}							
-	}
 	
 	/**
 	 * {@inheritDoc}
@@ -117,50 +70,18 @@ public class ResultConsumer<T> implements Consumer<T> {
 	 */
 	@Override
 	public void accept(final T t) {
-		
-//		log.info("Accepting [{}]", t);
-		if(t!=null && t instanceof Throwable) {
-			synchronized(this) {
-				handleError((Throwable)t);
-			}
-			return;
-		}
-		if(t==null) {
-			log.info("Calling complete on thread [{}]", Thread.currentThread().getName());
-			synchronized(this) {
-				complete();
-			}
-			return;
-		}
 		try {
-			if(firstResult) {
-				jgen.writeStartArray();
-				jgen.setCodec(ctx.getMapper());													
-				firstResult = false;
-			}
-			jgen.writeObject(t);
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to write accepted instance to JSON output streamer", ex);
-		}
-	}
-	
-	/**
-	 * Completes a consumed set of objects or accepted exception
-	 */
-	private void complete() {
-		try {
-			jgen.writeEndArray();
-			jgen.writeObject(ctx);				
-			response = response.closeGenerator();
-			log.info("\n\t**********************\n\tElapsed:{} ms.\n\t**********************", ctx.getElapsed());
-			reset();				
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to close array in JSON output stream", ex);
-		} finally {
 			
+			JsonGenerator jgen = response.writeHeader(true);
+			jgen.setCodec(ctx.getMapper());
+			jgen.writeObjectField("results", t);	
+			jgen.writeObjectField("q", ctx);	
+			response.closeGenerator();
+		} catch (Exception ex) {
+			log.error("Failed to write result batch", ex);
+			throw new RuntimeException("Failed to write result batch", ex);
 		}
 	}
-	
 
 }
 

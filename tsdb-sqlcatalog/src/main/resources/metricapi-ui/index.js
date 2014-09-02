@@ -166,6 +166,8 @@ function doDisplayJson() {
 	};
 	var handleError = function() {
 		console.error("resolveTSMetas Failed: [%O]", arguments);
+		$('#jsonOutput').prepend($("<div class='errormessage'>ERROR:" + arguments[0] + "</div>"));
+
 	}
  
 	// Retrieve data using expr call.

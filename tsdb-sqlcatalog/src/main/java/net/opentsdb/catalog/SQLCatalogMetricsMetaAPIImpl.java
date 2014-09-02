@@ -419,7 +419,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTagKeys(net.opentsdb.meta.api.QueryContext, java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagKeys(final QueryContext queryContext, final String metric, final String...tagKeys) {
+	public Stream<List<UIDMeta>> getTagKeys(final QueryContext queryContext, final String metric, final String...tagKeys) {
 		return getUIDsFor(null, queryContext, UniqueId.UniqueIdType.TAGK, UniqueId.UniqueIdType.METRIC, metric, tagKeys);
 	}
 	
@@ -444,8 +444,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param excludes Values of the target name that we don't want
 	 * @return A deferred result to a set of matching UIDMetas of the type defined in the target argument
 	 */
-	protected Deferred<Set<UIDMeta>> getUIDsFor(final Deferred<Set<UIDMeta>> priorDeferred, final QueryContext queryContext, final UniqueId.UniqueIdType targetType, final UniqueId.UniqueIdType filterType,  final String filterName, final String...excludes) {
-		final Deferred<Set<UIDMeta>> def = priorDeferred==null ? new Deferred<Set<UIDMeta>>() : priorDeferred;
+	protected Stream<List<UIDMeta>> getUIDsFor(final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> priorDeferred, final QueryContext queryContext, final UniqueId.UniqueIdType targetType, final UniqueId.UniqueIdType filterType,  final String filterName, final String...excludes) {
+		final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<UIDMeta>> stream = def.compose().collect();
 		final String _filterName = (filterName==null || filterName.trim().isEmpty()) ? "*" : filterName.trim();
 		this.metaQueryExecutor.execute(new Runnable() {
 			@SuppressWarnings("boxing")
@@ -476,24 +477,23 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = String.format(GET_KEY_TAGS_SQL, targetType, filterType, predicate, keyBinds, XUID_START_SQL);
 						binds.add(queryContext.getNextIndex());
 					}
-					final int modPageSize = queryContext.getNextMaxLimit() + 1;
-					binds.add(modPageSize);					
+					binds.add(queryContext.getNextMaxLimit() + 1);					
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), targetType)
-					);
-					def.callback(uidMetas);
-					if(queryContext.shouldContinue()) {
-						getUIDsFor(def, queryContext, targetType, filterType, _filterName, excludes);
-					}					
+					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, targetType);
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
+					}
 				} catch (Exception ex) {
 					log.error("Failed to execute getTagKeysFor.\nSQL was [{}]", sql, ex);
-					def.callback(ex);
+					def.accept(new Exception("Failed to execute getTagValues", ex));
 				}
 			}
 		});
 		
-		return def;
+		return stream;
 	} 
 
 	/**
@@ -501,7 +501,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.lang.String[])
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNames(final QueryContext queryContext, final String... tagKeys) {
+	public Stream<List<UIDMeta>> getMetricNames(final QueryContext queryContext, final String... tagKeys) {
 		return getMetricNames(null, queryContext, tagKeys);
 	}
 	
@@ -514,8 +514,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tagKeys an array of tag keys to exclude
 	 * @return the deferred result
 	 */
-	protected Deferred<Set<UIDMeta>> getMetricNames(final Deferred<Set<UIDMeta>> priorDeferred, final QueryContext queryContext, final String... tagKeys) {
-		final Deferred<Set<UIDMeta>> def = priorDeferred==null ? new Deferred<Set<UIDMeta>>() : priorDeferred;		
+	protected Stream<List<UIDMeta>> getMetricNames(final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> priorDeferred, final QueryContext queryContext, final String... tagKeys) {
+		final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<UIDMeta>> stream = def.compose().collect();
+		
 		this.metaQueryExecutor.execute(new Runnable() {
 			@SuppressWarnings("boxing")
 			public void run() {				
@@ -548,117 +550,26 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = keySql.toString();
 					}
-					final int modPageSize = queryContext.getNextMaxLimit() + 1;
-					binds.add(modPageSize);
+					binds.add(queryContext.getNextMaxLimit() + 1);
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
-					);
-					def.callback(uidMetas);
-					if(queryContext.shouldContinue()) {
-						getMetricNames(def, queryContext, tagKeys);
-					}					
+					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, UniqueIdType.METRIC);
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
+					}
 				} catch (Exception ex) {
 					log.error("Failed to execute getMetricNamesFor.\nSQL was [{}]", sql, ex);
-					def.callback(ex);					
+					def.accept(new Exception("Failed to execute getTagValues", ex));				
 				}
 			}
 		});
-		return def;
+		return stream;
 	}
 	
 
 	
-	/**
-	 * Closes out a UIDMeta query result, updating the QueryContext to indicate if the results are exhausted,
-	 * and if not, what the next page start index is
-	 * @param modPageSize The modified page size (one more than what was requested)
-	 * @param ctx The query context to update
-	 * @param readMetas The materialized UIDMetas being returned
-	 * @return The set of UIDMetas to return
-	 */
-	protected static Set<UIDMeta> closeOutUIDMetaResult(final int modPageSize, final QueryContext ctx, final List<UIDMeta> readMetas) {
-		if(readMetas.isEmpty()) {
-			ctx.setExhausted(true).setNextIndex(null);			
-			return EMPTY_UIDMETA_SET;
-		}
-		final int size = readMetas.size(); 
-		if(size < modPageSize) {
-			// the result set size was less than actually requested
-			// so the query is exhausted
-			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
-		} else {
-			// the result set size was equal to what was actually requested
-			// so the result set is still live.
-			// the result list has +1 over the caller specified, so:
-			//	1. The last item should be removed (it is excess)
-			//	2. The nextIndex is the index of the last item						
-			ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getUID()).incrementCummulative(size-1);
-			readMetas.remove(size-1);
-		}
-		return readMetas.isEmpty() ? EMPTY_UIDMETA_SET : new LinkedHashSet<UIDMeta>(readMetas);
-	}
-	
-	/**
-	 * Closes out an Annotation query result, updating the QueryContext to indicate if the results are exhausted,
-	 * and if not, what the next page start index is
-	 * @param modPageSize The modified page size (one more than what was requested)
-	 * @param ctx The query context to update
-	 * @param readAnnotations The materialized Annotations being returned
-	 * @return The set of Annotations to return
-	 */
-	protected static Set<Annotation> closeOutAnnotationResult(final int modPageSize, final QueryContext ctx, final List<Annotation> readAnnotations) {
-		if(readAnnotations.isEmpty()) {
-			ctx.setExhausted(true).setNextIndex(null);			
-			return EMPTY_ANNOTATION_SET;
-		}
-		final int size = readAnnotations.size(); 
-		if(size < modPageSize) {
-			// the result set size was less than actually requested
-			// so the query is exhausted
-			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
-		} else {
-			// the result set size was equal to what was actually requested
-			// so the result set is still live.
-			// the result list has +1 over the caller specified, so:
-			//	1. The last item should be removed (it is excess)
-			//	2. The nextIndex is the index of the last item						
-			ctx.setExhausted(false).setNextIndex(readAnnotations.get(size-2).getStartTime()).incrementCummulative(size-1);
-			readAnnotations.remove(size-1);
-		}
-		return readAnnotations.isEmpty() ? EMPTY_ANNOTATION_SET : new LinkedHashSet<Annotation>(readAnnotations);
-	}
-	
-	
-	/**
-	 * Closes out a TSMeta query result, updating the QueryContext to indicate if the results are exhausted,
-	 * and if not, what the next page start index is
-	 * @param modPageSize The modified page size (one more than what was requested)
-	 * @param ctx The query context to update
-	 * @param readMetas The materialized TSMetas being returned
-	 * @return The set of TSMetas to return
-	 */
-	protected static Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {		
-		if(readMetas.isEmpty()) {
-			ctx.setExhausted(true).setNextIndex(null);			
-			return EMPTY_TSMETA_SET;
-		}
-		final int size = readMetas.size(); 		
-		if(size < modPageSize) {
-			// the result set size was less than actually requested
-			// so the query is exhausted
-			ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
-		} else {
-			// the result set size was equal to what was actually requested
-			// so the result set is still live.
-			// the result list has +1 over the caller specified, so:
-			//	1. The last item should be removed (it is excess)
-			//	2. The nextIndex is the index of the last item						
-			ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getTSUID()).incrementCummulative(size-1);
-			readMetas.remove(size-1);
-		}
-		return readMetas.isEmpty() ? EMPTY_TSMETA_SET : new LinkedHashSet<TSMeta>(readMetas);
-	}
 	
 
 	
@@ -667,7 +578,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getMetricNames(net.opentsdb.meta.api.QueryContext, java.util.Map)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getMetricNames(final QueryContext queryContext, final Map<String, String> tags) {
+	public Stream<List<UIDMeta>> getMetricNames(final QueryContext queryContext, final Map<String, String> tags) {
 		return getMetricNames(null, queryContext, tags);
 	}
 	
@@ -681,8 +592,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tags The TSMeta tags to match
 	 * @return the deferred result
 	 */
-	protected Deferred<Set<UIDMeta>> getMetricNames(final Deferred<Set<UIDMeta>> priorDeferred, final QueryContext queryContext, final Map<String, String> tags) {
-		final Deferred<Set<UIDMeta>> def = priorDeferred==null ? new Deferred<Set<UIDMeta>>() : priorDeferred;
+	protected Stream<List<UIDMeta>> getMetricNames(final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> priorDeferred, final QueryContext queryContext, final Map<String, String> tags) {
+		final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<UIDMeta>> stream = def.compose().collect();
+		
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
 		this.metaQueryExecutor.execute(new Runnable() {
 			@SuppressWarnings("boxing")
@@ -726,36 +639,39 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						}
 						keySql.append(" ORDER BY X.XUID DESC LIMIT ? ");
 						sql = String.format(keySql.toString(), likeOrEquals.toArray());
-					}
-					final int modPageSize = queryContext.getNextMaxLimit() + 1; 
-					binds.add(modPageSize);
+					} 
+					binds.add(queryContext.getNextMaxLimit() + 1);
 					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-							metaReader.readUIDMetas(sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.METRIC)
-					);
-					def.callback(uidMetas);
-					if(queryContext.shouldContinue()) {
-						getMetricNames(def, queryContext, _tags);
-					}
+					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, UniqueIdType.METRIC);
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
+					}					
 				} catch (Exception ex) {
 					log.error("Failed to execute getMetricNamesFor (with tags).\nSQL was [{}]", sql, ex);
-					def.callback(ex);					
+					def.accept(new Exception("Failed to execute getTagValues", ex));				
 				}
 			}
 		});
-		return def;
+		return stream;
 	}
 
 	/** An empty tags map const */
 	public static final Map<String, String> EMPTY_TAGS = Collections.unmodifiableMap(new HashMap<String, String>(0));
 	
-	private <T> reactor.core.composable.Deferred<T, Stream<T>> getDeferredStream() {
+	/**
+	 * Acquires the reactor streaming deferred for the current operation 
+	 * @param priorDeferred The prior streaming deferred which is null if this is not a recursive call
+	 * @return the reactor streaming deferred
+	 */
+	private <T> reactor.core.composable.Deferred<T, Stream<T>> getDeferred(final reactor.core.composable.Deferred<T, Stream<T>> priorDeferred, final QueryContext queryContext) {
+		if(priorDeferred!=null) return priorDeferred;
 		return Streams.<T>defer()
-//		  .env(env)
-//		  .dispatcher(DISPATCHER_NAME)
-				//.dispatcher(new SynchronousDispatcher())
-				.dispatcher(this.dispatcher)
-		  .get();
+			.dispatcher(this.dispatcher)			
+			.batchSize(queryContext.getPageSize())
+			.get();
 	}
 	
 	
@@ -766,7 +682,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)
 	 */
 	@Override
-	public Stream<TSMeta> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+	public Stream<List<TSMeta>> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
 		return getTSMetas(null, queryContext.startExpiry(), metricName, tags);
 	}
 	
@@ -779,106 +695,32 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tags The optional TSMeta tags. Will be substituted with an empty map if null.
 	 * @return the deferred result
 	 */
-	protected Stream<TSMeta> getTSMetas(final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
-		final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> def;
-		if(priorDeferred != null) {
-			def = priorDeferred;
-		} else {
-			def = getDeferredStream();
-		}
-		final Stream<TSMeta> stream = def.compose();
-//		
-//		= priorDeferred==null ? getComposable(queryContext.isContinuous()) : priorDeferred;
-//		final Composable<Set<TSMeta>> def = priorDeferred==null ? getComposable(queryContext.isContinuous()) : priorDeferred;
+	protected Stream<List<TSMeta>> getTSMetas(final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+		final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<TSMeta>> stream = def.compose().collect();
+
 		final String _metricName = (metricName==null || metricName.trim().isEmpty()) ? "*" : metricName.trim();
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
 		
 		this.dispatcher.execute(new Runnable() {
-//		this.metaQueryExecutor.execute(new Runnable() {
-			@SuppressWarnings("boxing")
+			@SuppressWarnings({ "boxing" })
 			public void run() {				
-				SystemClock.sleep(0);
+				SystemClock.sleep(200);
 				final List<Object> binds = new ArrayList<Object>();
-//				String sql = null;
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT");
-					final int modPageSize = queryContext.getNextMaxLimit() + 1;
-					binds.add(modPageSize);
+					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT");					
+					binds.add(queryContext.getNextMaxLimit() + 1);
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					
-					// =================================================================================================================================
-					//    LOAD TSMETAS FROM TSDB/HBASE
-					// =================================================================================================================================
-//					ResultSet disconnected = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
-//					while(disconnected.next()) {
-//						String tsuid = disconnected.getString(5);
-//						tsMetas.add(TSMeta.getTSMeta(tsdb, tsuid).join(1000));  // FIXME:  Chain the callbacks, then add the timeout
-//					}
-					// =================================================================================================================================
-					//	LOADS TSMETAS FROM THE SQL CATALOG DB
-					// =================================================================================================================================
-					
-					
-//					protected static Set<TSMeta> closeOutTSMetaResult(final int modPageSize, final QueryContext ctx, final List<TSMeta> readMetas) {		
-//						if(readMetas.isEmpty()) {
-//							ctx.setExhausted(true).setNextIndex(null);			
-//							return EMPTY_TSMETA_SET;
-//						}
-//						final int size = readMetas.size(); 		
-//						if(size < modPageSize) {
-//							ctx.setExhausted(true).setNextIndex(null).incrementCummulative(size);			
-//						} else {
-//							ctx.setExhausted(false).setNextIndex(readMetas.get(size-2).getTSUID()).incrementCummulative(size-1);
-//							readMetas.remove(size-1);
-//						}
-//						return readMetas.isEmpty() ? EMPTY_TSMETA_SET : new LinkedHashSet<TSMeta>(readMetas);
-//					}
-					
-					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), false, binds.toArray(new Object[0]));
-					int rowsRead = 0;
-					final int pageRows = queryContext.getPageSize();
-					Iterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
-					if(queryContext.isExpired()) {
-						def.acceptEvent(new Event(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms.]")));
-						try { rset.close(); } catch (Exception ex) {}
-						return;
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
+
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
 					}
-					while(rowsRead < pageRows && iter.hasNext()) {						
-						def.accept(iter.next());
-//						def.flush();
-						rowsRead++;
-					}
-					log.info("Deferred Accepted [{}] rows", rowsRead);
-					if(iter.hasNext()) {
-						log.info("Iter had next");
-						queryContext.setExhausted(false).setNextIndex(iter.next().getTSUID()).incrementCummulative(rowsRead);
-					} else {
-						log.info("Iter final");
-						queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
-					}
-					try { rset.close(); } catch (Exception x) {/* No Op */}
-					
-					log.info("Sending end on thread [{}]", Thread.currentThread().getName());
-					def.accept((TSMeta)null);
-					
-					
-					if(queryContext.shouldContinue()) {
-						log.info("QC Still has rows.");
-						
-						getTSMetas(def, queryContext.startExpiry(), _metricName, _tags);
-					}
-					
-					
-//					final Set<TSMeta> tsMetas = closeOutTSMetaResult(modPageSize, queryContext, 
-//							metaReader.readTSMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), true)							
-//					); 
-//					for(TSMeta tsMeta: tsMetas) {
-//						def.accept(tsMeta);
-//					}
-					
-					
-										
 				} catch (Exception ex) {
 					log.error("Failed to execute getTSMetas (with tags).\nSQL was [{}]", sqlBuffer, ex);
 					def.accept(new Exception("Failed to execute getTSMetas", ex));
@@ -886,9 +728,45 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			}
 		});
 		return stream;
-		
 	}
 	
+	
+	/**
+	 * Processes the results into the stream
+	 * @param iter The iterator of the results to stream out
+	 * @param def The deferred the results are accepted into
+	 * @param queryContext The current query context
+	 * @return true to continue processing, false for done
+	 */
+	protected  <T> boolean processStream(final IndexProvidingIterator<T> iter , final reactor.core.composable.Deferred<T, Stream<T>> def, final QueryContext queryContext) {
+		int rowsRead = 0;
+		final int pageRows = queryContext.getPageSize();		
+		if(queryContext.isExpired()) {
+			def.accept(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms."));
+//			def.acceptEvent(new Event(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms.]")));
+			return false;
+		}
+		while(rowsRead < pageRows && iter.hasNext()) {
+			def.accept(iter.next());
+			rowsRead++;
+		}
+		
+		if(iter.hasNext()) {
+			log.info("Iter had next");
+			iter.next();
+			queryContext.setExhausted(false).setNextIndex(iter.getIndex()).incrementCummulative(rowsRead);
+			iter.pushBack();
+		} else {
+			log.info("Iter final");
+			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
+		}
+		log.info("Deferred Flushing [{}] rows", rowsRead);
+		def.flush();
+//		log.info("Sending end on thread [{}]", Thread.currentThread().getName());
+//		def.accept((T)null);
+		
+		return queryContext.shouldContinue();
+	}
 
 	/**
 	 * Generates a TSMeta query
@@ -954,7 +832,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getTagValues(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> getTagValues(final QueryContext queryContext, final String metricName, final Map<String, String> tags, final String tagKey) {
+	public Stream<List<UIDMeta>> getTagValues(final QueryContext queryContext, final String metricName, final Map<String, String> tags, final String tagKey) {
 		return getTagValues(null, queryContext, metricName, tags, tagKey);
 	}
 	
@@ -967,12 +845,15 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param tagKey The tag key to get the values of
 	 * @return the deferred result
 	 */
-	protected Deferred<Set<UIDMeta>> getTagValues(final Deferred<Set<UIDMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags, final String tagKey) {
-		final Deferred<Set<UIDMeta>> def = priorDeferred==null ? new Deferred<Set<UIDMeta>>() : priorDeferred;		
+	protected Stream<List<UIDMeta>> getTagValues(final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags, final String tagKey) {
+		final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<UIDMeta>> stream = def.compose().collect();
+
 		final String _metricName = (metricName==null || metricName.trim().isEmpty()) ? "*" : metricName.trim();
 		final String _tagKey = (tagKey==null || tagKey.trim().isEmpty()) ? "*" : tagKey.trim();
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
-		this.metaQueryExecutor.execute(new Runnable() {
+		
+		this.dispatcher.execute(new Runnable() {
 			@SuppressWarnings("boxing")
 			public void run() {				
 				final List<Object> binds = new ArrayList<Object>();
@@ -1004,24 +885,22 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					sqlBuffer.append(INITIAL_XUID_START_SQL);
 				}
 				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
-				final int modPageSize = queryContext.getNextMaxLimit() + 1;
-				binds.add(modPageSize);
+				binds.add(queryContext.getNextMaxLimit() + 1);
 				try {
-					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-							metaReader.readUIDMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), UniqueId.UniqueIdType.TAGV)
-					);
-					def.callback(uidMetas);
-					if(queryContext.shouldContinue()) {
-						getTagValues(def, queryContext, _metricName, _tags, _tagKey);
-					}										
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, UniqueIdType.TAGV);
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
+					}
 				} catch (Exception ex) {
 					log.error("Failed to execute getTagValues (with tags).\nSQL was [{}]", sqlBuffer, ex);
-					def.callback(ex);					
+					def.accept(new Exception("Failed to execute getTagValues", ex));
 				}
 			}
 		});
-		return def;
+		return stream;
 	}
 
 	
@@ -1030,7 +909,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#evaluate(net.opentsdb.meta.api.QueryContext, java.lang.String)
 	 */
 	@Override
-	public Stream<TSMeta> evaluate(final QueryContext queryContext, final String expression) {
+	public Stream<List<TSMeta>> evaluate(final QueryContext queryContext, final String expression) {
 		if(expression==null || expression.trim().isEmpty()) {
 			throw new IllegalArgumentException("The passed expression was null or empty");
 		}
@@ -1106,9 +985,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				binds.add(modPageSize);
 				try {
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					final Set<Annotation> annotations = closeOutAnnotationResult(modPageSize, queryContext, 
-							metaReader.readAnnotations(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])))
-					);
+					final Set<Annotation> annotations = Collections.emptySet(); // FIXME and implement !
 					def.callback(annotations);
 				} catch (Exception ex) {
 					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
@@ -1168,21 +1045,40 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return null;
 	}
 	
+	
 	/**
 	 * {@inheritDoc}
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#find(net.opentsdb.meta.api.QueryContext, net.opentsdb.uid.UniqueId.UniqueIdType, java.lang.String)
 	 */
 	@Override
-	public Deferred<Set<UIDMeta>> find(final QueryContext queryContext, final UniqueIdType type, final String name) {
+	public Stream<List<UIDMeta>> find(final QueryContext queryContext, final UniqueIdType type, final String name) {
+		return find(null, queryContext, type, name);
+	}
+
+
+	
+	/**
+	 * Finds and streams a set of UIDMetas matching the passed name pattern
+	 * @param priorDeferred An optional deferred result from a prior continuous call. If null, this is assumed
+	 * to be the first call and a new deferred will be created.
+	 * @param queryContext The query context
+	 * @param type The type of UIDMeta to search
+	 * @param name The name pattern to match
+	 * @return a deferred stream of lists of matching UIDMetas
+	 */
+	public Stream<List<UIDMeta>> find(final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> priorDeferred, final QueryContext queryContext, final UniqueIdType type, final String name) {
+		final reactor.core.composable.Deferred<UIDMeta, Stream<UIDMeta>> def = getDeferred(priorDeferred, queryContext);
+		final Stream<List<UIDMeta>> stream = def.compose().collect();
+		
 		if(name==null || name.trim().isEmpty()) { 
-			return Deferred.fromError(new IllegalArgumentException("The passed name was null or empty"));
+			def.accept(new IllegalArgumentException("The passed name was null or empty"));
+			return stream;
 		}
 		if(type==null) { 
-			return Deferred.fromError(new IllegalArgumentException("The passed type was null"));
+			def.accept(new IllegalArgumentException("The passed type was null"));
+			return stream;
 		}
-		
-		final Deferred<Set<UIDMeta>> def = new Deferred<Set<UIDMeta>>();		
-		this.metaQueryExecutor.execute(new Runnable() {
+		this.dispatcher.execute(new Runnable() {
 			public void run() {
 				final List<Object> binds = new ArrayList<Object>();
 				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_")
@@ -1196,21 +1092,24 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					sqlBuffer.append(INITIAL_XUID_START_SQL);
 				}
 				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
-				final int modPageSize = queryContext.getNextMaxLimit() + 1;
-				binds.add(modPageSize);
+				binds.add(queryContext.getNextMaxLimit() + 1);
+				log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 				try {
-					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-							metaReader.readUIDMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), type)
-					);
-					def.callback(uidMetas);
+					
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0]));
+					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, type);
+					try {
+						while(processStream(iter, def, queryContext)) {/* No Op */} 
+					} finally {
+						try { rset.close(); } catch (Exception x) {/* No Op */}
+					}
 				} catch (Exception ex) {
 					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
-					def.callback(ex);					
+					def.accept(new Exception("Failed to execute find", ex));
 				}				
 			}
 		});
-		return def;			
+		return stream;			
 	}
 	
 	

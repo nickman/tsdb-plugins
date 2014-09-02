@@ -1544,7 +1544,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.CatalogDBInterface#readUIDMetas(java.sql.ResultSet, net.opentsdb.uid.UniqueId.UniqueIdType)
 	 */
 	@Override
-	public List<UIDMeta> readUIDMetas(ResultSet rset, UniqueIdType uidType) {
+	public List<UIDMeta> readUIDMetas(final ResultSet rset, final UniqueIdType uidType) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
 		List<UIDMeta> uidMetas = new ArrayList<UIDMeta>();
 		
@@ -1621,7 +1621,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.MetaReader#iterateTSMetas(java.sql.ResultSet)
 	 */
 	@Override
-	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset) {
+	public IndexProvidingIterator<TSMeta> iterateTSMetas(final ResultSet rset) {
 		return iterateTSMetas(rset, false);
 	}
 	
@@ -1630,32 +1630,43 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 * @see net.opentsdb.catalog.MetaReader#iterateTSMetas(java.sql.ResultSet, boolean)
 	 */
 	@Override
-	public Iterator<TSMeta> iterateTSMetas(final ResultSet rset, final boolean includeUIDs) {
-		return new Iterator<TSMeta>() {
-			private boolean hasnext = true;
-			@Override
-			public boolean hasNext() {
-				try {
-					hasnext = rset.next();
-					return hasnext;
-				} catch (Exception ex) {
-					throw new RuntimeException(ex);
-				}
-			}
+	public IndexProvidingIterator<TSMeta> iterateTSMetas(final ResultSet rset, final boolean includeUIDs) {
+		return new AbstractIndexProvidingIterator<TSMeta>(rset) {
 
 			@Override
-			public TSMeta next() {
-				if(!hasnext) throw new NoSuchElementException();
+			protected TSMeta build() {
 				return buildTSMeta(rset, includeUIDs);
 			}
 
 			@Override
-			public void remove() {
-				throw new UnsupportedOperationException("Remove not supported for this iterator");
+			protected Object getIndex(TSMeta t) {
+				return t.getTSUID();
 			}
 			
 		};
 	}
+	
+	/**
+	 * Builds and returns a UID query result iterator
+	 * @param rset The result set driving the iterator
+	 * @param type The UIDMeta type
+	 * @return the iterator
+	 */
+	public IndexProvidingIterator<UIDMeta> iterateUIDMetas(final ResultSet rset, final UniqueIdType type) {
+		return new AbstractIndexProvidingIterator<UIDMeta>(rset) {
+
+			@Override
+			protected UIDMeta build() {
+				return buildUIDMeta(rset, type);
+			}
+
+			@Override
+			protected Object getIndex(UIDMeta t) {
+				return t.getUID();
+			}
+		};
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -1676,7 +1687,31 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
-	 * Biulds a TSMeta from the current row in the passed result set
+	 * Builds a UIDMeta from the current row in the passed result set
+	 * @param rset The result set to read from
+	 * @param type THe UIDMeta type to build
+	 * @return the built UIDMeta
+	 */
+	private UIDMeta buildUIDMeta(final ResultSet rset, final UniqueIdType type) {
+		try {
+			UIDMeta meta = new UIDMeta(type, UniqueId.stringToUid(rset.getString("XUID")), rset.getString("NAME"));
+			meta.setCreated(mstou(rset.getTimestamp("CREATED").getTime()));
+			String mapStr = rset.getString("CUSTOM");
+			if(mapStr!=null) {
+				meta.setCustom((HashMap<String, String>) JSONMapSupport.read(mapStr));
+			}
+			meta.setDescription(rset.getString("DESCRIPTION"));
+			meta.setNotes(rset.getString("NOTES"));
+			meta.setDisplayName(rset.getString("DISPLAY_NAME"));
+			return meta;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to build UIDMeta of type [" + type + "]", ex);
+		}
+	}
+	
+	
+	/**
+	 * Builds a TSMeta from the current row in the passed result set
 	 * @param rset The result set to read from
 	 * @param includeUIDs true to load UIDs, false otherwise
 	 * @return the built TSMeta

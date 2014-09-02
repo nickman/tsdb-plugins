@@ -186,7 +186,7 @@ public class QueryContext {
 	 * @return the item count limit on the next call
 	 */
 	public int getNextMaxLimit() {
-		return Math.min(pageSize, maxSize - cummulative);
+		return Math.min((continuous ? maxSize : pageSize), maxSize - cummulative);
 	}
 
 	/**
@@ -298,7 +298,7 @@ public class QueryContext {
 	public QueryContext startExpiry() {
 		if(this.timeLimit==-1L) {
 			this.timeLimit = System.currentTimeMillis() + timeout;
-			log.info("\n\t**********************\n\tTimeLimit set with timeout [{}] to [{}]\n", timeout, timeLimit);
+			log.debug("\n\t**********************\n\tTimeLimit set with timeout [{}] to [{}]\n", timeout, timeLimit);
 		}
 		return this;
 	}

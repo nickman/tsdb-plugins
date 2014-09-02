@@ -23,6 +23,10 @@
 		
 	}	
 
+	.errormessage {
+		color: red;
+	}
+
 	#mysvg {
         background-color: rgb(206, 219, 221);
         opacity: 0.3;

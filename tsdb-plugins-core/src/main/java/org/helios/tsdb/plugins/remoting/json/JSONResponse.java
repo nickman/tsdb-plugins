@@ -175,9 +175,54 @@ public class JSONResponse implements ChannelBufferizable {
 						channel.write(buf);
 					}
 				}
-			};
+				
+				public void flush() throws IOException {
+					super.flush();
+					super.close();
+				}
+			};			
 		}
 		return channelOutputStream;
+	}
+	
+	/**
+	 * Discards written content from the output stream, discarding the content and creating a new output stream
+	 */
+	public void resetChannelOutputStream() {
+		if(content!=null) {
+			throw new RuntimeException("Cannot reset OutputStream. Content already set");
+		}
+		if(channelOutputStream != null) {
+			ChannelBuffer buff = channelOutputStream.buffer();
+			try {
+				channelOutputStream.flush();
+			} catch (Exception ex) {}
+			buff.resetWriterIndex();
+			channelOutputStream = new ChannelBufferOutputStream(ChannelBuffers.dynamicBuffer(8096, bufferFactory)) {
+				final ChannelBuffer buf = this.buffer();
+				boolean closed = false;
+				@Override
+				public void close() throws IOException {
+					if(!closed) {
+						closed = true;
+						super.flush();					
+						super.close();
+						channel.write(buf);
+					}
+				}
+				
+				public void flush() throws IOException {
+					super.flush();
+					super.close();
+				}
+			};						
+			jsonGen = null;
+//			try {
+//				jsonGen = JSON.getFactory().createGenerator(channelOutputStream);
+//			} catch (IOException e) {
+//				throw new RuntimeException("Failed to create a new JsonGenerator after reset", e);
+//			}
+		}
 	}
 	
 	/**
@@ -267,10 +312,25 @@ public class JSONResponse implements ChannelBufferizable {
 		return this;
 	}
 	
+	private static String printOutputContext(JsonStreamContext ctx) {
+		return new StringBuilder("JSONContext [")
+		.append("\n\tCurrent Index:").append(ctx.getCurrentIndex())
+		.append("\n\tCurrent Name:").append(ctx.getCurrentName())
+		.append("\n\tEntry Count:").append(ctx.getEntryCount())
+		.append("\n\tType Desc:").append(ctx.getTypeDesc())
+		.append("\n\tIn Array:").append(ctx.inArray())
+		.append("\n\tIn Object:").append(ctx.inObject())
+		.append("\n\tIn Root:").append(ctx.inRoot())
+		.append("\n]").toString();
+		
+	}
+	
+	
 	/**
 	 * Initiates a streaming content delivery to the caller. A new JsonFactory is created and the header of 
 	 * the response message is written, up to an including the msg object start. The remaining content
 	 * should be written using the returned generator, followed by a call to closeGenerator.
+	 * @param map True if the payload body is a map, false for an array
 	 * @return the created generator.
 	 */
 	public JsonGenerator writeHeader(final boolean map) {
@@ -295,18 +355,6 @@ public class JSONResponse implements ChannelBufferizable {
 		}
 	}
 	
-	private static String printOutputContext(JsonStreamContext ctx) {
-		return new StringBuilder("JSONContext [")
-		.append("\n\tCurrent Index:").append(ctx.getCurrentIndex())
-		.append("\n\tCurrent Name:").append(ctx.getCurrentName())
-		.append("\n\tEntry Count:").append(ctx.getEntryCount())
-		.append("\n\tType Desc:").append(ctx.getTypeDesc())
-		.append("\n\tIn Array:").append(ctx.inArray())
-		.append("\n\tIn Object:").append(ctx.inObject())
-		.append("\n\tIn Root:").append(ctx.inRoot())
-		.append("\n]").toString();
-		
-	}
 	
 	/**
 	 * Closes the open json generator and writes the content back to the caller.
@@ -330,8 +378,7 @@ public class JSONResponse implements ChannelBufferizable {
 		} finally {
 			jsonGen = null;
 			channelOutputStream = null;
-		}
-		
+		}		
 	}
 
 	/**

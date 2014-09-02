@@ -47,7 +47,7 @@ public class JSONMetricsAPIService {
 	/** The Metric Meta API impl used to serve this JSON service */
 	protected final MetricsMetaAPI metricApi;
 	/** Instance logger */
-	protected Logger log = LoggerFactory.getLogger(getClass());
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	/**
 	 * Creates a new JSONMetricsAPIService 
 	 * @param metricApi The Metric Meta API impl used to serve this JSON service
@@ -485,98 +485,6 @@ public class JSONMetricsAPIService {
 		return map;		
 	}
 	
-	class ResultConsumer<T> implements Consumer<T> {
-		/** The original JSON request */
-		private final JSONRequest request;		
-		/** The current query context */
-		private final QueryContext ctx;
-		/** The streaming json generator */
-		private JsonGenerator jgen;
-		
-		private JSONResponse response = null;
-		private boolean firstResult = false;
-		
-		/**
-		 * Creates a new ResultConsumer
-		 * @param request The original JSON request
-		 * @param ctx The current query context
-		 */
-		public ResultConsumer(JSONRequest request, QueryContext ctx) {
-			super();
-			this.request = request;
-			this.ctx = ctx;
-			response = request.response();
-			reset();			
-		}
-		
-		protected void reset() {
-			try {
-				firstResult = false;
-			} catch (Exception ex) {
-				throw new RuntimeException("Failed to create JSON output streamer", ex);
-			}			
-		}
-		
-
-		protected void handleError(final Throwable t) {
-			ctx.setExhausted(true);
-			try {
-				response.setOpCode("error");
-				jgen = response.writeHeader(false);				
-
-				jgen.writeObject(ctx);
-				jgen.writeObject(t.getMessage());
-				jgen.writeObject(StringHelper.formatStackTrace(t));
-//				jgen.writeString("The request timed out");
-				response = response.closeGenerator();
-				log.warn("Timeout message dispatched");
-				throw new RuntimeException("Request Expired");
-			} catch (Exception ex) {
-				throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
-			}							
-		}
-		
-		@Override
-		public synchronized void accept(final T t) {
-			
-//			log.info("Accepting [{}]", t);
-			if(t!=null && t instanceof Throwable) {
-				handleError((Throwable)t);
-				return;
-			}
-			if(t==null) {
-				log.info("Calling complete on thread [{}]", Thread.currentThread().getName());
-				complete();
-				return;
-			}
-			try {
-				if(!firstResult) {
-					jgen.setCodec(ctx.getMapper());
-					jgen = response.writeHeader(false);				
-					jgen.writeStartArray();					
-					firstResult = true;
-				}
-				jgen.writeObject(t);
-			} catch (Exception ex) {
-				throw new RuntimeException("Failed to write accepted instance to JSON output streamer", ex);
-			}
-		}
-		
-		private void complete() {
-			try {
-				jgen.writeEndArray();
-				jgen.writeObject(ctx);				
-				response = response.closeGenerator();
-				log.info("\n\t**********************\n\tElapsed:{} ms.\n\t**********************", ctx.getElapsed());
-				reset();				
-			} catch (Exception ex) {
-				throw new RuntimeException("Failed to close array in JSON output stream", ex);
-			} finally {
-				
-			}
-		}
-		
-	}
 	
 	/**
 	 * <p>Title: ResultCompleteCallback</p>

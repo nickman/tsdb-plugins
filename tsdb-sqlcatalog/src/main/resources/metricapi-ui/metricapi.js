@@ -195,7 +195,7 @@ WebSocketAPIClient.defaultHandlers = {
 				console.dir(result);
 				console.groupEnd();
 				if(result.rerid) {
-					var continuing = QueryContext.readContext(result.msg[1]).shouldContinue();
+					var continuing = QueryContext.readContext(result.msg.q).shouldContinue();
 					// console.info("Response: [%O]", result);
 					var pendingRequest = continuing ? client.getPendingRequest(result.rerid) : client.completePendingRequest(result.rerid);
 					if(pendingRequest!=null) {
@@ -208,12 +208,12 @@ WebSocketAPIClient.defaultHandlers = {
 						try {
 							if(pendingRequest.d) {
 								if(pendingRequest.request && pendingRequest.request.q) {
-			 						pendingRequest.request.q.refresh(result.msg[1]);
+			 						pendingRequest.request.q.refresh(result.msg.q);
 			 						if(!continuing) delete pendingRequest.request.q;	 
 			 						else client.resetPendingRequest(result.rerid);
 			 						var callback =  [{
-										data: result.msg[0],
-										q: result.msg[1],
+										data: result.msg.results,
+										q: result.msg.q,
 										id: result.id,
 										op: result.op,
 										rerid: result.rerid,

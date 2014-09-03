@@ -196,7 +196,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 		/** The FQNID Retrieval SQL template for matching annotations */
 		public static final String GET_TSMETAS_SQL =
-				"SELECT DISTINCT X.* FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
+				"SELECT X.* FROM TSD_TSMETA X, TSD_METRIC M, TSD_FQN_TAGPAIR T, TSD_TAGPAIR P, TSD_TAGK K, TSD_TAGV V " +
 				"WHERE M.XUID = X.METRIC_UID  " +
 				"AND X.FQNID = T.FQNID  " +
 				"AND T.XUID = P.XUID " +
@@ -670,7 +670,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		if(priorDeferred!=null) return priorDeferred;
 		return Streams.<T>defer()
 			.dispatcher(this.dispatcher)			
-			.batchSize(queryContext.getPageSize())
+//			.batchSize(queryContext.getPageSize())
 			.get();
 	}
 	
@@ -704,8 +704,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		
 		this.dispatcher.execute(new Runnable() {
 			@SuppressWarnings({ "boxing" })
-			public void run() {				
-				SystemClock.sleep(200);
+			public void run() {								
 				final List<Object> binds = new ArrayList<Object>();
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
@@ -713,11 +712,13 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					binds.add(queryContext.getNextMaxLimit() + 1);
 					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 					
-					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0]));
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), false, binds.toArray(new Object[0]));
 					final IndexProvidingIterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
 
 					try {
-						while(processStream(iter, def, queryContext)) {/* No Op */} 
+						while(processStream(iter, def, queryContext)) {
+							queryContext.startExpiry();
+						} 
 					} finally {
 						try { rset.close(); } catch (Exception x) {/* No Op */}
 					}
@@ -743,28 +744,29 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		final int pageRows = queryContext.getPageSize();		
 		if(queryContext.isExpired()) {
 			def.accept(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms."));
-//			def.acceptEvent(new Event(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms.]")));
 			return false;
 		}
-		while(rowsRead < pageRows && iter.hasNext()) {
-			def.accept(iter.next());
-			rowsRead++;
+		boolean exh = false;
+		while(rowsRead < pageRows) {
+			if(iter.hasNext()) {
+				def.accept(iter.next());
+				rowsRead++;
+			} else {
+				exh = true;
+				break;
+			}
 		}
 		
-		if(iter.hasNext()) {
-			log.info("Iter had next");
-			iter.next();
+		if(!exh) {
 			queryContext.setExhausted(false).setNextIndex(iter.getIndex()).incrementCummulative(rowsRead);
-			iter.pushBack();
 		} else {
-			log.info("Iter final");
 			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
 		}
 		log.info("Deferred Flushing [{}] rows", rowsRead);
 		def.flush();
 //		log.info("Sending end on thread [{}]", Thread.currentThread().getName());
 //		def.accept((T)null);
-		
+//		log.info("Query Context: {}", queryContext.debugContinue());
 		return queryContext.shouldContinue();
 	}
 
@@ -775,6 +777,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param queryOptions The query options
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
+	 * @param mergeOp Specifies a row merge op (usually INTERSECT or UNION ALL)
 	 */
 	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String mergeOp) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
@@ -785,8 +788,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, TSUID_START_SQL));
 				binds.add(queryOptions.getNextIndex());
 			}
-			if(hasMetricName) binds.add(metricName);
-			
+			if(hasMetricName) binds.add(metricName);			
 		} else {
 			StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
 			prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL, mergeOp);

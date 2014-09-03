@@ -150,9 +150,15 @@ function doDisplayJson() {
 			$('#jsonOutput').empty();
 			$('#jsonOutput').append("<pre>" + syntaxHighlight(result.data) + "</pre>");
 		} else {
+			console.info("Appending partial result. Q: [%O]", result.q);
+
 			responseCount++;
 			var index = responseCount;
-			var app = "<a id='link" + index + "'>Response #" + index + " -- Results:" + result.data.length + "&nbsp;<font size='-2'>(Click to Expand)</font>";
+			var elapsedDiff = q.lastElapsedTime==null ? 0 : result.q.elapsedTime - q.lastElapsedTime;
+			q.lastElapsedTime = result.q.elapsedTime;
+			var elapsedData = " (elapsed:" + result.q.elapsed + ", rt:" + Math.round(result.q.elapsedTime) + ", delta: " + Math.round(elapsedDiff) + ")";
+
+			var app = "<a id='link" + index + "'>Response #" + index + " -- Results:" + result.data.length + ", " + elapsedData + "&nbsp;<font size='-2'>&nbsp;(Click to Expand)</font>";
 			app += "<div id='data" + index + "'><pre>";
 			app += syntaxHighlight(result.data);
 			app += "</pre></div></a><br>";

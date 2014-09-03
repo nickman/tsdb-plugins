@@ -4,15 +4,14 @@
 package net.opentsdb.catalog;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
-import net.opentsdb.meta.TSMeta;
-import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
 import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
@@ -87,7 +86,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], tags: {}", q, tags);					
-			attachHandlers(metricApi.getMetricNames(q, tags), q, request);			
+			attachBatchHandlers(metricApi.getMetricNames(q, tags), q, request);			
 		}
 	}
 	
@@ -111,7 +110,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONMetricNames. q: [{}], keys: {}", q, Arrays.toString(tagKeys));		
-			attachHandlers(metricApi.getMetricNames(q.startExpiry(), tagKeys), q, request);	
+			attachBatchHandlers(metricApi.getMetricNames(q.startExpiry(), tagKeys), q, request);	
 		}
 	}
 	
@@ -158,7 +157,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONTagKeys. q: [{}], m: [{}], keys: {}", q, metricName, Arrays.toString(tagKeys));
-			attachHandlers(metricApi.getTagKeys(q.startExpiry(), metricName, tagKeys), q, request);			
+			attachBatchHandlers(metricApi.getTagKeys(q.startExpiry(), metricName, tagKeys), q, request);			
 		}
 	}
 		
@@ -208,7 +207,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			log.info("Processing JSONTagValues. q: [{}], m: [{}], tags: {}", q, metricName, tags);
-			attachHandlers(metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey), q, request);
+			attachBatchHandlers(metricApi.getTagValues(q.startExpiry(), metricName, tags, tagKey), q, request);
 		}
 	}
 
@@ -252,7 +251,7 @@ public class JSONMetricsAPIService {
 			);			
 		} else {
 			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
-			attachHandlers(metricApi.evaluate(q, expression), q, request);			
+			attachBatchHandlers(metricApi.evaluate(q, expression), q, request);			
 		}
 	}
 	
@@ -263,18 +262,22 @@ public class JSONMetricsAPIService {
 	 * @param q The query context
 	 * @param request The JSONRequest
 	 */
-	protected final <T> void attachHandlers(Stream<T> stream, final QueryContext q, final JSONRequest request) {
+	protected final <T> void attachBatchHandlers(Stream<T> stream, final QueryContext q, final JSONRequest request) {
 		stream.consume(new Consumer<T>(){
 			@Override
 			public void accept(T t) {
 				try {
+					final long startTime = System.currentTimeMillis();
 					final JSONResponse response = request.response();
 					response.setOpCode("results");						
+					@SuppressWarnings("resource")
 					JsonGenerator jgen = response.writeHeader(true);
 					jgen.setCodec(q.getMapper());
 					jgen.writeObjectField("results", t);	
 					jgen.writeObjectField("q", q);	
 					response.closeGenerator();
+					final long elapsed = System.currentTimeMillis()-startTime;
+					log.info("\n\t################\n\tAccept time: {} ms.\n\t################\n", elapsed);
 				}  catch (Exception ex) {
 					log.error("Failed to write result batch", ex);
 					throw new RuntimeException("Failed to write result batch", ex);
@@ -289,6 +292,7 @@ public class JSONMetricsAPIService {
 				try {
 					response.resetChannelOutputStream();
 					response.setOpCode("error");
+					@SuppressWarnings("resource")
 					final JsonGenerator jgen = response.writeHeader(true);							
 					String message = t.getMessage();
 					if(message==null || message.trim().isEmpty()) {
@@ -305,6 +309,7 @@ public class JSONMetricsAPIService {
 		});
 //		.timeout(q.getTimeout());		
 	}
+
 	
 	
 	/**
@@ -396,7 +401,8 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 //			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			metricApi.getTSMetas(q, metricName, tags).consume(new ResultConsumer<List<TSMeta>>(request, q));
+//			metricApi.getTSMetas(q, metricName, tags).consume(new ResultConsumer<List<TSMeta>>(request, q));
+			attachBatchHandlers(metricApi.getTSMetas(q, metricName, tags), q, request);
 		}
 	}
 	
@@ -440,7 +446,7 @@ public class JSONMetricsAPIService {
 				request.getRequest().get("name").textValue()
 			);
 		} else {			
-			attachHandlers(metricApi.find(q.startExpiry(), type, name), q, request);			
+			attachBatchHandlers(metricApi.find(q.startExpiry(), type, name), q, request);			
 		}
 	}
 	
@@ -580,3 +586,70 @@ public class JSONMetricsAPIService {
 	
 
 }
+
+
+
+/*
+protected final <T> void attachHandlers(Stream<T> stream, final QueryContext q, final JSONRequest request) {
+	stream.consume(new Consumer<T>(){
+		boolean firstRow = true;
+		JSONResponse response = request.response();			
+		JsonGenerator jgen = null;
+		final AtomicLong msgId = new AtomicLong();
+		@Override
+		public synchronized void accept(T t) {
+			try {
+				if(t==null) {
+					if(firstRow) {
+						// empty results
+						jgen.writeObjectField("results", Collections.emptyList());
+					} else {
+						jgen.writeEndArray();
+					}
+					jgen.writeObjectField("q", q);	
+					jgen.writeNumberField("msgid", msgId.incrementAndGet());
+					response = response.closeGenerator();
+					firstRow = true;
+					return;
+				}
+				if(firstRow) {
+					jgen = response.writeHeader(true);
+					response.setOpCode("results");
+					jgen.setCodec(q.getMapper());
+					jgen.writeFieldName("results");
+					jgen.writeStartArray();
+					firstRow = false;
+				}																
+				jgen.writeObject(t);	
+			}  catch (Exception ex) {
+				log.error("Failed to write result instance. FR: {}, t: {}, jg: {}", firstRow, t, jgen, ex);
+				throw new RuntimeException("Failed to write result instance", ex);
+			}					
+		}
+	})
+	.when(Throwable.class, new Consumer<Throwable>(){
+		@Override
+		public void accept(Throwable t) {
+			q.setExhausted(true);
+			final JSONResponse response = request.response();					
+			try {
+				response.resetChannelOutputStream();
+				response.setOpCode("error");
+				@SuppressWarnings("resource")
+				final JsonGenerator jgen = response.writeHeader(true);							
+				String message = t.getMessage();
+				if(message==null || message.trim().isEmpty()) {
+					message = t.getClass().getSimpleName();
+				}
+				jgen.writeObjectField("error", message);
+				jgen.writeObjectField("q", q);
+				response.closeGenerator();
+				log.warn("Exception message dispatched");
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
+			}												
+		}
+	});
+//	.timeout(q.getTimeout());		
+}
+*/

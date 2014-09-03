@@ -167,7 +167,23 @@ public class QueryContext {
 	 * @return true to continue, false otherwise
 	 */
 	public boolean shouldContinue() {
-		return continuous && nextIndex != null && !isExpired() && !isExhausted() && cummulative < maxSize;
+		final boolean cont = continuous && nextIndex != null && !isExpired() && !isExhausted() && cummulative < maxSize;
+		if(cont) this.timeLimit=-1L;
+		return cont;
+	}
+	
+	public String debugContinue() {
+		return new StringBuilder("\nQueryContext Continue State [")
+			.append("\n\tContinuous:").append(continuous)
+			.append("\n\tHas Next Index:").append(nextIndex != null)
+			.append("\n\tNot Expired:").append(!isExpired())
+			.append("\n\tNot Exhausted:").append(!isExhausted())
+			.append("\n\tNot At Max:").append((cummulative < maxSize))
+			.append("\n\t===============================\n\tWill Continue:").append(
+					continuous && nextIndex != null && !isExpired() && !isExhausted() && cummulative < maxSize
+			)
+			.append("\n]")
+			.toString();
 	}
 
 	/**
@@ -274,7 +290,7 @@ public class QueryContext {
 		try {
 			if(timeLimit!=-1L) {				
 				elapsed = now - timeLimit + timeout;
-				log.info("\n\t***************\n\tTime Limit: {}\n\tNow: {}\n\tTimeout: {}\n\tElapsed: {}\n\t***************\n", timeLimit, now, timeout, elapsed);
+				log.debug("\n\t***************\n\tTime Limit: {}\n\tNow: {}\n\tTimeout: {}\n\tElapsed: {}\n\t***************\n", timeLimit, now, timeout, elapsed);
 				boolean exp =  now > timeLimit;
 				timeLimit = -1L;
 				expired = exp;

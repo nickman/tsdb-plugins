@@ -368,7 +368,7 @@ public class JSONResponse implements ChannelBufferizable {
 			} else {
 				jsonGen.writeEndArray();
 			}
-			System.out.println(printOutputContext(jsonGen.getOutputContext())) ;
+//			System.out.println(printOutputContext(jsonGen.getOutputContext())) ;
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();

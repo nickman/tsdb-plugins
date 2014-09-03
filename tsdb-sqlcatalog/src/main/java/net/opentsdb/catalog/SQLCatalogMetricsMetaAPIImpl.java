@@ -708,15 +708,19 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				final List<Object> binds = new ArrayList<Object>();
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT");					
-					binds.add(queryContext.getNextMaxLimit() + 1);
-					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					
-					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), false, binds.toArray(new Object[0]));
-					final IndexProvidingIterator<TSMeta> iter = metaReader.iterateTSMetas(rset, true);
-
+					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT");		
+					final int expectedRows = queryContext.getNextMaxLimit() + 1; 
+					binds.add(expectedRows);
+					queryContext.addCtx("SQLPrepared", System.currentTimeMillis());
+					//log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));					
+					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), expectedRows, false, binds.toArray(new Object[0]));
+					rset.setFetchSize(expectedRows);
+					queryContext.addCtx("SQLExecuted", System.currentTimeMillis());
+//					final List<TSMeta> tsMetas = metaReader.readTSMetas(rset, true);
+					final IndexProvidingIterator<TSMeta> tsMetas = metaReader.iterateTSMetas(rset, true);
+					queryContext.addCtx("SQLRSetIter", System.currentTimeMillis());
 					try {
-						while(processStream(iter, def, queryContext)) {
+						while(processStream(tsMetas, def, queryContext)) {
 							queryContext.startExpiry();
 						} 
 					} finally {
@@ -761,14 +765,54 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			queryContext.setExhausted(false).setNextIndex(iter.getIndex()).incrementCummulative(rowsRead);
 		} else {
 			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
-		}
+		}		
+		queryContext.addCtx("StreamFlushed", System.currentTimeMillis());
 		log.info("Deferred Flushing [{}] rows", rowsRead);
 		def.flush();
-//		log.info("Sending end on thread [{}]", Thread.currentThread().getName());
-//		def.accept((T)null);
-//		log.info("Query Context: {}", queryContext.debugContinue());
 		return queryContext.shouldContinue();
 	}
+	
+	/**
+	 * Processes the results into the stream
+	 * @param items The results to stream out
+	 * @param def The deferred the results are accepted into
+	 * @param queryContext The current query context
+	 * @return true to continue processing, false for done
+	 */
+	protected  boolean processStream(List<TSMeta> items , final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> def, final QueryContext queryContext) {
+		int rowsRead = 0;
+		final int pageRows = queryContext.getPageSize();		
+		if(queryContext.isExpired()) {
+			def.accept(new TimeoutException("Request Timed Out During Processing after [" + queryContext.getTimeout() + "] ms."));
+			return false;
+		}
+		boolean exh = false;
+		Iterator<TSMeta> iter = items.iterator();
+		while(rowsRead < pageRows) {
+			if(iter.hasNext()) {
+				def.accept(iter.next());
+				rowsRead++;
+			} else {
+				exh = true;
+				break;
+			}
+		}
+		
+		if(!exh) {
+			if(iter.hasNext()) {
+				queryContext.setExhausted(false).setNextIndex(iter.next().getTSUID()).incrementCummulative(rowsRead);
+			} else {
+				queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
+			}
+		} else {
+			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
+		}		
+		queryContext.addCtx("StreamFlushed", System.currentTimeMillis());
+		log.info("Deferred Flushing [{}] rows", rowsRead);
+		def.flush();
+		return queryContext.shouldContinue();
+	}
+	
 
 	/**
 	 * Generates a TSMeta query

@@ -1635,7 +1635,14 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 
 			@Override
 			protected TSMeta build() {
-				return buildTSMeta(rset, includeUIDs);
+				try {
+//					final String tsuid = rset.getString("TSUID");
+//					TSMeta t = tsMetaCache.get(tsuid, rset.isClosed() ? null : rset.getStatement().getConnection());
+//					if(t!=null) return t;
+					return buildTSMeta(rset, includeUIDs);
+				} catch (Exception ex) {
+					throw new RuntimeException("Failed to build TSMeta", ex);
+				}
 			}
 
 			@Override
@@ -1675,7 +1682,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	@Override
 	public List<TSMeta> readTSMetas(final ResultSet rset, final boolean includeUIDs) {
 		if(rset==null) throw new IllegalArgumentException("The passed result set was null");
-		List<TSMeta> tsMetas = new ArrayList<TSMeta>();
+		List<TSMeta> tsMetas = new ArrayList<TSMeta>(128);
 		try {
 			while(rset.next()) {
 				tsMetas.add(buildTSMeta(rset, includeUIDs));
@@ -1734,8 +1741,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			final long fqnId = rset.getLong("FQNID");
 			if(includeUIDs) {
 				loadUIDs(
-						rset.isClosed() ? null : 
-							rset.getStatement().getConnection(), 
+						rset.isClosed() ? null : rset.getStatement().getConnection(), 
 							meta, rset.getString("METRIC_UID"), fqnId);
 			}
 			return meta;

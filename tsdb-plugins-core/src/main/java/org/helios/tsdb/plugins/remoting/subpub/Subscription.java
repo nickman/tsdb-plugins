@@ -25,6 +25,8 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.nio.charset.Charset;
+import java.util.Hashtable;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -91,8 +93,8 @@ public class Subscription implements SubscriptionMBean {
 	
 	/** The total number of matched incoming messages */
 	protected final LongAdder totalMatched = new LongAdder();
-	/** The total number of unmatched incoming messages */
-	protected final LongAdder totalDropped = new LongAdder();
+	/** The total number of bloom filter "might" failures */
+	protected final LongAdder mightDropped = new LongAdder();
 	
 	/** The current number of retained (inserted) patterns */
 	protected final AtomicInteger retained = new AtomicInteger();
@@ -164,25 +166,29 @@ public class Subscription implements SubscriptionMBean {
 	/**
 	 * Indicates if the passed message is a member of this subscription
 	 * @param bytes The message to determine the membership of
+	 * @param metric The metric name
+	 * @param tags The metric tags
 	 * @return false if the message is definitely NOT a member of this subscription, true if it is a member.
 	 */
-	public boolean isMemberOf(final byte[] bytes) {
+	public boolean isMemberOf(final byte[] bytes, final String metric, final Map<String, String> tags) {
 		if(bytes==null) return false;
 		final long start = System.nanoTime();
 		try {
 			if(filter.mightContain(hasher.hashBytes(bytes).asBytes())) {
 				try {
-					final String strVal = new String(bytes, Charset.defaultCharset());
-					if(patternObjectName.apply(JMXHelper.objectName(strVal))) {
-						index(bytes);
-						totalMatched.increment();
-						return true;
+					if(metric!=null && tags!=null) {
+						if(patternObjectName.apply(new ObjectName(metric, new Hashtable<String, String>(tags)))) {
+							index(bytes);
+							totalMatched.increment();
+							return true;
+						}
 					}
 				} catch (Exception ex) {
 					/* No Op */
 				}
-			}
-			totalDropped.increment();
+				mightDropped.increment();
+			}	
+			
 			return false;
 		} finally {
 			ewma.append(System.nanoTime() - start);
@@ -195,7 +201,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public boolean test(String message) {
-		return isMemberOf(message.getBytes(Charset.defaultCharset()));
+		return isMemberOf(message.getBytes(Charset.defaultCharset()), null, null);
 	}
 	
 	/**
@@ -251,7 +257,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public long getDrops() {
-		return totalDropped.longValue();
+		return mightDropped.longValue();
 	}
 	
 	

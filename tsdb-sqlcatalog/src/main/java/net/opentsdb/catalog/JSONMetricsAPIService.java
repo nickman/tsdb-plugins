@@ -4,14 +4,15 @@
 package net.opentsdb.catalog;
 
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import net.opentsdb.meta.Annotation;
+import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
 import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
@@ -31,7 +32,6 @@ import reactor.function.Consumer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
 /**
@@ -47,6 +47,12 @@ public class JSONMetricsAPIService {
 	protected final MetricsMetaAPI metricApi;
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
+	/** The ctx name for this class */
+	protected final String ctxName = getClass().getSimpleName();
+	/** The ctx name for the accept time */
+	protected final String ctxAcceptName = getClass().getSimpleName() + "Accepted";
+	
 	/**
 	 * Creates a new JSONMetricsAPIService 
 	 * @param metricApi The Metric Meta API impl used to serve this JSON service
@@ -81,7 +87,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			getMetricNamesWithTagsJSON(
 				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				getMap(request, "tags")				
 			);
 		} else {
@@ -105,7 +111,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			getMetricNamesJSON(
 				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				getStringArray(request, "keys")				
 			);
 		} else {
@@ -151,7 +157,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			getTagKeysJSON(
 				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				request.getRequest().get("m").textValue(),
 				getStringArray(request, "keys")	
 			);
@@ -200,7 +206,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			getTagValuesJSON(
 				request, 
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				request.getRequest().get("m").textValue(),
 				getMap(request, "tags"),
 				request.getRequest().get("k").textValue()
@@ -246,7 +252,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			evaluateJSON(
 				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				request.getRequest().get("x").textValue()					
 			);			
 		} else {
@@ -267,17 +273,15 @@ public class JSONMetricsAPIService {
 			@Override
 			public void accept(T t) {
 				try {
-					final long startTime = System.currentTimeMillis();
+					
 					final JSONResponse response = request.response();
-					response.setOpCode("results");						
-					@SuppressWarnings("resource")
+					response.setOpCode("results");											
 					JsonGenerator jgen = response.writeHeader(true);
 					jgen.setCodec(q.getMapper());
-					jgen.writeObjectField("results", t);	
+					jgen.writeObjectField("results", t);
+					q.addCtx(ctxAcceptName, System.currentTimeMillis());
 					jgen.writeObjectField("q", q);	
 					response.closeGenerator();
-					final long elapsed = System.currentTimeMillis()-startTime;
-					log.info("\n\t################\n\tAccept time: {} ms.\n\t################\n", elapsed);
 				}  catch (Exception ex) {
 					log.error("Failed to write result batch", ex);
 					throw new RuntimeException("Failed to write result batch", ex);
@@ -291,8 +295,7 @@ public class JSONMetricsAPIService {
 				final JSONResponse response = request.response();					
 				try {
 					response.resetChannelOutputStream();
-					response.setOpCode("error");
-					@SuppressWarnings("resource")
+					response.setOpCode("error");					
 					final JsonGenerator jgen = response.writeHeader(true);							
 					String message = t.getMessage();
 					if(message==null || message.trim().isEmpty()) {
@@ -309,6 +312,60 @@ public class JSONMetricsAPIService {
 		});
 //		.timeout(q.getTimeout());		
 	}
+	
+	/**
+	 * Attaches the D3 serialization consumee and error handlers to the passed stream
+	 * @param stream The stream to attach handlers to
+	 * @param q The query context
+	 * @param request The JSONRequest
+	 */
+	protected final <T> void attachD3Handlers(Stream<T> stream, final QueryContext q, final JSONRequest request) {
+		stream.consume(new Consumer<T>(){
+			final LinkedHashSet<TSMeta> set = new LinkedHashSet<TSMeta>(q.getNextMaxLimit());
+			@SuppressWarnings("unchecked")
+			@Override
+			public void accept(T t) {
+				try {
+					set.addAll((Collection<TSMeta>) t);
+					final JSONResponse response = request.response();
+					response.setOpCode("results");											
+					JsonGenerator jgen = response.writeHeader(true);
+					jgen.setCodec(q.getMapper());
+					jgen.writeObjectField("results", set);
+					q.addCtx(ctxAcceptName, System.currentTimeMillis());
+					jgen.writeObjectField("q", q);	
+					response.closeGenerator();
+				}  catch (Exception ex) {
+					log.error("Failed to write result batch", ex);
+					throw new RuntimeException("Failed to write result batch", ex);
+				}					
+			}
+		})
+		.when(Throwable.class, new Consumer<Throwable>(){
+			@Override
+			public void accept(Throwable t) {
+				q.setExhausted(true);
+				final JSONResponse response = request.response();					
+				try {
+					response.resetChannelOutputStream();
+					response.setOpCode("error");					
+					final JsonGenerator jgen = response.writeHeader(true);							
+					String message = t.getMessage();
+					if(message==null || message.trim().isEmpty()) {
+						message = t.getClass().getSimpleName();
+					}
+					jgen.writeObjectField("error", message);
+					jgen.writeObjectField("q", q);
+					response.closeGenerator();
+					log.warn("Exception message dispatched");
+				} catch (Exception ex) {
+					throw new RuntimeException("Failed to write timeout response to JSON output streamer", ex);
+				}												
+			}
+		});
+//		.timeout(q.getTimeout());		
+	}
+	
 
 	
 	
@@ -342,24 +399,18 @@ public class JSONMetricsAPIService {
 			}
 	 * </pre></p>
 	 */
-//	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
-//	public void evaluateD3JSON(final JSONRequest request, final QueryContext q, final String expression) {
-//		if(q==null) {
-//			evaluateD3JSON(
-//				request,
-//				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
-//				request.getRequest().get("x").textValue()
-//			);
-//		} else {
-//			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-//			metricApi.evaluate(q.startExpiry(), expression).addCallback(new Callback<TSMetaTree, Set<TSMeta>>() {
-//				@Override
-//				public TSMetaTree call(Set<TSMeta> tsMetas) throws Exception {
-//					return TSMetaTree.build("org", tsMetas);
-//				}
-//			}).addCallback(new ResultCompleteCallback<TSMetaTree>(request, q));			
-//		}
-//	}
+	@JSONRequestHandler(name="d3tsmeta", description="Returns the d3 json graph for the TSMetas that match the passed expression")
+	public void evaluateD3JSON(final JSONRequest request, final QueryContext q, final String expression) {
+		if(q==null) {
+			evaluateD3JSON(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("x").textValue()
+			);
+		} else {
+			attachD3Handlers(metricApi.evaluate(q, expression), q, request);
+		}
+	}
 	
 	/**
 	 * HTTP and WebSocket exposed interface to {@link MetricsMetaAPI#getTSMetas(net.opentsdb.meta.api.QueryContext, java.lang.String, java.util.Map)}
@@ -395,7 +446,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			getTSMetasJSON(
 				request, 
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				request.getRequest().get("m").textValue(),
 				getMap(request, "tags")
 			);
@@ -441,7 +492,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			findJSON(
 				request,
-				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 				UniqueIdType.valueOf(request.getRequest().get("type").textValue().trim().toUpperCase()),
 				request.getRequest().get("name").textValue()
 			);
@@ -461,7 +512,7 @@ public class JSONMetricsAPIService {
 		if(q==null) {
 			jsonGetAnnotations(
 					request,
-					JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+					JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
 					request.getRequest().has("x") ? request.getRequest().get("x").asText() : null,
 							getLongArray(request, "r")
 					);
@@ -473,16 +524,16 @@ public class JSONMetricsAPIService {
 			} else {
 				def = metricApi.getAnnotations(q, expression, range);
 			}
-			def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
-			.addCallback(new Callback<Void, QueryContext>() {
-				@Override
-				public Void call(QueryContext ctx) throws Exception {
-					if(ctx.shouldContinue()) {
-						jsonGetAnnotations(request, ctx, expression, range);
-					}
-					return null;
-				}
-			});	
+//			def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
+//			.addCallback(new Callback<Void, QueryContext>() {
+//				@Override
+//				public Void call(QueryContext ctx) throws Exception {
+//					if(ctx.shouldContinue()) {
+//						jsonGetAnnotations(request, ctx, expression, range);
+//					}
+//					return null;
+//				}
+//			});	
 		}
 	}
 
@@ -535,54 +586,6 @@ public class JSONMetricsAPIService {
 		return map;		
 	}
 	
-	
-	/**
-	 * <p>Title: ResultCompleteCallback</p>
-	 * <p>Description: Suasync callback handler to write the results of a MetricMetaAPI query result back to the calling client </p>
-	 * <p>Company: Helios Development Group LLC</p>
-	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
-	 * <p><b><code>net.opentsdb.catalog.JSONMetricsAPIService.ResultCompleteCallback</code></b>
-	 * @param <T> The assumed type of the object being marshalled
-	 */
-	class ResultCompleteCallback<T> implements Callback<QueryContext, T> {
-		/** The original JSON request */
-		private final JSONRequest request;		
-		/** The current query context */
-		private final QueryContext ctx;
-		/** The result node */
-		private final ArrayNode an = JSON.getMapper().createArrayNode();
-		/**
-		 * Creates a new ResultCompleteCallback
-		 * @param request The original JSON request
-		 * @param q The current query context
-		 */
-		public ResultCompleteCallback(JSONRequest request, QueryContext q) {
-			this.request = request;
-			this.ctx = q;
-		}
-		@Override
-		public QueryContext call(T result) throws Exception {
-			try {				
-				if(ctx.isExpired()) {
-					an.insertPOJO(0, ctx);
-					an.insert(0, "The request timed out");	
-					request.response().setOpCode("timeout").setContent(an).send();
-				} else {					
-					an.insertPOJO(0, ctx);
-					an.insertPOJO(0, result);
-					request.response()
-						.setOverrideObjectMapper(ctx.getMapper())
-						.setContent(an)
-						.send();
-//					request.response().setContent(an).send();
-				}
-			} catch (Exception e) {
-				request.error("Failed to get metric names", e);
-				log.error("Failed to get metric names", e);
-			}			
-			return ctx;
-		}
-	}
 	
 
 }

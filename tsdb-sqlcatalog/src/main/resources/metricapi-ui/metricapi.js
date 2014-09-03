@@ -115,6 +115,27 @@ QueryContext.prototype.timeout = function(time) {
 	return this;
 };
 
+QueryContext.getCtx = function(ctx) {
+	var sortable = [];
+	for (var item in ctx) {
+	    sortable.push([item, ctx[item]])
+	}
+	sortable.sort(function(a, b) {return a[1] - b[1]});
+	console.group("======================  CTX ======================");
+	var prior = -1,	elapsed = 0, total = 0;
+	for(var i = 0, x = sortable.length; i < x; i++) {
+		if(prior != -1) {
+			elapsed = sortable[i][1] - prior;			
+		}
+		prior = sortable[i][1];
+		total += elapsed;
+		console.info("Step: [%s] -- [%s] -- [%s]   ----- Total: [%s]", sortable[i][0], prior, elapsed, total);
+	}
+	console.groupEnd();
+	return sortable;
+}
+
+
 
 QueryContext.prototype.refresh = function(props) {
 	if(props!=null) {
@@ -193,6 +214,14 @@ WebSocketAPIClient.defaultHandlers = {
 				var result = JSON.parse(evt.data);
 				console.group("=================  Raw Result =================");
 				console.dir(result);
+				try {
+					if(result.msg!=null && result.msg.q != null && result.msg.q.ctx)  {
+						QueryContext.getCtx(result.msg.q.ctx);
+					}
+				} catch (e) {
+					console.error("Failed to get context", e);
+				}
+				
 				console.groupEnd();
 				if(result.rerid) {
 					var continuing = QueryContext.readContext(result.msg.q).shouldContinue();

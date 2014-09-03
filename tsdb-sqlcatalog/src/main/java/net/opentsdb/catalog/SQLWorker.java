@@ -210,7 +210,21 @@ public class SQLWorker {
 	 * @param args The query bind arguments
 	 * @return A result set for the query
 	 */
-	public ResultSet executeQuery(Connection conn, String sqlText, boolean disconnected, Object...args) {		
+	public ResultSet executeQuery(final Connection conn, final String sqlText, final boolean disconnected, final Object...args) {
+		return executeQuery(conn, sqlText, 0, disconnected, args);
+	}
+	
+	
+	/**
+	 * Executes the passed query and returns a result set
+	 * @param conn An optional connection. If not supplied, a new connection will be acquired, and closed when used.
+	 * @param sqlText The SQL query
+	 * @param fetchSize The prepared statement fetch size hint
+	 * @param disconnected true to read all rows and return a disconnected resultset, false to return the connected result set
+	 * @param args The query bind arguments
+	 * @return A result set for the query
+	 */
+	public ResultSet executeQuery(Connection conn, final String sqlText, final int fetchSize, final boolean disconnected, final Object...args) {		
 		PreparedStatement ps = null;
 		ResultSet rset = null;
 		final boolean newConn = conn==null;
@@ -218,7 +232,8 @@ public class SQLWorker {
 			if(newConn) {
 				conn = dataSource.getConnection();
 			}
-			ps = conn.prepareStatement(sqlText);
+			ps = conn.prepareStatement(sqlText);	
+			ps.setFetchSize(fetchSize);
 			binderFactory.getBinder(sqlText).bind(ps, args);
 			rset = ps.executeQuery();
 			if(disconnected) {
@@ -282,7 +297,6 @@ public class SQLWorker {
 		return executeQuery(null, sqlText, rowHandler, args);
 	}
 	
-	
 	/**
 	 * Executes the passed query and returns a result set
 	 * @param sqlText The SQL query
@@ -290,8 +304,21 @@ public class SQLWorker {
 	 * @param args The query bind arguments
 	 * @return A result set for the query
 	 */
-	public ResultSet executeQuery(String sqlText, boolean disconnected, Object...args) {
-		return executeQuery(null, sqlText, disconnected, args);
+	public ResultSet executeQuery(final String sqlText, final boolean disconnected, final Object...args) {
+		return executeQuery(sqlText, 0, disconnected, args);
+	}	
+	
+	
+	/**
+	 * Executes the passed query and returns a result set
+	 * @param sqlText The SQL query
+	 * @param fetchSize The prepared statement fetch size hint
+	 * @param disconnected true to read all rows and return a disconnected resultset, false to return the connected result set
+	 * @param args The query bind arguments
+	 * @return A result set for the query
+	 */
+	public ResultSet executeQuery(String sqlText, final int fetchSize, boolean disconnected, Object...args) {
+		return executeQuery(null, sqlText, fetchSize, disconnected, args);
 	}
 	
 	/**

@@ -24,15 +24,13 @@
  */
 package net.opentsdb.meta.api;
 
-import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
-
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +67,8 @@ public class QueryContext {
 	protected String format = "DEFAULT";
 	/** Indicates hard expired */
 	protected boolean expired = false;
+	/** Recorded context events such as timings etc. */
+	protected final Map<String, Object> ctx = new LinkedHashMap<String, Object>();
 
 	
 	/** The starting index for the next chunk */
@@ -158,6 +158,13 @@ public class QueryContext {
 		if(nextIndex != null) {
 			builder.append(", nextIndex=").append(nextIndex);
 		}
+		if(!ctx.isEmpty()) {
+			builder.append(", ctx:");
+			for(Map.Entry<String, Object> e: ctx.entrySet()) {
+				builder.append(e.getKey()).append(":").append(e.getValue()).append(", ");
+			}
+			builder.deleteCharAt(builder.length()-1); builder.deleteCharAt(builder.length()-1);
+		}
 		builder.append("]");
 		return builder.toString();
 	}
@@ -170,6 +177,34 @@ public class QueryContext {
 		final boolean cont = continuous && nextIndex != null && !isExpired() && !isExhausted() && cummulative < maxSize;
 		if(cont) this.timeLimit=-1L;
 		return cont;
+	}
+	
+	/**
+	 * Adds an internal context value
+	 * @param key The key
+	 * @param value The value
+	 * @return this QueryContext
+	 */
+	public QueryContext addCtx(final String key, final Object value) {
+		ctx.put(key, value);
+		return this;
+	}
+	
+	/**
+	 * Clears the internal context
+	 * @return this QueryContext
+	 */
+	public QueryContext clearCtx() {
+		ctx.clear();
+		return this;
+	}
+	
+	/**
+	 * Returns a copy of the internal context
+	 * @return a copy of the internal context
+	 */
+	public Map<String, Object> getCtx() {
+		return new LinkedHashMap<String, Object>(ctx);
 	}
 	
 	public String debugContinue() {

@@ -67,7 +67,7 @@ public class TSMetaCache {
 	public static final String STATS_ENABLED_PROP = "helios.search.catalog.tsmetacache.stats";
 	
 	/** The default maximum size of the cache */
-	public static final long DEFAULT_MAX_SIZE = 10000;
+	public static final long DEFAULT_MAX_SIZE = 1000;
 	/** The default concurrency of the cache */
 	public static final int DEFAULT_CONCURRENCY = 4;
 	/** The default stats enablement of the cache */
@@ -106,7 +106,7 @@ public class TSMetaCache {
 		} else {
 			objectName = null;
 		}
-		put(metaReader.readTSMetas(sqlWorker.executeQuery(INITIAL_LOAD_SQL, false, initialSize)).toArray(new TSMeta[0]));
+		put(metaReader.readTSMetas(sqlWorker.executeQuery(INITIAL_LOAD_SQL, false, initialSize), true).toArray(new TSMeta[0]));
 	}
 	
 	/**
@@ -124,7 +124,7 @@ public class TSMetaCache {
 	 * @return The TSUID name
 	 */
 	public TSMeta get(final String key, final Connection conn) {
-		try {
+		try {			
 			return cache.get(key, Callables.returning(getName(key, conn)));
 		} catch (Exception ex) {
 			//throw new RuntimeException("TSMetaCache failed on looking up [" + key + "]", ex);
@@ -138,15 +138,14 @@ public class TSMetaCache {
 	 * @param conn The optional connection
 	 * @return the TSMeta or null if one was not found
 	 */
-	@SuppressWarnings("resource")
 	protected TSMeta getName(final String key, final Connection conn) {
-		TSDBCachedRowSetImpl rset = (TSDBCachedRowSetImpl)sqlWorker.executeQuery(conn, LOAD_SQL, true, key);
+		TSDBCachedRowSetImpl rset = (TSDBCachedRowSetImpl)sqlWorker.executeQuery(conn, LOAD_SQL, 1, true, key);
 		if(rset.size()==0) {
 			return null;
 		}		
 		try {
 			rset.setMaxRows(1);
-			List<TSMeta> tsMetas = metaReader.readTSMetas(rset);
+			List<TSMeta> tsMetas = metaReader.readTSMetas(rset, true);
 			if(tsMetas==null || tsMetas.isEmpty()) return null;
 			return tsMetas.get(0);
 		} catch (Exception ex) {

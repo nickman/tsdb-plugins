@@ -32,6 +32,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
+import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
 
 import com.stumbleupon.async.Deferred;
@@ -133,6 +134,23 @@ public interface MetricsMetaAPI {
 	 * @return the result object in the format specified
 	 */
 	public Stream<List<TSMeta>> evaluate(QueryContext queryContext, String expression);
+	
+	/**
+	 * Determines if the passed expression matches the provided TSMeta UID
+	 * @param expression The expression to test
+	 * @param tsuid The TSMeta UID bytes
+	 * @return the deferred result
+	 */
+	public Promise<Boolean> match(String expression, byte[] tsuid);
+	
+	/**
+	 * Determines if the passed expression matches the provided TSMeta UID
+	 * @param expression The expression to test
+	 * @param tsuid The TSMeta UID
+	 * @return the deferred result
+	 */
+	public Promise<Boolean> match(String expression, String tsuid);
+	
 	
 	
 	public Deferred<Set<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);

@@ -86,9 +86,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import reactor.core.Environment;
+import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
+import reactor.core.composable.spec.Promises;
 import reactor.core.composable.spec.Streams;
 import reactor.event.Event;
+import reactor.function.Consumer;
 
 import com.stumbleupon.async.Deferred;
 
@@ -683,7 +686,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 */
 	@Override
 	public Stream<List<TSMeta>> getTSMetas(final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
-		return getTSMetas(null, queryContext.startExpiry(), metricName, tags);
+		return getTSMetas(null, queryContext.startExpiry(), metricName, tags, null);
 	}
 	
 	/**
@@ -693,12 +696,12 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param queryContext The query context
 	 * @param metricName The optional TSMeta metric name or expression. Will be substituted with <b><code>*</code></b> if null or empty
 	 * @param tags The optional TSMeta tags. Will be substituted with an empty map if null.
+	 * @param tsuid The optional TSMeta UID used for matching patterns. Ignored if null.
 	 * @return the deferred result
 	 */
-	protected Stream<List<TSMeta>> getTSMetas(final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags) {
+	protected Stream<List<TSMeta>> getTSMetas(final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> priorDeferred, final QueryContext queryContext, final String metricName, final Map<String, String> tags, final String tsuid) {
 		final reactor.core.composable.Deferred<TSMeta, Stream<TSMeta>> def = getDeferred(priorDeferred, queryContext);
-		final Stream<List<TSMeta>> stream = def.compose().collect();
-
+		final Stream<List<TSMeta>> stream = def.compose().collect();		
 		final String _metricName = (metricName==null || metricName.trim().isEmpty()) ? "*" : metricName.trim();
 		final Map<String, String> _tags = (tags==null) ? EMPTY_TAGS : tags;
 		
@@ -708,7 +711,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				final List<Object> binds = new ArrayList<Object>();
 				final StringBuilder sqlBuffer = new StringBuilder();
 				try {
-					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT");		
+					generateTSMetaSQL(sqlBuffer, binds, queryContext, _metricName, _tags, "INTERSECT", tsuid);		
 					final int expectedRows = queryContext.getNextMaxLimit() + 1; 
 					binds.add(expectedRows);
 					queryContext.addCtx("SQLPrepared", System.currentTimeMillis());
@@ -733,6 +736,58 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			}
 		});
 		return stream;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#match(java.lang.String, byte[])
+	 */
+	@Override
+	public Promise<Boolean> match(final String expression, final byte[] tsuid) {
+		if(tsuid==null || tsuid.length==0) {
+			throw new IllegalArgumentException("The passed tsuid was null or empty");
+		}
+		return match(expression, UniqueId.getTSUIDFromKey(tsuid, TSDB.metrics_width(), Const.TIMESTAMP_BYTES));		
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#match(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public Promise<Boolean> match(final String expression, final String tsuid) {
+		
+		if(expression==null || expression.trim().isEmpty()) {
+			throw new IllegalArgumentException("The passed expression was null or empty");
+		}
+		if(tsuid==null || tsuid.trim().isEmpty()) {
+			throw new IllegalArgumentException("The passed tsuid was null or empty");
+		}
+		final reactor.core.composable.Deferred<Boolean, Promise<Boolean>> def = Promises.<Boolean>defer().dispatcher(this.dispatcher).get();
+		final Promise<Boolean> promise = def.compose();		
+		dispatcher.execute(new Runnable(){
+			public void run() {
+				final String expr = expression.trim();
+				try {			
+					final ObjectName on = JMXHelper.objectName(expr);
+					getTSMetas(null, new QueryContext().setPageSize(1).setMaxSize(1).startExpiry(), on.getDomain(), on.getKeyPropertyList(), tsuid)
+						.consume(new Consumer<List<TSMeta>>() {
+							@Override
+							public void accept(List<TSMeta> t) {
+								def.accept(!(t==null || t.isEmpty()));
+							}
+						}).when(Throwable.class, new Consumer<Throwable>() {
+							public void accept(Throwable t) {								
+								def.accept(new RuntimeException("Failed to process match on expression [" + expr + "] and TSUID [" + tsuid + "]", t));
+							}
+						});
+				} catch (Exception ex) {
+					def.accept(new RuntimeException("Failed to process match on expression [" + expr + "] and TSUID [" + tsuid + "]", ex));
+				}
+				
+			}
+		});
+		return promise;
 	}
 	
 	
@@ -822,8 +877,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @param metricName The metric name
 	 * @param tags The tag pairs
 	 * @param mergeOp Specifies a row merge op (usually INTERSECT or UNION ALL)
+	 * @param tsuid The optional TSMeta UID to match against
 	 */
-	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String mergeOp) {
+	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String mergeOp, final String tsuid) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
 			if(queryOptions.getNextIndex()==null) {							
@@ -842,6 +898,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			} else {
 				keySql.append(" WHERE ").append(TSUID_START_SQL);
 				binds.add(queryOptions.getNextIndex());
+			}
+			if(tsuid!=null && !tsuid.trim().isEmpty()) {
+				sqlBuffer.append("\n AND X.TSUID = ? \n");
+				binds.add(tsuid);
 			}
 			keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
 			sqlBuffer.append(keySql.toString());
@@ -962,7 +1022,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		final String expr = expression.trim();
 		try {			
 			final ObjectName on = JMXHelper.objectName(expr);
-			return getTSMetas(null, queryContext.startExpiry(), on.getDomain(), on.getKeyPropertyList());
+			return getTSMetas(null, queryContext.startExpiry(), on.getDomain(), on.getKeyPropertyList(), null);
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to process expression [" + expr + "]", ex);
 		}

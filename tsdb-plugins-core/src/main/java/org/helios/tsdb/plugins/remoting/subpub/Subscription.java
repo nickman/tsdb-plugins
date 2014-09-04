@@ -25,7 +25,6 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.nio.charset.Charset;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -37,25 +36,35 @@ import javax.management.ObjectName;
 
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.api.MetricsMetaAPI;
-import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId;
 
+import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.hbase.async.jsr166e.LongAdder;
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
-import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
+import org.helios.tsdb.plugins.async.SingletonEnvironment;
+import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.util.JMXHelper;
-import org.helios.tsdb.plugins.util.bloom.UnsafeBloomFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import reactor.core.Reactor;
 import reactor.core.composable.Deferred;
 import reactor.core.composable.Promise;
+import reactor.core.composable.Stream;
 import reactor.core.composable.spec.Promises;
+import reactor.core.composable.spec.Streams;
+import reactor.event.Event;
 import reactor.event.dispatch.Dispatcher;
-import reactor.event.dispatch.SynchronousDispatcher;
+import reactor.event.registry.Registration;
+import reactor.event.selector.HeaderResolver;
+import reactor.event.selector.Selector;
 import reactor.function.Consumer;
 
+import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.Funnels;
 import com.google.common.hash.PrimitiveSink;
+
 
 /**
  * <p>Title: Subscription</p>
@@ -64,17 +73,12 @@ import com.google.common.hash.PrimitiveSink;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
  */
+public class Subscription implements SubscriptionMBean, Selector, Consumer<Event<TSDBEvent>>, SubscriberEventListener {
+	/** Static class logger */
+	protected static final Logger log = LoggerFactory.getLogger(Subscription.class);
 
-/**
- * <p>Title: Subscription</p>
- * <p>Description: </p> 
- * <p>Company: Helios Development Group LLC</p>
- * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
- */
-public class Subscription implements SubscriptionMBean {
 	/** The filter to quickly determine if an incoming message matches this subscription */
-	private UnsafeBloomFilter<byte[]> filter; 
+	private BloomFilter<byte[]> filter; 
 	/** The charset of the incoming messages */
 	public static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 	/** The default number of insertions */
@@ -91,23 +95,32 @@ public class Subscription implements SubscriptionMBean {
 		}
 	   }	
 	
+	/** The subscribers receiving notifications from this subscription */
+	private final NonBlockingHashSet<Subscriber> subscribers = new NonBlockingHashSet<Subscriber>(); 
+	
 	/** A serial number sequence for Subscription instances */
 	private static final AtomicLong serial = new AtomicLong();
 	
 	/** A EWMA for measuring the elapsed time of isMemberOf */
 	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
+	/** The reactor  */
+	protected final Reactor reactor;
+	
 	/** The reactor async dispatcher */
 	protected final Dispatcher dispatcher;
-	/** The reactor sync dispatcher */
-	protected final SynchronousDispatcher syncDispatcher = new SynchronousDispatcher();
 	/** The metrics meta access service */
-	final MetricsMetaAPI metricsMeta;
+	protected final MetricsMetaAPI metricsMeta;
+	
+	protected Registration<Consumer<Event<TSDBEvent>>>  registration;
+	
 	/** The subscription pattern */
-	protected final CharSequence pattern;
+	protected final String pattern;
 	/** The subscription pattern as an ObjectName */
 	protected final ObjectName patternObjectName;
 	/** The subscription id for this subscription */
 	protected final long subscriptionId;
+	/** The initial expected insertions for the bloom filter */
+	protected final int expectedInsertions;
 	
 	/** The total number of matched incoming messages */
 	protected final LongAdder totalMatched = new LongAdder();
@@ -116,80 +129,133 @@ public class Subscription implements SubscriptionMBean {
 	
 	/** The current number of retained (inserted) patterns */
 	protected final AtomicInteger retained = new AtomicInteger();
-	/** The total number of subscribers interested in this subscription */
-	protected final AtomicInteger subscribers = new AtomicInteger();
 	
 	/** The default false positive probability */
 	public static final double DEFAULT_PROB = 0.3d;
 	
 	/**
 	 * Creates a new Subscription
-	 * @param dispatcher The reactor async dispatcher
+	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
 	 */
-	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions) {
-		filter = UnsafeBloomFilter.create(SubFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
-		this.pattern = pattern;
-		this.dispatcher = dispatcher;
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions) {
+		filter = BloomFilter.create(SubFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
+		this.pattern = pattern.toString().trim();
+		this.expectedInsertions = expectedInsertions;
+		this.reactor = reactor;
+		this.dispatcher = reactor.getDispatcher();
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();		
+		final Stream<Event<TSDBEvent>> batchStream =  Streams.<Event<TSDBEvent>>defer(SingletonEnvironment.getEnvironment(), this.dispatcher).compose();
+//		final Stream<Event<TSDBEvent>> batchStream =  new Stream<Event<TSDBEvent>>(null, 100, this, SingletonEnvironment.getEnvironment());
+		batchStream.consume(this);
+		registration = this.reactor.on(this, batchStream);
+		
+				
+//				new MovingWindowAction<Event<TSDBEvent>>(reactor,
+//                d.getAcceptKey(),
+//                d.getError().getObject(),
+//                timer,
+//                period, timeUnit, delay, backlog)).connectErrors(d););
 	}
 	
-	public DirectEWMAMBean getEWMA() {
-		return ewma;
-	}
 	
 	/**
 	 * Creates a new Subscription
-	 * @param dispatcher The reactor async dispatcher
+	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
 	 */
-	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, final ObjectName pattern, final int expectedInsertions) {
-		this(dispatcher, metricsMeta, pattern.toString(), expectedInsertions);
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final ObjectName pattern, final int expectedInsertions) {
+		this(reactor, metricsMeta, pattern.toString(), expectedInsertions);
 	}
 	
 	
 	/**
-	 * Increments the subscriber count and returns the new total
-	 * @return the new total number of subscribers
+	 * Terminates this subscription
 	 */
-	public int addSubscriber() {
-		return subscribers.incrementAndGet();
+	public void terminate() {
+		registration.cancel();
+		subscribers.clear();
 	}
 	
 	/**
-	 * Decrements the subscriber count and returns the new total
+	 * Adds a subscriber to this subscription
+	 * @param sub The subscriber to add
 	 * @return the new total number of subscribers
 	 */
-	public int removeSubscriber() {
-		return subscribers.decrementAndGet();
+	public int addSubscriber(final Subscriber sub) {
+		if(sub==null) throw new IllegalArgumentException("The passed subscriber was null");
+		subscribers.add(sub);
+		sub.registerListener(this);			
+		return subscribers.size();
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriberEventListener#onDisconnect(org.helios.tsdb.plugins.remoting.subpub.Subscriber)
+	 */
+	@Override
+	public void onDisconnect(Subscriber subscriber) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
+	/**
+	 * Removes a subscriber
+	 * @param sub The subscriber to remove
+	 * @return the new total number of subscribers
+	 */
+	public int removeSubscriber(final Subscriber sub) {
+		if(sub==null) throw new IllegalArgumentException("The passed subscriber was null");
+		subscribers.remove(sub);
+		return subscribers.size();
 	}
 	
 	
 	/**
 	 * Creates a new Subscription with the default expected insertions
-	 * @param dispatcher The reactor async dispatcher
+	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 */
-	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, ObjectName pattern) {
-		this(dispatcher, metricsMeta, pattern, DEFAULT_INSERTIONS);
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, ObjectName pattern) {
+		this(reactor, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
 	/**
 	 * Creates a new Subscription with the default expected insertions
-	 * @param dispatcher The reactor async dispatcher
+	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 */
-	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, CharSequence pattern) {
-		this(dispatcher, metricsMeta, pattern, DEFAULT_INSERTIONS);
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, CharSequence pattern) {
+		this(reactor, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see reactor.function.Consumer#accept(java.lang.Object)
+	 */
+	@Override
+	public void accept(final Event<TSDBEvent> event) {
+		if(!subscribers.isEmpty()) {
+			dispatcher.execute(new Runnable(){
+				public void run() {
+					for(final Subscriber s: subscribers) {
+						s.accept(event.getData());
+					}
+				}
+			});
+		}
+	}
+	
+		
 	
 	/**
 	 * Indicates if the passed message is a member of this subscription
@@ -208,11 +274,11 @@ public class Subscription implements SubscriptionMBean {
 				if(filter.mightContain(bytes)) {
 					try {
 						if(metric!=null && tags!=null) {
-							final String fqn = SubscriptionManager.buildObjectName(metric, tags).toString();
-							metricsMeta.evaluate(new QueryContext().setMaxSize(1).setPageSize(1), fqn).consume(new Consumer<List<TSMeta>>() {
+//							final String fqn = SubscriptionManager.buildObjectName(metric, tags).toString();							
+							metricsMeta.match(pattern, bytes).consume(new Consumer<Boolean>() {
 								@Override
-								public void accept(final List<TSMeta> t) {
-									final boolean b = (t!=null && !t.isEmpty());
+								public void accept(final Boolean t) {
+									final boolean b = t==null ? false : t;
 									def.accept(b);
 									if(b) {
 										index(bytes);
@@ -225,7 +291,7 @@ public class Subscription implements SubscriptionMBean {
 							}).when(Throwable.class, new Consumer<Throwable>() {
 								@Override
 								public void accept(final Throwable t) {
-									def.accept(false);
+									def.accept(t);
 									ewma.append(System.nanoTime() - start);
 								}
 							});
@@ -233,12 +299,12 @@ public class Subscription implements SubscriptionMBean {
 							def.accept(false);
 						}						
 					} catch (Exception ex) {
-						/* No Op */
-					}
-					
-				}	
-				ewma.append(System.nanoTime() - start);
-				def.accept(false);
+						def.accept(ex);
+					}					
+				} else {
+					def.accept(false);
+					ewma.append(System.nanoTime() - start);
+				}
 			}
 		});
 		return promise;		
@@ -345,7 +411,7 @@ public class Subscription implements SubscriptionMBean {
 	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getErrorProbability()
 	 */
 	public double getErrorProbability() {
-		return filter.expectedFalsePositiveProbability();
+		return filter.expectedFpp();
 	}
 	
 	/**
@@ -354,7 +420,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public double getRelativeProbability() {
-		return DEFAULT_PROB - filter.expectedFalsePositiveProbability();
+		return DEFAULT_PROB - filter.expectedFpp();
 	}
 	
 	/**
@@ -363,7 +429,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public int getSubscriberCount() {
-		return subscribers.get();
+		return subscribers.size();
 	}
 
 	/**
@@ -395,10 +461,10 @@ public class Subscription implements SubscriptionMBean {
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getEWMAMatch()
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getAverageMatch()
 	 */
 	@Override
-	public double getEWMAMatch() {
+	public double getAverageMatch() {
 		return ewma.getAverage();
 	}
 	
@@ -417,7 +483,7 @@ public class Subscription implements SubscriptionMBean {
 		builder.append(", size:");
 		builder.append(retained.get());
 		builder.append(", subscribers:");
-		builder.append(subscribers.get());
+		builder.append(subscribers.size());
 		builder.append("]");
 		return builder.toString();
 	}
@@ -452,7 +518,91 @@ public class Subscription implements SubscriptionMBean {
 			return false;
 		return true;
 	}
-	
+
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriptionMBean#getCapacity()
+	 */
+	@Override
+	public int getCapacity() {
+		return expectedInsertions;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see reactor.event.selector.Selector#getObject()
+	 */
+	@Override
+	public Object getObject() {
+		return pattern;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see reactor.event.selector.Selector#matches(java.lang.Object)
+	 */
+	@Override
+	public boolean matches(Object key) {
+		if(key==null) return false;
+		final String keyPattern = key.toString().trim();
+		if(pattern.equals(keyPattern)) return true;		
+		try {
+			JMXHelper.objectName(keyPattern);
+		} catch (Exception ex) {
+			return false;
+		}
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicBoolean match = new AtomicBoolean(false);
+		final long startTime = System.nanoTime();
+		try {
+			metricsMeta.overlap(pattern, keyPattern).onSuccess(new Consumer<Long>(){
+				/**
+				 * {@inheritDoc}
+				 * @see reactor.function.Consumer#accept(java.lang.Object)
+				 */
+				@Override
+				public void accept(Long t) {					
+					if(t!=null && t==0) {
+						match.set(true);
+						latch.countDown();
+					}
+				}
+			}).onError(new Consumer<Throwable>(){
+				/**
+				 * {@inheritDoc}
+				 * @see reactor.function.Consumer#accept(java.lang.Object)
+				 */
+				@Override
+				public void accept(Throwable t) {
+					latch.countDown();					
+				}
+			});
+			if(!latch.await(1500, TimeUnit.MILLISECONDS)) {
+				throw new Exception("Timeout on overlap call");
+			}
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to determine match for [" + key + "] on selector [" + pattern + "]", ex);
+		}
+		final long elapsedTime = System.nanoTime()-startTime;
+		log.info("Selector [{}] match in [{}] ms. Result: {}", pattern, elapsedTime, match.get());
+		return match.get();
+	}
+
+	/**
+	 * Returns null.
+	 * {@inheritDoc}
+	 * @see reactor.event.selector.Selector#getHeaderResolver()
+	 */
+	@Override
+	public HeaderResolver getHeaderResolver() {
+		return null;
+	}
+
+
+
+
+
 	
 	
 	

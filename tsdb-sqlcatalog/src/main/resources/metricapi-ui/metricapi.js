@@ -551,6 +551,13 @@ WebSocketAPIClient.prototype.resolveTSMetas = function(queryContext, expression)
 	return this.serviceRequest("meta", "tsMetaEval", {q: queryContext, x: expression||"*:*"});	
 };
 
+WebSocketAPIClient.prototype.overlap = function(queryContext, expressionOne, expressionTwo) {
+	if(queryContext==null) queryContext= QueryContext.newContext();
+	var parms = {q: queryContext, x: expressionOne, y: expressionTwo};
+	return this.serviceRequest("meta", "overlap", parms);	
+};
+
+
 WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 	if(queryContext==null) queryContext= QueryContext.newContext();
 	return this.serviceRequest("meta", "d3tsmeta", {q: queryContext, x: expression||"*:*"});	
@@ -569,7 +576,7 @@ WebSocketAPIClient.prototype.services = function() {
 
 
 function testSub() {
-	var expr = $('#exprfield').val() + ",*";
+	var expr = $('#exprfield').val();
 	console.info("Subscribing to expression [%s]", expr);
 	ws.subscribe(expr);
 	// .then(

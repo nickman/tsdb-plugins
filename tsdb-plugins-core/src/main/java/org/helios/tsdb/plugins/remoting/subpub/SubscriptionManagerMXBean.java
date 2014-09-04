@@ -120,7 +120,7 @@ public interface SubscriptionManagerMXBean extends TSDBServiceMXBean {
 	 * @return the window size  
 	 */
 	public long getWindow();
-
+	
 	
 	
 }

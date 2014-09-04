@@ -46,7 +46,6 @@ import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.hbase.async.jsr166e.LongAdder;
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
-import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMAMBean;
 import org.helios.tsdb.plugins.async.SingletonEnvironment;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
@@ -64,8 +63,10 @@ import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 
 import reactor.core.Reactor;
+import reactor.core.composable.Deferred;
 import reactor.core.composable.Promise;
 import reactor.core.composable.spec.Promises;
+import reactor.event.selector.Selector;
 import reactor.function.Consumer;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -91,6 +92,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	/** A map of sets of channels subscribed to the same subscription keyed by the id of the subscription */
 	protected final NonBlockingHashMapLong<Set<Channel>> subscriptionChannels = new NonBlockingHashMapLong<Set<Channel>>(128);
 	
+		
+	
 	/** The event reactor */
 	protected final Reactor reactor;
 	
@@ -105,7 +108,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	
 	/** The default multiplier factor where a subscription's bloom filter will be the size of the initial load
 	 * multiplied by this value */  // FIXME: this should be configurable
-	public static final float DEFAULT_BLOOM_FILTER_SPACE_FACTOR = 1.2f;
+	public static final float DEFAULT_BLOOM_FILTER_SPACE_FACTOR = 2.1f;
 	
 	/**
 	 * Creates a new SubscriptionManager
@@ -238,7 +241,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	private <T> reactor.core.composable.Deferred<T, Promise<T>> getDeferred() {
 		return Promises.<T>defer()				
 				  .get();		
-	}	
+	}
+	
 	
 	
 	/**
@@ -398,54 +402,64 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	 * @param metric The name of the metric associated with the data point
 	 * @param timestamp Timestamp as a Unix epoch in seconds or milliseconds (depending on the TSD's configuration)
 	 * @param value Value for the data point
+	 * @param isLong true if the value is a long, false if it is a double
 	 * @param tags Tagk/v pairs
 	 * @param tsuid The timeseries uid
+	 * @return A completion promise
 	 */
-	public void onDataPoint(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
-		if(allSubscriptions.isEmpty()) return;
-		final long startTime = System.nanoTime();
-		try {
-			ObjectNode node = null;
-			for(Subscription s: allSubscriptions.values()) {
-				attachEventHandlers(s.isMemberOf(tsuid, metric, tags));
-				if(s.isMemberOf(tsuid, metric, tags)) {
-					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
-					if(channels!=null && !channels.isEmpty()) {						
-						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
-						node.put("subid", s.getSubscriptionId());
-						for(Channel ch: channels) {
-							ch.write(node);
-						}
-						events.increment();
-					}
-				}
+	public Promise<Void> onDataPoint(final String metric, final long timestamp, final Number value, final boolean isLong,  final Map<String,String> tags, final byte[] tsuid) {
+		final Deferred<Void, Promise<Void>> def = Promises.<Void>defer().get();
+		final Promise<Void> promise = def.compose();
+
+		if(!allSubscriptions.isEmpty()) {
+			final long startTime = System.nanoTime();
+			try {
+				ObjectNode node = null;
+				for(Subscription s: allSubscriptions.values()) {
+					attachEventHandlers(
+							s.isMemberOf(tsuid, metric, tags), 
+							s, node, metric, timestamp, value, 
+							isLong, tags, tsuid, startTime
+						).onComplete(new Consumer<Promise<Boolean>>() {
+							@Override
+							public void accept(Promise<Boolean> t) {
+								def.accept((Void)null);
+							}
+						});
+				}			
+			} catch (Exception ex) {
+				ewma.error();
+				log.error("Failed to process double data point", ex);
 			}
-			ewma.append(System.nanoTime()-startTime);
-		} catch (Exception ex) {
-			ewma.error();
-			log.error("Failed to process double data point", ex);
-		}
+		}		
+		return promise;
 	}
+	
+	
 	
 	/**
-	 * Evaluates the incoming datapoint and tests each subscription to see if it is a member, then pushes the datapoint
-	 * to the channels that have matching subscriptions 
-	 * @param metric The name of the metric associated with the data point
-	 * @param timestamp Timestamp as a Unix epoch in seconds or milliseconds (depending on the TSD's configuration)
-	 * @param value Value for the data point
-	 * @param tags Tagk/v pairs
-	 * @param tsuid The timeseries uid
+	 * Attaches an event handler on the 
+	 * @param promise The result promise from the metric meta service
+	 * @param s The subscription 
+	 * @param innode A possibly null packaged json node (which might have already been created)
+	 * @param metric The data point metric name
+	 * @param timestamp The data point timestamp 
+	 * @param value The data point value
+	 * @param isLong true if the data point is a long, false if it is a double 
+	 * @param tags The data point tags
+	 * @param tsuid The data point TSMeta UID
+	 * @param startTime The start time in nanos so we can compute the total elapsed
+	 * @return The passed promise so we can chain
 	 */
-	public void onDataPoint(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
-		if(allSubscriptions.isEmpty()) return;
-		try {
-			final long startTime = System.nanoTime();
-			ObjectNode node = null;			
-			for(Subscription s: allSubscriptions.values()) {
-				if(s.isMemberOf(tsuid, metric, tags)) {
+	protected Promise<Boolean> attachEventHandlers(final Promise<Boolean> promise, final Subscription s, final ObjectNode innode, final String metric, final long timestamp, final Number value, final boolean isLong, final Map<String,String> tags, final byte[] tsuid, final long startTime) {
+		promise.consume(new Consumer<Boolean>() {
+			@Override
+			public void accept(Boolean t) {
+				if(t) {
+					ObjectNode node = innode; 
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {
-						if(node==null) node = build(metric, timestamp, value, tags, tsuid);
+						if(node==null) node = build(metric, timestamp, isLong ? value.longValue() : value.doubleValue(), tags, tsuid);
 						node.put("subid", s.getSubscriptionId());
 						for(Channel ch: channels) {
 							ch.write(node);
@@ -453,60 +467,16 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 						events.increment();
 					}
 				}
-			}		
-			ewma.append(System.nanoTime()-startTime);
-		} catch (Exception ex) {
-			ewma.error();
-			log.error("Failed to process long data point", ex);
-		}		
-	}
-	
-	protected void attachEventHandlers(final Promise<Boolean> promise, final Subscription s, final ObjectNode innode, final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
-		promise.consume(new Consumer<Boolean>() {
-			@Override
-			public void accept(Boolean t) {
-				ObjectNode node = innode; 
-				Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
-				if(channels!=null && !channels.isEmpty()) {
-					if(node==null) node = build(metric, timestamp, value, tags, tsuid);
-					node.put("subid", s.getSubscriptionId());
-					for(Channel ch: channels) {
-						ch.write(node);
-					}
-					events.increment();
-				}			
-				
+				ewma.append(System.nanoTime()-startTime);				
 			}
 		}).when(Throwable.class, new Consumer<Throwable>() {
 			@Override
 			public void accept(Throwable t) {
-				
+				log.error("Failed to process subscription callback", t);
+				ewma.error();
 			}
 		});
-	}
-	
-	protected void attachEventHandlers(final Promise<Boolean> promise, final Subscription s, final ObjectNode innode, final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
-		promise.consume(new Consumer<Boolean>() {
-			@Override
-			public void accept(Boolean t) {
-				ObjectNode node = innode; 
-				Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
-				if(channels!=null && !channels.isEmpty()) {
-					if(node==null) node = build(metric, timestamp, value, tags, tsuid);
-					node.put("subid", s.getSubscriptionId());
-					for(Channel ch: channels) {
-						ch.write(node);
-					}
-					events.increment();
-				}			
-				
-			}
-		}).when(Throwable.class, new Consumer<Throwable>() {
-			@Override
-			public void accept(Throwable t) {
-				
-			}
-		});
+		return promise;
 	}
 	
 	
@@ -584,7 +554,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the timestamp of the last sample
+	 * @return the timestamp of the last sample
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getLastSample()
 	 */
 	public long getLastSample() {
@@ -592,7 +563,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the value of the last sampled time (ns) in the ewma
+	 * @return the value of the last sampled time (ns) in the ewma
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getLastValue()
 	 */
 	public double getLastValue() {
@@ -600,7 +572,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * 
+	 * Resets the EWMA
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#reset()
 	 */
 	public void resetEWMA() {
@@ -608,7 +580,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the number of errors recorded since the last reset
+	 * @return the number of errors recorded
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getErrors()
 	 */
 	public long getErrors() {
@@ -616,7 +589,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the exponentially weighted moving average time in ns.
+	 * @return the exponentially weighted moving average time in ns.
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getAverage()
 	 */
 	public double getAverage() {
@@ -624,7 +598,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the number of samples recorded since the last reset
+	 * @return the number of samples recorded
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getCount()
 	 */
 	public long getCount() {
@@ -632,7 +607,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the maximum sampled elapsed time
+	 * @return the maximum sampled elapsed time
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getMaximum()
 	 */
 	public double getMaximum() {
@@ -640,7 +616,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the mean sampled elapsed time
+	 * @return the mean sampled elapsed time
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getMean()
 	 */
 	public double getMean() {
@@ -648,7 +625,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the minimum sampled elapsed time
+	 * @return the minimum sampled elapsed time
 	 * @see org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA#getMinimum()
 	 */
 	public double getMinimum() {
@@ -656,7 +634,8 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 	}
 
 	/**
-	 * @return
+	 * Returns the EWMA window size
+	 * @return the EWMA window size
 	 * @see org.helios.jmx.metrics.ewma.DirectEWMA#getWindow()
 	 */
 	public long getWindow() {

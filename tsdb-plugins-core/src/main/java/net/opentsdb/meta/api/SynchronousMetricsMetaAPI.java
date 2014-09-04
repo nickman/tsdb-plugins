@@ -2,7 +2,7 @@
  * Helios, OpenSource Monitoring
  * Brought to you by the Helios Development Group
  *
- * Copyright 2007, Helios Development Group and individual contributors
+ * Copyright 2014, Helios Development Group and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -37,23 +37,15 @@ import reactor.core.composable.Stream;
 
 import com.stumbleupon.async.Deferred;
 
-
-
 /**
- * <p>Title: MetricsMetaAPI</p>
- * <p>Description: Defines a proposed OpenTSDB metrics meta-data access API</p> 
+ * <p>Title: SynchronousMetricsMetaAPI</p>
+ * <p>Description: Synchronous definition of {@link MetricsMetaAPI}</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>net.opentsdb.meta.api.MetricsMetaAPI</code></p>
- * <p>NOTES: <ul>
- * 	<li>Read Only</li>
- * 	<li>No meta requiring extended reads, such as {@link net.opentsdb.meta.TSMeta#getLastReceived()} or {@link net.opentsdb.meta.TSMeta#getTotalDatapoints()}</li>
- * </ul></p>
+ * <p><code>net.opentsdb.meta.api.SynchronousMetricsMetaAPI</code></p>
  */
 
-public interface MetricsMetaAPI {
-	
-	
+public interface SynchronousMetricsMetaAPI {
 	/**
 	 * Finds {@link UIDMeta}s of the specified type that match the passed name pattern
 	 * @param queryContext The query context for this call
@@ -61,7 +53,7 @@ public interface MetricsMetaAPI {
 	 * @param name The name or name pattern
 	 * @return a set of matching {@link UIDMeta}s
 	 */
-	public Stream<List<UIDMeta>> find(QueryContext queryContext, UniqueIdType type, String name); 
+	public List<UIDMeta> find(QueryContext queryContext, UniqueIdType type, String name); 
 
 	/**
 	 * Returns the tag keys associated with the passed metric name.
@@ -71,7 +63,7 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Stream<List<UIDMeta>> getTagKeys(QueryContext queryContext, String metric, String...tagKeys);
+	public List<UIDMeta> getTagKeys(QueryContext queryContext, String metric, String...tagKeys);
 	
 	/**
 	 * <p>Returns the tag values associated with the passed metric name and tag keys.</p>
@@ -94,7 +86,7 @@ public interface MetricsMetaAPI {
 	 *  <li><b>Index 1</b>: matching tag key UIDMetas</li>
 	 *  </ul>
 	 */
-	public Stream<List<UIDMeta>> getTagValues(QueryContext queryContext, String metric, Map<String, String> tagPairs, String tagKey);
+	public List<UIDMeta> getTagValues(QueryContext queryContext, String metric, Map<String, String> tagPairs, String tagKey);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag keys.
@@ -103,7 +95,7 @@ public interface MetricsMetaAPI {
 	 * @param tagKeys The tag keys to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Stream<List<UIDMeta>> getMetricNames(QueryContext queryContext, String...tagKeys);
+	public List<UIDMeta> getMetricNames(QueryContext queryContext, String...tagKeys);
 	
 	/**
 	 * Returns the associated metric names (metric UIDs) for the passed tag pairs.
@@ -112,7 +104,7 @@ public interface MetricsMetaAPI {
 	 * @param tags The tag pairs to match
 	 * @return A deferred set of matching UIDMetas
 	 */
-	public Stream<List<UIDMeta>> getMetricNames(QueryContext queryContext, Map<String, String> tags);
+	public List<UIDMeta> getMetricNames(QueryContext queryContext, Map<String, String> tags);
 	
 	/**
 	 * Returns the TSMetas matching the passed metric name and tags
@@ -121,7 +113,7 @@ public interface MetricsMetaAPI {
 	 * @param tags The tag pairs to match
 	 * @return A continuous observable set of matching TSMetas 
 	 */
-	public Stream<List<TSMeta>> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
+	public List<TSMeta> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
 	
 	
 
@@ -133,7 +125,7 @@ public interface MetricsMetaAPI {
 	 * @param queryContext The query options for this call
 	 * @return the result object in the format specified
 	 */
-	public Stream<List<TSMeta>> evaluate(QueryContext queryContext, String expression);
+	public List<TSMeta> evaluate(QueryContext queryContext, String expression);
 	
 	/**
 	 * Determines if the passed expression matches the provided TSMeta UID
@@ -141,7 +133,7 @@ public interface MetricsMetaAPI {
 	 * @param tsuid The TSMeta UID bytes
 	 * @return the deferred result
 	 */
-	public Promise<Boolean> match(String expression, byte[] tsuid);
+	public boolean match(String expression, byte[] tsuid);
 	
 	/**
 	 * Determines if the passed expression matches the provided TSMeta UID
@@ -149,7 +141,7 @@ public interface MetricsMetaAPI {
 	 * @param tsuid The TSMeta UID
 	 * @return the deferred result
 	 */
-	public Promise<Boolean> match(String expression, String tsuid);
+	public boolean match(String expression, String tsuid);
 	
 	
 	/**
@@ -158,14 +150,13 @@ public interface MetricsMetaAPI {
 	 * @param expressionTwo Another TSMeta expression
 	 * @return the deferred result
 	 */
-	public Promise<Long> overlap(String expressionOne, String expressionTwo);
+	public long overlap(String expressionOne, String expressionTwo);
 	
 	
 	
-	public Stream<List<Annotation>> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);
+	public Set<Annotation> getAnnotations(QueryContext queryContext, String expression, long... startTimeEndTime);
 	
-	public Stream<List<Annotation>> getGlobalAnnotations(QueryContext queryContext, long... startTimeEndTime);
+	public Set<Annotation> getGlobalAnnotations(QueryContext queryContext, long... startTimeEndTime);
 	
-	
-	
+
 }

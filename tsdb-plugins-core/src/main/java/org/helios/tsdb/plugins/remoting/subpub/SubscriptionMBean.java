@@ -101,7 +101,15 @@ public interface SubscriptionMBean {
 	 * Returns the rolling average elapsed time for the filter match in ns.
 	 * @return the rolling average elapsed time for the filter match in ns.
 	 */
-	public double getEWMAMatch();
+	public double getAverageMatch();
+	
+	/**
+	 * Returns the initial expected insertion count for the bloom filter
+	 * @return the bloom filter initial expected insertion count
+	 */
+	public int getCapacity();
+
+
 
 	
 }

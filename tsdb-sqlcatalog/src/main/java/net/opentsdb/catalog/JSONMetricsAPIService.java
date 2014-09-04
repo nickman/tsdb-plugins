@@ -26,6 +26,7 @@ import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
 import reactor.function.Consumer;
 
@@ -256,10 +257,35 @@ public class JSONMetricsAPIService {
 				request.getRequest().get("x").textValue()					
 			);			
 		} else {
-			log.info("Processing JSONTSMetaExpression. q: [{}], x: [{}]", q, expression);
+			log.debug("Processing JSONTSMetaExpression. \n\tQueryContext: [{}], \n\tExpression: [{}]", q, expression);
 			attachBatchHandlers(metricApi.evaluate(q, expression), q, request);			
 		}
 	}
+	
+	@JSONRequestHandler(name="overlap", description="Determines how may items are common between the two passed expressions")
+	public void overlap(final JSONRequest request, final QueryContext q, final String expressionOne, final String expressionTwo) {
+		if(q==null) {
+			overlap(
+				request,
+				JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class),
+				request.getRequest().get("x").textValue(),
+				request.getRequest().get("y").textValue()
+			);
+		} else {
+			metricApi.overlap(expressionOne, expressionTwo).onSuccess(new Consumer<Long>() {
+				@Override
+				public void accept(Long t) {					
+					request.response().setContent(JSON.getMapper().createObjectNode().putPOJO("q", q).put("result", t)).send();
+				}
+			}).onError(new Consumer<Throwable>() {
+				@Override
+				public void accept(Throwable t) {
+					request.error("Failed to execute overlap", t).send();
+				}
+			});
+		}
+	}
+	
 	
 	
 	/**
@@ -501,41 +527,41 @@ public class JSONMetricsAPIService {
 		}
 	}
 	
-	/**
-	 * @param request
-	 * @param q
-	 * @param expression
-	 * @param range
-	 */
-	@JSONRequestHandler(name="annotations", description="Returns all Annotations associated to TSMetas defined in the expression")
-	public void jsonGetAnnotations(final JSONRequest request, final QueryContext q, final String expression, final long... range) {
-		if(q==null) {
-			jsonGetAnnotations(
-					request,
-					JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
-					request.getRequest().has("x") ? request.getRequest().get("x").asText() : null,
-							getLongArray(request, "r")
-					);
-		} else {
-			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
-			final Deferred<Set<Annotation>> def;
-			if(expression==null) {
-				def = metricApi.getGlobalAnnotations(q, range);
-			} else {
-				def = metricApi.getAnnotations(q, expression, range);
-			}
-//			def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
-//			.addCallback(new Callback<Void, QueryContext>() {
-//				@Override
-//				public Void call(QueryContext ctx) throws Exception {
-//					if(ctx.shouldContinue()) {
-//						jsonGetAnnotations(request, ctx, expression, range);
-//					}
-//					return null;
-//				}
-//			});	
-		}
-	}
+//	/**
+//	 * @param request
+//	 * @param q
+//	 * @param expression
+//	 * @param range
+//	 */
+//	@JSONRequestHandler(name="annotations", description="Returns all Annotations associated to TSMetas defined in the expression")
+//	public void jsonGetAnnotations(final JSONRequest request, final QueryContext q, final String expression, final long... range) {
+//		if(q==null) {
+//			jsonGetAnnotations(
+//					request,
+//					JSON.parseToObject(request.getRequest().get("q").toString(), QueryContext.class).addCtx(ctxName, System.currentTimeMillis()),
+//					request.getRequest().has("x") ? request.getRequest().get("x").asText() : null,
+//							getLongArray(request, "r")
+//					);
+//		} else {
+//			request.response().setOverrideObjectMapper(TSDBTypeSerializer.valueOf(q.getFormat()).getMapper());
+//			final Deferred<Set<Annotation>> def;
+//			if(expression==null) {
+//				def = metricApi.getGlobalAnnotations(q, range);
+//			} else {
+//				def = metricApi.getAnnotations(q, expression, range);
+//			}
+////			def.addCallback(new ResultCompleteCallback<Set<Annotation>>(request, q))
+////			.addCallback(new Callback<Void, QueryContext>() {
+////				@Override
+////				public Void call(QueryContext ctx) throws Exception {
+////					if(ctx.shouldContinue()) {
+////						jsonGetAnnotations(request, ctx, expression, range);
+////					}
+////					return null;
+////				}
+////			});	
+//		}
+//	}
 
 	
 	/**

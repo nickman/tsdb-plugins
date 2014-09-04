@@ -24,15 +24,16 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
-import javax.management.ObjectName;
-
-import org.hbase.async.jsr166e.LongAdder;
+import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
 import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
+
+import reactor.core.composable.Promise;
+import reactor.function.Consumer;
 
 
 /**
@@ -46,11 +47,9 @@ import org.helios.tsdb.plugins.service.PluginContext;
 public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubPublisherMXBean {
 	/** The sub manager to push events to */
 	protected SubscriptionManager subManager = null;
-	
-	/** Counter for received messages */
-	protected final LongAdder events = new LongAdder();
-	/** Counter for exceptions processing events */
-	protected final LongAdder errors = new LongAdder();
+	/** A EWMA for measuring the elapsed time of processing an event */
+	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
+
 	
 	
 	/**
@@ -89,44 +88,116 @@ public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubP
 	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
 		if(log.isTraceEnabled()) log.trace("Processing Sequence {} for Event [{}]", sequence, event);
 		if(event.eventType==null || !event.eventType.isForPulisher()) return;
+		final long startTime = System.nanoTime();
 		try {
-			if(event.eventType==TSDBEventType.DPOINT_DOUBLE) {
-				subManager.onDataPoint(event.metric, event.timestamp, event.doubleValue, event.tags, event.tsuidBytes);
-			} else {
-				subManager.onDataPoint(event.metric, event.timestamp, event.longValue, event.tags, event.tsuidBytes);
-			}
-			events.increment();
+			subManager.onDataPoint(
+					event.metric, event.timestamp, event.longValue, 
+					(event.eventType==TSDBEventType.DPOINT_LONG), 
+					event.tags, event.tsuidBytes)
+					.onComplete(new Consumer<Promise<Void>>() {
+						@Override
+						public void accept(Promise<Void> t) {
+							ewma.append(System.nanoTime() - startTime);
+						}
+					});
 		} catch (Exception ex) {
-			errors.increment();
+			log.error("Failed to process event [{}]", ex);
+			ewma.error();
 		}
 	}	
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#resetCounters()
-	 */
-	@Override
-	public void resetCounters() {
-		events.add(events.longValue()*-1L);
-		errors.add(errors.longValue()*-1L);
-	}
+
 	
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getEventCount()
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getLastSample()
 	 */
 	@Override
-	public long getEventCount() {
-		return events.longValue();
+	public long getLastSample() {
+		return ewma.getLastSample();
 	}
-	
+
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getErrorCount()
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getLastValue()
 	 */
 	@Override
-	public long getErrorCount() {
-		return errors.longValue();
+	public double getLastValue() {
+		return ewma.getLastValue();
 	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#resetEWMA()
+	 */
+	@Override
+	public void resetEWMA() {
+		ewma.reset();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getErrors()
+	 */
+	@Override
+	public long getErrors() {
+		return ewma.getErrors();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getAverage()
+	 */
+	@Override
+	public double getAverage() {
+		return ewma.getAverage();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getCount()
+	 */
+	@Override
+	public long getCount() {
+		return ewma.getCount();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getMaximum()
+	 */
+	@Override
+	public double getMaximum() {
+		return ewma.getMaximum();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getMean()
+	 */
+	@Override
+	public double getMean() {
+		return ewma.getMean();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getMinimum()
+	 */
+	@Override
+	public double getMinimum() {
+		return ewma.getMinimum();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.tsdb.plugins.remoting.subpub.PubSubPublisherMXBean#getWindow()
+	 */
+	@Override
+	public long getWindow() {
+		return ewma.getWindow();
+	}
+
+
 
 }

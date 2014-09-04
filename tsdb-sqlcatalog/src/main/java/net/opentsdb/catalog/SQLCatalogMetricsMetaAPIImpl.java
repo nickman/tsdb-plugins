@@ -228,7 +228,16 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 		/** The TSMeta Retrieval SQL template when no tags are provided and overflow is true */
 		public static final String GET_TSMETAS_NO_TAGS_NAME_SQL =
-				"SELECT X.* FROM TSD_TSMETA X, TSD_METRIC M WHERE M.XUID = X.METRIC_UID AND %s AND M.NAME = ? ORDER BY X.TSUID DESC LIMIT ?"; 
+				"SELECT X.* FROM TSD_TSMETA X, TSD_METRIC M WHERE M.XUID = X.METRIC_UID AND %s AND M.NAME = ? ORDER BY X.TSUID DESC LIMIT ?";
+		
+		/** The TSMeta Retrieval SQL template when no tags or metric name are provided but a TSUID is */
+		public static final String GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_TSUID_SQL =
+				"SELECT X.* FROM TSD_TSMETA X WHERE %s AND X.TSUID = ? ORDER BY X.TSUID DESC LIMIT ?"; 
+
+		/** The TSMeta Retrieval SQL template when no tags are provided but a TSUID is */
+		public static final String GET_TSMETAS_NO_TAGS_NAME_TSUID_SQL =
+				"SELECT X.* FROM TSD_TSMETA X, TSD_METRIC M WHERE M.XUID = X.METRIC_UID AND %s AND M.NAME = ?  AND X.TSUID = ? ORDER BY X.TSUID DESC LIMIT ?"; 
+		
 		
 	
 	static {
@@ -715,7 +724,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					final int expectedRows = queryContext.getNextMaxLimit() + 1; 
 					binds.add(expectedRows);
 					queryContext.addCtx("SQLPrepared", System.currentTimeMillis());
-					//log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));					
+					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));					
 					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), expectedRows, false, binds.toArray(new Object[0]));
 					rset.setFetchSize(expectedRows);
 					queryContext.addCtx("SQLExecuted", System.currentTimeMillis());
@@ -747,7 +756,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		if(tsuid==null || tsuid.length==0) {
 			throw new IllegalArgumentException("The passed tsuid was null or empty");
 		}
-		return match(expression, UniqueId.getTSUIDFromKey(tsuid, TSDB.metrics_width(), Const.TIMESTAMP_BYTES));		
+		
+		return match(expression, UniqueId.uidToString(tsuid));		
 	}
 	
 	/**
@@ -775,6 +785,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							@Override
 							public void accept(List<TSMeta> t) {
 								def.accept(!(t==null || t.isEmpty()));
+								TSMeta tsmeta = t.get(0);
+								log.info("Matched Expression \n\tPattern: [{}] \n\tIncoming: [{}]", expr, buildObjectName(tsmeta.getMetric().getName(), tsmeta.getTags()));
 							}
 						}).when(Throwable.class, new Consumer<Throwable>() {
 							public void accept(Throwable t) {								
@@ -790,6 +802,91 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		return promise;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see net.opentsdb.meta.api.MetricsMetaAPI#overlap(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public Promise<Long> overlap(final String expressionOne, final String expressionTwo) {
+		if(expressionOne==null || expressionOne.trim().isEmpty()) {
+			throw new IllegalArgumentException("The passed expressionOne was null or empty");
+		}
+		if(expressionTwo==null || expressionTwo.trim().isEmpty()) {
+			throw new IllegalArgumentException("The passed expressionTwo was null or empty");
+		}
+		final reactor.core.composable.Deferred<Long, Promise<Long>> def = Promises.<Long>defer().dispatcher(this.dispatcher).get();
+		final Promise<Long> promise = def.compose();		
+		dispatcher.execute(new Runnable(){
+			public void run() {
+				final List<Object> binds = new ArrayList<Object>();
+				final StringBuilder sqlBuffer = new StringBuilder("SELECT COUNT(*) FROM ( ");
+				final ObjectName on1 = JMXHelper.objectName(expressionOne);
+				final ObjectName on2 = JMXHelper.objectName(expressionTwo);
+				prepareGetTSMetasSQL(on1.getDomain(), on1.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
+				sqlBuffer.append("\n\tEXCEPT\n");
+				prepareGetTSMetasSQL(on2.getDomain(), on2.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
+				sqlBuffer.append(") X ");
+				log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));		
+				final long cnt = sqlWorker.sqlForLong(sqlBuffer.toString(), binds.toArray(new Object[0]));
+				def.accept(cnt);
+			}
+		});
+
+		return promise;
+	}
+
+	
+	
+	/**
+	 * Builds a stringy from the passed metric name and UID tags
+	 * @param metric The metric name
+	 * @param tags The UID tags
+	 * @return a stringy
+	 */
+	static final CharSequence buildObjectName(final String metric, final List<UIDMeta> tags) {
+		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
+		String mname = metric==null || metric.isEmpty() ? "*" : metric;
+		StringBuilder b = stringBuilder.get().append(mname).append(":");
+		boolean k = true;		
+		for(final UIDMeta meta: tags) {
+			b.append(meta.getName());
+			if(k) {
+				b.append("=");
+			} else {
+				b.append(",");
+			}
+			k = !k;
+		}
+		b.deleteCharAt(b.length()-1);
+		return b.toString();		
+	}
+
+	
+	static final CharSequence buildObjectName(final String metric, final Map<String, String> tags) {
+		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
+		String mname = metric==null || metric.isEmpty() ? "*" : metric;
+		StringBuilder b = stringBuilder.get().append(mname).append(":");
+		for(final Map.Entry<String, String> e: tags.entrySet()) {
+			b.append(e.getKey()).append("=").append(e.getValue()).append(",");
+		}
+		b.deleteCharAt(b.length()-1);
+		return b.toString();
+	}
+	
+	/** Fast string builder support */
+	static final ThreadLocal<StringBuilder> stringBuilder = new ThreadLocal<StringBuilder>() {
+		@Override
+		protected StringBuilder initialValue() {
+			return new StringBuilder(128);
+		}
+		@Override
+		public StringBuilder get() {
+			StringBuilder b = super.get();
+			b.setLength(0);
+			return b;
+		}
+	};
+
 	
 	/**
 	 * Processes the results into the stream
@@ -822,7 +919,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
 		}		
 		queryContext.addCtx("StreamFlushed", System.currentTimeMillis());
-		log.info("Deferred Flushing [{}] rows", rowsRead);
+		log.debug("Deferred Flushing [{}] rows", rowsRead);
 		def.flush();
 		return queryContext.shouldContinue();
 	}
@@ -863,7 +960,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 			queryContext.setExhausted(true).setNextIndex(null).incrementCummulative(rowsRead);
 		}		
 		queryContext.addCtx("StreamFlushed", System.currentTimeMillis());
-		log.info("Deferred Flushing [{}] rows", rowsRead);
+		log.debug("Deferred Flushing [{}] rows", rowsRead);
 		def.flush();
 		return queryContext.shouldContinue();
 	}
@@ -882,11 +979,21 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	protected void generateTSMetaSQL(final StringBuilder sqlBuffer, final List<Object> binds, final QueryContext queryOptions, final String metricName, final Map<String, String> tags, final String mergeOp, final String tsuid) {
 		final boolean hasMetricName = (metricName==null || metricName.trim().isEmpty());
 		if(tags==null || tags.isEmpty()) {	
-			if(queryOptions.getNextIndex()==null) {							
-				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_TSUID_START_SQL)); 
+			if(tsuid!=null && !tsuid.trim().isEmpty()) {
+				if(queryOptions.getNextIndex()==null) {							
+					sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_TSUID_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_TSUID_SQL, INITIAL_TSUID_START_SQL)); 
+				} else {
+					sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_TSUID_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_TSUID_SQL, TSUID_START_SQL));
+					binds.add(queryOptions.getNextIndex());
+				}
+				binds.add(tsuid);
 			} else {
-				sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, TSUID_START_SQL));
-				binds.add(queryOptions.getNextIndex());
+				if(queryOptions.getNextIndex()==null) {							
+					sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, INITIAL_TSUID_START_SQL)); 
+				} else {
+					sqlBuffer.append(String.format(hasMetricName ? GET_TSMETAS_NO_TAGS_NAME_SQL : GET_TSMETAS_NO_TAGS_NO_METRIC_NAME_SQL, TSUID_START_SQL));
+					binds.add(queryOptions.getNextIndex());
+				}
 			}
 			if(hasMetricName) binds.add(metricName);			
 		} else {
@@ -900,12 +1007,15 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				binds.add(queryOptions.getNextIndex());
 			}
 			if(tsuid!=null && !tsuid.trim().isEmpty()) {
-				sqlBuffer.append("\n AND X.TSUID = ? \n");
+				keySql.append("\n AND X.TSUID = ? \n");
 				binds.add(tsuid);
 			}
+			
 			keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
+			
 			sqlBuffer.append(keySql.toString());
-		}		
+		}	
+		
 	}
 		
 	protected void doGetTSMetasSQLTagValues(final boolean firstEntry, final String metricName, Map.Entry<String, String> tag, final List<Object> binds, final StringBuilder sql, final String driverTsMetaSql, String mergeOp) {
@@ -1033,112 +1143,114 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getAnnotations(net.opentsdb.meta.api.QueryContext, java.lang.String, long[])
 	 */
 	@Override
-	public Deferred<Set<Annotation>> getAnnotations(final QueryContext queryContext, final String expression, final long... startTimeEndTime) {
-		if(expression==null || expression.trim().isEmpty()) { 
-			return Deferred.fromError(new IllegalArgumentException("The passed expression was null or empty"));
-		}
-		if(startTimeEndTime.length!=1 && startTimeEndTime.length!=2) { 
-			return Deferred.fromError(new IllegalArgumentException("Invalid startTimeEndTime " + Arrays.toString(startTimeEndTime)));
-		}
-		final ObjectName on;
-		try {
-			on = new ObjectName(expression.trim());
-		} catch (Exception ex) {
-			return Deferred.fromError(new IllegalArgumentException("Invalid TSMeta expression", ex));
-		}
-		final Deferred<Set<Annotation>> def = new Deferred<Set<Annotation>>();		
-		this.metaQueryExecutor.execute(new Runnable() {
-			public void run() {
-				final List<Object> binds = new ArrayList<Object>();
-				final boolean hasExpression = (expression!=null && !expression.trim().isEmpty());
-				final Object nextKey = queryContext.getNextIndex();
-				final int timeRanges;
-				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_ANNOTATION A WHERE ");
-				if(startTimeEndTime==null || startTimeEndTime.length==0) {
-					sqlBuffer.append( " 1 = 1 ");
-					timeRanges = 0;
-				} else {
-					if(startTimeEndTime.length==1) {
-						sqlBuffer.append( " START_TIME = ? ");
-						binds.add(startTimeEndTime[0]);
-						timeRanges = 1;
-					} else {
-						sqlBuffer.append( " START_TIME >= ? AND END_TIME <= ? ");
-						binds.add(startTimeEndTime[0]);						
-						binds.add(startTimeEndTime[1]);
-						timeRanges = 2;
-					}
-				}
-				if(hasExpression) {
-					sqlBuffer.append(" AND FQNID IN ( ");
-					prepareGetTSMetasSQL(on.getDomain(), on.getKeyPropertyList(), binds, sqlBuffer, GET_ANN_TSMETAS_SQL, "UNION ALL");					
-				}				
-				sqlBuffer.append(" ) ");
-				if(hasExpression) {
-					if(nextKey == null) {
-						sqlBuffer.append(" AND FQNID >= 0 ");
-					} else {
-						sqlBuffer.append(" AND FQNID > ? ");
-					}
-				}
-				switch(timeRanges) {
-					case 0:
-						sqlBuffer.append(" AND START_TIME >= 0 ");
-						
-				}
-				sqlBuffer.append(" ORDER BY START_TIME desc, FQNID desc, END_TIME desc ");
-				final int modPageSize = queryContext.getNextMaxLimit() + 1;
-				binds.add(modPageSize);
-				try {
-					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-					final Set<Annotation> annotations = Collections.emptySet(); // FIXME and implement !
-					def.callback(annotations);
-				} catch (Exception ex) {
-					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
-					def.callback(ex);					
-				}				
-				
-				
-				
-//				StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
-//				prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL);
-//				keySql.append(") X ");
-//				if(queryOptions.getNextIndex()==null) {
-//					keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
+	public Stream<List<Annotation>> getAnnotations(final QueryContext queryContext, final String expression, final long... startTimeEndTime) {
+		return null;
+		
+//		if(expression==null || expression.trim().isEmpty()) { 
+//			return Deferred.fromError(new IllegalArgumentException("The passed expression was null or empty"));
+//		}
+//		if(startTimeEndTime.length!=1 && startTimeEndTime.length!=2) { 
+//			return Deferred.fromError(new IllegalArgumentException("Invalid startTimeEndTime " + Arrays.toString(startTimeEndTime)));
+//		}
+//		final ObjectName on;
+//		try {
+//			on = new ObjectName(expression.trim());
+//		} catch (Exception ex) {
+//			return Deferred.fromError(new IllegalArgumentException("Invalid TSMeta expression", ex));
+//		}
+//		final Deferred<Set<Annotation>> def = new Deferred<Set<Annotation>>();		
+//		this.metaQueryExecutor.execute(new Runnable() {
+//			public void run() {
+//				final List<Object> binds = new ArrayList<Object>();
+//				final boolean hasExpression = (expression!=null && !expression.trim().isEmpty());
+//				final Object nextKey = queryContext.getNextIndex();
+//				final int timeRanges;
+//				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_ANNOTATION A WHERE ");
+//				if(startTimeEndTime==null || startTimeEndTime.length==0) {
+//					sqlBuffer.append( " 1 = 1 ");
+//					timeRanges = 0;
 //				} else {
-//					keySql.append(" WHERE ").append(TSUID_START_SQL);
-//					binds.add(queryOptions.getNextIndex());
+//					if(startTimeEndTime.length==1) {
+//						sqlBuffer.append( " START_TIME = ? ");
+//						binds.add(startTimeEndTime[0]);
+//						timeRanges = 1;
+//					} else {
+//						sqlBuffer.append( " START_TIME >= ? AND END_TIME <= ? ");
+//						binds.add(startTimeEndTime[0]);						
+//						binds.add(startTimeEndTime[1]);
+//						timeRanges = 2;
+//					}
 //				}
-//				keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
-//				sqlBuffer.append(keySql.toString());
-				
-				
-//				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_")
-//					.append(type.name()).append(" X WHERE (")
-//					.append(expandPredicate(name.trim(), "X.NAME %s ?", binds))
-//					.append(") AND ");
-//				if(queryContext.getNextIndex()!=null && !queryContext.getNextIndex().toString().trim().isEmpty()) {
-//					sqlBuffer.append(XUID_START_SQL);
-//					binds.add(queryContext.getNextIndex().toString().trim());
-//				} else {
-//					sqlBuffer.append(INITIAL_XUID_START_SQL);
+//				if(hasExpression) {
+//					sqlBuffer.append(" AND FQNID IN ( ");
+//					prepareGetTSMetasSQL(on.getDomain(), on.getKeyPropertyList(), binds, sqlBuffer, GET_ANN_TSMETAS_SQL, "UNION ALL");					
+//				}				
+//				sqlBuffer.append(" ) ");
+//				if(hasExpression) {
+//					if(nextKey == null) {
+//						sqlBuffer.append(" AND FQNID >= 0 ");
+//					} else {
+//						sqlBuffer.append(" AND FQNID > ? ");
+//					}
 //				}
-//				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
+//				switch(timeRanges) {
+//					case 0:
+//						sqlBuffer.append(" AND START_TIME >= 0 ");
+//						
+//				}
+//				sqlBuffer.append(" ORDER BY START_TIME desc, FQNID desc, END_TIME desc ");
 //				final int modPageSize = queryContext.getNextMaxLimit() + 1;
 //				binds.add(modPageSize);
 //				try {
 //					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
-//					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
-//							metaReader.readUIDMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), type)
-//					);
-//					def.callback(uidMetas);
+//					final Set<Annotation> annotations = Collections.emptySet(); // FIXME and implement !
+//					def.callback(annotations);
 //				} catch (Exception ex) {
 //					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
 //					def.callback(ex);					
 //				}				
-			}
-		});
-		return def;			
+//				
+//				
+//				
+////				StringBuilder keySql = new StringBuilder("SELECT * FROM ( ");
+////				prepareGetTSMetasSQL(metricName, tags, binds, keySql, GET_TSMETAS_SQL);
+////				keySql.append(") X ");
+////				if(queryOptions.getNextIndex()==null) {
+////					keySql.append(" WHERE ").append(INITIAL_TSUID_START_SQL);
+////				} else {
+////					keySql.append(" WHERE ").append(TSUID_START_SQL);
+////					binds.add(queryOptions.getNextIndex());
+////				}
+////				keySql.append(" ORDER BY X.TSUID DESC LIMIT ? ");
+////				sqlBuffer.append(keySql.toString());
+//				
+//				
+////				StringBuilder sqlBuffer = new StringBuilder("SELECT * FROM TSD_")
+////					.append(type.name()).append(" X WHERE (")
+////					.append(expandPredicate(name.trim(), "X.NAME %s ?", binds))
+////					.append(") AND ");
+////				if(queryContext.getNextIndex()!=null && !queryContext.getNextIndex().toString().trim().isEmpty()) {
+////					sqlBuffer.append(XUID_START_SQL);
+////					binds.add(queryContext.getNextIndex().toString().trim());
+////				} else {
+////					sqlBuffer.append(INITIAL_XUID_START_SQL);
+////				}
+////				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
+////				final int modPageSize = queryContext.getNextMaxLimit() + 1;
+////				binds.add(modPageSize);
+////				try {
+////					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
+////					final Set<UIDMeta> uidMetas = closeOutUIDMetaResult(modPageSize, queryContext, 
+////							metaReader.readUIDMetas(sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0])), type)
+////					);
+////					def.callback(uidMetas);
+////				} catch (Exception ex) {
+////					log.error("Failed to execute find.\nSQL was [{}]", sqlBuffer, ex);
+////					def.callback(ex);					
+////				}				
+//			}
+//		});
+//		return def;			
 		
 	}
 
@@ -1147,7 +1259,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#getGlobalAnnotations(net.opentsdb.meta.api.QueryContext, long[])
 	 */
 	@Override
-	public Deferred<Set<Annotation>> getGlobalAnnotations(QueryContext queryOptions, long... startTimeEndTime) {
+	public Stream<List<Annotation>> getGlobalAnnotations(QueryContext queryOptions, long... startTimeEndTime) {
 		return null;
 	}
 	

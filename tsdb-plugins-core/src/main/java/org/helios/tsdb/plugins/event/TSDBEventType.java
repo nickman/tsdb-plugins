@@ -65,18 +65,36 @@ public enum TSDBEventType {
 		this.shortName = shortName; 
 	}
 	
+	/** An all zeroes bit mask template */
+	public static final String BITS = "0000000000000000000000000000000000000000000000000000000000000000";
+
+	
 	/** The plugin types this event is targetted at */
 	public final PluginType[] pluginTypes;
 	/** The short name of the event */
 	public final String shortName;
+	/** The bitmask for this event type */
+	public final int mask = Integer.parseInt("1" + BITS.substring(0, ordinal()), 2);
+	
+	public static void main(String[] args) {
+		for(TSDBEventType t: TSDBEventType.values()) {
+			System.out.println(t.name() + "[mask:" + t.mask + ", shortName:" + t.shortName + ", pluginTypes:" + Arrays.toString(t.pluginTypes) + "]" );
+			for(TSDBEventType te: TSDBEventType.values()) {
+				System.out.println("\t" + t.name() + " enabled for " + te.name() + ": " + t.isEnabled(te.mask));				
+			}
+			System.out.println("\t" + t.name() + " enabled for ALL: " + t.isEnabled(getMask(TSDBEventType.values())));
+		}
+	}
+	
+	
+	
 	
 	/**
 	 * Indicates if this event type is targetted at search plugins
 	 * @return true if this event type is targetted at search plugins, false otherwise
 	 */
 	public boolean isForSearch() {
-		if(pluginTypes.length==1) return pluginTypes[0]==PluginType.SEARCH;
-		return Arrays.binarySearch(pluginTypes, PluginType.SEARCH) < 0;
+		return Arrays.binarySearch(pluginTypes, PluginType.SEARCH) >= 0;
 	}
 	
 	/**
@@ -84,8 +102,8 @@ public enum TSDBEventType {
 	 * @return true if this event type is targetted at dispatcher plugins, false otherwise
 	 */
 	public boolean isForPulisher() {
-		if(pluginTypes.length==1) return pluginTypes[0]==PluginType.PUBLISH;
-		return Arrays.binarySearch(pluginTypes, PluginType.PUBLISH) < 0;
+		return Arrays.binarySearch(pluginTypes, PluginType.PUBLISH) >= 0;
+		
 	}
 	
 	/**
@@ -93,10 +111,33 @@ public enum TSDBEventType {
 	 * @return true if this event type is targetted at RPC plugins, false otherwise
 	 */
 	public boolean isForRPC() {
-		if(pluginTypes.length==1) return pluginTypes[0]==PluginType.RPC ;
-		return Arrays.binarySearch(pluginTypes, PluginType.RPC) < 0;
+		return Arrays.binarySearch(pluginTypes, PluginType.RPC) >= 0;		
 	}
 	
+	
+	/**
+	 * Generates a selective bitmask for the passed types
+	 * @param types The types to create a bitmask for
+	 * @return the selective mask
+	 */
+	public static final int getMask(final TSDBEventType...types) {
+		if(types==null || types.length==0) return 0;
+		int _mask = 0;
+		for(TSDBEventType t: types) {
+			if(t==null) continue;
+			_mask = _mask | t.mask;
+		}
+		return _mask;
+	}
+	
+	/**
+	 * Indicates if the passed mask is enabled for this event type
+	 * @param mask The mask to test
+	 * @return true if enabled, false otherwise
+	 */
+	public final boolean isEnabled(final int mask) {
+		return mask == (mask | this.mask);
+	}
 	
 	private static final TByteObjectHashMap<TSDBEventType> ORD2ENUM;
 	

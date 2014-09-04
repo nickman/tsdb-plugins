@@ -36,19 +36,65 @@ import org.helios.tsdb.plugins.handlers.TSDBServiceMXBean;
 
 public interface PubSubPublisherMXBean extends TSDBServiceMXBean {
 	/**
-	 * Returns the total number of events successfully processed
-	 * @return the total number of events successfully processed
+	 * Returns the timestamp of the last sample as a long UTC.
+	 * @return the timestamp of the last sample 
 	 */
-	public long getEventCount();
+	public long getLastSample();
+	
 	/**
-	 * Returns the total number of events that failed to be processed
-	 * @return the total number of events that failed to be processed
+	 * Returns the most recently appended value
+	 * @return the most recently appended value
 	 */
-	public long getErrorCount();
+	public double getLastValue();
 
 	/**
-	 * Resets the counters
+	 * Returns the last computed average.
+	 * @return the last computed average 
 	 */
-	public void resetCounters();
+	public double getAverage();
+
+	/**
+	 * Returns the minimum recorded value since the last reset
+	 * @return the minimum recorded value 
+	 */
+	public double getMinimum();
+
+	/**
+	 * Returns the maximum recorded value since the last reset
+	 * @return the maximum recorded value 
+	 */
+	public double getMaximum();
+
+	/**
+	 * Returns the mean recorded value since the last reset
+	 * @return the mean recorded value 
+	 */
+	public double getMean();
+
+	/**
+	 * Returns the count of recorded values since the last reset
+	 * @return the count of recorded values 
+	 */
+	public long getCount();
+	
+	/**
+	 * Returns the count of errors since the last reset
+	 * @return the count of errors 
+	 */
+	public long getErrors();
+	
+
+	/**
+	 * Returns the window size in ms.
+	 * @return the window size  
+	 */
+	public long getWindow();
+	
+	/**
+	 * Resets the EWMA
+	 */
+	public void resetEWMA();
+	
+
 	
 }

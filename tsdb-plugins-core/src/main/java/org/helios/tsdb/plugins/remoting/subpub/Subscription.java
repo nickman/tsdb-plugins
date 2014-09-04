@@ -25,14 +25,19 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.nio.charset.Charset;
-import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
 import net.opentsdb.meta.TSMeta;
+import net.opentsdb.meta.api.MetricsMetaAPI;
+import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.uid.UniqueId;
 
 import org.hbase.async.jsr166e.LongAdder;
@@ -41,10 +46,15 @@ import org.helios.jmx.metrics.ewma.DirectEWMAMBean;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.bloom.UnsafeBloomFilter;
 
+import reactor.core.composable.Deferred;
+import reactor.core.composable.Promise;
+import reactor.core.composable.spec.Promises;
+import reactor.event.dispatch.Dispatcher;
+import reactor.event.dispatch.SynchronousDispatcher;
+import reactor.function.Consumer;
+
 import com.google.common.hash.Funnel;
 import com.google.common.hash.Funnels;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import com.google.common.hash.PrimitiveSink;
 
 /**
@@ -69,14 +79,16 @@ public class Subscription implements SubscriptionMBean {
 	public static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 	/** The default number of insertions */
 	public static final int DEFAULT_INSERTIONS = 10000;
-	private static final HashFunction hasher = Hashing.murmur3_128();
 	/** The ingestion funnel for incoming qualified messages */
-	public enum subFunnel implements Funnel<byte[]> {
+	public enum SubFunnel implements Funnel<byte[]> {
 	     /** The singleton funnel */
-	    INSTANCE;
-	     public void funnel(final byte[] tsuid, final PrimitiveSink into) {	    	 
-	    	 into.putBytes(hasher.hashBytes(tsuid).asBytes());
-	     }
+	    INSTANCE;	     
+	     private final Funnel<byte[]> myfunnel = Funnels.byteArrayFunnel();
+
+		@Override
+		public void funnel(byte[] from, PrimitiveSink into) {
+			myfunnel.funnel(from, into);
+		}
 	   }	
 	
 	/** A serial number sequence for Subscription instances */
@@ -84,6 +96,12 @@ public class Subscription implements SubscriptionMBean {
 	
 	/** A EWMA for measuring the elapsed time of isMemberOf */
 	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
+	/** The reactor async dispatcher */
+	protected final Dispatcher dispatcher;
+	/** The reactor sync dispatcher */
+	protected final SynchronousDispatcher syncDispatcher = new SynchronousDispatcher();
+	/** The metrics meta access service */
+	final MetricsMetaAPI metricsMeta;
 	/** The subscription pattern */
 	protected final CharSequence pattern;
 	/** The subscription pattern as an ObjectName */
@@ -102,18 +120,22 @@ public class Subscription implements SubscriptionMBean {
 	protected final AtomicInteger subscribers = new AtomicInteger();
 	
 	/** The default false positive probability */
-	public static final double DEFAULT_PROB = 0.03d;
+	public static final double DEFAULT_PROB = 0.3d;
 	
 	/**
 	 * Creates a new Subscription
+	 * @param dispatcher The reactor async dispatcher
+	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
 	 */
-	public Subscription(final CharSequence pattern, final int expectedInsertions) {
-		filter = UnsafeBloomFilter.create(Funnels.byteArrayFunnel(), expectedInsertions, DEFAULT_PROB);
+	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions) {
+		filter = UnsafeBloomFilter.create(SubFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
 		this.pattern = pattern;
+		this.dispatcher = dispatcher;
+		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
-		subscriptionId = serial.incrementAndGet();
+		subscriptionId = serial.incrementAndGet();		
 	}
 	
 	public DirectEWMAMBean getEWMA() {
@@ -122,11 +144,13 @@ public class Subscription implements SubscriptionMBean {
 	
 	/**
 	 * Creates a new Subscription
+	 * @param dispatcher The reactor async dispatcher
+	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
 	 */
-	public Subscription(final ObjectName pattern, final int expectedInsertions) {
-		this(pattern.toString(), expectedInsertions);
+	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, final ObjectName pattern, final int expectedInsertions) {
+		this(dispatcher, metricsMeta, pattern.toString(), expectedInsertions);
 	}
 	
 	
@@ -149,18 +173,22 @@ public class Subscription implements SubscriptionMBean {
 	
 	/**
 	 * Creates a new Subscription with the default expected insertions
+	 * @param dispatcher The reactor async dispatcher
+	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 */
-	public Subscription(ObjectName pattern) {
-		this(pattern, DEFAULT_INSERTIONS);
+	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, ObjectName pattern) {
+		this(dispatcher, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
 	/**
 	 * Creates a new Subscription with the default expected insertions
+	 * @param dispatcher The reactor async dispatcher
+	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 */
-	public Subscription(CharSequence pattern) {
-		this(pattern, DEFAULT_INSERTIONS);
+	public Subscription(final Dispatcher dispatcher, final MetricsMetaAPI metricsMeta, CharSequence pattern) {
+		this(dispatcher, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
 	/**
@@ -170,29 +198,50 @@ public class Subscription implements SubscriptionMBean {
 	 * @param tags The metric tags
 	 * @return false if the message is definitely NOT a member of this subscription, true if it is a member.
 	 */
-	public boolean isMemberOf(final byte[] bytes, final String metric, final Map<String, String> tags) {
-		if(bytes==null) return false;
-		final long start = System.nanoTime();
-		try {
-			if(filter.mightContain(hasher.hashBytes(bytes).asBytes())) {
-				try {
-					if(metric!=null && tags!=null) {
-						if(patternObjectName.apply(new ObjectName(metric, new Hashtable<String, String>(tags)))) {
-							index(bytes);
-							totalMatched.increment();
-							return true;
-						}
+	public Promise<Boolean> isMemberOf(final byte[] bytes, final String metric, final Map<String, String> tags) {
+		if(bytes==null) return Promises.success(false).get();
+		final Deferred<Boolean, Promise<Boolean>> def = Promises.<Boolean>defer().dispatcher(this.dispatcher).get();
+		final Promise<Boolean> promise = def.compose();
+		dispatcher.execute(new Runnable() {
+			public void run() {
+				final long start = System.nanoTime();
+				if(filter.mightContain(bytes)) {
+					try {
+						if(metric!=null && tags!=null) {
+							final String fqn = SubscriptionManager.buildObjectName(metric, tags).toString();
+							metricsMeta.evaluate(new QueryContext().setMaxSize(1).setPageSize(1), fqn).consume(new Consumer<List<TSMeta>>() {
+								@Override
+								public void accept(final List<TSMeta> t) {
+									final boolean b = (t!=null && !t.isEmpty());
+									def.accept(b);
+									if(b) {
+										index(bytes);
+										totalMatched.increment();
+									} else {
+										mightDropped.increment();
+									}
+									ewma.append(System.nanoTime() - start);
+								}
+							}).when(Throwable.class, new Consumer<Throwable>() {
+								@Override
+								public void accept(final Throwable t) {
+									def.accept(false);
+									ewma.append(System.nanoTime() - start);
+								}
+							});
+						} else {
+							def.accept(false);
+						}						
+					} catch (Exception ex) {
+						/* No Op */
 					}
-				} catch (Exception ex) {
-					/* No Op */
-				}
-				mightDropped.increment();
-			}	
-			
-			return false;
-		} finally {
-			ewma.append(System.nanoTime() - start);
-		}
+					
+				}	
+				ewma.append(System.nanoTime() - start);
+				def.accept(false);
+			}
+		});
+		return promise;		
 	}
 	
 	/**
@@ -201,7 +250,28 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	@Override
 	public boolean test(String message) {
-		return isMemberOf(message.getBytes(Charset.defaultCharset()), null, null);
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicBoolean result = new AtomicBoolean(false);
+		isMemberOf(message.getBytes(Charset.defaultCharset()), null, null).consume(new Consumer<Boolean>() {
+			@Override
+			public void accept(Boolean t) {
+				result.set(t);
+				latch.countDown();
+			}
+		}).when(Throwable.class, new Consumer<Throwable>() {
+			@Override
+			public void accept(Throwable t) {
+				result.set(false);
+				latch.countDown();				
+			}
+		});
+		try {
+			latch.await(3, TimeUnit.SECONDS);
+		} catch (Exception ex) {
+			/* No Op */
+		}
+		return result.get();
+		
 	}
 	
 	/**
@@ -210,7 +280,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	public void index(final byte[] bytes) {
 		if(bytes!=null) {
-			if(filter.put(hasher.hashBytes(bytes).asBytes())) {
+			if(filter.put(bytes)) {
 				retained.incrementAndGet();
 			}
 		}
@@ -222,7 +292,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	public void index(final TSMeta tsMeta) {		
 		if(tsMeta!=null) {
-			if(filter.put(hasher.hashBytes(UniqueId.stringToUid(tsMeta.getTSUID())).asBytes())) {
+			if(filter.put(UniqueId.stringToUid(tsMeta.getTSUID()))) {
 				retained.incrementAndGet();
 			}
 		}		
@@ -235,7 +305,7 @@ public class Subscription implements SubscriptionMBean {
 	 */
 	void _internalIndex(final byte[] tsuid) {		
 		if(tsuid!=null) {
-			if(filter.put(hasher.hashBytes(tsuid).asBytes())) {
+			if(filter.put(tsuid)) {
 				retained.incrementAndGet();
 			}
 		}		

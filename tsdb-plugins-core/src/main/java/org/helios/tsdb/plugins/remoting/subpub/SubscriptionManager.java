@@ -285,7 +285,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 											final long elapsedTime = System.currentTimeMillis()-startTime;
 											log.info("Retrieved [{}] TSMetas in [{}] ms. to prime subscription [{}]", matchingTsuids.size(), elapsedTime, pattern);
 											final int bloomFactor = Math.round(DEFAULT_BLOOM_FILTER_SPACE_FACTOR * matchingTsuids.size());
-											final Subscription subx = new Subscription(_pattern, bloomFactor);
+											final Subscription subx = new Subscription(reactor.getDispatcher(), metricSvc, _pattern, bloomFactor);
 											int indexCnt = 0;
 											for(final Iterator<byte[]> biter = matchingTsuids.iterator(); biter.hasNext();) {
 												subx._internalIndex(biter.next());
@@ -407,6 +407,7 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		try {
 			ObjectNode node = null;
 			for(Subscription s: allSubscriptions.values()) {
+				attachEventHandlers(s.isMemberOf(tsuid, metric, tags));
 				if(s.isMemberOf(tsuid, metric, tags)) {
 					Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
 					if(channels!=null && !channels.isEmpty()) {						
@@ -459,6 +460,55 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 			log.error("Failed to process long data point", ex);
 		}		
 	}
+	
+	protected void attachEventHandlers(final Promise<Boolean> promise, final Subscription s, final ObjectNode innode, final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
+		promise.consume(new Consumer<Boolean>() {
+			@Override
+			public void accept(Boolean t) {
+				ObjectNode node = innode; 
+				Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
+				if(channels!=null && !channels.isEmpty()) {
+					if(node==null) node = build(metric, timestamp, value, tags, tsuid);
+					node.put("subid", s.getSubscriptionId());
+					for(Channel ch: channels) {
+						ch.write(node);
+					}
+					events.increment();
+				}			
+				
+			}
+		}).when(Throwable.class, new Consumer<Throwable>() {
+			@Override
+			public void accept(Throwable t) {
+				
+			}
+		});
+	}
+	
+	protected void attachEventHandlers(final Promise<Boolean> promise, final Subscription s, final ObjectNode innode, final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
+		promise.consume(new Consumer<Boolean>() {
+			@Override
+			public void accept(Boolean t) {
+				ObjectNode node = innode; 
+				Set<Channel> channels = subscriptionChannels.get(s.getSubscriptionId());
+				if(channels!=null && !channels.isEmpty()) {
+					if(node==null) node = build(metric, timestamp, value, tags, tsuid);
+					node.put("subid", s.getSubscriptionId());
+					for(Channel ch: channels) {
+						ch.write(node);
+					}
+					events.increment();
+				}			
+				
+			}
+		}).when(Throwable.class, new Consumer<Throwable>() {
+			@Override
+			public void accept(Throwable t) {
+				
+			}
+		});
+	}
+	
 	
 	/**
 	 * {@inheritDoc}

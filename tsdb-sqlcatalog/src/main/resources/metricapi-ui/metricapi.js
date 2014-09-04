@@ -557,6 +557,7 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 };
 
 WebSocketAPIClient.prototype.subscribe = function(expression) {
+
 	this.ws.send(JSON.stringify(
 		{t: "req", rid: 1, svc:'pubsub', op:'sub', x:expression}
 	));
@@ -567,6 +568,52 @@ WebSocketAPIClient.prototype.services = function() {
 };
 
 
+function testSub() {
+	var expr = $('#exprfield').val() + ",*";
+	console.info("Subscribing to expression [%s]", expr);
+	ws.subscribe(expr);
+	// .then(
+	// 	function(data) {
+	// 		console.info("SUB TERM: [%O]", data);
+	// 	},
+	// 	function(data) {
+	// 		console.error("SUB ERROR: [%O]", arguments);
+	// 	},
+	// 	function(data) {
+	// 		console.info("SUB EVENT: [%O]", data);
+	// 	}
+	// );
+}
+
+/*
+	SUB STARTED:
+	============
+	id: 1486981487
+	msg: Object
+	subId: 1
+	__proto__: Object
+	op: "subst"
+	rerid: 1
+	t: "resp"
+
+	SUB EVENT:
+	==========
+	metric: "sys.cpu"
+	subid: 2
+	tags: Object
+	cpu: "1"
+	dc: "dc4"
+	host: "WebServer1"
+	type: "sys"
+	__proto__: Object
+	ts: 1409783673
+	type: "l"
+	value: 17
+
+
+	SUB TERM:
+	=========	
+*/
 
 
 WebSocketAPIClient.mapTags = function(tsmeta) {

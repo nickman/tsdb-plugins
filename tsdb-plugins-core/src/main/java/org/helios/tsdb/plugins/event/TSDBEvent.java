@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.event;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import net.opentsdb.meta.Annotation;
@@ -213,7 +214,7 @@ public class TSDBEvent  {
 		this.metric = metric;
 		this.timestamp = timestamp;
 		this.doubleValue = value;
-		this.tags = tags;
+		this.tags = new LinkedHashMap<String, String>(tags);
 		this.tsuidBytes = tsuid;
 		return this;
 	}
@@ -232,7 +233,7 @@ public class TSDBEvent  {
 		this.metric = metric;
 		this.timestamp = timestamp;
 		this.longValue = value;
-		this.tags = tags;
+		this.tags = new LinkedHashMap<String, String>(tags);
 		this.tsuidBytes = tsuid;
 		return this;
 	}

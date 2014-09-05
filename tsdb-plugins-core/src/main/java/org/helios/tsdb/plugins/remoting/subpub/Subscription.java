@@ -25,6 +25,7 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -41,8 +42,8 @@ import net.opentsdb.uid.UniqueId;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.hbase.async.jsr166e.LongAdder;
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
-import org.helios.tsdb.plugins.async.SingletonEnvironment;
 import org.helios.tsdb.plugins.event.TSDBEvent;
+import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ import reactor.event.registry.Registration;
 import reactor.event.selector.HeaderResolver;
 import reactor.event.selector.Selector;
 import reactor.function.Consumer;
+import reactor.function.Function;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -73,7 +75,7 @@ import com.google.common.hash.PrimitiveSink;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
  */
-public class Subscription implements SubscriptionMBean, Selector, Consumer<Event<TSDBEvent>>, SubscriberEventListener {
+public class Subscription implements SubscriptionMBean, Selector, Consumer<Event<List<TSDBEvent>>>, SubscriberEventListener {
 	/** Static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(Subscription.class);
 
@@ -115,6 +117,8 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	
 	/** The subscription pattern */
 	protected final String pattern;
+	/** The event type filter bit mask */
+	protected final int eventBitMask;
 	/** The subscription pattern as an ObjectName */
 	protected final ObjectName patternObjectName;
 	/** The subscription id for this subscription */
@@ -139,27 +143,34 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
+	 * @param types The TSDBEvent types to subscribe to
 	 */
-	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions) {
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions, final TSDBEventType...types) {
 		filter = BloomFilter.create(SubFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
 		this.pattern = pattern.toString().trim();
+		eventBitMask = TSDBEventType.getMask(types);
 		this.expectedInsertions = expectedInsertions;
 		this.reactor = reactor;
 		this.dispatcher = reactor.getDispatcher();
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
-		subscriptionId = serial.incrementAndGet();		
-		final Stream<Event<TSDBEvent>> batchStream =  Streams.<Event<TSDBEvent>>defer(SingletonEnvironment.getEnvironment(), this.dispatcher).compose();
-//		final Stream<Event<TSDBEvent>> batchStream =  new Stream<Event<TSDBEvent>>(null, 100, this, SingletonEnvironment.getEnvironment());
-		batchStream.consume(this);
-		registration = this.reactor.on(this, batchStream);
-		
-				
-//				new MovingWindowAction<Event<TSDBEvent>>(reactor,
-//                d.getAcceptKey(),
-//                d.getError().getObject(),
-//                timer,
-//                period, timeUnit, delay, backlog)).connectErrors(d););
+		subscriptionId = serial.incrementAndGet();				
+		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer().dispatcher(this.dispatcher).get();			
+		def.compose()
+			.filter(new Function<TSDBEvent, Boolean>(){
+				@Override
+				public Boolean apply(TSDBEvent t) {					
+					return t.eventType.isEnabled(eventBitMask);
+				}
+			})
+			.movingWindow(5000, 100)
+			.consumeEvent(this);
+		this.reactor.on(this, new Consumer<Event<TSDBEvent>>() {
+			@Override
+			public void accept(final Event<TSDBEvent> t) {
+				def.accept(t.getData());
+			}
+		});
 	}
 	
 	
@@ -169,8 +180,9 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
 	 * @param expectedInsertions The number of expected insertions
+	 * @param types The TSDBEvent types to subscribe to
 	 */
-	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final ObjectName pattern, final int expectedInsertions) {
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final ObjectName pattern, final int expectedInsertions, final TSDBEventType...types) {
 		this(reactor, metricsMeta, pattern.toString(), expectedInsertions);
 	}
 	
@@ -223,8 +235,9 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
+	 * @param types The TSDBEvent types to subscribe to
 	 */
-	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, ObjectName pattern) {
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, ObjectName pattern, final TSDBEventType...types) {
 		this(reactor, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
@@ -233,8 +246,9 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @param reactor The reactor for event listening and async dispatch
 	 * @param metricsMeta The metrics meta access service
 	 * @param pattern The subscription pattern
+	 * @param types The TSDBEvent types to subscribe to
 	 */
-	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, CharSequence pattern) {
+	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, CharSequence pattern, final TSDBEventType...types) {
 		this(reactor, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
@@ -243,12 +257,12 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @see reactor.function.Consumer#accept(java.lang.Object)
 	 */
 	@Override
-	public void accept(final Event<TSDBEvent> event) {
+	public void accept(final Event<List<TSDBEvent>> events) {
 		if(!subscribers.isEmpty()) {
 			dispatcher.execute(new Runnable(){
 				public void run() {
 					for(final Subscriber s: subscribers) {
-						s.accept(event.getData());
+						s.accept(events.getData());
 					}
 				}
 			});

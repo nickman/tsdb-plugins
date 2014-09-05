@@ -24,15 +24,20 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import net.opentsdb.meta.api.NameUtil;
+
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 import org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler;
+import org.helios.tsdb.plugins.meta.Datapoint;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
 import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 
+import reactor.core.Reactor;
 import reactor.core.composable.Promise;
+import reactor.event.Event;
 import reactor.function.Consumer;
 
 
@@ -49,6 +54,9 @@ public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubP
 	protected SubscriptionManager subManager = null;
 	/** A EWMA for measuring the elapsed time of processing an event */
 	protected final ConcurrentDirectEWMA ewma = new ConcurrentDirectEWMA(1024);
+
+	/** The default shared reactor */
+	protected Reactor defaultReactor = null;
 
 	
 	
@@ -77,15 +85,37 @@ public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubP
 				return (resource!=null && (resource instanceof SubscriptionManager));
 			}
 		});
+		defaultReactor = pc.getResource("reactor", Reactor.class);
 		super.initialize(pc);				
 	}
+	
+	/** The bit mask of the TSDBEventTypes we want to process */
+	public static final int DATAPOINT_BIT_MASK = TSDBEventType.getMask(TSDBEventType.DPOINT_DOUBLE, TSDBEventType.DPOINT_LONG, TSDBEventType.TSMETA_INDEX, TSDBEventType.TSMETA_DELETE);
 	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.handlers.EmptyPublishEventHandler#onEvent(org.helios.tsdb.plugins.event.TSDBEvent, long, boolean)
 	 */
 	@Override
-	public void onEvent(TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+	public void onEvent(final TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
+		if(!event.eventType.isEnabled(DATAPOINT_BIT_MASK)) return;
+		switch(event.eventType) {
+		case DPOINT_DOUBLE:
+		case DPOINT_LONG:
+			final String name = NameUtil.buildObjectName(event.metric, event.tags).toString();
+			if(defaultReactor.respondsToKey(name)) {
+				final Datapoint datapoint = new Datapoint(event);
+				defaultReactor.notify(name, Event.wrap(datapoint));
+			}
+			break;
+		case TSMETA_DELETE:
+			break;
+		case TSMETA_INDEX:
+			break;
+		default:
+			break;
+			
+		}
 		if(log.isTraceEnabled()) log.trace("Processing Sequence {} for Event [{}]", sequence, event);
 		if(event.eventType==null || !event.eventType.isForPulisher()) return;
 		final long startTime = System.nanoTime();

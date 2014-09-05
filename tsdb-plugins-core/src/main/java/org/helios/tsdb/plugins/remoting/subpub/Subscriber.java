@@ -24,6 +24,8 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import java.util.List;
+
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 
@@ -45,9 +47,9 @@ public interface Subscriber {
 	
 	/**
 	 * Delivers a TSDBEvent to the subscriber
-	 * @param event The event
+	 * @param events The events to deliver
 	 */
-	public void accept(TSDBEvent event);
+	public void accept(List<TSDBEvent> events);
 	
 	/**
 	 * Registers a listener that should be notified of subscriber events

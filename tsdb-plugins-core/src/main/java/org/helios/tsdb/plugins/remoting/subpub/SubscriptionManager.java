@@ -33,6 +33,8 @@ import java.util.Set;
 
 import javax.management.MXBean;
 
+import static net.opentsdb.meta.api.NameUtil.*;
+
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -347,53 +349,6 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 		return promise;
 	}
 	
-	/**
-	 * Builds an ObjectNode to publish a double value datapoint to subscribers
-	 * @param metric The data point metric name
-	 * @param timestamp The data point timestamp
-	 * @param value The data point value
-	 * @param tags The data point tags
-	 * @param tsuid The data point time series id
-	 * @return the built object node to publish
-	 */
-	public static ObjectNode build(final String metric, final long timestamp, final double value, final Map<String,String> tags, final byte[] tsuid) {
-		final ObjectNode on = JSON.getMapper().createObjectNode();
-		on.put("metric", metric);
-		on.put("ts", timestamp);
-		on.put("value", value);
-		on.put("type", "d");
-		
-		final ObjectNode tagMap = JSON.getMapper().createObjectNode();
-		for(Map.Entry<String, String> e: tags.entrySet()) {
-			tagMap.put(e.getKey(), e.getValue());
-		}
-		on.put("tags", tagMap);
-		return on;
-	}
-	
-	/**
-	 * Builds an ObjectNode to publish a long value datapoint to subscribers
-	 * @param metric The data point metric name
-	 * @param timestamp The data point timestamp
-	 * @param value The data point value
-	 * @param tags The data point tags
-	 * @param tsuid The data point time series id
-	 * @return the built object node to publish
-	 */
-	public static ObjectNode build(final String metric, final long timestamp, final long value, final Map<String,String> tags, final byte[] tsuid) {
-		final ObjectNode on = JSON.getMapper().createObjectNode();
-		on.put("metric", metric);
-		on.put("ts", timestamp);
-		on.put("value", value);
-		on.put("type", "l");		
-		final ObjectNode tagMap = JSON.getMapper().createObjectNode();
-		for(Map.Entry<String, String> e: tags.entrySet()) {
-			tagMap.put(e.getKey(), e.getValue());
-		}
-		on.put("tags", tagMap);
-		return on;
-	}
-	
 
 	
 	/**
@@ -501,58 +456,6 @@ public class SubscriptionManager extends AbstractRPCService implements ChannelFu
 
 	
 	
-	/** Fast string builder support */
-	static final ThreadLocal<StringBuilder> stringBuilder = new ThreadLocal<StringBuilder>() {
-		@Override
-		protected StringBuilder initialValue() {
-			return new StringBuilder(128);
-		}
-		@Override
-		public StringBuilder get() {
-			StringBuilder b = super.get();
-			b.setLength(0);
-			return b;
-		}
-	};
-	
-	
-	
-	/**
-	 * Builds a stringy from the passed metric name and UID tags
-	 * @param metric The metric name
-	 * @param tags The UID tags
-	 * @return a stringy
-	 */
-	static final CharSequence buildObjectName(final String metric, final List<UIDMeta> tags) {
-		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
-		String mname = metric==null || metric.isEmpty() ? "*" : metric;
-		StringBuilder b = stringBuilder.get().append(mname).append(":");
-		boolean k = true;		
-		for(final UIDMeta meta: tags) {
-			b.append(meta.getName());
-			if(k) {
-				b.append("=");
-			} else {
-				b.append(",");
-			}
-			k = !k;
-		}
-		b.deleteCharAt(b.length()-1);
-		return b.toString();
-		
-	}
-	
-	static final CharSequence buildObjectName(final String metric, final Map<String, String> tags) {
-		if(tags==null || tags.isEmpty()) throw new IllegalArgumentException("The passed tags map was null or empty");
-		String mname = metric==null || metric.isEmpty() ? "*" : metric;
-		StringBuilder b = stringBuilder.get().append(mname).append(":");
-		for(final Map.Entry<String, String> e: tags.entrySet()) {
-			b.append(e.getKey()).append("=").append(e.getValue()).append(",");
-		}
-		b.deleteCharAt(b.length()-1);
-		return b.toString();
-	}
-
 	/**
 	 * Returns the timestamp of the last sample
 	 * @return the timestamp of the last sample

@@ -24,6 +24,7 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
+import java.util.List;
 import java.util.Set;
 
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
@@ -54,6 +55,13 @@ public class AbstractSubscriber implements Subscriber {
 		eventBitMask = TSDBEventType.getMask(types);
 	}
 	
+	@Override
+	public void accept(List<TSDBEvent> events) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.tsdb.plugins.remoting.subpub.Subscriber#getEventBitMask()
@@ -63,15 +71,7 @@ public class AbstractSubscriber implements Subscriber {
 		return eventBitMask;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.tsdb.plugins.remoting.subpub.Subscriber#accept(org.helios.tsdb.plugins.event.TSDBEvent)
-	 */
-	@Override
-	public void accept(TSDBEvent event) {
-		// TODO Auto-generated method stub
 
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -104,5 +104,6 @@ public class AbstractSubscriber implements Subscriber {
 			l.onDisconnect(this);
 		}
 	}
+
 
 }

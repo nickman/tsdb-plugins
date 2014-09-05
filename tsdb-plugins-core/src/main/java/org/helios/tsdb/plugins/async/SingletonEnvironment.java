@@ -25,6 +25,9 @@
 package org.helios.tsdb.plugins.async;
 
 import reactor.core.Environment;
+import reactor.core.Reactor;
+import reactor.core.spec.Reactors;
+import reactor.event.dispatch.Dispatcher;
 
 /**
  * <p>Title: SingletonEnvironment</p>
@@ -35,11 +38,17 @@ import reactor.core.Environment;
  */
 
 public class SingletonEnvironment {
+	/** The singleton instance */
 	private static volatile SingletonEnvironment instance = null;
+	/** The singleton instance ctor lock */
 	private static final Object lock = new Object();	
+	/** The environment */
 	private final Environment env;
+	/** The default reactor */
+	private final Reactor defaultReactor;
 	
-	public static Environment getEnvironment() {
+	
+	public static SingletonEnvironment getInstance() {
 		if(instance==null) {
 			synchronized(lock) {
 				if(instance==null) {
@@ -47,11 +56,20 @@ public class SingletonEnvironment {
 				}
 			}
 		}
-		return instance.env;
+		return instance;
 	}
 	
 	
 	private SingletonEnvironment() {
 		env = new Environment();
+		defaultReactor = Reactors.reactor(env);
+	}
+	
+	public Reactor getDefaultReactor() {
+		return defaultReactor;
+	}
+	
+	public Dispatcher getDefaultAsyncDispatcher() {
+		return defaultReactor.getDispatcher();
 	}
 }

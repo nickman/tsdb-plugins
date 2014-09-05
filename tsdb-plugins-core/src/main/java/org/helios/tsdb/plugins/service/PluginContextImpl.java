@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanNotificationInfo;
 import javax.management.Notification;
-import javax.management.NotificationBroadcaster;
 import javax.management.NotificationBroadcasterSupport;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
@@ -50,10 +49,13 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.utils.Config;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
+import org.helios.tsdb.plugins.async.SingletonEnvironment;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.helios.tsdb.plugins.util.SystemClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import reactor.core.Reactor;
 
 /**
  * <p>Title: PluginContextImpl</p>
@@ -78,6 +80,9 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 	protected final Set<IPluginContextResourceListener> listeners = new CopyOnWriteArraySet<IPluginContextResourceListener>();
 	/** The sequence number factory for dispatched notificatons */
 	protected final AtomicLong sequence = new AtomicLong();
+	
+	/** The default shared reactor */
+	protected final Reactor defaultReactor;
 	
 	/** The JMX ObjectName of the MLet wrapped support class loader */
 	protected ObjectName supportClassLoaderObjectName = null;
@@ -106,6 +111,8 @@ public class PluginContextImpl implements PluginContext, PluginContextImplMBean 
 		this.config = config;
 		this.extracted = extracted;
 		this.supportClassLoader = supportClassLoader;
+		this.defaultReactor = SingletonEnvironment.getInstance().getDefaultReactor();
+		setResource("reactor", this.defaultReactor);
 		this.notificationBroadcaster = new NotificationBroadcasterSupport(tpe, MBEAN_NOTIF_INFOS);
 		JMXHelper.registerMBean(this, OBJECT_NAME);
 		if(this.supportClassLoader instanceof URLClassLoader) {

@@ -272,17 +272,8 @@ public class JSONMetricsAPIService {
 				request.getRequest().get("y").textValue()
 			);
 		} else {
-			metricApi.overlap(expressionOne, expressionTwo).onSuccess(new Consumer<Long>() {
-				@Override
-				public void accept(Long t) {					
-					request.response().setContent(JSON.getMapper().createObjectNode().putPOJO("q", q).put("result", t)).send();
-				}
-			}).onError(new Consumer<Throwable>() {
-				@Override
-				public void accept(Throwable t) {
-					request.error("Failed to execute overlap", t).send();
-				}
-			});
+			final long result = metricApi.overlap(expressionOne, expressionTwo);
+			request.response().setContent(JSON.getMapper().createObjectNode().putPOJO("q", q).put("result", result)).send();
 		}
 	}
 	

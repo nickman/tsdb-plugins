@@ -27,6 +27,7 @@ package org.helios.tsdb.plugins.remoting.subpub;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,8 +43,10 @@ import net.opentsdb.uid.UniqueId;
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.hbase.async.jsr166e.LongAdder;
 import org.helios.jmx.metrics.ewma.ConcurrentDirectEWMA;
+import org.helios.tsdb.plugins.async.SingletonEnvironment;
 import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
+import org.helios.tsdb.plugins.meta.Datapoint;
 import org.helios.tsdb.plugins.util.JMXHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +64,7 @@ import reactor.event.selector.HeaderResolver;
 import reactor.event.selector.Selector;
 import reactor.function.Consumer;
 import reactor.function.Function;
+import reactor.tuple.Tuple2;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -75,7 +79,7 @@ import com.google.common.hash.PrimitiveSink;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
  */
-public class Subscription implements SubscriptionMBean, Selector, Consumer<Event<List<TSDBEvent>>>, SubscriberEventListener {
+public class Subscription implements SubscriptionMBean, Selector, Consumer<List<Map<String,Datapoint>>>, SubscriberEventListener {
 	/** Static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(Subscription.class);
 
@@ -155,16 +159,17 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();				
-		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer().dispatcher(this.dispatcher).get();			
-		def.compose()
-			.filter(new Function<TSDBEvent, Boolean>(){
+		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer().env(SingletonEnvironment.getInstance().getEnv()).dispatcher(dispatcher).get();		
+		final Stream<TSDBEvent> stream = def.compose();
+		stream.filter(new Function<TSDBEvent, Boolean>(){
 				@Override
 				public Boolean apply(TSDBEvent t) {					
 					return t.eventType.isEnabled(eventBitMask);
 				}
 			})
-			.movingWindow(5000, 100)
-			.consumeEvent(this);
+			.reduce(preWindowAccumulator)
+			.movingWindow(5000, 100)			
+			.consume(this);
 		this.reactor.on(this, new Consumer<Event<TSDBEvent>>() {
 			@Override
 			public void accept(final Event<TSDBEvent> t) {
@@ -173,6 +178,52 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 		});
 	}
 	
+	private final Map<String, Datapoint> accumulation = new ConcurrentHashMap<String, Datapoint>();
+	
+	private final Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>> preWindowAccumulator = new Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>>() {
+		@Override
+		public Map<String, Datapoint> apply(Tuple2<TSDBEvent, Map<String, Datapoint>> t) {
+			final TSDBEvent te = t.getT1();
+			final Map<String, Datapoint> accumulator = t.getT2()==null ? new ConcurrentHashMap<String, Datapoint>() : t.getT2();
+			Datapoint d = accumulator.get(te.tsuid);
+			if(d==null) {
+				synchronized(accumulator) {
+					d = accumulator.get(te.tsuid);
+					if(d==null) {
+						d = new Datapoint(te);
+						accumulator.put(te.tsuid, d);						
+					} else {
+						d.apply(te);
+					}
+				}
+			} else {
+				d.apply(te);
+			}
+			log.info("Accumulated [{}] events", accumulator.size());
+			return accumulator;
+		}
+	};
+	
+	private final Function<Event<List<TSDBEvent>>, Map<String, Datapoint>> postWindowAccumulator = new Function<Event<List<TSDBEvent>>, Map<String, Datapoint>>() {
+		@Override
+		public Map<String, Datapoint> apply(final Event<List<TSDBEvent>> t) {
+			for(final TSDBEvent te: t.getData()) {
+				Datapoint d = accumulation.get(te.tsuid);
+				if(d==null) {
+					synchronized(accumulation) {
+						d = accumulation.get(te.tsuid);
+						if(d==null) {
+							d = new Datapoint(te);
+							accumulation.put(te.tsuid, d);
+							continue;
+						}
+					}
+				}
+				d.apply(te);
+			}
+			return accumulation;
+		}
+	};
 	
 	/**
 	 * Creates a new Subscription
@@ -257,15 +308,16 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	 * @see reactor.function.Consumer#accept(java.lang.Object)
 	 */
 	@Override
-	public void accept(final Event<List<TSDBEvent>> events) {
+	public void accept(final List<Map<String,Datapoint>> accumulatedDatapoints) {
 		if(!subscribers.isEmpty()) {
-			dispatcher.execute(new Runnable(){
-				public void run() {
-					for(final Subscriber s: subscribers) {
-						s.accept(events.getData());
-					}
-				}
-			});
+			log.info("Accumulated Datapoints:\n" +  accumulatedDatapoints);
+//			dispatcher.execute(new Runnable(){
+//				public void run() {
+//					for(final Subscriber s: subscribers) {
+//						s.accept();
+//					}
+//				}
+//			});
 		}
 	}
 	
@@ -560,47 +612,11 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<Event
 	public boolean matches(Object key) {
 		if(key==null) return false;
 		final String keyPattern = key.toString().trim();
-		if(pattern.equals(keyPattern)) return true;		
-		try {
-			JMXHelper.objectName(keyPattern);
-		} catch (Exception ex) {
-			return false;
-		}
-		final CountDownLatch latch = new CountDownLatch(1);
-		final AtomicBoolean match = new AtomicBoolean(false);
-		final long startTime = System.nanoTime();
-		try {
-			metricsMeta.overlap(pattern, keyPattern).onSuccess(new Consumer<Long>(){
-				/**
-				 * {@inheritDoc}
-				 * @see reactor.function.Consumer#accept(java.lang.Object)
-				 */
-				@Override
-				public void accept(Long t) {					
-					if(t!=null && t==0) {
-						match.set(true);
-						latch.countDown();
-					}
-				}
-			}).onError(new Consumer<Throwable>(){
-				/**
-				 * {@inheritDoc}
-				 * @see reactor.function.Consumer#accept(java.lang.Object)
-				 */
-				@Override
-				public void accept(Throwable t) {
-					latch.countDown();					
-				}
-			});
-			if(!latch.await(1500, TimeUnit.MILLISECONDS)) {
-				throw new Exception("Timeout on overlap call");
-			}
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to determine match for [" + key + "] on selector [" + pattern + "]", ex);
-		}
-		final long elapsedTime = System.nanoTime()-startTime;
-		log.info("Selector [{}] match in [{}] ms. Result: {}", pattern, elapsedTime, match.get());
-		return match.get();
+		
+		if(pattern.equals(keyPattern)) return true;
+		final boolean match = metricsMeta.overlap(pattern, keyPattern) == 0;
+		log.info("Attempting to match key [{}] with pattern [{}]  --- > {}", key, pattern, match);
+		return match;
 	}
 
 	/**

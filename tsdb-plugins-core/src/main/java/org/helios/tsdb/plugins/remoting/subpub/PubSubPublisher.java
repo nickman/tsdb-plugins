@@ -36,9 +36,7 @@ import org.helios.tsdb.plugins.service.IPluginContextResourceListener;
 import org.helios.tsdb.plugins.service.PluginContext;
 
 import reactor.core.Reactor;
-import reactor.core.composable.Promise;
 import reactor.event.Event;
-import reactor.function.Consumer;
 
 
 /**
@@ -98,41 +96,30 @@ public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubP
 	 */
 	@Override
 	public void onEvent(final TSDBEvent event, long sequence, boolean endOfBatch) throws Exception {
-		if(!event.eventType.isEnabled(DATAPOINT_BIT_MASK)) return;
-		switch(event.eventType) {
-		case DPOINT_DOUBLE:
-		case DPOINT_LONG:
-			final String name = NameUtil.buildObjectName(event.metric, event.tags).toString();
-			if(defaultReactor.respondsToKey(name)) {
-				final Datapoint datapoint = new Datapoint(event);
-				defaultReactor.notify(name, Event.wrap(datapoint));
-			}
-			break;
-		case TSMETA_DELETE:
-			break;
-		case TSMETA_INDEX:
-			break;
-		default:
-			break;
-			
-		}
-		if(log.isTraceEnabled()) log.trace("Processing Sequence {} for Event [{}]", sequence, event);
-		if(event.eventType==null || !event.eventType.isForPulisher()) return;
-		final long startTime = System.nanoTime();
 		try {
-			subManager.onDataPoint(
-					event.metric, event.timestamp, event.longValue, 
-					(event.eventType==TSDBEventType.DPOINT_LONG), 
-					event.tags, event.tsuidBytes)
-					.onComplete(new Consumer<Promise<Void>>() {
-						@Override
-						public void accept(Promise<Void> t) {
-							ewma.append(System.nanoTime() - startTime);
-						}
-					});
+			if(!event.eventType.isEnabled(DATAPOINT_BIT_MASK)) return;
+			final long startTime = System.nanoTime();
+			switch(event.eventType) {
+			case DPOINT_DOUBLE:
+			case DPOINT_LONG:
+				final String name = NameUtil.buildObjectName(event.metric, event.tags).toString();
+				if(defaultReactor.respondsToKey(name)) {
+					final Datapoint datapoint = new Datapoint(event);
+					defaultReactor.notify(name, Event.wrap(datapoint));
+				}
+				break;
+			case TSMETA_DELETE:
+				break;
+			case TSMETA_INDEX:
+				break;
+			default:
+				break;
+				
+			}
+			ewma.append(System.nanoTime() - startTime);
 		} catch (Exception ex) {
 			log.error("Failed to process event [{}]", ex);
-			ewma.error();
+			ewma.error();			
 		}
 	}	
 	

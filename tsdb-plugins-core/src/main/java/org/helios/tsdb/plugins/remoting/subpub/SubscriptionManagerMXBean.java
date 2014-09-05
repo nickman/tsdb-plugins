@@ -43,17 +43,6 @@ public interface SubscriptionManagerMXBean extends TSDBServiceMXBean {
 	 */
 	public SubscriptionMBean[] getSubscriptions();
 	
-	/**
-	 * Returns the number of channel dispatched events
-	 * @return the number of channel dispatched events
-	 */
-	public long getEventCount();
-	
-	/**
-	 * Returns the number of subscribed channels
-	 * @return the number of subscribed channels
-	 */
-	public int getChannelCount();
 	
 	/**
 	 * Returns the number of active subscriptions
@@ -62,65 +51,10 @@ public interface SubscriptionManagerMXBean extends TSDBServiceMXBean {
 	public int getSubscriptionCount();
 	
 	/**
-	 * Resets the EWMA
+	 * Returns the number of active subscribers
+	 * @return the number of active subscribers
 	 */
-	public void resetEWMA();
-
-	/**
-	 * Returns the timestamp of the last sample as a long UTC.
-	 * @return the timestamp of the last sample 
-	 */
-	public long getLastSample();
-	
-	/**
-	 * Returns the most recently appended value
-	 * @return the most recently appended value
-	 */
-	public double getLastValue();
-
-	/**
-	 * Returns the last computed average.
-	 * @return the last computed average 
-	 */
-	public double getAverage();
-
-	/**
-	 * Returns the minimum recorded value since the last reset
-	 * @return the minimum recorded value 
-	 */
-	public double getMinimum();
-
-	/**
-	 * Returns the maximum recorded value since the last reset
-	 * @return the maximum recorded value 
-	 */
-	public double getMaximum();
-
-	/**
-	 * Returns the mean recorded value since the last reset
-	 * @return the mean recorded value 
-	 */
-	public double getMean();
-
-	/**
-	 * Returns the count of recorded values since the last reset
-	 * @return the count of recorded values 
-	 */
-	public long getCount();
-	
-	/**
-	 * Returns the count of errors since the last reset
-	 * @return the count of errors 
-	 */
-	public long getErrors();
-	
-
-	/**
-	 * Returns the window size in ms.
-	 * @return the window size  
-	 */
-	public long getWindow();
-	
+	public int getSubscriberCount(); 
 	
 	
 }

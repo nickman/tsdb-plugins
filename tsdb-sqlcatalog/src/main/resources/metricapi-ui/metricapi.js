@@ -207,7 +207,7 @@ WebSocketAPIClient.newClient = function(props) {
 
 WebSocketAPIClient.defaultHandlers = {
 		onclose: function(evt, client) { console.info("WebSocket Closed: [%O]", evt); client.session = null;},
-		onerror: function(evt, client) { console.info("WebSocket Error: [%O]", evt); },
+		onerror: function(evt, client) { console.error("WebSocket Error: [%O]", evt); },
 		onmessage: function(evt, client) { 
 			// console.info("WebSocket Message: [%O]", evt);
 			try {

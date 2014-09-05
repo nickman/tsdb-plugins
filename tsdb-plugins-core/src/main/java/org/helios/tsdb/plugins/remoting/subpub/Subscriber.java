@@ -24,9 +24,8 @@
  */
 package org.helios.tsdb.plugins.remoting.subpub;
 
-import java.util.List;
+import java.util.Collection;
 
-import org.helios.tsdb.plugins.event.TSDBEvent;
 import org.helios.tsdb.plugins.event.TSDBEventType;
 
 /**
@@ -35,9 +34,10 @@ import org.helios.tsdb.plugins.event.TSDBEventType;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscriber</code></p>
+ * @param <T> The types of events consumed by this subscriber
  */
 
-public interface Subscriber {
+public interface Subscriber<T> {
 	/**
 	 * Returns the selective bitmask for the types of events this subscriber is interested in
 	 * @return the TSDBEvent selective bitmask
@@ -49,7 +49,7 @@ public interface Subscriber {
 	 * Delivers a TSDBEvent to the subscriber
 	 * @param events The events to deliver
 	 */
-	public void accept(List<TSDBEvent> events);
+	public void accept(Collection<T> events);
 	
 	/**
 	 * Registers a listener that should be notified of subscriber events
@@ -62,4 +62,11 @@ public interface Subscriber {
 	 * @param listener The listener to unregister
 	 */
 	public void removeListener(SubscriberEventListener listener);
+	
+	/**
+	 * Returns a unique identifier for this subscriber
+	 * @return the unique identifier
+	 */
+	public String getSubscriberId();
+	
 }

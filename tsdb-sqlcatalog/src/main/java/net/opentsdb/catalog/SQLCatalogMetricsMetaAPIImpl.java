@@ -807,32 +807,27 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 	 * @see net.opentsdb.meta.api.MetricsMetaAPI#overlap(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public Promise<Long> overlap(final String expressionOne, final String expressionTwo) {
+	public long overlap(final String expressionOne, final String expressionTwo) {
 		if(expressionOne==null || expressionOne.trim().isEmpty()) {
 			throw new IllegalArgumentException("The passed expressionOne was null or empty");
 		}
 		if(expressionTwo==null || expressionTwo.trim().isEmpty()) {
 			throw new IllegalArgumentException("The passed expressionTwo was null or empty");
 		}
-		final reactor.core.composable.Deferred<Long, Promise<Long>> def = Promises.<Long>defer().dispatcher(this.dispatcher).get();
-		final Promise<Long> promise = def.compose();		
-		dispatcher.execute(new Runnable(){
-			public void run() {
-				final List<Object> binds = new ArrayList<Object>();
-				final StringBuilder sqlBuffer = new StringBuilder("SELECT COUNT(*) FROM ( ");
-				final ObjectName on1 = JMXHelper.objectName(expressionOne);
-				final ObjectName on2 = JMXHelper.objectName(expressionTwo);
-				prepareGetTSMetasSQL(on1.getDomain(), on1.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
-				sqlBuffer.append("\n\tEXCEPT\n");
-				prepareGetTSMetasSQL(on2.getDomain(), on2.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
-				sqlBuffer.append(") X ");
-				log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));		
-				final long cnt = sqlWorker.sqlForLong(sqlBuffer.toString(), binds.toArray(new Object[0]));
-				def.accept(cnt);
-			}
-		});
-
-		return promise;
+		final long start = System.currentTimeMillis();
+		final List<Object> binds = new ArrayList<Object>();
+		final StringBuilder sqlBuffer = new StringBuilder("SELECT COUNT(*) FROM ( ");
+		final ObjectName on1 = JMXHelper.objectName(expressionOne);
+		final ObjectName on2 = JMXHelper.objectName(expressionTwo);
+		prepareGetTSMetasSQL(on1.getDomain(), on1.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
+		sqlBuffer.append("\n\tEXCEPT\n");
+		prepareGetTSMetasSQL(on2.getDomain(), on2.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
+		sqlBuffer.append(") X ");
+		//log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));		
+		final long result = sqlWorker.sqlForLong(sqlBuffer.toString(), binds.toArray(new Object[0]));
+		final long elapsed = System.currentTimeMillis()-start;
+		//log.info("Computed overlap for expressions:\n\tExpression One: [{}]\n\tExpression Two: [{}]\n\tElapsed: [{}] ms\n\tResult: [{}]", expressionOne, expressionTwo, elapsed, result);
+		return result;
 	}
 
 	

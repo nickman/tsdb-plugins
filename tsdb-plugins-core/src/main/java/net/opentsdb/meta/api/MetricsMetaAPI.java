@@ -158,7 +158,7 @@ public interface MetricsMetaAPI {
 	 * @param expressionTwo Another TSMeta expression
 	 * @return the deferred result
 	 */
-	public Promise<Long> overlap(String expressionOne, String expressionTwo);
+	public long overlap(String expressionOne, String expressionTwo);
 	
 	
 	

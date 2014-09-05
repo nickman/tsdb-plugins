@@ -25,8 +25,10 @@
 package org.helios.tsdb.plugins.meta;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import net.opentsdb.meta.api.NameUtil;
 
@@ -89,6 +91,22 @@ public class Datapoint {
 		fqn = NameUtil.buildObjectName(this.metric, this.tags).toString();
 	}
 	
+	/**
+	 * Appends the value and timestamp from the passed event to this Datapoint
+	 * @param event the event to process
+	 */
+	public void apply(final TSDBEvent event) {
+		if(event==null) return;
+		if(event.tsuid.equals(this.tsuid)) {
+			if(event.eventType==TSDBEventType.DPOINT_DOUBLE && this.doubleType) {
+				values.addValue(event.timestamp, event.doubleValue);				
+			} else if(event.eventType==TSDBEventType.DPOINT_LONG && !this.doubleType) {
+				values.addValue(event.timestamp, event.longValue);
+			}			
+		}
+	}
+	
+	
 	
 	
 	/**
@@ -102,9 +120,11 @@ public class Datapoint {
 		/** true for double values, false for long values */
 		protected final boolean doubleType;
 		/** The number of values (a timestamp and a value) */
-		protected int count = 0;
+		private int count = 0;
 		/** The buffer containing the value pairs */
 		protected final ChannelBuffer valuePairs = ChannelBuffers.dynamicBuffer(factory);
+		
+		
 		
 		/**
 		 * Creates a new Values
@@ -112,6 +132,14 @@ public class Datapoint {
 		 */
 		Values(boolean isDouble) {
 			doubleType = isDouble;
+		}
+		
+		/**
+		 * Returns the number of value pairs
+		 * @return the number of value pairs
+		 */
+		synchronized int getCount() {
+			return count;
 		}
 		
 		/**
@@ -158,8 +186,7 @@ public class Datapoint {
 				);				
 			}
 			jgen.writeEndObject();
-		}
-		
+		}		
 	}
 
 	/**
@@ -194,45 +221,137 @@ public class Datapoint {
 			return false;
 		return true;
 	}
+	
+	/**
+	 * Returns the number of value pairs in this Datapoint
+	 * @return the number of value pairs 
+	 */
+	public int getValueCount() {
+		return values.getCount();
+	}
+	
+	/**
+	 * Returns the value timestamp at the specified index
+	 * @param index The index of the timestamp to get
+	 * @return the timestamp
+	 */
+	public long getTimestamp(final int index) {
+		return values.valuePairs.getLong(index * 8);
+	}
+	
+	/**
+	 * Returns the long value at the specified index
+	 * @param index The index of the long value to get
+	 * @return the long value
+	 */
+	public long getLongValue(final int index) {
+		if(doubleType) throw new RuntimeException("This Datapoint does not contain long values");
+		return values.valuePairs.getLong(index * 8 + 8);
+	}
+	
+	/**
+	 * Returns the double value at the specified index
+	 * @param index The index of the double value to get
+	 * @return the double value
+	 */
+	public double getDoubleValue(final int index) {
+		if(!doubleType) throw new RuntimeException("This Datapoint does not contain double values");
+		return values.valuePairs.getDouble(index * 8 + 8);
+	}
+	
+	/**
+	 * Returns the value at the specified index
+	 * @param index The index of the value to get
+	 * @return the value
+	 */
+	public Number getValue(final int index) {
+		return doubleType ? getDoubleValue(index) : getLongValue(index);
+	}
+	
+	/**
+	 * Returns all the values in a map keyed by the timestamp
+	 * @return all the values in a map keyed by the timestamp
+	 */
+	public Map<Long, Number> getValues() {
+		Map<Long, Number> map = new TreeMap<Long, Number>();
+		final int cnt = values.count;
+		for(int i = 0; i < cnt; i++) {
+			map.put(getTimestamp(i), getValue(i));
+		}
+		return map;
+	}
 
 	/**
-	 * Returns 
+	 * Returns the TSMeta metric name
 	 * @return the metric
 	 */
-	public final String getMetric() {
+	public String getMetric() {
 		return metric;
 	}
 
 	/**
-	 * Returns 
+	 * Returns the TSMeta fully qualified name
 	 * @return the fqn
 	 */
-	public final String getFqn() {
+	public String getFqn() {
 		return fqn;
 	}
 
 	/**
-	 * Returns 
+	 * Returns the TSMeta TSUID
 	 * @return the tsuid
 	 */
-	public final String getTsuid() {
+	public String getTsuid() {
 		return tsuid;
 	}
 
 	/**
-	 * Returns 
+	 * Returns a read only copy of the tags 
 	 * @return the tags
 	 */
-	public final Map<String, String> getTags() {
-		return tags;
+	public Map<String, String> getTags() {
+		return Collections.unmodifiableMap(tags);
 	}
 
 	/**
-	 * Returns 
-	 * @return the doubleType
+	 * Indicates if the values are doubles
+	 * @return true if the values are doubles, false if they are longs
 	 */
-	public final boolean isDoubleType() {
+	public boolean isDoubleType() {
 		return doubleType;
 	}
+
+	/**
+	 * Indicates if the values are longs
+	 * @return true if the values are longs, false if they are doubles
+	 */
+	public boolean isLongType() {
+		return !doubleType;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Datapoint [");
+		builder.append("fqn:");
+		builder.append(fqn);
+		builder.append(", ");
+		builder.append("tsuid:");
+		builder.append(tsuid);
+		builder.append(", ");
+		builder.append("type: ");
+		builder.append(doubleType ? "double" : "long");
+		builder.append(", ");
+		builder.append("vcount: ");
+		builder.append(values.getCount());
+		builder.append("]");
+		return builder.toString();
+	}
+	
+	
 
 }

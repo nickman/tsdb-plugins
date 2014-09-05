@@ -72,4 +72,13 @@ public class SingletonEnvironment {
 	public Dispatcher getDefaultAsyncDispatcher() {
 		return defaultReactor.getDispatcher();
 	}
+
+
+	/**
+	 * Returns the 
+	 * @return the env
+	 */
+	public Environment getEnv() {
+		return env;
+	}
 }

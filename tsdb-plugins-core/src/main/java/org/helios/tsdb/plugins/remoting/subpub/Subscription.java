@@ -167,21 +167,15 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();				
-		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer(SingletonEnvironment.getInstance().getEnv());		
+		final Deferred<Datapoint, Stream<Datapoint>> def = Streams.<Datapoint>defer().batchSize(100).env(SingletonEnvironment.getInstance().getEnv()).get();		
 		stream = def.compose()
-		.filter(new Function<TSDBEvent, Boolean>(){
-			@Override
-			public Boolean apply(TSDBEvent t) {					
-				return t.eventType.isEnabled(eventBitMask);
-			}
-		})
 			.reduce(preWindowAccumulator, new Supplier<Map<String, Datapoint>>(){
 				public Map<String, Datapoint> get() {
 					return new ConcurrentHashMap<String, Datapoint>(expectedInsertions);
 				}				
 			}, 1)
 //			.reduce(preWindowAccumulator,  new ConcurrentHashMap<String, Datapoint>(expectedInsertions))
-			.movingWindow(5000, 10)
+//			.movingWindow(5000, 10)
 			.window(5000)
 //			.reduce(new Function<Tuple2<List<Map<String,Datapoint>>,Map<String,Datapoint>>, Map<String,Datapoint>>() {
 //				@Override
@@ -206,10 +200,27 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 //				}
 //			})
 			.consume(this);
-		this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
+
+		//====================================================================================
+		//	Start the subscription event stream
+		//====================================================================================
+		registration = this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
 			@Override
 			public void accept(final Event<TSDBEvent> t) {
-				def.accept(t.getData());
+				final TSDBEvent te = t.getData();
+				if(te!=null && te.eventType.isEnabled(eventBitMask)) {
+					
+					isMemberOf(te.tsuidBytes, te.metric, te.tags)
+						.onSuccess(new Consumer<Boolean>() {							
+							@Override
+							public void accept(final Boolean ismember) {
+								if(ismember!=null && ismember.booleanValue()) {
+									def.accept(new Datapoint(t.getData()));
+								}								
+							}
+						});						
+				}
+				
 			}
 		});
 		log.info("Subscription Graph\nConsumer [{}]:\n[{}]\n", System.identityHashCode(this), stream.debug());
@@ -217,31 +228,28 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 	
 	//private final Map<String, Datapoint> accumulation = new ConcurrentHashMap<String, Datapoint>();
 	
-	private final Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>> preWindowAccumulator = new Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>>() {
+	private final Function<Tuple2<Datapoint,Map<String, Datapoint>>,Map<String, Datapoint>> preWindowAccumulator = new Function<Tuple2<Datapoint,Map<String, Datapoint>>,Map<String, Datapoint>>() {
 		@Override
-		public Map<String, Datapoint> apply(Tuple2<TSDBEvent, Map<String, Datapoint>> t) {
-			final TSDBEvent te = t.getT1();
+		public Map<String, Datapoint> apply(Tuple2<Datapoint, Map<String, Datapoint>> t) {
+			final Datapoint d = t.getT1();
 			int merges = 0;
 			int inserts = 0;
 //			log.info("T2 null: {}", t.getT2()==null);
-			final Map<String, Datapoint> accumulator = t.getT2()==null ? 
-					new ConcurrentHashMap<String, Datapoint>() : 
-					t.getT2();
-			Datapoint d = accumulator.get(te.tsuid);
-			if(d==null) {
+			final Map<String, Datapoint> accumulator = t.getT2();
+			Datapoint de = accumulator.get(d.getTsuid());
+			if(de==null) {
 				synchronized(accumulator) {
-					d = accumulator.get(te.tsuid);
-					if(d==null) {
-						d = new Datapoint(te);
-						accumulator.put(te.tsuid, d);		
+					de = accumulator.get(d.getTsuid());
+					if(de==null) {
+						accumulator.put(d.getTsuid(), d);		
 						inserts++;
 					} else {
-						d.apply(te);
+						de.apply(d);
 						merges++;
 					}
 				}
 			} else {
-				d.apply(te);
+				de.apply(d);
 				merges++;
 			}
 //			log.info("Reduce:Size: {}, Inserts: {}, Merges:{}", accumulator.size(), inserts, merges);

@@ -107,7 +107,16 @@ public class Datapoint {
 	}
 	
 	
-	
+	/**
+	 * Aggregates the values of another datapoint into this one
+	 * @param d The other datapoint
+	 */
+	public void apply(final Datapoint d) {
+		if(d==null) return;
+		if(d.fqn.equals(this.fqn) && d.doubleType==doubleType) {
+			d.values.apply(d.values);
+		}
+	}
 	
 	/**
 	 * <p>Title: Values</p>
@@ -153,6 +162,15 @@ public class Datapoint {
 			valuePairs.writeLong(timestamp);
 			valuePairs.writeDouble(value);
 			return this;
+		}
+		
+		synchronized Values apply(final Values otherValues) {
+			if(otherValues==this) return this;			
+			valuePairs.setIndex(0, count*2*8);
+			valuePairs.writeBytes(otherValues.valuePairs, otherValues.count*2*8);
+			count += otherValues.count;
+			return this;
+			
 		}
 		
 		/**

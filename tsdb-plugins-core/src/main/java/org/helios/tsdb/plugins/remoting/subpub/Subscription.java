@@ -25,6 +25,7 @@
 package org.helios.tsdb.plugins.remoting.subpub;
 
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,10 +61,11 @@ import reactor.core.composable.spec.Streams;
 import reactor.event.Event;
 import reactor.event.dispatch.Dispatcher;
 import reactor.event.registry.Registration;
-import reactor.event.selector.HeaderResolver;
 import reactor.event.selector.Selector;
 import reactor.function.Consumer;
 import reactor.function.Function;
+import reactor.function.Predicate;
+import reactor.function.Supplier;
 import reactor.tuple.Tuple2;
 
 import com.google.common.hash.BloomFilter;
@@ -79,7 +81,7 @@ import com.google.common.hash.PrimitiveSink;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
  */
-public class Subscription implements SubscriptionMBean, Selector, Consumer<List<Map<String,Datapoint>>>, SubscriberEventListener {
+public class Subscription implements SubscriptionMBean, Consumer<List<Map<String,Datapoint>>>, SubscriberEventListener {
 	/** Static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(Subscription.class);
 
@@ -103,6 +105,9 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 	
 	/** The subscribers receiving notifications from this subscription */
 	private final NonBlockingHashSet<Subscriber> subscribers = new NonBlockingHashSet<Subscriber>(); 
+	
+	/** The event feeder stream */
+	private final Stream<List<Map<String,Datapoint>>> stream;
 	
 	/** A serial number sequence for Subscription instances */
 	private static final AtomicLong serial = new AtomicLong();
@@ -129,6 +134,8 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 	protected final long subscriptionId;
 	/** The initial expected insertions for the bloom filter */
 	protected final int expectedInsertions;
+	/** The selector for this subscription */
+	protected final Selector selector;
 	
 	/** The total number of matched incoming messages */
 	protected final LongAdder totalMatched = new LongAdder();
@@ -152,6 +159,7 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 	public Subscription(final Reactor reactor, final MetricsMetaAPI metricsMeta, final CharSequence pattern, final int expectedInsertions, final TSDBEventType...types) {
 		filter = BloomFilter.create(SubFunnel.INSTANCE, expectedInsertions, DEFAULT_PROB);
 		this.pattern = pattern.toString().trim();
+		selector = new TSMetaPatternSelector(this.pattern.toString());
 		eventBitMask = TSDBEventType.getMask(types);
 		this.expectedInsertions = expectedInsertions;
 		this.reactor = reactor;
@@ -159,71 +167,88 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();				
-		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer().env(SingletonEnvironment.getInstance().getEnv()).dispatcher(dispatcher).get();		
-		final Stream<TSDBEvent> stream = def.compose();
-		stream.filter(new Function<TSDBEvent, Boolean>(){
-				@Override
-				public Boolean apply(TSDBEvent t) {					
-					return t.eventType.isEnabled(eventBitMask);
-				}
-			})
-			.reduce(preWindowAccumulator)
-			.movingWindow(5000, 100)			
+		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer(SingletonEnvironment.getInstance().getEnv());		
+		stream = def.compose()
+		.filter(new Function<TSDBEvent, Boolean>(){
+			@Override
+			public Boolean apply(TSDBEvent t) {					
+				return t.eventType.isEnabled(eventBitMask);
+			}
+		})
+			.reduce(preWindowAccumulator, new Supplier<Map<String, Datapoint>>(){
+				public Map<String, Datapoint> get() {
+					return new ConcurrentHashMap<String, Datapoint>(expectedInsertions);
+				}				
+			}, 1)
+//			.reduce(preWindowAccumulator,  new ConcurrentHashMap<String, Datapoint>(expectedInsertions))
+			.movingWindow(5000, 10)
+			.window(5000)
+//			.reduce(new Function<Tuple2<List<Map<String,Datapoint>>,Map<String,Datapoint>>, Map<String,Datapoint>>() {
+//				@Override
+//				public Map<String, Datapoint> apply(final Tuple2<List<Map<String, Datapoint>>, Map<String, Datapoint>> t) {
+//					final Map<String, Datapoint> aggregatedDatapoints = new HashMap<String, Datapoint>(expectedInsertions);
+//					log.info("Reducing [{}] maps", t.getT1().size());
+//					for(Map<String, Datapoint> dmaps: t.getT1()) {
+//						if(aggregatedDatapoints.isEmpty()) {
+//							aggregatedDatapoints.putAll(dmaps);
+//						} else {
+//							for(Datapoint dpoint: dmaps.values()) {
+//								Datapoint d = aggregatedDatapoints.get(dpoint.getFqn());
+//								if(d==null) {
+//									aggregatedDatapoints.put(dpoint.getFqn(), dpoint);
+//								} else {
+//									d.apply(dpoint);
+//								}
+//							}
+//						}
+//					}
+//					return aggregatedDatapoints;
+//				}
+//			})
 			.consume(this);
-		this.reactor.on(this, new Consumer<Event<TSDBEvent>>() {
+		this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
 			@Override
 			public void accept(final Event<TSDBEvent> t) {
 				def.accept(t.getData());
 			}
 		});
+		log.info("Subscription Graph\nConsumer [{}]:\n[{}]\n", System.identityHashCode(this), stream.debug());
 	}
 	
-	private final Map<String, Datapoint> accumulation = new ConcurrentHashMap<String, Datapoint>();
+	//private final Map<String, Datapoint> accumulation = new ConcurrentHashMap<String, Datapoint>();
 	
 	private final Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>> preWindowAccumulator = new Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>>() {
 		@Override
 		public Map<String, Datapoint> apply(Tuple2<TSDBEvent, Map<String, Datapoint>> t) {
 			final TSDBEvent te = t.getT1();
-			final Map<String, Datapoint> accumulator = t.getT2()==null ? new ConcurrentHashMap<String, Datapoint>() : t.getT2();
+			int merges = 0;
+			int inserts = 0;
+//			log.info("T2 null: {}", t.getT2()==null);
+			final Map<String, Datapoint> accumulator = t.getT2()==null ? 
+					new ConcurrentHashMap<String, Datapoint>() : 
+					t.getT2();
 			Datapoint d = accumulator.get(te.tsuid);
 			if(d==null) {
 				synchronized(accumulator) {
 					d = accumulator.get(te.tsuid);
 					if(d==null) {
 						d = new Datapoint(te);
-						accumulator.put(te.tsuid, d);						
+						accumulator.put(te.tsuid, d);		
+						inserts++;
 					} else {
 						d.apply(te);
+						merges++;
 					}
 				}
 			} else {
 				d.apply(te);
+				merges++;
 			}
-			log.info("Accumulated [{}] events", accumulator.size());
+//			log.info("Reduce:Size: {}, Inserts: {}, Merges:{}", accumulator.size(), inserts, merges);
 			return accumulator;
 		}
 	};
 	
-	private final Function<Event<List<TSDBEvent>>, Map<String, Datapoint>> postWindowAccumulator = new Function<Event<List<TSDBEvent>>, Map<String, Datapoint>>() {
-		@Override
-		public Map<String, Datapoint> apply(final Event<List<TSDBEvent>> t) {
-			for(final TSDBEvent te: t.getData()) {
-				Datapoint d = accumulation.get(te.tsuid);
-				if(d==null) {
-					synchronized(accumulation) {
-						d = accumulation.get(te.tsuid);
-						if(d==null) {
-							d = new Datapoint(te);
-							accumulation.put(te.tsuid, d);
-							continue;
-						}
-					}
-				}
-				d.apply(te);
-			}
-			return accumulation;
-		}
-	};
 	
 	/**
 	 * Creates a new Subscription
@@ -308,8 +333,10 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 	 * @see reactor.function.Consumer#accept(java.lang.Object)
 	 */
 	@Override
+//	public void accept(final Map<String,Datapoint> accumulatedDatapoints) {
 	public void accept(final List<Map<String,Datapoint>> accumulatedDatapoints) {
-		if(!subscribers.isEmpty()) {
+//		if(!subscribers.isEmpty()) {
+			//if(!accumulatedDatapoints.isEmpty())
 			log.info("Accumulated Datapoints:\n" +  accumulatedDatapoints);
 //			dispatcher.execute(new Runnable(){
 //				public void run() {
@@ -318,7 +345,7 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 //					}
 //				}
 //			});
-		}
+//		}
 	}
 	
 		
@@ -595,39 +622,6 @@ public class Subscription implements SubscriptionMBean, Selector, Consumer<List<
 		return expectedInsertions;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see reactor.event.selector.Selector#getObject()
-	 */
-	@Override
-	public Object getObject() {
-		return pattern;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see reactor.event.selector.Selector#matches(java.lang.Object)
-	 */
-	@Override
-	public boolean matches(Object key) {
-		if(key==null) return false;
-		final String keyPattern = key.toString().trim();
-		
-		if(pattern.equals(keyPattern)) return true;
-		final boolean match = metricsMeta.overlap(pattern, keyPattern) == 0;
-		log.info("Attempting to match key [{}] with pattern [{}]  --- > {}", key, pattern, match);
-		return match;
-	}
-
-	/**
-	 * Returns null.
-	 * {@inheritDoc}
-	 * @see reactor.event.selector.Selector#getHeaderResolver()
-	 */
-	@Override
-	public HeaderResolver getHeaderResolver() {
-		return null;
-	}
 
 
 

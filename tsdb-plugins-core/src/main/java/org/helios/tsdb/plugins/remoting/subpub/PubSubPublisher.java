@@ -104,8 +104,9 @@ public class PubSubPublisher extends EmptyPublishEventHandler implements PubSubP
 			case DPOINT_LONG:
 				final String name = NameUtil.buildObjectName(event.metric, event.tags).toString();
 				if(defaultReactor.respondsToKey(name)) {
-					final Datapoint datapoint = new Datapoint(event);
-					defaultReactor.notify(name, Event.wrap(datapoint));
+//					final Datapoint datapoint = new Datapoint(event);
+//					log.info("Notifying [{}]", event);
+					defaultReactor.notify(name, Event.wrap(event));
 				}
 				break;
 			case TSMETA_DELETE:

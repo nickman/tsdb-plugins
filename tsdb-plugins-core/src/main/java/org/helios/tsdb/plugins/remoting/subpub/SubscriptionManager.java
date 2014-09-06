@@ -251,16 +251,16 @@ public class SubscriptionManager extends AbstractRPCService implements Subscript
 											final long elapsedTime = System.currentTimeMillis()-startTime;
 											log.info("Retrieved [{}] TSMetas in [{}] ms. to prime subscription [{}]", matchingTsuids.size(), elapsedTime, pattern);
 											final int bloomFactor = Math.round(DEFAULT_BLOOM_FILTER_SPACE_FACTOR * matchingTsuids.size());
-											final Subscription subx = new Subscription(reactor, metricSvc, _pattern, bloomFactor);
+											final Subscription subx1 = new Subscription(reactor, metricSvc, _pattern, bloomFactor, TSDBEventType.DPOINT_DOUBLE, TSDBEventType.DPOINT_LONG);
 											int indexCnt = 0;
 											for(final Iterator<byte[]> biter = matchingTsuids.iterator(); biter.hasNext();) {
-												subx._internalIndex(biter.next());
+												subx1._internalIndex(biter.next());
 												indexCnt++;
 												biter.remove();
 											}
 											log.info("Created and initialized [{}] items in Subscription BloomFilter for [{}]", indexCnt, pattern);
-											allSubscriptions.put(pattern.toString(), subx);
-											def.accept(subx);
+											allSubscriptions.put(pattern.toString(), subx1);
+											def.accept(subx1);
 										}
 									}
 								});

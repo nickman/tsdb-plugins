@@ -576,7 +576,8 @@ WebSocketAPIClient.prototype.services = function() {
 
 
 function testSub() {
-	var expr = $('#exprfield').val();
+	//var expr = $('#exprfield').val() + ",*";
+	var expr = "sys*:dc=dc1,host=WebServer1,*"
 	console.info("Subscribing to expression [%s]", expr);
 	ws.subscribe(expr);
 	// .then(

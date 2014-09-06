@@ -31,6 +31,7 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.search.SearchQuery;
+import net.opentsdb.uid.UniqueId;
 
 import com.lmax.disruptor.EventFactory;
 import com.stumbleupon.async.Deferred;
@@ -216,6 +217,7 @@ public class TSDBEvent  {
 		this.doubleValue = value;
 		this.tags = new LinkedHashMap<String, String>(tags);
 		this.tsuidBytes = tsuid;
+		this.tsuid = UniqueId.uidToString(tsuid);
 		return this;
 	}
 	
@@ -235,6 +237,7 @@ public class TSDBEvent  {
 		this.longValue = value;
 		this.tags = new LinkedHashMap<String, String>(tags);
 		this.tsuidBytes = tsuid;
+		this.tsuid = UniqueId.uidToString(tsuid);
 		return this;
 	}
 

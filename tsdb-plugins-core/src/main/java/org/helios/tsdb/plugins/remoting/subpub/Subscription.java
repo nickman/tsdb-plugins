@@ -64,8 +64,6 @@ import reactor.event.registry.Registration;
 import reactor.event.selector.Selector;
 import reactor.function.Consumer;
 import reactor.function.Function;
-import reactor.function.Predicate;
-import reactor.function.Supplier;
 import reactor.tuple.Tuple2;
 
 import com.google.common.hash.BloomFilter;
@@ -81,7 +79,7 @@ import com.google.common.hash.PrimitiveSink;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.subpub.Subscription</code></p>
  */
-public class Subscription implements SubscriptionMBean, Consumer<List<Map<String,Datapoint>>>, SubscriberEventListener {
+public class Subscription implements SubscriptionMBean, Consumer<Map<String,Datapoint>>, SubscriberEventListener {
 	/** Static class logger */
 	protected static final Logger log = LoggerFactory.getLogger(Subscription.class);
 
@@ -107,7 +105,10 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 	private final NonBlockingHashSet<Subscriber> subscribers = new NonBlockingHashSet<Subscriber>(); 
 	
 	/** The event feeder stream */
-	private final Stream<List<Map<String,Datapoint>>> stream;
+	private final Stream<Datapoint> stream;
+	
+	/** The flush stream definition */
+	final Deferred<Map<String, Datapoint>, Stream<Map<String, Datapoint>>> flushDef;
 	
 	/** A serial number sequence for Subscription instances */
 	private static final AtomicLong serial = new AtomicLong();
@@ -136,7 +137,8 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 	protected final int expectedInsertions;
 	/** The selector for this subscription */
 	protected final Selector selector;
-	
+	/** The datapoint accumulation map */
+	private final Map<String, Datapoint> accumulation;
 	/** The total number of matched incoming messages */
 	protected final LongAdder totalMatched = new LongAdder();
 	/** The total number of bloom filter "might" failures */
@@ -162,60 +164,100 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 		selector = new TSMetaPatternSelector(this.pattern.toString());
 		eventBitMask = TSDBEventType.getMask(types);
 		this.expectedInsertions = expectedInsertions;
+		accumulation = new ConcurrentHashMap<String, Datapoint>(this.expectedInsertions);
 		this.reactor = reactor;
 		this.dispatcher = reactor.getDispatcher();
 		this.metricsMeta = metricsMeta;
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();				
+		flushDef = Streams.defer(SingletonEnvironment.getInstance().getEnv());
+		final Stream<Map<String, Datapoint>> flushStream = flushDef.compose();
 		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer(SingletonEnvironment.getInstance().getEnv());		
 		stream = def.compose()
-		.filter(new Function<TSDBEvent, Boolean>(){
+		.map(new Function<TSDBEvent, Datapoint>() {
 			@Override
-			public Boolean apply(TSDBEvent t) {					
-				return t.eventType.isEnabled(eventBitMask);
+			public Datapoint apply(final TSDBEvent t) {				
+				return new Datapoint(t);
 			}
 		})
-			.reduce(preWindowAccumulator, new Supplier<Map<String, Datapoint>>(){
-				public Map<String, Datapoint> get() {
-					return new ConcurrentHashMap<String, Datapoint>(expectedInsertions);
-				}				
-			}, 1)
-//			.reduce(preWindowAccumulator,  new ConcurrentHashMap<String, Datapoint>(expectedInsertions))
-			.movingWindow(5000, 10)
-			.window(5000)
-//			.reduce(new Function<Tuple2<List<Map<String,Datapoint>>,Map<String,Datapoint>>, Map<String,Datapoint>>() {
-//				@Override
-//				public Map<String, Datapoint> apply(final Tuple2<List<Map<String, Datapoint>>, Map<String, Datapoint>> t) {
-//					final Map<String, Datapoint> aggregatedDatapoints = new HashMap<String, Datapoint>(expectedInsertions);
-//					log.info("Reducing [{}] maps", t.getT1().size());
-//					for(Map<String, Datapoint> dmaps: t.getT1()) {
-//						if(aggregatedDatapoints.isEmpty()) {
-//							aggregatedDatapoints.putAll(dmaps);
-//						} else {
-//							for(Datapoint dpoint: dmaps.values()) {
-//								Datapoint d = aggregatedDatapoints.get(dpoint.getFqn());
-//								if(d==null) {
-//									aggregatedDatapoints.put(dpoint.getFqn(), dpoint);
-//								} else {
-//									d.apply(dpoint);
-//								}
-//							}
-//						}
-//					}
-//					return aggregatedDatapoints;
-//				}
-//			})
-			.consume(this);
+		.consume(new Consumer<Datapoint>() {
+			@Override
+			public void accept(final Datapoint d) {				
+				ingest(d);
+			}
+		});
+		flushStream.window(5000).map(new Function<List<Map<String,Datapoint>>, Map<String,Datapoint>>() {
+			@Override
+			public Map<String, Datapoint> apply(List<Map<String, Datapoint>> t) {
+				return accumulation;
+			}			
+		}).consume(this);
 		this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
 			@Override
 			public void accept(final Event<TSDBEvent> t) {
-				def.accept(t.getData());
+				final TSDBEvent te = t.getData();
+				if(te.eventType.isEnabled(eventBitMask)) {
+					isMemberOf(te.tsuidBytes, te.metric, te.tags)
+					.consume(new Consumer<Boolean>() {
+						@Override
+						public void accept(Boolean t) {
+							if(t) {
+								def.accept(te);
+							}
+						}
+					});
+				}				
 			}
 		});
+		flushDef.accept(accumulation);
 		log.info("Subscription Graph\nConsumer [{}]:\n[{}]\n", System.identityHashCode(this), stream.debug());
 	}
 	
-	//private final Map<String, Datapoint> accumulation = new ConcurrentHashMap<String, Datapoint>();
+	/**
+	 * {@inheritDoc}
+	 * @see reactor.function.Consumer#accept(java.lang.Object)
+	 */
+	@Override
+	public void accept(final Map<String,Datapoint> accumulatedDatapoints) {
+		final HashMap<String,Datapoint> dc;
+		synchronized(accumulatedDatapoints) {
+			dc = new HashMap<String,Datapoint>(accumulatedDatapoints);
+			accumulatedDatapoints.clear();
+		}
+		flushDef.accept(accumulation);
+		log.info("Accumulated Datapoints:  [{}]", dc.size());
+		dispatcher.execute(new Runnable() {
+			public void run() {
+				int cnt = 0;
+				for(Subscriber s: subscribers) {
+					s.accept(accumulatedDatapoints.values());
+					cnt++;
+				}
+				log.info("Dispatched flush to [{}] subscribers", cnt); 			
+			}
+		});
+	}
+	
+	
+	/**
+	 * Aggregates a new datapoint into the current period's aggregation mao
+	 * @param datapoint The datapoint to aggregate
+	 */
+	protected void ingest(final Datapoint datapoint) {
+		Datapoint d = accumulation.get(datapoint.getFqn());
+		if(d==null) {
+			synchronized(accumulation) {
+				d = accumulation.get(datapoint.getFqn());
+				if(d==null) {
+					accumulation.put(datapoint.getFqn(), datapoint);
+				} else {
+					d.apply(datapoint);
+				}
+			}
+		} else {
+			d.apply(datapoint);
+		}
+	}
 	
 	private final Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>> preWindowAccumulator = new Function<Tuple2<TSDBEvent,Map<String, Datapoint>>,Map<String, Datapoint>>() {
 		@Override
@@ -328,25 +370,6 @@ public class Subscription implements SubscriptionMBean, Consumer<List<Map<String
 		this(reactor, metricsMeta, pattern, DEFAULT_INSERTIONS);
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see reactor.function.Consumer#accept(java.lang.Object)
-	 */
-	@Override
-//	public void accept(final Map<String,Datapoint> accumulatedDatapoints) {
-	public void accept(final List<Map<String,Datapoint>> accumulatedDatapoints) {
-//		if(!subscribers.isEmpty()) {
-			//if(!accumulatedDatapoints.isEmpty())
-			log.info("Accumulated Datapoints:\n" +  accumulatedDatapoints);
-//			dispatcher.execute(new Runnable(){
-//				public void run() {
-//					for(final Subscriber s: subscribers) {
-//						s.accept();
-//					}
-//				}
-//			});
-//		}
-	}
 	
 		
 	

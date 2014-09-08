@@ -490,7 +490,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						binds.add(queryContext.getNextIndex());
 					}
 					binds.add(queryContext.getNextMaxLimit() + 1);					
-					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
+					if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sql, binds));
 					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
 					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, targetType);
 					try {
@@ -563,7 +563,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = keySql.toString();
 					}
 					binds.add(queryContext.getNextMaxLimit() + 1);
-					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
+					if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sql, binds));
 					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
 					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, UniqueIdType.METRIC);
 					try {
@@ -653,7 +653,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 						sql = String.format(keySql.toString(), likeOrEquals.toArray());
 					} 
 					binds.add(queryContext.getNextMaxLimit() + 1);
-					log.info("Executing SQL [{}]", fillInSQL(sql, binds));
+					if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sql, binds));
 					final ResultSet rset = sqlWorker.executeQuery(sql, true, binds.toArray(new Object[0]));
 					final IndexProvidingIterator<UIDMeta> iter = metaReader.iterateUIDMetas(rset, UniqueIdType.METRIC);
 					try {
@@ -724,7 +724,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 					final int expectedRows = queryContext.getNextMaxLimit() + 1; 
 					binds.add(expectedRows);
 					queryContext.addCtx("SQLPrepared", System.currentTimeMillis());
-					log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));					
+					if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));					
 					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), expectedRows, false, binds.toArray(new Object[0]));
 					rset.setFetchSize(expectedRows);
 					queryContext.addCtx("SQLExecuted", System.currentTimeMillis());
@@ -786,7 +786,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 							public void accept(List<TSMeta> t) {
 								def.accept(!(t==null || t.isEmpty()));
 								TSMeta tsmeta = t.get(0);
-								log.info("Matched Expression \n\tPattern: [{}] \n\tIncoming: [{}]", expr, buildObjectName(tsmeta.getMetric().getName(), tsmeta.getTags()));
+								log.debug("Matched Expression \n\tPattern: [{}] \n\tIncoming: [{}]", expr, buildObjectName(tsmeta.getMetric().getName(), tsmeta.getTags()));
 							}
 						}).when(Throwable.class, new Consumer<Throwable>() {
 							public void accept(Throwable t) {								
@@ -823,7 +823,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		sqlBuffer.append("\n\tEXCEPT\n");
 		prepareGetTSMetasSQL(on2.getDomain(), on2.getKeyPropertyList(), binds, sqlBuffer, GET_TSMETAS_SQL, "INTERSECT");
 		sqlBuffer.append(") X ");
-		//log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));		
+		if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));		
 		final long result = sqlWorker.sqlForLong(sqlBuffer.toString(), binds.toArray(new Object[0]));
 		final long elapsed = System.currentTimeMillis()-start;
 		//log.info("Computed overlap for expressions:\n\tExpression One: [{}]\n\tExpression Two: [{}]\n\tElapsed: [{}] ms\n\tResult: [{}]", expressionOne, expressionTwo, elapsed, result);
@@ -1306,7 +1306,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 				}
 				sqlBuffer.append(" ORDER BY X.XUID DESC LIMIT ? ");
 				binds.add(queryContext.getNextMaxLimit() + 1);
-				log.info("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
+				if(log.isDebugEnabled()) log.debug("Executing SQL [{}]", fillInSQL(sqlBuffer.toString(), binds));
 				try {
 					
 					final ResultSet rset = sqlWorker.executeQuery(sqlBuffer.toString(), true, binds.toArray(new Object[0]));

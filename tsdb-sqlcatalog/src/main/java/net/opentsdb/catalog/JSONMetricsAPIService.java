@@ -20,6 +20,7 @@ import net.opentsdb.utils.JSON;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
@@ -273,7 +274,7 @@ public class JSONMetricsAPIService {
 			);
 		} else {
 			final long result = metricApi.overlap(expressionOne, expressionTwo);
-			request.response().setContent(JSON.getMapper().createObjectNode().putPOJO("q", q).put("result", result)).send();
+			request.response(ResponseType.RESP).setContent(JSON.getMapper().createObjectNode().putPOJO("q", q).put("result", result)).send();
 		}
 	}
 	
@@ -291,7 +292,13 @@ public class JSONMetricsAPIService {
 			public void accept(T t) {
 				try {
 					
-					final JSONResponse response = request.response();
+					final JSONResponse response;
+					if(q.shouldContinue()) {
+						response = request.response(ResponseType.MRESP);
+					} else {
+						response = request.response(ResponseType.XMRESP);
+					}
+					
 					response.setOpCode("results");											
 					JsonGenerator jgen = response.writeHeader(true);
 					jgen.setCodec(q.getMapper());
@@ -309,7 +316,7 @@ public class JSONMetricsAPIService {
 			@Override
 			public void accept(Throwable t) {
 				q.setExhausted(true);
-				final JSONResponse response = request.response();					
+				final JSONResponse response = request.response(ResponseType.ERR);					
 				try {
 					response.resetChannelOutputStream();
 					response.setOpCode("error");					
@@ -344,7 +351,12 @@ public class JSONMetricsAPIService {
 			public void accept(T t) {
 				try {
 					set.addAll((Collection<TSMeta>) t);
-					final JSONResponse response = request.response();
+					final JSONResponse response;
+					if(q.shouldContinue()) {
+						response = request.response(ResponseType.MRESP);
+					} else {
+						response = request.response(ResponseType.XMRESP);
+					}
 					response.setOpCode("results");											
 					JsonGenerator jgen = response.writeHeader(true);
 					jgen.setCodec(q.getMapper());
@@ -362,7 +374,7 @@ public class JSONMetricsAPIService {
 			@Override
 			public void accept(Throwable t) {
 				q.setExhausted(true);
-				final JSONResponse response = request.response();					
+				final JSONResponse response = request.response(ResponseType.ERR);					
 				try {
 					response.resetChannelOutputStream();
 					response.setOpCode("error");					

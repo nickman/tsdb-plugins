@@ -27,9 +27,10 @@ public class JSONSubConfirm extends JSONResponse {
 	 * @param type The type flag. Currently "err" for an error message, "resp" for a response, "sub" for subcription event
 	 * @param subKey The subscription key that uniquely identified the subscription from the client's perspective
 	 * @param channel The channel the sub-confirm will be written to
+	 * @param request The parent request
 	 */
-	public JSONSubConfirm(long reRequestId, String type, String subKey, Channel channel) {
-		super(reRequestId, type, channel);
+	public JSONSubConfirm(long reRequestId, ResponseType type, String subKey, Channel channel, JSONRequest request) {
+		super(reRequestId, type, channel, request);
 		this.subKey = subKey;
 	}
 

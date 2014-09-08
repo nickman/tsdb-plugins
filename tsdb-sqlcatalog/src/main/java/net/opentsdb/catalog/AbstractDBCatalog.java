@@ -87,6 +87,7 @@ import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
 import org.helios.tsdb.plugins.meta.MetaSynchronizer;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.service.IPluginContextResourceFilter;
@@ -2178,7 +2179,7 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 			return;
 		}
 		log.info("Executing SQL [{}], Options: meta:{}, maxrows:{}, startat:{} ", sqlText, includeMeta, maxRows, startAt);
-		request.response().setContent(_executeSQLForJson(includeMeta, maxRows, startAt, sqlText)).send();
+		request.response(ResponseType.RESP).setContent(_executeSQLForJson(includeMeta, maxRows, startAt, sqlText)).send();
 	}
     
 	/** UTF-8 Charset */

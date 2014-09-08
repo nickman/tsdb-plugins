@@ -30,6 +30,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.helios.tsdb.plugins.remoting.json.JSONRequest;
+import org.helios.tsdb.plugins.remoting.json.RequestType;
+
 /**
  * <p>Title: JSONRequestHandler</p>
  * <p>Description: Annotates a named JSON data service method</p>
@@ -52,14 +55,7 @@ public @interface JSONRequestHandler {
 	public String description() default "A JSON Request Operation";	
 
 	/**
-	 * Indicates if this is a subscription initiator
-	 * @return true if this is a subscription initiator, false if it is a simple rpc
+	 * The request type
 	 */
-	public boolean sub() default false;
-	
-	/**
-	 * If this handler is a subscription initiator, this value is the op name of the unsubscriber
-	 * @return the op name of the unsubscriber or a blank if this is not an unsubscriber
-	 */
-	public String unsub() default "";
+	public RequestType type() default RequestType.REQUEST;
 }

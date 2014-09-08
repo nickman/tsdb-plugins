@@ -46,12 +46,8 @@ public abstract class AbstractJSONRequestHandlerInvoker  {
 	private final String serviceDescription;
 	/** The target op description */
 	private final String opDescription;
-	/** Indicates if this is a sub */
-	private final boolean sub;
-	/** The unsub op name if this is a sub */
-	private final String unSubOp;
-	/** The unsub service name if this is a sub */
-	private final String unSubServiceName;
+	/** The operation type */
+	private final RequestType type;
 	
 	/**
 	 * Creates a new AbstractJSONRequestHandlerInvoker
@@ -60,32 +56,18 @@ public abstract class AbstractJSONRequestHandlerInvoker  {
 	 * @param serviceDescription The target service description
 	 * @param opName The target op name
 	 * @param opDescription The target op description
-	 * @param sub true if this is a sub op
-	 * @param unSubOp The unsub op name if this is a sub op
-	 * @param unSubServiceName The unsub service name if this is a sub op
+	 * @param type The op type
 	 */
-	public AbstractJSONRequestHandlerInvoker(Object targetService, String serviceName, String serviceDescription, String opName, String opDescription, boolean sub, String unSubOp, String unSubServiceName) {
+	public AbstractJSONRequestHandlerInvoker(Object targetService, String serviceName, String serviceDescription, String opName, String opDescription, RequestType type) {
 		this.targetService = targetService;		
 		this.serviceName = serviceName;
 		this.serviceDescription = serviceDescription;
 		this.opDescription = opDescription;
 		this.opName = opName;
-		this.sub = sub; 
-		this.unSubOp = unSubOp==null||unSubOp.trim().isEmpty() ? null : unSubOp;
-		this.unSubServiceName = unSubServiceName==null||unSubServiceName.trim().isEmpty() ? null : unSubServiceName;
+		this.type = type;
 	}
 	
-	/**
-	 * Creates a new AbstractJSONRequestHandlerInvoker
-	 * @param targetService The target service this invoker is invoking against
-	 * @param serviceName The target service name
-	 * @param serviceDescription The target service description
-	 * @param opName The target op name
-	 * @param opDescription The target op description
-	 */
-	public AbstractJSONRequestHandlerInvoker(Object targetService, String serviceName, String serviceDescription, String opName, String opDescription) {
-		this(targetService, serviceName, serviceDescription, opName, opDescription, false, null, null);
-	}
+
 	
 
 
@@ -152,30 +134,15 @@ public abstract class AbstractJSONRequestHandlerInvoker  {
 				.format("JSONRequestHandlerInvoker [impl=%s, serviceName=%s, serviceDescription=%s, opName=%s, opDescription=%s]",
 						targetService.getClass().getSimpleName(), serviceName, serviceDescription, opName, opDescription);
 	}
-
+	
 	/**
-	 * Returns 
-	 * @return the sub
+	 * Returns the request type of the op
+	 * @return the request type of the op
 	 */
-	public boolean isSub() {
-		return sub;
+	public RequestType getRequestType() {
+		return type;
 	}
 
-	/**
-	 * Returns the unsub op for this sub, or null if this is not a sub
-	 * @return the unsub op for this sub, or null if this is not a sub
-	 */
-	public String getUnSubOp() {
-		return unSubOp;
-	}
-
-	/**
-	 * Returns the unsub service name for this sub, or null if this is not a sub
-	 * @return the unsub service name for this sub, or null if this is not a sub
-	 */
-	public String getUnSubServiceName() {
-		return unSubServiceName;
-	}
 	
 	
 

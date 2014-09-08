@@ -15,6 +15,7 @@ $( document ).ready(function() {
 	});
 	
 	$("input.runAction").keypress(function(e) {
+		console.info("KEY EVENT: [%O]", e);
 	    if(e.which == 13) {
 		    goAction(e);
 		    return false;

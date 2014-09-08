@@ -51,6 +51,8 @@ import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
 import org.helios.tsdb.plugins.remoting.json.JSONSubscriber;
+import org.helios.tsdb.plugins.remoting.json.RequestType;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.rpc.AbstractRPCService;
@@ -61,6 +63,8 @@ import org.helios.tsdb.plugins.service.PluginContext;
 import reactor.core.Reactor;
 import reactor.core.composable.Promise;
 import reactor.core.composable.spec.Promises;
+import reactor.event.Event;
+import reactor.event.selector.Selectors;
 import reactor.function.Consumer;
 
 /**
@@ -131,7 +135,14 @@ public class SubscriptionManager extends AbstractRPCService implements Subscript
 					}
 				}
 		);		
-		
+		reactor.on(Selectors.object("subscription-terminated"), new Consumer<Event<Subscription>>(){
+			@Override
+			public void accept(Event<Subscription> t) {
+				final Subscription termSub = t.getData();
+				log.info("Terminated Subscription: [{}]", termSub);				
+				allSubscriptions.remove(termSub.pattern);				
+			}
+		});
 	}
 	
 	
@@ -156,7 +167,7 @@ public class SubscriptionManager extends AbstractRPCService implements Subscript
 	 * @param request The JSON request
 	 * <p>Invoker:<b><code>sendRemoteRequest('ws://localhost:4243/ws', {svc:'pubsub', op:'sub', {x:'sys*:dc=dc*,host=WebServer1|WebServer5'}});</code></b>
 	 */
-	@JSONRequestHandler(name="sub", sub=true, unsub="unsub", description="Creates a new subscription on behalf of the calling client")
+	@JSONRequestHandler(name="sub", type=RequestType.SUBSCRIBE, description="Creates a new subscription on behalf of the calling client")
 	public void subscribe(final JSONRequest request) {
 		final String expression = request.getRequest().get("x").textValue();
 		final String ID = JSONSubscriber.getId(request);
@@ -180,7 +191,8 @@ public class SubscriptionManager extends AbstractRPCService implements Subscript
 			public void accept(Subscription t) {				
 				subSet.add(t);
 				t.addSubscriber(finalSub);
-				request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).setContent(JSON.getMapper().createObjectNode().put("subId", t.getSubscriptionId())).send();
+				// FIXME:  Client side.
+				request.subConfirm("" + t.getSubscriptionId()).setContent(Collections.singletonMap("q", new QueryContext())).send();
 			}
 		}).onError(new Consumer<Throwable>(){
 			@Override
@@ -196,9 +208,12 @@ public class SubscriptionManager extends AbstractRPCService implements Subscript
 	 * @see org.helios.tsdb.plugins.remoting.subpub.SubscriberEventListener#onDisconnect(org.helios.tsdb.plugins.remoting.subpub.Subscriber)
 	 */
 	@Override
-	public void onDisconnect(Subscriber subscriber) {
-		
-		
+	public void onDisconnect(final Subscriber subscriber) {
+		log.info("Subscriber Disconnected: [{}]", subscriber);
+		final  Map<Subscriber<Datapoint>, Set<Subscription>> endSubs = subscriberSubscriptions.remove(subscriber.getSubscriberId());
+		if(endSubs!=null) {
+			reactor.notify("subscriber-terminated", Event.wrap(subscriber));
+		}		
 	}	
 	
 	

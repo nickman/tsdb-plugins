@@ -42,6 +42,7 @@ import net.opentsdb.core.TSDB;
 import org.helios.tsdb.plugins.groovy.GroovyService;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.InvocationChannel;
@@ -218,7 +219,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 				}
 			};
 			t.setDaemon(false);
-			request.response().setContent("ok").send();
+			request.response(ResponseType.RESP).setContent("ok").send();
 			t.start();			
 		} catch (Exception ex) {
 			log.error("Failed to invoke die", ex);
@@ -234,7 +235,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void stats(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/stats?json=true");
-			invoke(false, httpRequest, request.response());
+			invoke(false, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke stats", ex);
 			request.error("Failed to invoke stats", ex).send();
@@ -250,7 +251,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 		try {
 			String fileName = request.getArgument("s").replace("\"", "");
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, ("/s/" + fileName));
-			invokeForFile(httpRequest, request.response());
+			invokeForFile(httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke s/file", ex);
 			request.error("Failed to invoke s/file", ex).send();
@@ -265,7 +266,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void dropcaches(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/dropcaches?json=true");
-			invoke(true, httpRequest, request.response());
+			invoke(true, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke dropcaches", ex);
 			request.error("Failed to invoke dropcaches", ex).send();
@@ -280,7 +281,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void logs(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/logs?json=true");
-			invoke(true, httpRequest, request.response());
+			invoke(true, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke logs", ex);
 			request.error("Failed to invoke logs", ex).send();
@@ -296,7 +297,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void version(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/version?json=true");
-			invoke(true, httpRequest, request.response());
+			invoke(true, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke version", ex);
 			request.error("Failed to invoke version", ex).send();
@@ -311,7 +312,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void aggregators(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/aggregators?json=true");
-			invoke(false, httpRequest, request.response());
+			invoke(false, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke aggregators", ex);
 			request.error("Failed to invoke aggregators", ex).send();
@@ -326,7 +327,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 	public void config(JSONRequest request) {
 		try {
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/config?json=true");
-			invoke(true, httpRequest, request.response());
+			invoke(true, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke config", ex);
 			request.error("Failed to invoke config", ex).send();
@@ -440,7 +441,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 					@Override
 					public Object call(Object arg) throws Exception {							
 						if(sendConfirm) {
-							request.response().setContent(metricName).send();
+							request.response(ResponseType.RESP).setContent(metricName).send();
 						}
 						return null;
 					}					
@@ -459,7 +460,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 				log.debug("Submitted meric [{}]", metricName);
 			}
 			if(!sendConfirm) {
-				request.response().setContent(nodeFactory.objectNode().set("points", nodeFactory.numberNode(pointsProcessed))).send();
+				request.response(ResponseType.RESP).setContent(nodeFactory.objectNode().set("points", nodeFactory.numberNode(pointsProcessed))).send();
 			}
 		} catch (Exception ex) {
 			log.error("Failed to add points", ex);
@@ -515,7 +516,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			
 			//HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/query?" + URLEncoder.encode(uri.toString(), "UTF8"));
 			HttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/query?" + uri.toString());
-			invoke(false, httpRequest, request.response());
+			invoke(false, httpRequest, request.response(ResponseType.RESP));
 		} catch (Exception ex) {
 			log.error("Failed to invoke query", ex);
 			request.error("Failed to invoke query", ex).send();
@@ -607,7 +608,7 @@ public class TSDBJSONService implements IPluginContextResourceListener {
 			groovyService.compile(name, script);
 			Object[] gargs = request.asStringArray();
 			Object response = groovyService.invokeScript(name, gargs);
-			request.response().setContent(jsonMapper.writeValueAsString(response)).send();			
+			request.response(ResponseType.RESP).setContent(jsonMapper.writeValueAsString(response)).send();			
 		} catch (Exception ex) {
 			log.error("Failed to invoke groovy", ex);
 			request.error("Failed to invoke groovy", ex).send();

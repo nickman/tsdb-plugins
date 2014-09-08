@@ -53,9 +53,9 @@ public class JSONRequest {
 	/** The original request, in case there is other stuff in there that the data service needs */
 	protected final JsonNode request;
 	
-	/** The response prepared to send back to the caller submitting this request */
-	@JsonIgnore
-	protected volatile JSONResponse response = null;
+//	/** The response prepared to send back to the caller submitting this request */
+//	@JsonIgnore
+//	protected volatile JSONResponse response = null;
 	
 	/** Indicates if argument accessors should return default values, or throw exceptions */
 	protected boolean allowDefaults = true;
@@ -180,7 +180,7 @@ public class JSONRequest {
 	 * @return an error {@link JSONResponse} for this request
 	 */
 	public JSONResponse error(CharSequence message, Throwable t) {
-		JSONResponse response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_ERR, channel);
+		JSONResponse response = new JSONResponse(requestId, ResponseType.ERR, channel, this);
 		Map<String, String> map = new HashMap<String, String>(t==null ? 1 : 2);
 		map.put("err", message.toString());
 		if(t!=null) {
@@ -193,14 +193,21 @@ public class JSONRequest {
 	
 	/**
 	 * Returns a {@link JSONResponse} for this request
+	 * @param responseType The response type of the response to prepare
 	 * @return a {@link JSONResponse} for this request
 	 */
-	public JSONResponse response() {
-		if(response==null) {
-			response = new JSONResponse(requestId, JSONResponse.RESP_TYPE_RESP, channel);
-		}
-		return response;
+	public JSONResponse response(final ResponseType responseType) {
+		return new JSONResponse(requestId, responseType==null ? ResponseType.RESP : responseType, channel, this);
 	}
+	
+//	/**
+//	 * Returns a {@link JSONResponse} for this request with the default response type of {@link ResponseType#RESP}.
+//	 * @return a {@link JSONResponse} for this request
+//	 */
+//	public JSONResponse response() {
+//		return new JSONResponse(requestId, ResponseType.RESP, channel, this);
+//	}
+	
 	
 	/**
 	 * Returns a subscription send {@link JSONResponse} for the subscription issued by this request
@@ -208,7 +215,7 @@ public class JSONRequest {
 	 * @return a subscription send {@link JSONResponse} for the subscription issued by this request
 	 */
 	public JSONResponse subResponse(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB, subKey, channel);
+		return new JSONSubConfirm(requestId, ResponseType.SUB, subKey, channel, this);
 	}
 	
 	/**
@@ -217,7 +224,7 @@ public class JSONRequest {
 	 * @return a subscription confirmation {@link JSONResponse} for the subscription initiation started by this request
 	 */
 	public JSONResponse subConfirm(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STARTED, subKey, channel);
+		return new JSONSubConfirm(requestId,ResponseType.SUB_STARTED, subKey, channel, this);
 	}	
 	
 	/**
@@ -226,7 +233,7 @@ public class JSONRequest {
 	 * @return a subscription cancellation {@link JSONResponse} for the cancelled subscription.
 	 */
 	public JSONResponse subCancel(String subKey) {
-		return new JSONSubConfirm(requestId, JSONResponse.RESP_TYPE_SUB_STOPPED, subKey, channel);
+		return new JSONSubConfirm(requestId, ResponseType.SUB_STOPPED, subKey, channel, this);
 	}	
 	
 //	/**

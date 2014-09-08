@@ -73,14 +73,16 @@ public class JSONSubscriber<T> extends AbstractSubscriber<T> implements ChannelF
 	 */
 	@Override
 	public void accept(Collection<T> events) {		
+		final JSONResponse response = request.response(ResponseType.SUB);
 		try {
-			JsonGenerator jgen = request.response().writeHeader(true);
+			JsonGenerator jgen = response.writeHeader(true);
+			jgen.writeFieldName("msg");
 			jgen.writeStartArray();
 			for(T t: events) {
 				jgen.writeObject(t);
 			}
 			jgen.writeEndArray();
-			request.response().closeGenerator();
+			response.closeGenerator();
 		} catch (Exception ex) {
 			log.error("Failed to write out accepted events", ex);
 		}

@@ -42,6 +42,7 @@ import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONRequestRouter;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.serialization.TSDBTypeSerializer;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.helios.tsdb.plugins.rpc.session.RPCSessionManager;
@@ -204,7 +205,7 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
         	
         		
         } catch (Exception ex) {
-    		JSONResponse response = new JSONResponse(-1, JSONResponse.RESP_TYPE_ERR, ctx.getChannel());
+    		JSONResponse response = new JSONResponse(-1, ResponseType.ERR, ctx.getChannel(), wsRequest);
     		Map<String, String> map = new HashMap<String, String>(2);
     		map.put("err", "Failed to parse request [" + request + "]");
     		map.put("ex", StringHelper.formatStackTrace(ex));

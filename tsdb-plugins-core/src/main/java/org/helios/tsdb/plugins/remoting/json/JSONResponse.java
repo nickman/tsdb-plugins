@@ -32,6 +32,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import static org.helios.tsdb.plugins.remoting.json.ResponseType.*;
+
 /**
  * <p>Title: JSONResponse</p>
  * <p>Description:  The standard object container for sending a response to a JSON data service caller</p>
@@ -59,6 +61,9 @@ public class JSONResponse implements ChannelBufferizable {
 	/** An object mapper override for custom/dynamic JSON serialization */
 	@JsonIgnore
 	protected volatile ObjectMapper mapperOverride = null;
+	
+	@JsonIgnore
+	protected final JSONRequest parentRequest;
 	
 	
 	
@@ -100,35 +105,20 @@ public class JSONResponse implements ChannelBufferizable {
 	/** The shared json mapper */
 	private static final ObjectMapper jsonMapper = new ObjectMapper();	
 	
-	/** Response flag for an error message */
-	public static final String RESP_TYPE_ERR = "err";
-	/** Response flag for a request response */
-	public static final String RESP_TYPE_RESP = "resp";
-	/** Response flag for a subscription event delivery */
-	public static final String RESP_TYPE_SUB = "sub";
-	/** Response flag for a subscription start confirm */
-	public static final String RESP_TYPE_SUB_STARTED = "subst";
-	/** Response flag for a subscription stop notification */
-	public static final String RESP_TYPE_SUB_STOPPED = "xsub";
-	/** Response flag for a growl */
-	public static final String RESP_TYPE_GROWL = "growl";
+
+	/** An empty ChannelFuture const. */
+	private static final ChannelFuture[] EMPTY_CHANNEL_FUTURE_ARR = {};
 	
-	/**
-	 * {@inheritDoc}
-	 * @see java.lang.Object#clone()
-	 */
-	@Override
-	public JSONResponse clone() {
-		return new JSONResponse(reRequestId, type, channel);
-	}
+	
 	
 	/**
 	 * Clones this json response with a new type
 	 * @param type the new type
 	 * @return an updated type clone of this response
+	 * @param parent The parent request for this response
 	 */
-	public JSONResponse clone(String type) {
-		return new JSONResponse(reRequestId, type, channel);
+	public JSONResponse clone(final ResponseType type, final JSONRequest parent) {
+		return new JSONResponse(reRequestId, type, channel, parent);
 	}
 	
 	/**
@@ -136,12 +126,14 @@ public class JSONResponse implements ChannelBufferizable {
 	 * @param reRequestId The client provided request ID that this response is being sent for
 	 * @param type The type flag. Currently "err" for an error message, "resp" for a response, "sub" for subcription event
 	 * @param channel The channel this response will be written to 
+	 * @param parent The parent request for this response
 	 */
-	public JSONResponse(long reRequestId, String type, Channel channel) {
+	public JSONResponse(final long reRequestId, final ResponseType type, final Channel channel, final JSONRequest parent) {
 		super();
 		this.reRequestId = reRequestId;
-		this.type = type;
+		this.type = type.code;
 		this.channel = channel;
+		this.parentRequest = parent;
 	}
 	
 	/**
@@ -358,9 +350,8 @@ public class JSONResponse implements ChannelBufferizable {
 	
 	/**
 	 * Closes the open json generator and writes the content back to the caller.
-	 * @return this JSONResponse
 	 */
-	public JSONResponse closeGenerator() {
+	public void closeGenerator() {
 		if(jsonGen==null || jsonGen.isClosed()) throw new RuntimeException("The json generator " + (jsonGen==null ? "is null" : "has already been closed"));
 		try {
 			if(openedAsMap) {
@@ -372,12 +363,12 @@ public class JSONResponse implements ChannelBufferizable {
 			jsonGen.writeEndObject();
 			jsonGen.close();
 			channelOutputStream.close();
-			return this.clone();
 		} catch (Exception ex) {
 			throw new RuntimeException("Failed to close JsonGenerator", ex);
 		} finally {
 			jsonGen = null;
 			channelOutputStream = null;
+			content = null;
 		}		
 	}
 
@@ -456,8 +447,6 @@ public class JSONResponse implements ChannelBufferizable {
 		return this;
 	}
 	
-	/** An empty ChannelFuture const. */
-	private static final ChannelFuture[] EMPTY_CHANNEL_FUTURE_ARR = {};
 	
 	/**
 	 * Sends this response to all the passed channels as a {@link TextWebSocketFrame}
@@ -465,7 +454,7 @@ public class JSONResponse implements ChannelBufferizable {
 	 * @param channels The channels to send this response to
 	 * @return An array of the futures for the write of this response to each channel written to
 	 */
-	public ChannelFuture[] send(ChannelFutureListener listener, Channel...channels) {		
+	public ChannelFuture[] send(ChannelFutureListener listener, Channel...channels) {
 		if(channels!=null && channels.length>0) {
 			Set<ChannelFuture> futures = new HashSet<ChannelFuture>(channels.length);
 			if(opCode==null) {
@@ -481,7 +470,7 @@ public class JSONResponse implements ChannelBufferizable {
 				}
 			}
 			return futures.toArray(new ChannelFuture[futures.size()]);
-		}
+		}		
 		return EMPTY_CHANNEL_FUTURE_ARR;
 	}
 	

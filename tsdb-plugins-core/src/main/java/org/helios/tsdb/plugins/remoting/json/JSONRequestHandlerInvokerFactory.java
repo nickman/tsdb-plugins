@@ -102,9 +102,9 @@ public class JSONRequestHandlerInvokerFactory {
 				final JSONRequestHandler jsonHandler = m.getAnnotation(JSONRequestHandler.class);
 				final String opName = jsonHandler.name();
 				final String opDescription = jsonHandler.description();
-				final String unSubOp = jsonHandler.unsub();
-				final String unSubService = svc.name();
-				final boolean sub = jsonHandler.sub();
+				final RequestType opType = jsonHandler.type();
+				
+
 				
 				int targetMethodHashCode = m.toGenericString().hashCode(); 
 				final String className = String.format("%s-%s%s-%s-%s", 
@@ -180,15 +180,8 @@ public class JSONRequestHandlerInvokerFactory {
 				invokerClass.addMethod(invokerMethod);
 				//invokerClass.writeFile(System.getProperty("java.io.tmpdir") + File.separator + "jsoninvokers");
 				Class<?> clazz = invokerClass.toClass(handlerInstance.getClass().getClassLoader(), handlerInstance.getClass().getProtectionDomain());
-				Constructor<?> ctor = null;
-				AbstractJSONRequestHandlerInvoker invokerInstance = null;
-				if(sub) {
-					ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class, boolean.class, String.class, String.class);
-					invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription, sub, unSubOp, unSubService);										
-				} else {
-					ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class);
-					invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription);					
-				}
+				Constructor<?> ctor = clazz.getDeclaredConstructor(Object.class, String.class, String.class, String.class, String.class, RequestType.class);
+				AbstractJSONRequestHandlerInvoker invokerInstance = (AbstractJSONRequestHandlerInvoker)ctor.newInstance(handlerInstance, invokerServiceKey, invokerServiceDescription, opName, opDescription, opType);
 				subInvokerMap.put(opName, invokerInstance);				
 			}
 			invokerCache.put(handlerInstance.getClass(), invokerMap);

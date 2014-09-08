@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
 import org.helios.tsdb.plugins.remoting.json.JSONResponse;
+import org.helios.tsdb.plugins.remoting.json.RequestType;
+import org.helios.tsdb.plugins.remoting.json.ResponseType;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestHandler;
 import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.jboss.netty.channel.Channel;
@@ -64,7 +66,7 @@ public class SystemJSONServices {
 			for(Channel channel: systemStatusChannelGroup) {
 				Long rerid = systemStatusRids.get(channel);
 				if(rerid==null) continue;
-				new JSONResponse(rerid, JSONResponse.RESP_TYPE_SUB, channel).setContent(stats).send();
+				new JSONResponse(rerid, ResponseType.SUB, channel, null).setContent(stats).send();
 			}
 		}
 	};
@@ -78,7 +80,7 @@ public class SystemJSONServices {
 	 * @param request The request from the subscribing channel
 	 * <p>Invoker:<b><code>sendRemoteRequest('ws://localhost:4243/ws', {svc:'system', op:'subsysstat'});</code></b>
 	 */
-	@JSONRequestHandler(name="subsysstat", sub=true, unsub="unsubsysstat", description="Subscribes the calling channel to system status messages")
+	@JSONRequestHandler(name="subsysstat", type=RequestType.SUBSCRIBE, description="Subscribes the calling channel to system status messages")
 	public void subscribeSystemStatus(final JSONRequest request) {
 		if(systemStatusChannelGroup.add(request.channel)) {
 			request.channel.getCloseFuture().addListener(new ChannelFutureListener(){
@@ -91,9 +93,9 @@ public class SystemJSONServices {
 			ArrayNode arrNode = nodeFactory.arrayNode();
 			arrNode.add(SystemStatusService.getBacklog());
 			arrNode.add(SystemStatusService.collect());
-			request.response().setOpCode(JSONResponse.RESP_TYPE_SUB_STARTED).setContent(arrNode).send();
+			request.response(ResponseType.SUB_STARTED).setContent(arrNode).send();
 		} else {
-			request.response().setContent(SystemStatusService.getBacklog()).send();
+			request.response(ResponseType.SUB_STARTED).setContent(SystemStatusService.getBacklog()).send();
 		}		
 	}
 
@@ -105,7 +107,7 @@ public class SystemJSONServices {
 	public void stopSystemStatus(final JSONRequest request) {
 		systemStatusChannelGroup.remove(request.channel);
 		systemStatusRids.remove(request.channel);
-		request.response().send();
+		request.response(ResponseType.SUB_STOPPED).send();
 	}
 	
 	
@@ -119,7 +121,7 @@ public class SystemJSONServices {
 		final long sleepMs = request.get("sleep", -1L);
 		scheduler.schedule(new Runnable(){
 			public void run() {
-				request.response().send();
+				request.response(ResponseType.RESP).send();
 			}
 		}, sleepMs, TimeUnit.MILLISECONDS);
 	}
@@ -138,7 +140,7 @@ public class SystemJSONServices {
 			pMap.put(key, props.getProperty(key));
 		}
 		try {			
-			request.response().setContent(sysPropsMap).send();
+			request.response(ResponseType.RESP).setContent(sysPropsMap).send();
 		} catch (Exception ex) {
 			log.error("Failed to write sysprops", ex);
 			request.error("Failed to write sysprops", ex).send();
@@ -159,7 +161,7 @@ public class SystemJSONServices {
 			eMap.put(e.getKey(), e.getValue());
 		}
 		try {			
-			request.response().setContent(envPropsMap).send();
+			request.response(ResponseType.RESP).setContent(envPropsMap).send();
 		} catch (Exception ex) {
 			log.error("Failed to write environment variables", ex);
 			request.error("Failed to write environment variables", ex).send();
@@ -173,7 +175,7 @@ public class SystemJSONServices {
 	@JSONRequestHandler(name="echo", description="Echos back the 'msg' keyed argument in the passed request")
 	public void echo(JSONRequest request) {
 		try {			
-			request.response().setContent(request.getArgument("msg")).send();
+			request.response(ResponseType.RESP).setContent(request.getArgument("msg")).send();
 		} catch (Exception ex) {
 			log.error("Failed to write echo", ex);
 			request.error("Failed to write echo", ex).send();

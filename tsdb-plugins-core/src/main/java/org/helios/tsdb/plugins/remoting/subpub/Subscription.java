@@ -62,8 +62,10 @@ import reactor.event.Event;
 import reactor.event.dispatch.Dispatcher;
 import reactor.event.registry.Registration;
 import reactor.event.selector.Selector;
+import reactor.event.selector.Selectors;
 import reactor.function.Consumer;
 import reactor.function.Function;
+import reactor.timer.TimeUtils;
 import reactor.tuple.Tuple2;
 
 import com.google.common.hash.BloomFilter;
@@ -123,7 +125,13 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 	/** The metrics meta access service */
 	protected final MetricsMetaAPI metricsMeta;
 	
-	protected Registration<Consumer<Event<TSDBEvent>>>  registration;
+	/** Registration for TSDBEvent stream */
+	protected final Registration<Consumer<Event<TSDBEvent>>>  registration;
+	/** Registration for subscriber termination event */
+	protected final Registration<Consumer<Event<Subscriber<?>>>>  subTermRegistration;
+	/** Registration for scheduled flush event */
+	protected final Registration<? extends Consumer<Long>>  flushRegistration;
+	
 	
 	/** The subscription pattern */
 	protected final String pattern;
@@ -171,8 +179,9 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 		this.patternObjectName = JMXHelper.objectName(pattern);
 		subscriptionId = serial.incrementAndGet();				
 		flushDef = Streams.defer(SingletonEnvironment.getInstance().getEnv());
-		final Stream<Map<String, Datapoint>> flushStream = flushDef.compose();
-		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer(SingletonEnvironment.getInstance().getEnv());		
+		
+		final Deferred<TSDBEvent, Stream<TSDBEvent>> def = Streams.<TSDBEvent>defer(SingletonEnvironment.getInstance().getEnv());
+		final Subscription self = this;
 		stream = def.compose()
 		.map(new Function<TSDBEvent, Datapoint>() {
 			@Override
@@ -186,13 +195,19 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 				ingest(d);
 			}
 		});
-		flushStream.window(5000).map(new Function<List<Map<String,Datapoint>>, Map<String,Datapoint>>() {
+		flushRegistration = TimeUtils.getTimer().schedule(new Consumer<Long>(){
 			@Override
-			public Map<String, Datapoint> apply(List<Map<String, Datapoint>> t) {
-				return accumulation;
-			}			
-		}).consume(this);
-		this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
+			public void accept(Long t) {
+				self.accept(accumulation);
+			}
+		}, 5, TimeUnit.SECONDS, 5000);
+//		flushStream.window(5000).map(new Function<List<Map<String,Datapoint>>, Map<String,Datapoint>>() {
+//			@Override
+//			public Map<String, Datapoint> apply(List<Map<String, Datapoint>> t) {
+//				return accumulation;
+//			}			
+//		}).consume(this);
+		registration = this.reactor.on(selector, new Consumer<Event<TSDBEvent>>() {
 			@Override
 			public void accept(final Event<TSDBEvent> t) {
 				final TSDBEvent te = t.getData();
@@ -209,6 +224,22 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 				}				
 			}
 		});
+		subTermRegistration = reactor.on(Selectors.object("subscriber-terminated"), new Consumer<Event<Subscriber<?>>>() {
+			@Override
+			public void accept(Event<Subscriber<?>> t) {
+				final Subscriber<?> subscriber = t.getData();
+				log.info("Removing Subscriber:\n\tSubscriber [{}] \n\tSubscription [{}]", subscriber, this);
+				synchronized(subscribers) {
+					if(subscribers.remove(subscriber)) {
+						if(subscribers.isEmpty()) {
+							log.info("Subscription terminating: [{}]", this);
+							terminate();
+							reactor.notify("subscription-terminated", Event.wrap(self));
+						}
+					}
+				}
+			}
+		});
 		flushDef.accept(accumulation);
 		log.info("Subscription Graph\nConsumer [{}]:\n[{}]\n", System.identityHashCode(this), stream.debug());
 	}
@@ -219,6 +250,7 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 	 */
 	@Override
 	public void accept(final Map<String,Datapoint> accumulatedDatapoints) {
+		if(accumulatedDatapoints.isEmpty()) return;
 		final HashMap<String,Datapoint> dc;
 		synchronized(accumulatedDatapoints) {
 			dc = new HashMap<String,Datapoint>(accumulatedDatapoints);
@@ -229,7 +261,7 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 		dispatcher.execute(new Runnable() {
 			public void run() {
 				for(Subscriber s: subscribers) {
-					s.accept(accumulatedDatapoints.values());
+					s.accept(dc.values());
 				}				
 			}
 		});
@@ -306,7 +338,9 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 	 * Terminates this subscription
 	 */
 	public void terminate() {
+		flushRegistration.cancel();
 		registration.cancel();
+		subTermRegistration.cancel();
 		subscribers.clear();
 	}
 	

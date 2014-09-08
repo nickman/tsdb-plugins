@@ -153,22 +153,17 @@ public class JSONRequestRouter {
 			serviceMap.put(entry.getKey(), svcMap);
 			svcMap.put("desc", opInvokerMap.values().iterator().next().getServiceDescription());			
 			ObjectNode opMap = nodeFactory.objectNode();
-			ObjectNode subMap = nodeFactory.objectNode();
 			svcMap.put("ops", opMap);
-			svcMap.put("subs", subMap);
+			
 			for(AbstractJSONRequestHandlerInvoker invoker: opInvokerMap.values()) {
-				if(invoker.isSub()) {
-					ArrayNode subUnsub = nodeFactory.arrayNode();
-					subUnsub.add(invoker.getOpName());
-					subUnsub.add(invoker.getUnSubOp());
-					subMap.put(invoker.getOpDescription(), subUnsub);
-				} else {
-					opMap.put(invoker.getOpName(), invoker.getOpDescription());
-				}
+				ObjectNode opDetails = nodeFactory.objectNode();
+				opDetails.put("desc", invoker.getOpDescription());
+				opDetails.put("type", invoker.getRequestType().code);				
+				opMap.put(invoker.getOpName(), opDetails);
 			}			
 		}
 		try {			
-			jsonRequest.response().setContent(servicesMap).send();
+			jsonRequest.response(ResponseType.RESP).setContent(servicesMap).send();
 		} catch (Exception ex) {
 			log.error("Failed to write service catalog", ex);
 			jsonRequest.error("Failed to write service catalog", ex).send();

@@ -13,8 +13,7 @@ function QueryContext(props) {
 	this.exhausted = false;
 	this.cummulative = 0;
 	this.elapsed = -1;
-	this.expired = false;	
-	
+	this.expired = false;			
 }
 
 QueryContext.newContext = function(props) {
@@ -172,6 +171,7 @@ function WebSocketAPIClient(props) {
 	this.session = null;
 	this.ridseq = 0;
 	this.ws = new WebSocket(this.wsUrl);
+	this.bus = new Bacon.Bus();
 	var self = this;
 	this.ws.onclose = function(evt) {
 		WebSocketAPIClient.defaultHandlers.onclose(evt, self);
@@ -205,6 +205,14 @@ WebSocketAPIClient.newClient = function(props) {
 	return p.promise();
 };
 
+WebSocketAPIClient.filters = {
+	reridFilter : function(rerid) {
+		return function(event) {
+			return (event.rerid!=null && event.rerid == rerid);
+		}
+	}
+};
+
 WebSocketAPIClient.defaultHandlers = {
 		onclose: function(evt, client) { console.info("WebSocket Closed: [%O]", evt); client.session = null;},
 		onerror: function(evt, client) { console.error("WebSocket Error: [%O]", evt); },
@@ -212,6 +220,7 @@ WebSocketAPIClient.defaultHandlers = {
 			// console.info("WebSocket Message: [%O]", evt);
 			try {
 				var result = JSON.parse(evt.data);
+				client.bus.push(result);
 				console.group("=================  Raw Result =================");
 				console.dir(result);
 				try {
@@ -389,6 +398,9 @@ WebSocketAPIClient.prototype.retry = function invoke(fx, args, start, interval, 
 
 
 WebSocketAPIClient.prototype.serviceRequest = function(service, opname) {
+	
+	// ["resp", "xmresp", "xmsub"]:  these types mean deregister
+	
 	var deferred = jQuery.Deferred();
 	deferred.startTime = performance.now();
 	if(this.ws.readyState!=1) {
@@ -564,14 +576,22 @@ WebSocketAPIClient.prototype.d3TSMetas = function(queryContext, expression) {
 };
 
 WebSocketAPIClient.prototype.subscribe = function(expression) {
-
 	this.ws.send(JSON.stringify(
-		{t: "req", rid: 1, svc:'pubsub', op:'sub', x:expression}
+		{t: "sub", rid: 1, svc:'pubsub', op:'sub', x:expression}
 	));
 };
 
 WebSocketAPIClient.prototype.services = function() {	
-	return this.serviceRequest("router", "services");	
+	var sr =  this.serviceRequest("router", "services");	
+	var dispose = null;
+	dispose = this.bus.filter(WebSocketAPIClient.filters.reridFilter(sr.rid)).onValue(function(svcResponse) {
+		console.group("===== BUS EVENT =====");
+		console.info("Services Response [%O]", svcResponse);
+		console.info("Sub Handle [%O]", dispose);
+		dispose();
+		console.info("Disposed");		
+		console.groupEnd();
+	});
 };
 
 
@@ -744,16 +764,18 @@ function postTSUIDAnnotations() {
 
 
 function testAll() {
-	var ws = new WebSocketAPIClient();
+	if(ws==null) {
+		ws = new WebSocketAPIClient();
+	}
 	var q = null;
-	// ws.findUids(q, "TAGV", "Web*").then(
-	// 	function(result) { console.info("findUids Result: [%O]", result); },
-	// 	function() { console.error("findUids Failed: [%O]", arguments);}
-	// );
-	ws.getAnnotations(q, "sys*:dc=dc1,host=WebServer1|WebServer5", 0).then(
-		function(result) { console.info("globalAnnotations Result: [%O]", result); },
-		function() { console.error("globalAnnotations Failed: [%O]", arguments);}
+	ws.findUids(q, "TAGV", "Web*").then(
+		function(result) { console.info("findUids Result: [%O]", result); },
+		function() { console.error("findUids Failed: [%O]", arguments);}
 	);
+	// ws.getAnnotations(q, "sys*:dc=dc1,host=WebServer1|WebServer5", 0).then(
+	// 	function(result) { console.info("globalAnnotations Result: [%O]", result); },
+	// 	function() { console.error("globalAnnotations Failed: [%O]", arguments);}
+	// );
 
 	
 

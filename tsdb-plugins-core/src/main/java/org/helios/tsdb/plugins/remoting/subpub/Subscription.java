@@ -228,12 +228,9 @@ public class Subscription implements SubscriptionMBean, Consumer<Map<String,Data
 		log.info("Accumulated Datapoints:  [{}]", dc.size());
 		dispatcher.execute(new Runnable() {
 			public void run() {
-				int cnt = 0;
 				for(Subscriber s: subscribers) {
 					s.accept(accumulatedDatapoints.values());
-					cnt++;
-				}
-				log.info("Dispatched flush to [{}] subscribers", cnt); 			
+				}				
 			}
 		});
 	}

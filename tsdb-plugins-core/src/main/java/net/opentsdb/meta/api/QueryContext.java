@@ -40,8 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * <p>Title: QueryContext</p>
- * <p>Description: A container class to aggregate all the query options for a MetricMetaAPI query.</p>
- * <p>The default looks like this: <b><code>QueryContext [metaOption=[XUID, NAME], outputFormat=JSON, pageSize=100]</code></b></p> 
+ * <p>Description: A container class to aggregate all the query options for a MetricMetaAPI query.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>net.opentsdb.meta.api.QueryContext</code></p>
@@ -80,20 +79,6 @@ public class QueryContext {
 	/** The cummulative number of items retrieved within this context */
 	protected int cummulative = 0;
 	
-	
-
-	public byte[] toJSON() {
-		return JSON.serializeToBytes(this);
-	}
-
-	public static QueryContext parse(final byte[] bytes) {
-		return JSON.parseToObject(bytes, QueryContext.class);
-	}
-
-	public static QueryContext parse(final JsonNode node) {
-		return JSON.parseToObject(JSON.serializeToBytes(node), QueryContext.class);
-	}
-
 
 
 	/**
@@ -330,9 +315,7 @@ public class QueryContext {
 				timeLimit = -1L;
 				expired = exp;
 				return exp;
-			} else {
-//				log.info("\n\t***************\n\tTime Limit Not Set\n");
-			}
+			} 
 			return false;
 		} finally {
 			if(continuous) {
@@ -403,6 +386,10 @@ public class QueryContext {
 		this.format = serName;
 	}
 	
+	/**
+	 * Returns the context's currently configured JSON ObjectMapper
+	 * @return the context's currently configured JSON ObjectMapper
+	 */
 	@JsonIgnore
 	public ObjectMapper getMapper() {
 		try {
@@ -412,6 +399,13 @@ public class QueryContext {
 		}
 	}
 
+	/**
+	 * Serializes this QueryContext to JSON and returns the byte array
+	 * @return the byte array containing the JSON
+	 */
+	public byte[] toJSON() {
+		return JSON.serializeToBytes(this);
+	}
 
 
 }

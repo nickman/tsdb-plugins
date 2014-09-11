@@ -51,9 +51,39 @@ WebSocketAPIClient.newClient = function(props) {
 };
 
 WebSocketAPIClient.filters = {
+	jsonPathFilter: function(expression) {
+		return function(event) {
+			if(event==null)	return null;
+			var target = null;
+			try {
+				if(isEvent(event)) {
+					target = event.value;
+				} else {
+					target = event;
+				}
+				return jsonPath(target, expression)!=false;
+			} catch (e) {
+				return false;
+			}
+		}
+	},
+	allFilter: function() {
+		return function() {
+			return 	true;
+		}
+	},	
 	reridFilter : function(rerid) {
 		return function(event) {
-			return (event.rerid!=null && event.rerid == rerid);
+			try {
+				if(event==null)	return null;
+				var target = null;
+				if(isEvent(event)) {
+					target = event.value;
+				} else {
+					target = event;
+				}			
+				return (target.rerid!=null && target.rerid == rerid);
+			} catch (e) { return false; }
 		}
 	}
 };

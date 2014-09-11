@@ -36,6 +36,21 @@ QueryContext.prototype.clone = function() {
     }
 }
 
+QueryContext.prototype.export = function() {
+	return {
+		extIndex : this.nextIndex,
+		pageSize : this.pageSize,
+		maxSize : this.maxSize,
+		timeout : this.timeout,
+		continuous : this.continuous,
+		format : this.format,
+		exhausted : this.exhausted,
+		cummulative : this.cummulative,
+		elapsed : this.elapsed,
+		expired : this.expired		
+	}
+}
+
 
 QueryContext.prototype.getFormat = function() {
 	return this.format;

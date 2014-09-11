@@ -65,7 +65,6 @@ import com.stumbleupon.async.Deferred;
 
 public interface MetricsMetaAPI {
 	
-	
 	/**
 	 * Finds {@link UIDMeta}s of the specified type that match the passed name pattern
 	 * @param queryContext The query context for this call
@@ -127,9 +126,6 @@ public interface MetricsMetaAPI {
 	 */
 	public Stream<List<TSMeta>> getTSMetas(QueryContext queryContext, String metricName, Map<String, String> tags);
 	
-	
-
-	
 	/**
 	 * Evaluates the passed TSMeta expression and returns the matches.
 	 * Wildcards will be honoured on metric names, tag keys and tag values.
@@ -155,7 +151,6 @@ public interface MetricsMetaAPI {
 	 */
 	public Promise<Boolean> match(String expression, String tsuid);
 	
-	
 	/**
 	 * Indicates how many items the passed expressions have in common when evaluated
 	 * @param expressionOne A TSMeta expression
@@ -163,7 +158,6 @@ public interface MetricsMetaAPI {
 	 * @return the deferred result
 	 */
 	public long overlap(String expressionOne, String expressionTwo);
-	
 	
 	/**
 	 * Returns the annotations associated to TSMetas that match the passed TSMeta expression within the specified time range.
@@ -181,7 +175,5 @@ public interface MetricsMetaAPI {
 	 * @return a stream of lists of matching global annotations
 	 */
 	public Stream<List<Annotation>> getGlobalAnnotations(QueryContext queryContext, long... startTimeEndTime);
-	
-	
 	
 }

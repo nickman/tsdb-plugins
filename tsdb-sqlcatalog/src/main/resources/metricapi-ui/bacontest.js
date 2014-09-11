@@ -1,5 +1,6 @@
 // ================  bacon.test 
 var filters = {
+	// e.g. jsonPath(a, '$[?(@.rerid == 23)]')
 	jsonPathFilter: function(expression) {
 		return function(event) {
 			if(event==null)	return null;
@@ -37,9 +38,10 @@ var filters = {
 	}
 };
 
-var timeoutEvent = function(ms, cancelStream) {	
+var timeoutCountingStream = function(ms, cancelStream) {	
 	var toh = null;
 	var errInvoker = null;
+	var actual = 0;
 	var cb = Bacon.fromCallback(function(callback) {
 		errInvoker = callback;
 	  	toh = setTimeout(function() {
@@ -49,7 +51,7 @@ var timeoutEvent = function(ms, cancelStream) {
 	  	}, ms);
 	});
 	if(cancelStream && cancelStream.onEnd) {
-		cancelStream.onEnd(function(){
+		cancelStream.endOnError(function(){
 			clearTimeout(toh);
 			console.info("Timeout [%s] cleared", toh);
 		});
@@ -91,15 +93,13 @@ var timeoutBusSub = function(bus, opts) {
 	if(opts.expectedReturns==null) opts.expectedReturns = Infinity;
 	if(opts.filter==null) opts.filter = filters.allFilter();
 	if(opts.seperateErrStream==null) opts.seperateErrStream = false;
-	var f = bus.filter(opts.filter).take(opts.expectedReturns);
-	var t = timeoutEvent(opts.timeout, f);
-	var stream = f.merge(t.stream()).endOnError();		
+	var f = bus.filter(opts.filter);
+	var t = timeoutCountingStream(opts.timeout, f);
+	var stream = f.merge(t.stream()).endOnError().take(opts.expectedReturns);
 	if(opts.resetting) {
 		stream.endOnError(function(err){
 			console.error("Sub got error. Stopping....", err);
 		}).skipErrors().subscribe(function(v){		
-			console.info("v:");
-			console.dir(v);	
 			if(v.isEnd()) {
 				console.info("End event. cancelling timer, v:[%s]", printEvent(v));				
 				t.cancel();
@@ -117,12 +117,16 @@ var timeoutBusSub = function(bus, opts) {
 
 
 
-var testWhile2 = function(filter) {
+var testWhile2 = function(filter, expected, actual) {
+	if(filter==null) filter = filters.jsonPathFilter('$[?(@.rerid == 23)]');
+	if(expected==null) expected = Math.round(Math.random()*1000)%10;
+	if(actual==null) actual = Math.round(Math.random()*1000)%10;
+	console.info("[testWhile2] expected: %s, actual: %s", expected, actual);
 	var msgs = 0;
 	var errcond = false;
 	var stream = timeoutBusSub(ws.bus, {
 		timeout : 5000,
-		expectedReturns : 3,
+		expectedReturns : expected,
 		filter : filter,
 		resetting: true
 	}).endOnError(function(err){
@@ -133,10 +137,18 @@ var testWhile2 = function(filter) {
 			msgs++;
 			if(!event.isEnd()) {
 				console.info("Received Event #%s: [%O], Event ID: %s", msgs, event.value(), event.id);				
+			} else {
+				console.info("Received End Event");
 			}
 		}
 	});
-	pushTestData({rerid:23}, 5, 1500);
+	pushTestData(actual, 100, function(){
+		var data = [];
+		for(var i = 0; i < 30; i++) {
+			data.push({rerid: i})
+		}
+		return data;
+	});
 	// for(var i = 0; i < 2; i++) {
 	// 	setTimeout(function(){
 	// 		ws.bus.push({rerid:23}); 
@@ -144,10 +156,22 @@ var testWhile2 = function(filter) {
 	// }
 }
 
-var pushTestData = function(data, count, delay) {
+var pushTestData = function(count, delay, data) {
+	if(data==null) {
+		data = [];
+	} else if(data instanceof Array) {
+		// nuthin'
+	} else if(data instanceof Function) {
+		data = data();		
+	} else {
+		data = [data];
+	}
 	var darr = [];
 	for(var i = 0; i < count; i++) {
-		darr.push(data);
+		data.forEach(function(v){
+			darr.push(v);
+		});
+		
 	}
 	Bacon.sequentially(delay, darr).onValue(function(d){
 		ws.bus.push(d);

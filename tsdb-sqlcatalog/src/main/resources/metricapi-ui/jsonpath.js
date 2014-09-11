@@ -1,7 +1,10 @@
-/* JSONPath 0.8.0 - XPath for JSON
+/* JSONPath 0.8.5 - XPath for JSON
  *
  * Copyright (c) 2007 Stefan Goessner (goessner.net)
  * Licensed under the MIT (MIT-LICENSE.txt) licence.
+ *
+ * Proposal of Chris Zyp goes into version 0.9.x
+ * Issue 7 resolved
  */
 function jsonPath(obj, expr, arg) {
    var P = {
@@ -9,7 +12,7 @@ function jsonPath(obj, expr, arg) {
       result: [],
       normalize: function(expr) {
          var subx = [];
-         return expr.replace(/[\['](\??\(.*?\))[\]']/g, function($0,$1){return "[#"+(subx.push($1)-1)+"]";})
+         return expr.replace(/[\['](\??\(.*?\))[\]']|\['(.*?)'\]/g, function($0,$1,$2){return "[#"+(subx.push($1||$2)-1)+"]";})  /* http://code.google.com/p/jsonpath/issues/detail?id=4 */
                     .replace(/'?\.'?|\['?/g, ";")
                     .replace(/;;;|;;/g, ";..;")
                     .replace(/;$|'?\]|'$/g, "")
@@ -26,7 +29,7 @@ function jsonPath(obj, expr, arg) {
          return !!p;
       },
       trace: function(expr, val, path) {
-         if (expr) {
+         if (expr !== "") {
             var x = expr.split(";"), loc = x.shift();
             x = x.join(";");
             if (val && val.hasOwnProperty(loc))
@@ -37,16 +40,16 @@ function jsonPath(obj, expr, arg) {
                P.trace(x, val, path);
                P.walk(loc, x, val, path, function(m,l,x,v,p) { typeof v[m] === "object" && P.trace("..;"+x,v[m],p+";"+m); });
             }
+            else if (/^\(.*?\)$/.test(loc)) // [(expr)]
+               P.trace(P.eval(loc, val, path.substr(path.lastIndexOf(";")+1))+";"+x, val, path);
+            else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
+               P.walk(loc, x, val, path, function(m,l,x,v,p) { if (P.eval(l.replace(/^\?\((.*?)\)$/,"$1"), v instanceof Array ? v[m] : v, m)) P.trace(m+";"+x,v,p); }); // issue 5 resolved
+            else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) // [start:end:step]  phyton slice syntax
+               P.slice(loc, x, val, path);
             else if (/,/.test(loc)) { // [name1,name2,...]
                for (var s=loc.split(/'?,'?/),i=0,n=s.length; i<n; i++)
                   P.trace(s[i]+";"+x, val, path);
             }
-            else if (/^\(.*?\)$/.test(loc)) // [(expr)]
-               P.trace(P.eval(loc, val, path.substr(path.lastIndexOf(";")+1))+";"+x, val, path);
-            else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
-               P.walk(loc, x, val, path, function(m,l,x,v,p) { if (P.eval(l.replace(/^\?\((.*?)\)$/,"$1"),v[m],m)) P.trace(m+";"+x,v,p); });
-            else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) // [start:end:step]  phyton slice syntax
-               P.slice(loc, x, val, path);
          }
          else
             P.store(path, val);
@@ -74,14 +77,14 @@ function jsonPath(obj, expr, arg) {
          }
       },
       eval: function(x, _v, _vname) {
-         try { return $ && _v && eval(x.replace(/@/g, "_v")); }
-         catch(e) { throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a")); }
+         try { return $ && _v && eval(x.replace(/(^|[^\\])@/g, "$1_v").replace(/\\@/g, "@")); }  // issue 7 : resolved ..
+         catch(e) { throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/(^|[^\\])@/g, "$1_v").replace(/\\@/g, "@")); }  // issue 7 : resolved ..
       }
    };
 
    var $ = obj;
    if (expr && obj && (P.resultType == "VALUE" || P.resultType == "PATH")) {
-      P.trace(P.normalize(expr).replace(/^\$;/,""), obj, "$");
+      P.trace(P.normalize(expr).replace(/^\$;?/,""), obj, "$");  // issue 6 resolved
       return P.result.length ? P.result : false;
    }
 } 

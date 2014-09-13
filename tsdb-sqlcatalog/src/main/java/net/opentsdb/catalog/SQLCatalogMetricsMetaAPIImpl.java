@@ -327,7 +327,7 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 
 		  public void execute(final TSDB tsdb, final HttpQuery query)
 		    throws IOException {
-		    final String uri = query.request().getUri();
+		    final String uri = query.request().getUri().replace("metricapi-ui/", "");
 		    if ("/favicon.ico".equals(uri)) {
 		      query.sendFile(staticDir 
 		          + "/favicon.ico", 31536000 /*=1yr*/);

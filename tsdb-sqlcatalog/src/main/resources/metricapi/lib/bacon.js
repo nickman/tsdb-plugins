@@ -518,6 +518,15 @@
     function Event() {
       this.id = ++eventIdCounter;
     }
+    
+    Event.isEvent = function(e) {
+    	if(e==null) return false;
+    	if(e instanceof Bacon.Next) return true;
+    	if(e instanceof Bacon.Error) return true;
+    	if(e instanceof Bacon.Initial) return true;
+    	if(e instanceof Bacon.End) return true;
+    	return false;
+    }
 
     Event.prototype.isEvent = function() {
       return true;

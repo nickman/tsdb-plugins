@@ -1,4 +1,44 @@
 //========================================================================
+//  MetaMetrics JS API for OpenTSDB 
+//  Whitehead (nwhitehead AT heliosdev DOT org
+//  2014
+//========================================================================
+
+// ==============================
+// Set up dependencies
+// ==============================
+
+requirejs.config({
+    baseUrl: 'lib',
+    paths: {
+        scripts: '../scripts'
+    }
+});
+
+
+// ==============================
+// Initialize main module
+// ==============================
+
+requirejs(['bacon', 'scripts/relay/local'],
+function   () {
+  // The mm core namespace
+  var $mm = $mm || {};
+  // The central shared event bus
+  var $mm.bus = new Bacon.Bus();
+  (function(m) {
+      // (set up private data here)
+      m.version = 1.0;
+      m.hello = function() { console.info("This is the OpenTSDB MetaMetrics JS API, version %s", m.version); };
+      m.MClient = function(props) {
+	props = props || {};
+	this.relay = props.relay || 
+      }
+  }($mm));
+});
+
+
+//========================================================================
 //  WebSock API
 //========================================================================
 

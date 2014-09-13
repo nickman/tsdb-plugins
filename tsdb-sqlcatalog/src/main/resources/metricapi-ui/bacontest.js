@@ -38,6 +38,9 @@ var filters = {
 	}
 };
 
+
+
+
 var timeoutCountingStream = function(ms, cancelStream) {	
 	var toh = null;
 	var errInvoker = null;
@@ -76,6 +79,8 @@ var timeoutCountingStream = function(ms, cancelStream) {
 
 	return ret;
 };
+
+
 
 var isEvent = function(e) {
 	if(e==null) return false;

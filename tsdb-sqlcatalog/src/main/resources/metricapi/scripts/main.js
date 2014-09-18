@@ -22,7 +22,20 @@ $mm.RID = function() {
   var rid = 0;
   return {
     nextrid : function() {
-      return rid++;
+      rid++;
+      return rid;
+    }
+  }
+}
+// The mm global client id to assign to MClients 
+// to uniquely identify a client until the remote
+// assigns a sessionid. $mm.CLIENTID().clientId()
+$mm.CLIENTID = function() {
+  var clientid = 0;
+  return {
+    clientId : function() {
+      clientid++;
+      return clientid;
     }
   }
 }
@@ -101,18 +114,59 @@ function (Baconator, r, jsonPath) {
   
   this.version = 1.0;
   this.name = "This is the OpenTSDB MetaMetrics JS API, version " + this.name;
+
   var self = this;
   var ridCounter = $mm.RID.nextrid;
   this.relay = null;
   this.MClient = function MClient(props) {
     props = props || {};
     if(props.relay==null) props.relay = 'local';
+    this.clientId = $mm.CLIENTID().clientId();
+    this.self = this;
+    props.clientid = this.clientId;
+    props.onsession = function _onsession_(r_sessionid, r_clientid) {
+      if(r_clientid = self.clientid) {
+        self.sessionid = sessionid;
+        console.info("Acquired sessionid. Client: %s, Session: %s", self.clientId, self.sessionid);
+      } else {
+        console.debug("Ignoring Session Callback Mismatch. Provided: [session:%s, client:%s] but my clientid is [%s]", r_sessionid, r_clientid, self.clientid);
+      }
+    }
     this.relay = new self.relayFactory[props.relay](props);
-    
-    
-    this.services = function services() {
-      var response = this.wrapreq({svc:"router", op:"services", t: "req"});
-	
+      
+    // $mm.RID.nextrid();
+
+    this.wrapRequest = function _wrapRequest_(payload, routing) {
+      var rid = $mm.RID.nextrid();
+      payload.rid = rid;
+
+      routing = routing || {};
+      if(routing.timeout==null) routing.timeout = $mm.defaults.requestTimeout;
+      if(routing.resetting==null) routing.resetting = false;
+      if(routing.expectedReturns==null) routing.expectedReturns = Infinity;
+      if(routing.filter==null) {
+        if(routing.expectedReturns != Infinrouting.expectedReturnsity) {
+          routing.filter = $mm.selector.reridFilter(rid);
+        } else {
+          routing.filter = $mm.selector.allFilter();
+        }
+      }
+      if(routing.endSelector==null) {
+        if(routing.expectedReturns != Infinity) {
+          routing.endSelector = $mm.endselector.onDataCount(routing.expectedReturns);
+        }
+      }
+      
+      if(routing.seperateErrStream==null) routing.seperateErrStream = false;
+
+      console.debug("Sending Request: rid: %s, payload: [%O], routing: [%O]", rid, payload, routing);
+      return self.relay.sendRequest(payload, routing);
+
+
+    }
+
+    this.services = function _services_() {
+      var response = self.wrapRequest({svc:"router", op:"services", t: "req"}, {expectedReturns:1});
     }
     
     return {

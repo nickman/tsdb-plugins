@@ -41,15 +41,20 @@ function () {
     // If the caller has not defined a WS URL, then try to sniff one out
     if(props.remoteUrl==null) {
       if(document!=null) {
-	this.remoteUrl = props.remoteUrl || 'ws://' + document.location.host + '/ws'; 
+        this.remoteUrl = props.remoteUrl || 'ws://' + document.location.host + '/ws'; 
       } else if (self != null && self.location != null ) {
-	this.remoteUrl = props.remoteUrl || 'ws://' + self.location.host + '/ws'; 
+        this.remoteUrl = props.remoteUrl || 'ws://' + self.location.host + '/ws'; 
       } else {
-	throw new Error("Failed to autolocate WebSocket URL. No document, no worker global scope. Please specify 'remoteUrl' in passed props");
+        throw new Error("Failed to autolocate WebSocket URL. No document, no worker global scope. Please specify 'remoteUrl' in passed props");
       }      
     } else {
       this.remoteUrl = props.remoteUrl;
     }
+
+    this.clientid = props.clientid;
+    this.onsession = props.onsession;
+
+
     
     // ======================================
     // Define event handler arrays
@@ -87,6 +92,13 @@ function () {
     }
     this.ws.onmessage = function(evt) {
       console.info("ws message: [%s]", evt.data);
+      try {
+        var parsed = JSON.parse(evt.data);
+        if(parsed.sessionid) {
+          props.onsession(parsed.sessionid, props.clientid); 
+        }
+      } catch (e) {}
+
       for(index in self.onmessage) {
 	      self.onmessage[index](evt, self);
       }				
@@ -97,13 +109,13 @@ function () {
     // ======================================
     this.addListener = function(event, listener) {
       if(event != null && listener != null) {
-	if(this.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
-	var listeners = [].concat(listener);
-	for(index in listeners) {
-	  if(listeners[index] != null && listeners[index] instanceof Function) {
-	    this[event] = listeners[index];
-	  }
-	}
+        if(this.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
+        var listeners = [].concat(listener);
+        for(index in listeners) {
+          if(listeners[index] != null && listeners[index] instanceof Function) {
+            this[event] = listeners[index];
+          }
+        }
       }
     }
 

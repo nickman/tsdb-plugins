@@ -25,24 +25,27 @@ test = {fqn, matchers, dbg ->
     
     def objName = new ObjectName(fqn);
     if(!applyPattern(matchers, objName.getDomain(), dbg)) return false;
-    boolean failed = false;
+    boolean match = false;
     objName.getKeyPropertyList().each() { k, v ->
-        if(!failed) {
-            failed = applyPattern(matchers, "$k=$v", dbg);
+        if(!match) {
+            match = applyPattern(matchers, "$k=$v", dbg);
         }
     }
-    if(dbg) println "test($fqn): $failed";
-    return !failed;
+    if(dbg) println "test($fqn): $match";
+    return match;
 }
 
 applyPattern = {matchers, pattern, dbg ->
     boolean match = false;
+    remove = null;
     matchers.each() {
         if(!match) {
             match = it.matcher(pattern).matches()
+            remove = it;
              if(dbg) println "\t--->($pattern) ($it) : ${match}";
         }
     }
+    if(remove!=null) matchers.remove(remove);
     if(dbg) println "applyPattern($pattern) : $match";
     return match;
 }
@@ -90,7 +93,7 @@ actuals.each() {
         sb++;
         dbg = true;
     }
-    if(test(it, patterns, dbg)) {
+    if(test(it, new LinkedHashSet(patterns), dbg)) {
         matches++;
         if(matches%100==0) println it;
     }

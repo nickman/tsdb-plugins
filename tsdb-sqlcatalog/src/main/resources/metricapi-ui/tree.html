@@ -116,7 +116,11 @@ ws.d3TSMetas(q, "*:dc=dc1|dc2|dc3,host=*9|*10|*11").then(
     if(source==null || source.children==null || source.children.length==0) return "leaf";
     return source.children[0].type=="branch" ? "node" : "leaf";
 
-  }
+  }var tree = d3.layout.tree()
+    .size([h, w]);
+
+var diagonal = d3.svg.diagonal()
+
 
 
 function update(source) {

@@ -54,6 +54,8 @@ function () {
     this.clientid = props.clientid;
     this.onsession = props.onsession;
 
+    console.info("Requested Session (self): c: %s, fx: %s", self.clientid, self.onsession);
+
 
     
     // ======================================
@@ -95,7 +97,7 @@ function () {
       try {
         var parsed = JSON.parse(evt.data);
         if(parsed.sessionid) {
-          props.onsession(parsed.sessionid, props.clientid); 
+          self.onsession(self.clientid, parsed.sessionid); 
         }
       } catch (e) {}
 

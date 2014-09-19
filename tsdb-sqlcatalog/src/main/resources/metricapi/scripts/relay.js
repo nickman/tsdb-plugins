@@ -30,6 +30,7 @@ define(['bacon', 'scripts/remote'],
 
 	relay.local = function local(props) {
 		props = props || {};
+		console.info("Local Relay Initializing. Initial Props: [%O]", props);
 		var self = this;
 		this.remote = null;
 

@@ -19,25 +19,33 @@ requirejs.config({
 var $mm = $mm || {};
 // The mm global req id counter
 $mm.RID = function() {
-  var rid = 0;
+  if(this.rid==null) {
+    this.rid = 0;
+  }
+  var self = this;
   return {
     nextrid : function() {
-      rid++;
-      return rid;
+      self.rid++;
+      return self.rid;
     }
   }
 }
 // The mm global client id to assign to MClients 
 // to uniquely identify a client until the remote
 // assigns a sessionid. $mm.CLIENTID().clientId()
-$mm.CLIENTID = function() {
-  var clientid = 0;
+$mm.CLIENTID = function _CLIENTID_() {
+  if(this.rid==null) {
+    this.rid = 0;
+  }
+  var self = this;
   return {
-    clientId : function() {
-      clientid++;
-      return clientid;
+    clientId : function _clientId_() {
+      self.rid++;
+      return self.rid;
     }
   }
+  
+
 }
 // the standard bus selectors
 $mm.selector = {
@@ -103,14 +111,20 @@ console.group("Initializing MetaMetrics....");
 // Initialize main module
 // ==============================
 define(['bacon', 'scripts/relay', 'jsonpath'],
-function (Baconator, r, jsonPath) {
-  this.bus = new Baconator.Bus();
-  this.relayFactory = r;
+function (Baconator, Relay, jsonPath) {  
+  this.relayFactory = Relay;
   var cbs = ['onstart', 'onend', 'data', 'error'];
   console.info("mbus: [%O]", this.bus);
   console.info("rfac: [%O]", this.relayFactory);
   // The central shared event bus
-  $mm.bus = new Baconator.Bus();
+  if($mm.bus!=null) {
+    $mm.bus = new Baconator.Bus();
+  }
+  $mm.bus.onValue(function(evt) {
+    console.group(" DEBUG BUS EVENT ");
+    console.dir(evt);
+    console.groupEnd();
+  });
   
   this.version = 1.0;
   this.name = "This is the OpenTSDB MetaMetrics JS API, version " + this.name;
@@ -121,15 +135,15 @@ function (Baconator, r, jsonPath) {
   this.MClient = function MClient(props) {
     props = props || {};
     if(props.relay==null) props.relay = 'local';
-    this.clientId = $mm.CLIENTID().clientId();
-    this.self = this;
-    props.clientid = this.clientId;
-    props.onsession = function _onsession_(r_sessionid, r_clientid) {
-      if(r_clientid = self.clientid) {
-        self.sessionid = sessionid;
-        console.info("Acquired sessionid. Client: %s, Session: %s", self.clientId, self.sessionid);
+    this.clientid = $mm.CLIENTID().clientId();
+    var me = this;
+    props.clientid = me.clientid;
+    props.onsession = function _onsession_(r_clientid, r_sessionid) {
+      if(r_clientid = me.clientid) {
+        me.sessionid = r_sessionid;
+        console.info("Acquired sessionid. Client: %s, Session: %s", me.clientid, me.sessionid);
       } else {
-        console.debug("Ignoring Session Callback Mismatch. Provided: [session:%s, client:%s] but my clientid is [%s]", r_sessionid, r_clientid, self.clientid);
+        console.debug("Ignoring Session Callback Mismatch. Provided: [session:%s, client:%s] but my clientid is [%s]", r_sessionid, r_clientid, me.clientid);
       }
     }
     this.relay = new self.relayFactory[props.relay](props);
@@ -137,7 +151,7 @@ function (Baconator, r, jsonPath) {
     // $mm.RID.nextrid();
 
     this.wrapRequest = function _wrapRequest_(payload, routing) {
-      var rid = $mm.RID.nextrid();
+      var rid = $mm.RID().nextrid();
       payload.rid = rid;
 
       routing = routing || {};
@@ -145,7 +159,7 @@ function (Baconator, r, jsonPath) {
       if(routing.resetting==null) routing.resetting = false;
       if(routing.expectedReturns==null) routing.expectedReturns = Infinity;
       if(routing.filter==null) {
-        if(routing.expectedReturns != Infinrouting.expectedReturnsity) {
+        if(routing.expectedReturns != Infinity) {
           routing.filter = $mm.selector.reridFilter(rid);
         } else {
           routing.filter = $mm.selector.allFilter();
@@ -160,13 +174,15 @@ function (Baconator, r, jsonPath) {
       if(routing.seperateErrStream==null) routing.seperateErrStream = false;
 
       console.debug("Sending Request: rid: %s, payload: [%O], routing: [%O]", rid, payload, routing);
-      return self.relay.sendRequest(payload, routing);
+
+      $mm.bus.push({uri: "/" + payload.t + "/" + payload.svc + "/" + payload.op, args:[payload, routing]});
+      
 
 
     }
 
     this.services = function _services_() {
-      var response = self.wrapRequest({svc:"router", op:"services", t: "req"}, {expectedReturns:1});
+      var response = me.wrapRequest({svc:"router", op:"services", t: "req"}, {expectedReturns:1});
     }
     
     return {

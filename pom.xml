@@ -12,6 +12,7 @@
 	<modules>
 		<module>tsdb-plugins-core</module>
 		<module>tsdb-sqlcatalog</module>
+		<module>tsdb-client</module>
 		<!--
 		<module>spring-plugin</module>
 		<module>tsdb-elastic</module>
@@ -28,6 +29,7 @@
  		<!-- Dependencies -->
  		<junit.version>4.11</junit.version>
  		<trove.version>3.0.2</trove.version>
+		<netty.version>3.9.1.Final</netty.version>
  		<jmx-tools.version>1.0-SNAPSHOT</jmx-tools.version>
 		<http-client.version>4.2.3</http-client.version>
 		<opentsdb.version>2.0.0</opentsdb.version>
@@ -229,6 +231,11 @@
 			  <version>${reactor.version}</version>
 			</dependency>
 
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty</artifactId>
+			<version>${netty.version}</version>
+		</dependency>
 
 
 		    <!--

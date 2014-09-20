@@ -51,18 +51,23 @@ $mm.CLIENTID = function _CLIENTID_() {
 $mm.selector = {
     jsonPathFilter: function(expression) {
       return function(event) {
-	if(event==null)	return null;
-	var target = null;
-	try {
-		if(isEvent(event)) {
-			target = event.value;
-		} else {
-			target = event;
-		}
-		return jsonPath(target, expression)!=false;
-	} catch (e) {
-		return false;
-	}
+        if(event==null)	return null;
+        var target = null;
+        try {
+        	if(isEvent(event)) {
+        		target = event.value;
+        	} else {
+        		target = event;
+        	}
+        	return jsonPath(target, expression)!=false;
+        } catch (e) {
+        	return false;
+        }
+      }
+    },
+    sessionFilter: function(clientid) {
+      return function(sevt) {
+        return (sevt != null && sevt.clientid != null && sevt.clientid == clientid && sevt.type != null && sevt.type == 'assignsession');
       }
     },
     allFilter: function() {
@@ -114,12 +119,13 @@ define(['bacon', 'scripts/relay', 'jsonpath'],
 function (Baconator, Relay, jsonPath) {  
   this.relayFactory = Relay;
   var cbs = ['onstart', 'onend', 'data', 'error'];
-  console.info("mbus: [%O]", this.bus);
-  console.info("rfac: [%O]", this.relayFactory);
   // The central shared event bus
   if($mm.bus!=null) {
     $mm.bus = new Baconator.Bus();
   }
+  console.info("mbus: [%O]", $mm.bus);
+  console.info("rfac: [%O]", this.relayFactory);
+
   $mm.bus.onValue(function(evt) {
     console.group(" DEBUG BUS EVENT ");
     console.dir(evt);
@@ -138,7 +144,8 @@ function (Baconator, Relay, jsonPath) {
     this.clientid = $mm.CLIENTID().clientId();
     var me = this;
     props.clientid = me.clientid;
-    props.onsession = function _onsession_(r_clientid, r_sessionid) {
+    
+    this.onsession = function _onsession_(r_clientid, r_sessionid) {
       if(r_clientid = me.clientid) {
         me.sessionid = r_sessionid;
         console.info("Acquired sessionid. Client: %s, Session: %s", me.clientid, me.sessionid);
@@ -146,6 +153,7 @@ function (Baconator, Relay, jsonPath) {
         console.debug("Ignoring Session Callback Mismatch. Provided: [session:%s, client:%s] but my clientid is [%s]", r_sessionid, r_clientid, me.clientid);
       }
     }
+    $mm.bus.filter($mm.selector.sessionFilter(this.clientid)).onValue(this.onsession);
     this.relay = new self.relayFactory[props.relay](props);
       
     // $mm.RID.nextrid();
@@ -174,8 +182,17 @@ function (Baconator, Relay, jsonPath) {
       if(routing.seperateErrStream==null) routing.seperateErrStream = false;
 
       console.debug("Sending Request: rid: %s, payload: [%O], routing: [%O]", rid, payload, routing);
+      var routeKey = {
+        clientid: me.clientid,
+        sessionid: me.sessionid,
+        rid: payload.rid,
+        t: payload.t,
+        svc: payload.svc,
+        op: payload.op
+      }
+      $mm.bus.push({ payload: payload, routing: routing, routekey: routeKey});
 
-      $mm.bus.push({uri: "/" + payload.t + "/" + payload.svc + "/" + payload.op, args:[payload, routing]});
+      //$mm.bus.push({uri: "/" + payload.t + "/" + payload.svc + "/" + payload.op, args:[payload, routing]});
       
 
 

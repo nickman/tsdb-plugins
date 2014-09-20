@@ -60,14 +60,14 @@ define(['bacon', 'scripts/remote'],
 		// Add new event listeners to remote
 		// ======================================
 		this.addListener = function(event, listener) {
-			remote.addListener(event, listener);
+			this.remote.addListener(event, listener);
 		}
 
 		// ======================================
 		// Remove registered event listeners
 		// ======================================
 		this.removeListener = function(event, listener) {
-			remote.removeListener(event, listener);
+			this.remote.removeListener(event, listener);
 		}
 
 	    this.remoteProps.onsession = props.onsession;
@@ -78,9 +78,18 @@ define(['bacon', 'scripts/remote'],
 		// =======================================
 		//  Boot remote instance
 		// =======================================    
+		this.remoteProps = function _onsession_(r_clientid, r_sessionid) {
+			me.clientid = r_clientid;
+			me.sessionid = r_sessionid;
+			$mm.bus.push({type: 'assignsession', clientid: me.clientid, sessionid: me.sessionid});
+		};
 		this.remote = new $mm.remote[this.remotetype](this.remoteProps);
 		console.info("Remote Acquired: [%s]", this.remote);
+		// var events = ['close', 'open', 'message', 'error'];
+		this.addListener('message', function(data, remote) {
+			console.debug("Relaying Message: [%O]", data);
 
+		});
 		// ============================================================
 		// Core internal functions
 		// ============================================================
@@ -142,14 +151,18 @@ define(['bacon', 'scripts/remote'],
 
 
 		this.sendRequest = function _sendRequest_(payload, routing) {
-      routing = routing || {};
-      if(routing.timeout==null) routing.timeout = 1000;
-      if(routing.resetting==null) routing.resetting = false;
-      if(routing.expectedReturns==null) routing.expectedReturns = Infinity;
-      if(routing.filter==null) routing.filter = filters.allFilter();
-      if(routing.seperateErrStream==null) routing.seperateErrStream = false;
-
+      		routing = routing || {};
+      		if(routing.timeout==null) routing.timeout = 1000;
+      		if(routing.resetting==null) routing.resetting = false;
+      		if(routing.expectedReturns==null) routing.expectedReturns = Infinity;
+      		if(routing.filter==null) routing.filter = filters.allFilter();
+      		if(routing.seperateErrStream==null) routing.seperateErrStream = false;
 		};
+
+		//============================================================================
+		//	Register bus listeners
+		//============================================================================
+		console.info("Registering Bus Listeners");
 
 
 		return {
@@ -158,6 +171,10 @@ define(['bacon', 'scripts/remote'],
 		}
 
 	}
+
+	// ====================
+	// end of local ctor
+	// ====================
 
 
 	$mm.relay.relays = [];

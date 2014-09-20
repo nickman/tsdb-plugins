@@ -27,8 +27,8 @@ function () {
   // WebSocket remote
   // ==========================================================================================================================================
   remote.websocket = function websocket(props) {
-    var events = ['close', 'open', 'message', 'error'];
-    var readystates = {
+    this.events = ['close', 'open', 'message', 'error'];
+    this.readystates = {
       0: 'CONNECTING',
       1: 'OPEN',
       2: 'CLOSING',
@@ -76,6 +76,7 @@ function () {
     // ======================================
     this.ws.onclose = function(evt) {
       console.info("ws closed");
+      delete self.sessionid;
       for(index in self.onclose) {
 	      self.onclose[index](evt, self);
       }
@@ -94,15 +95,22 @@ function () {
     }
     this.ws.onmessage = function(evt) {
       console.info("ws message: [%s]", evt.data);
-      try {
-        var parsed = JSON.parse(evt.data);
-        if(parsed.sessionid) {
-          self.onsession(self.clientid, parsed.sessionid); 
-        }
-      } catch (e) {}
-
+      var parsed = JSON.parse(evt.data);
+      if(self.sessionid==null) {
+        try {          
+          if(parsed.sessionid) {
+            var SESSIONID = parseInt(parsed.sessionid);
+            self.onsession(self.clientid, SESSIONID); 
+            self.sessionid = SESSIONID;
+          }
+        } catch (e) {}
+      }
+      var response = {
+        sessionid: self.sessionid,
+        data: parsed
+      }
       for(index in self.onmessage) {
-	      self.onmessage[index](evt, self);
+	      self.onmessage[index](response, self);
       }				
     }
     
@@ -111,7 +119,7 @@ function () {
     // ======================================
     this.addListener = function(event, listener) {
       if(event != null && listener != null) {
-        if(this.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
+        if(self.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
         var listeners = [].concat(listener);
         for(index in listeners) {
           if(listeners[index] != null && listeners[index] instanceof Function) {
@@ -126,14 +134,14 @@ function () {
     // ======================================
     this.removeListener = function(event, listener) {
       if(event != null && listener != null) {
-	if(this.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
-	var listeners = [].concat(listener);
-	for(index in listeners) {
-	  var idx = this[event].indexOf(listeners[index]);
-	  if(idx > -1) {
-	    this[event].splice(idx, 1);
-	  }
-	}
+        if(self.events.indexOf(event)==-1) throw new Error("Invalid event type: [" + event + "]. Valid events are: [" + this.events.join(", ") + "]");
+        var listeners = [].concat(listener);
+        for(index in listeners) {
+          var idx = this[event].indexOf(listeners[index]);
+          if(idx > -1) {
+            this[event].splice(idx, 1);
+          }
+        }
       }
     }
     

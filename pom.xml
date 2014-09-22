@@ -4,7 +4,7 @@
     <groupId>org.helios.tsdb</groupId>
     <artifactId>tsdb-plugins</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>TSDB-Plugin :: Project</name>
+    <name>TSDB-Plugins :: Project</name>
     <description>TSDB-Plugins Project</description>
     <packaging>pom</packaging>
     <url>https://github.com/nickman/tsdb-plugins</url>

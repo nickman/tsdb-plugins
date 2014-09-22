@@ -94,12 +94,18 @@ public class ClientChannelFactory {
 			}
 		});
 		channelFactory = new NioClientSocketChannelFactory(bossPool, workerPool);
-		bootstrap = new ClientBootstrap(channelFactory);	
+		bootstrap = new ClientBootstrap(channelFactory);
+		bootstrap.setPipelineFactory(ClientPipelineFactory.DEFAULT);
 		log.info("OpenTSDB ClientFactory started.");
 	}
 	
-	private ChannelFuture connect(URI uri) {
-		return bootstrap.connect(new InetSocketAddress(uri.getHost(), uri.getPort()));
+	private ChannelFuture connect(final URI uri) {
+		try {
+			ClientPipelineFactory.setURI(uri);
+			return bootstrap.connect(new InetSocketAddress(uri.getHost(), uri.getPort()));
+		} finally {
+			ClientPipelineFactory.clearURI();
+		}
 	}
 
 }

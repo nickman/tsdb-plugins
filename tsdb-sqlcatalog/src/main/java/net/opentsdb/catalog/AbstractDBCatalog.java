@@ -2015,7 +2015,12 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
     @Override
 	public Deferred<SearchQuery> executeQuery(final SearchQuery query, final Deferred<SearchQuery> result) {
     	final ElapsedTime et = SystemClock.startClock();
-    	
+    	if(query==null) {
+    		result.callback(new RuntimeException("Query was null"));
+    		return result;
+    	}
+    	String[] queryText = query.getQuery().split(":", 2);
+    	query.setQuery(queryText[0].toUpperCase() + ":" + queryText[1]);
     	Connection conn = null;
     	try {
     		conn = dataSource.getConnection();

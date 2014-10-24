@@ -28,8 +28,8 @@
 	<logger name="net.opentsdb.utils" level="${utils-level:-INFO}"/>  
   
   
-  <logger name="net.opentsdb.tsd.ConnectionManager" level="WARN"/>
-  <logger name="net.opentsdb.tsd.HttpQuery" level="WARN"/>
+  <logger name="net.opentsdb.tsd.ConnectionManager" level="DEBUG"/>
+  <logger name="net.opentsdb.tsd.HttpQuery" level="DEBUG"/>
   
 
   <root level="info">

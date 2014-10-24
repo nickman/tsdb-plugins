@@ -5,16 +5,22 @@ package net.opentsdb.client.net;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketVersion;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.slf4j.Logger;
@@ -68,6 +74,15 @@ public class ClientChannelFactory {
 	public static void main(String[] args) {
 		log.info("ClientChannelFactory Test");
 		ClientChannelFactory f = getInstance();
+		try {
+			URI uri = new URI("ws://localhost:4242/ws?codec=json");
+			Channel channel = f.connect(uri, 2000);
+			log.info("Connected !");
+			try { Thread.currentThread().join(); } catch (Exception x) {/* No Op */}
+		} catch (Exception ex) {
+			log.error("Client Test Fail", ex);
+		}
+		
 		
 	}
 	
@@ -99,6 +114,7 @@ public class ClientChannelFactory {
 		log.info("OpenTSDB ClientFactory started.");
 	}
 	
+	
 	private ChannelFuture connect(final URI uri) {
 		try {
 			ClientPipelineFactory.setURI(uri);
@@ -107,5 +123,34 @@ public class ClientChannelFactory {
 			ClientPipelineFactory.clearURI();
 		}
 	}
+	
+	/** The handshaker factory */
+	protected final WebSocketClientHandshakerFactory handshakerFactory = new WebSocketClientHandshakerFactory();
+	protected WebSocketClientHandshaker getHandshaker(final URI uri) {
+		return handshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, false, new HashMap<String, String>(0));
+	}
+	
+	private Channel connect(final URI uri, final long timeout) throws TimeoutException {
+		try {
+			ClientPipelineFactory.setURI(uri);
+			final ChannelFuture cf = bootstrap.connect(new InetSocketAddress(uri.getHost(), uri.getPort()));
+			if(cf.awaitUninterruptibly(timeout)) {
+				try {
+					//getHandshaker(uri).handshake(cf.getChannel()).sync();
+					
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace(System.err);
+				} 
+				return cf.getChannel();
+			} else {
+				cf.cancel();
+				throw new TimeoutException("Failed to acquire connection within timeout of [" + timeout + "] ms");
+			}
+		} finally {
+			ClientPipelineFactory.clearURI();
+		}
+	}
+	
 
 }

@@ -40,6 +40,8 @@ import org.jboss.netty.channel.ChannelLocal;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.UpstreamMessageEvent;
+import org.jboss.netty.handler.logging.LoggingHandler;
+import org.jboss.netty.logging.InternalLogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +61,7 @@ public class ProtocolSwitch implements ChannelUpstreamHandler {
 	
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
 
 	/** A map of protocol initiators keyed by the protocol name they advertise */
 	protected final Map<String, ProtocolInitiator> initiators = new ConcurrentHashMap<String, ProtocolInitiator>();

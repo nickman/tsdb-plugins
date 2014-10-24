@@ -145,6 +145,7 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
 	 */
 	@Override
 	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+		log.warn("ChannelEvent: {}", e);
 		if(e instanceof MessageEvent) {
 			Object message = ((MessageEvent)e).getMessage();
 			if (message instanceof HttpRequest) {
@@ -222,6 +223,7 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
 	 * @param me The message event that will be sent upstream if not handled here
 	 */
 	public void handleRequest(ChannelHandlerContext ctx, HttpRequest req, MessageEvent me) {
+		log.warn("HTTP Request: {}", req);
         if (req.getMethod() != GET) {
             sendHttpResponse(ctx, req, new DefaultHttpResponse(HTTP_1_1, FORBIDDEN));
             return;

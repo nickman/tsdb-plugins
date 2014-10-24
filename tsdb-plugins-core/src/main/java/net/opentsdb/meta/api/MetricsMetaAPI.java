@@ -26,7 +26,6 @@ package net.opentsdb.meta.api;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
@@ -34,8 +33,6 @@ import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
-
-import com.stumbleupon.async.Deferred;
 
 
 

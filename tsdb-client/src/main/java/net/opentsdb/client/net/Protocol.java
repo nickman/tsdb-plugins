@@ -26,18 +26,30 @@ package net.opentsdb.client.net;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import net.opentsdb.client.net.Protocol.PipelineBuilder;
 import net.opentsdb.client.net.ws.WebSocketClientHandler;
 
+import org.jboss.netty.channel.ChannelEvent;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelState;
+import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.UpstreamChannelStateEvent;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketVersion;
+import org.jboss.netty.handler.logging.LoggingHandler;
+import org.jboss.netty.logging.InternalLogLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>Title: Protocol</p>
@@ -55,7 +67,8 @@ public enum Protocol {
 	}
 	
 	private final PipelineBuilder builder;
-	
+	private static final LoggingHandler lh = new LoggingHandler(Protocol.class, InternalLogLevel.WARN, true);
+	private static final Logger LOG = LoggerFactory.getLogger(Protocol.class);
 	public ChannelPipeline getPipeline(final String host, final String path, final int port, final Map<String, String> parameters) {
 		return builder.getPipeline(host, path, port, parameters);
 	}
@@ -81,19 +94,54 @@ public enum Protocol {
 
 		@Override
 		public ChannelPipeline getPipeline(final String host, final String path, final int port, final Map<String, String> parameters) {
-			ChannelPipeline pipeline = Channels.pipeline();		
+			final ChannelPipeline pipeline = Channels.pipeline();
+			pipeline.addLast("logging", lh);
+			Codecs.JSON.addCodecs(pipeline);
 			pipeline.addLast("decoder", new HttpResponseDecoder());
 			pipeline.addLast("encoder", new HttpRequestEncoder());
+			final WebSocketClientHandshaker handshaker;
 			try {
-				pipeline.addLast("ws-handler", new WebSocketClientHandler(getHandshaker(new URI("ws://" + host + ":" + port + "/" + path))));
+				handshaker = getHandshaker(new URI("ws://" + host + ":" + port + path));
+				pipeline.addLast("ws-handler", new WebSocketClientHandler(handshaker));
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);
 			}
+//			
+//			pipeline.addLast("onconnect", new ChannelUpstreamHandler() {
+//				@Override
+//				public void handleUpstream(final ChannelHandlerContext ctx, final ChannelEvent e) throws Exception {
+//					
+//					if(e instanceof UpstreamChannelStateEvent) {
+//						final UpstreamChannelStateEvent upEvent = (UpstreamChannelStateEvent)e;						
+//						if(upEvent.getState()==ChannelState.CONNECTED && upEvent.getValue()!=null) {
+//							LOG.info("Up Event ----> \n\t Value: {}\n\t State: {}", upEvent.getValue(), upEvent.getState().name());
+//							final ChannelUpstreamHandler self = this;
+//							handshaker.handshake(ctx.getChannel()).addListener(new ChannelFutureListener() {
+//								@Override
+//								public void operationComplete(ChannelFuture future) throws Exception {
+//									if(future.isSuccess()) {
+//										ctx.getPipeline().remove(self);
+//										LOG.info("Handshake completed successfully");
+//									}
+//								}
+//							});
+//							
+////							DefaultHttpRequest req = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "ws://" + host + ":" + port + "/" + path);
+////							ctx.sendDownstream(new DownstreamMessageEvent(ctx.getChannel(), Channels.future(ctx.getChannel()), req,  ctx.getChannel().getRemoteAddress()));
+//						}
+//					}
+//					ctx.sendUpstream(e);					
+//				}
+//			});
+			
+			 
+			
+			
 			return pipeline;		
 		}
 		
 		protected WebSocketClientHandshaker getHandshaker(final URI uri) {
-			return handshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, false, null);
+			return handshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, false, new HashMap<String, String>(0));
 		}
 		
 		

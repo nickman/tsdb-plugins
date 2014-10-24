@@ -134,7 +134,17 @@ public class ClientPipelineFactory implements ChannelPipelineFactory {
 	 */
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
-		return Protocol.from(protocol).getPipeline(host, path, port, parameters);
+		final ChannelPipeline pipeline = Protocol.from(protocol).getPipeline(host, path, port, parameters);
+//		String codecName = parameters.get("codec");
+//		if(codecName!=null) {
+//			try {
+//				Codecs c = Codecs.valueOf(codecName.trim().toUpperCase());
+//				c.addCodecs(pipeline);
+//			} catch (Exception x) {
+//				x.printStackTrace(System.err);
+//			}
+//		}
+		return pipeline;
 	}
 
 	/**

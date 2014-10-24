@@ -57,6 +57,7 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory, ChannelU
 	protected static final Object lock = new Object();
 	
 	protected final LoggingHandler logger = new LoggingHandler(getClass(), InternalLogLevel.INFO, true);
+	private static final LoggingHandler lh = new LoggingHandler(ProtocolSwitch.class, InternalLogLevel.INFO, true);
 	
 	/** The protocol detection handler */
 	protected final ProtocolSwitch protocolSwitch = new ProtocolSwitch();
@@ -91,6 +92,7 @@ public class RemotingPipelineFactory implements ChannelPipelineFactory, ChannelU
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
+		pipeline.addLast("logging", lh);
 		pipeline.addLast("session", this);
 		//pipeline.addLast("logger", logger);
 		pipeline.addLast("protocolSwitch", protocolSwitch);

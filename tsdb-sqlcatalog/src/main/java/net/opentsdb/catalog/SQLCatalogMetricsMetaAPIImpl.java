@@ -68,7 +68,7 @@ import net.opentsdb.meta.api.QueryContext;
 import net.opentsdb.tsd.BadRequestException;
 import net.opentsdb.tsd.HttpQuery;
 import net.opentsdb.tsd.HttpRpc;
-import net.opentsdb.tsd.RpcHandler;
+import net.opentsdb.tsd.RPC;
 import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
@@ -312,7 +312,8 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		new MetricUIHandler();
 	}
 	
-	private class MetricUIHandler implements HttpRpc {
+	@RPC(httpKeys={"metricapi-ui"})
+	public class MetricUIHandler implements HttpRpc {
 		final String contentDir;
 		final String staticDir;
 		
@@ -322,8 +323,10 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		  public MetricUIHandler() {
 			  staticDir = tsdb.getConfig().getDirectoryName("tsd.http.staticroot");
 			  contentDir = System.getProperty("metricui.staticroot", staticDir);
-			  RpcHandler.getInstance().registerHandler("metricapi-ui", this);
+			  //RpcHandler.getInstance().registerHandler("metricapi-ui", this);
 		  }
+		  
+		  
 
 		  public void execute(final TSDB tsdb, final HttpQuery query)
 		    throws IOException {

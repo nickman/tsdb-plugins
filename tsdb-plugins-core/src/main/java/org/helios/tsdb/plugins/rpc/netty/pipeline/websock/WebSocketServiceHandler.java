@@ -37,6 +37,7 @@ import java.util.Map;
 import net.opentsdb.core.TSDB;
 import net.opentsdb.tsd.HttpQuery;
 import net.opentsdb.tsd.HttpRpc;
+import net.opentsdb.tsd.RPC;
 
 import org.helios.tsdb.plugins.remoting.json.ChannelBufferizable;
 import org.helios.tsdb.plugins.remoting.json.JSONRequest;
@@ -88,7 +89,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.rpc.netty.pipeline.websock.WebSocketServiceHandler</code></p>
  */
-
+@RPC(httpKeys={"ws"})
 public class WebSocketServiceHandler  implements ChannelUpstreamHandler, ChannelDownstreamHandler, HttpRpc {
 	/** The JSON Request Router */
 	protected final JSONRequestRouter router = JSONRequestRouter.getInstance();

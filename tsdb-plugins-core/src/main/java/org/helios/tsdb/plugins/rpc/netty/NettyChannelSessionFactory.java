@@ -31,20 +31,20 @@ import org.helios.tsdb.plugins.rpc.session.RPCSessionAttribute;
 import org.jboss.netty.channel.Channel;
 
 /**
- * <p>Title: NetyChannelSessionFactory</p>
+ * <p>Title: NettyChannelSessionFactory</p>
  * <p>Description: An {@link ITransportSessionFactory} for Netty Channels</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.rpc.netty.NetyChannelSessionFactory</code></p>
+ * <p><code>org.helios.tsdb.plugins.rpc.netty.NettyChannelSessionFactory</code></p>
  */
 
-public class NetyChannelSessionFactory implements ITransportSessionFactory {
+public class NettyChannelSessionFactory implements ITransportSessionFactory {
 	/** The netty transport type */
 	private static final Class<?> NETTY_CHANNEL = Channel.class;
 	/**
-	 * Creates a new NetyChannelSessionFactory
+	 * Creates a new NettyChannelSessionFactory
 	 */
-	public NetyChannelSessionFactory() {
+	public NettyChannelSessionFactory() {
 	}
 
 	/**

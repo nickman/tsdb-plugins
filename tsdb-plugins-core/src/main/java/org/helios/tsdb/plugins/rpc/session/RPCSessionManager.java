@@ -35,7 +35,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import javax.management.ObjectName;
 
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
-import org.helios.tsdb.plugins.rpc.netty.NetyChannelSessionFactory;
+import org.helios.tsdb.plugins.rpc.netty.NettyChannelSessionFactory;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
 import org.helios.tsdb.plugins.util.JMXHelper;
@@ -97,7 +97,7 @@ public class RPCSessionManager implements RPCSessionManagerMXBean {
 		log.info("Created RPCSessionManager");		
 		pluginContext = TSDBPluginServiceLoader.getLoaderInstance().getPluginContext();
 		threadPool = new AsyncDispatcherExecutor("rpcsession", pluginContext.getExtracted());
-		registerLifecycleSessionFactory(new NetyChannelSessionFactory());
+		registerLifecycleSessionFactory(new NettyChannelSessionFactory());
 		JMXHelper.registerMBean(this, OBJECT_NAME);
 		
 	}

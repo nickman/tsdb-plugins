@@ -24,12 +24,10 @@
  */
 package org.helios.tsdb.plugins.remoting.json;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.management.Notification;
-import javax.management.NotificationFilter;
-import javax.management.NotificationListener;
 
 import net.opentsdb.tsd.TSDBJSONService;
 
@@ -38,11 +36,9 @@ import org.helios.tsdb.plugins.remoting.json.annotations.JSONRequestService;
 import org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices;
 import org.helios.tsdb.plugins.service.PluginContext;
 import org.helios.tsdb.plugins.service.TSDBPluginServiceLoader;
-import org.helios.tsdb.plugins.util.ConfigurationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -52,6 +48,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.tsdb.plugins.remoting.json.JSONRequestRouter</code></p>
+ * 		org.helios.tsdb.plugins.remoting.json.services.SystemJSONServices
+		net.opentsdb.tsd.TSDBJSONService
+		net.opentsdb.catalog.H2DBCatalog
+		org.helios.tsdb.plugins.remoting.subpub.SubscriptionManager
+		org.helios.tsdb.plugins.remoting.json.JSONRequestRouter
+		net.opentsdb.catalog.JSONMetricsAPIService
+
  */
 @JSONRequestService(name="router", description="The main JSON request routing service")
 public class JSONRequestRouter {
@@ -93,7 +96,7 @@ public class JSONRequestRouter {
 		registerJSONService(new TSDBJSONService());
 		pluginContext = TSDBPluginServiceLoader.getLoaderInstance().getPluginContext(); 
 		pluginContext.setResource(getClass().getSimpleName(), this);
-
+		
 	}
 	
 	/**
@@ -112,7 +115,22 @@ public class JSONRequestRouter {
 			for(String key: serviceEntry.getValue().keySet()) {
 				b.append("\n\t\t").append(key);
 			}
-		}						
+		}		
+		b.append("\n\t@JSONRequestServices");
+		final Set<String> invokerClassNames = new HashSet<String>();
+		for(Map<String, AbstractJSONRequestHandlerInvoker> imap: invokerMap.values()) {
+			for(AbstractJSONRequestHandlerInvoker ivoker: imap.values()) {
+				String n = ivoker.getClass().getName();
+				int index = n.indexOf("-"); 
+				if(index!=-1) {
+					n = n.substring(0, index);
+				}
+				invokerClassNames.add(n);
+			}
+		}
+		for(String s: invokerClassNames) {
+			b.append("\n\t\t").append(s);
+		}
 		b.append("\n\t=========================================================\n");
 		log.info(b.toString());
 		

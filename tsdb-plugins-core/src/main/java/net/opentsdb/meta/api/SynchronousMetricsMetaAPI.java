@@ -32,10 +32,6 @@ import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
-import reactor.core.composable.Promise;
-import reactor.core.composable.Stream;
-
-import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: SynchronousMetricsMetaAPI</p>

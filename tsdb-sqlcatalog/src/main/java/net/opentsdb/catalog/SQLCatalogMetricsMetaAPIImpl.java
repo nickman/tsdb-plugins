@@ -73,7 +73,6 @@ import net.opentsdb.uid.UniqueId;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
 
-import org.helios.jmx.util.helpers.SystemClock;
 import org.helios.tsdb.plugins.async.AsyncDispatcherExecutor;
 import org.helios.tsdb.plugins.remoting.json.serialization.Serializers;
 import org.helios.tsdb.plugins.service.PluginContext;
@@ -90,10 +89,7 @@ import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
 import reactor.core.composable.spec.Promises;
 import reactor.core.composable.spec.Streams;
-import reactor.event.Event;
 import reactor.function.Consumer;
-
-import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: SQLCatalogMetricsMetaAPIImpl</p>
@@ -309,48 +305,9 @@ public class SQLCatalogMetricsMetaAPIImpl implements MetricsMetaAPI, UncaughtExc
 		tagPredicateCache = new TagPredicateCache(sqlWorker);
 		loadContent();
 		ctx.setResource(getClass().getSimpleName(), this);	
-		new MetricUIHandler();
+		
 	}
 	
-	@RPC(httpKeys={"metricapi-ui"})
-	public class MetricUIHandler implements HttpRpc {
-		final String contentDir;
-		final String staticDir;
-		
-		  /**
-		   * Constructor.
-		   */
-		  public MetricUIHandler() {
-			  staticDir = tsdb.getConfig().getDirectoryName("tsd.http.staticroot");
-			  contentDir = System.getProperty("metricui.staticroot", staticDir);
-			  //RpcHandler.getInstance().registerHandler("metricapi-ui", this);
-		  }
-		  
-		  
-
-		  public void execute(final TSDB tsdb, final HttpQuery query)
-		    throws IOException {
-		    final String uri = query.request().getUri().replace("metricapi-ui/", "");
-		    if ("/favicon.ico".equals(uri)) {
-		      query.sendFile(staticDir 
-		          + "/favicon.ico", 31536000 /*=1yr*/);
-		      return;
-		    }
-		    if (uri.length() < 3) {  // Must be at least 3 because of the "/s/".
-		      throw new BadRequestException("URI too short <code>" + uri + "</code>");
-		    }
-		    // Cheap security check to avoid directory traversal attacks.
-		    // TODO(tsuna): This is certainly not sufficient.
-		    if (uri.indexOf("..", 3) > 0) {
-		      throw new BadRequestException("Malformed URI <code>" + uri + "</code>");
-		    }
-		    final int questionmark = uri.indexOf('?', 3);
-		    final int pathend = questionmark > 0 ? questionmark : uri.length();
-		    query.sendFile(contentDir
-		                 + uri.substring(1, pathend),  // Drop the "/s"
-		                   uri.contains("nocache") ? 0 : 31536000 /*=1yr*/);
-		  }		
-	}
 	
 	public static void mainx(String[] args) {
 		log("DB Only MetaInstance");

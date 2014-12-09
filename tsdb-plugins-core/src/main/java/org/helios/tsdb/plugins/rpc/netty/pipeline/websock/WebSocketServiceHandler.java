@@ -272,8 +272,8 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
      * @param req The http request
      * @return The websocket URL
      */
-    private String getWebSocketLocation(HttpRequest req) {
-        return "ws://" + req.getHeader(HttpHeaders.Names.HOST) + "/ws";
+    private String getWebSocketLocation(final HttpRequest req) {    	
+        return "ws://" + HttpHeaders.getHost(req) + "/ws";
     }	
 	
     /**
@@ -318,10 +318,16 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
             cf.addListener(WebSocketServerHandshaker.HANDSHAKE_LISTENER);
             cf.addListener(new ChannelFutureListener() {
 				@Override
-				public void operationComplete(ChannelFuture f) throws Exception {
+				public void operationComplete(final ChannelFuture f) throws Exception {
 					if(f.isSuccess()) {
 						Channel wsChannel = f.getChannel();
 						wsChannel.getPipeline().addLast("websock", wsHandler);
+						
+						StringBuilder b = new StringBuilder("\n\t=================================\n\tWS Channel Handlers\n\t=================================");
+						for(String key: wsChannel.getPipeline().getNames()) {
+							b.append("\n\t").append(key).append(" : ").append(wsChannel.getPipeline().get(key).getClass().getName());
+						}
+						log.info(b.toString());
 						RPCSessionManager.getInstance().getSession(wsChannel).addSessionAttribute(RPCSessionAttribute.Protocol, "WebSocket");
 //						SharedChannelGroup.getInstance().add(
 //								f.getChannel(), 
@@ -334,6 +340,8 @@ public class WebSocketServiceHandler  implements ChannelUpstreamHandler, Channel
 						
 						wsChannel.write(marshaller.getNodeFactory().objectNode().put("sessionid", "" + wsChannel.getId()));
 						//wsChannel.getPipeline().remove(DefaultChannelHandler.NAME);
+					} else {
+						log.error("WS Handshake Failed", f.getCause());
 					}
 				}
 			});

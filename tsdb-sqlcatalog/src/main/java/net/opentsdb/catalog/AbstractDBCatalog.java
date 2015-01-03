@@ -45,13 +45,11 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -62,6 +60,7 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
+import net.opentsdb.catalog.SQLWorker.ResultSetHandler;
 import net.opentsdb.catalog.cache.TSMetaCache;
 import net.opentsdb.catalog.cache.UIDCache;
 import net.opentsdb.catalog.datasource.CatalogDataSource;
@@ -81,6 +80,7 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.JSON;
 import net.opentsdb.utils.JSONException;
 
+import org.cliffc.high_scale_lib.NonBlockingHashSet;
 import org.helios.tsdb.plugins.event.TSDBSearchEvent;
 import org.helios.tsdb.plugins.handlers.logging.LoggerManager;
 import org.helios.tsdb.plugins.handlers.logging.LoggerManagerFactory;
@@ -2640,57 +2640,32 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	public long synchronizeFromStore() throws Exception {
 		
-//		log.info("Starting synchronizeFromStore.....");
-//		final long start = System.currentTimeMillis();
-//		Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
-//		Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
-//		method.setAccessible(true);
-//		Number x = (Number)method.invoke(null, tsdb);
-//		long elapsed = System.currentTimeMillis() - start;
-//		log.info("metaSync complete in {}: {}", elapsed, x);
-//		
-//		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-////		return ms.metasync();
-////		return MetaSynchronizer.synchronize(tsdb);
-//		
-//		long retVal = MetaSynchronizer.synchronize(tsdb);
-//		final long elapsed = System.currentTimeMillis() - start;
-//		if(retVal==0) {
-//			log.info("synchronizeFromStore Result: {}, Elapsed Time: {}", retVal, elapsed);
-//		} else {
-//			log.info("synchronizeFromStore failed with code: {}, Elapsed Time: {}", retVal, elapsed);
-//		}
-		return 0;
+		log.info("Starting synchronizeFromStore.....");
+		final long start = System.currentTimeMillis();
+		Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
+		Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
+		method.setAccessible(true);
+		Number x = (Number)method.invoke(null, tsdb);
+		long elapsed = System.currentTimeMillis() - start;
+		log.info("metaSync complete in {}: {}", elapsed, x);
 
-//		try {
-//			log.info("Starting synchronizeFromStore.....");
-//			final long start = System.currentTimeMillis();
-//			Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
-//			Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
-//			method.setAccessible(true);
-//			Number x = (Number)method.invoke(null, tsdb);
-//			long retVal = x.longValue();
-//			final long elapsed = System.currentTimeMillis() - start;
-//			if(retVal==0) {
-//				log.info("synchronizeFromStore Result: {}, Elapsed Time: {}", retVal, elapsed);
-//			} else {
-//				log.info("synchronizeFromStore failed with code: {}, Elapsed Time: {}", retVal, elapsed);
-//			}
-//			return retVal;
-//			//UIDManager.private static int metaSync(final TSDB tsdb) 
-//		} catch (Exception ex) {
-//			Throwable t = ex.getCause();
-//			while(t!=null) {
-//				if("Shouldn't be here".equals(t.getMessage().trim())) {
-//					log.warn("AutoSync encountered empty Hbase");
-//					return 0;
-//				}
-//				t = t.getCause();
-//			}
-//			log.error("Failed to run SynchronizeFromStore", ex);
-//			throw ex;
-//		}
+		final Set<String> seenTSUids = new NonBlockingHashSet<String>();
+		sqlWorker.executeQuery("SELECT TSUID FROM TSD_TSMETA", new ResultSetHandler(){
+			public boolean onRow(final int rowId, final ResultSet rset) {
+				try {
+					seenTSUids.add(rset.getString(1));
+					return true;
+				} catch (SQLException ex) {
+					throw new RuntimeException(ex);
+				}				
+			}
+		});
 		
+		
+		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
+		final long tsMetas = ms.metasync(seenTSUids, 5000, 5000);
+		
+		return tsMetas;
 	}
 	
 	

@@ -53,6 +53,7 @@ import net.opentsdb.uid.UniqueId.UniqueIdType;
 
 import org.hbase.async.Bytes;
 import org.hbase.async.GetRequest;
+import org.hbase.async.HBaseClient;
 import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;
 import org.slf4j.Logger;
@@ -89,6 +90,29 @@ public class MetaSynchronizer {
 	
 	/** The Charset to be used by the Scanner */
 	public static final Charset SCANNER_CHARSET = Charset.forName("ISO-8859-1");
+	
+	  /** The start row to scan on empty search strings.  `!' = first ASCII char. */
+	  private static final byte[] START_ROW = new byte[] { '!' };
+
+	  /** The end row to scan on empty search strings.  `~' = last ASCII char. */
+	  private static final byte[] END_ROW = new byte[] { '~' };
+	  
+	  /** The single column family used by this class. */
+	  private static final byte[] ID_FAMILY = toBytes("id");
+	  /** The single column family used by this class. */
+	  private static final byte[] NAME_FAMILY = toBytes("name");
+	  /** Row key of the special row used to track the max ID already assigned. */
+	  private static final byte[] MAXID_ROW = { 0 };
+	  /** How many time do we try to assign an ID before giving up. */
+	  private static final short MAX_ATTEMPTS_ASSIGN_ID = 3;
+	  /** How many time do we try to apply an edit before giving up. */
+	  private static final short MAX_ATTEMPTS_PUT = 6;
+	  /** Initial delay in ms for exponential backoff to retry failed RPCs. */
+	  private static final short INITIAL_EXP_BACKOFF_DELAY = 800;
+	  /** Maximum number of results to return in suggest(). */
+	  private static final short MAX_SUGGESTIONS = 25;
+	  
+	
 	
 //	/** A cache of already seen UIDs */
 //	protected final Set<String> seenUids = new HashSet<String>();
@@ -344,14 +368,84 @@ public class MetaSynchronizer {
 		log.info(tsMeta.toString());
 	}
 	
+	 private static byte[] toBytes(final String s) {
+		    return s.getBytes(CHARSET);
+		  }
+
+		  private static String fromBytes(final byte[] b) {
+		    return new String(b, CHARSET);
+		  }
 	
+	
+	  /**
+	   * Creates a scanner that scans the right range of rows for suggestions.
+	   * @param client The HBase client to use.
+	   * @param tsd_uid_table Table where IDs are stored.
+	   * @param search The string to start searching at
+	   * @param kind_or_null The kind of UID to search or null for any kinds.
+	   * @param max_results The max number of results to return
+	   */
+	  private static Scanner getSuggestScanner(final HBaseClient client,
+	      final byte[] tsd_uid_table, final String search,
+	      final byte[] kind_or_null, final int max_results) {
+	    final byte[] start_row;
+	    final byte[] end_row;
+	    if (search.isEmpty()) {
+	      start_row = START_ROW;
+	      end_row = END_ROW;
+	    } else {
+	      start_row = toBytes(search);
+	      end_row = Arrays.copyOf(start_row, start_row.length);
+	      end_row[start_row.length - 1]++;
+	    }
+	    final Scanner scanner = client.newScanner(tsd_uid_table);
+	    scanner.setStartKey(start_row);
+	    scanner.setStopKey(end_row);
+	    scanner.setFamily(ID_FAMILY);
+	    if (kind_or_null != null) {
+	      scanner.setQualifier(kind_or_null);
+	    }
+	    scanner.setMaxNumRows(max_results <= 4096 ? max_results : 4096);
+	    return scanner;
+	  }	
+	
+	public static long synchronize(final TSDB tsdb) {
+	    Scanner scanner = null;
+	    try {
+	      long num_rows = 0;
+	      scanner = getSuggestScanner(tsdb.getClient(), tsdb.uidTable(), "", null, 
+	          Integer.MAX_VALUE);
+	      for (ArrayList<ArrayList<KeyValue>> rows = scanner.nextRows().join();
+	          rows != null;
+	          rows = scanner.nextRows().join()) {
+	        for (final ArrayList<KeyValue> row : rows) {
+	          for (KeyValue kv: row) {
+	            final String name = fromBytes(kv.key());
+	            final byte[] kind = kv.qualifier();
+	            final byte[] id = kv.value();
+	            final String kindName = fromBytes(kind);
+	            if(!"metrics".equals(kindName)) continue;
+	            String tsuid = UniqueId.uidToString(id);
+	            System.out.println("Processing Name [" + tsuid + "]");
+	          }
+	          num_rows += row.size();
+	          row.clear();  // free()
+	        }
+	      }
+	      return num_rows;
+	    } catch (Exception ex) {
+	    	ex.printStackTrace(System.err);
+	    	throw new RuntimeException(ex);
+	    }
+	}
 	
 	// org.helios.tsdb.plugins.meta.MetaSynchronizer.synchronize(tsdb);
 	
-	public static long synchronize(final TSDB tsdb) {
+	public static long synchronizex(final TSDB tsdb) {
 		log.info("\n\tSTARTING METASYNC\n");
 		ThreadPoolExecutor tpe = null;
 		final AtomicLong tsMetaCounter = new AtomicLong(0L);
+		final AtomicLong errorCounter = new AtomicLong(0L);
 		final Set<Scanner> scanners = new HashSet<Scanner>();
 		try {
 			
@@ -407,11 +501,16 @@ public class MetaSynchronizer {
 										final int klength = kv.key().length;
 										final int vlength = kv.value().length;
 										try {
-//											if(vlength!=8) continue;
+											if(vlength!=8) continue;
 											final byte[] tsuid = UniqueId.getTSUIDFromKey(kv.key(), TSDB.metrics_width(), Const.TIMESTAMP_BYTES);
 											String tsuid_string = UniqueId.uidToString(tsuid);
-											TSMeta t = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(1000);
-//											TSMeta t = TSMeta.parseFromColumn(tsdb, kv, true).joinUninterruptibly(500);
+											TSMeta t = TSMeta.getTSMeta(tsdb, tsuid_string).joinUninterruptibly(5000);
+//											TSMeta t = TSMeta.parseFromColumn(tsdb, kv, true).joinUninterruptibly(5000);
+											if(t==null) {
+												log.error("Null TSMeta for tsuid: {}", tsuid_string);
+												errorCounter.incrementAndGet();
+												continue;
+											}
 											tsdb.indexUIDMeta(t.getMetric());
 											for(UIDMeta u: t.getTags()) {
 												tsdb.indexUIDMeta(u);
@@ -443,7 +542,7 @@ public class MetaSynchronizer {
 					if(lastRowSet.isEmpty()) break;
 					KeyValue kv = lastRowSet.get(lastRowSet.size()-1);
 					startKey = kv.key();
-					log.info("Row Count: {}, TSMeta Count: {}, Last Key: {}", rowCount, totalCount, Arrays.toString(startKey));
+					log.info("Row Count: {}, Error Count: {}, TSMeta Count: {}, Last Key: {}", rowCount, errorCounter, totalCount, Arrays.toString(startKey));
 				} catch (Exception ex) {
 					log.error("Unexpected exception in MetaSync", ex);
 					throw new RuntimeException("Unexpected exception in MetaSync", ex);

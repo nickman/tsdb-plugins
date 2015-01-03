@@ -742,7 +742,7 @@ public class Serializers {
 		
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta.class, new TSMetaD3Serializer());
 		TSDBTypeSerializer.D3.registerSerializer(TSMeta[].class, new TSMetaArrayD3Serializer());
-		TSDBTypeSerializer.D3.registerSerializer(new LinkedHashSet<TSMeta>(0).getClass(), new TSMetaCollectionD3Serializer());
+		// TSDBTypeSerializer.D3.registerSerializer(new LinkedHashSet<TSMeta>(0).getClass(), new TSMetaCollectionD3Serializer());
 		
 	}
 

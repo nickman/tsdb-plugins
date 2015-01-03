@@ -1326,11 +1326,20 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	 */
 	@Override
 	public void processTSMeta(final Set<String> batchUidPairs, Connection conn, TSMeta tsMeta) {
+		if(tsMeta==null) {
+			log.error("processTSMeta was passed a null TSMeta");
+			return;
+		}
 		if(exists(conn, tsMeta)) {
 			updateTSMeta(conn, tsMeta);
 			return;
 		} 
 		List<UIDMeta> uidMetas = tsMeta.getTags();
+		if(uidMetas==null) {
+			log.error("processTSMeta TSMeta had null tags: {}", tsMeta);
+			return;
+		}
+
 		uidMetas.add(tsMeta.getMetric());
 		preProcessUIDMeta(conn, uidMetas);
 		StringBuilder fqn = new StringBuilder(tsMeta.getMetric().getName()).append(":");
@@ -2626,16 +2635,48 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 	}
 	
 	/**
-	 * @return
-	 * @throws Exception
+	 * @return @return 0 if completed successfully, something else if it dies
+	 * @throws Exception on any unrecognized error
 	 */
 	public long synchronizeFromStore() throws Exception {
+		
+//		log.info("Starting synchronizeFromStore.....");
+//		final long start = System.currentTimeMillis();
+//		Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
+//		Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
+//		method.setAccessible(true);
+//		Number x = (Number)method.invoke(null, tsdb);
+//		long elapsed = System.currentTimeMillis() - start;
+//		log.info("metaSync complete in {}: {}", elapsed, x);
+//		
+//		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
+////		return ms.metasync();
+////		return MetaSynchronizer.synchronize(tsdb);
+//		
+//		long retVal = MetaSynchronizer.synchronize(tsdb);
+//		final long elapsed = System.currentTimeMillis() - start;
+//		if(retVal==0) {
+//			log.info("synchronizeFromStore Result: {}, Elapsed Time: {}", retVal, elapsed);
+//		} else {
+//			log.info("synchronizeFromStore failed with code: {}, Elapsed Time: {}", retVal, elapsed);
+//		}
+		return 0;
+
 //		try {
+//			log.info("Starting synchronizeFromStore.....");
+//			final long start = System.currentTimeMillis();
 //			Class<?> uidManagerClazz =  Class.forName("net.opentsdb.tools.UidManager");
 //			Method method = uidManagerClazz.getDeclaredMethod("metaSync", TSDB.class);
 //			method.setAccessible(true);
 //			Number x = (Number)method.invoke(null, tsdb);
-//			return x.longValue();
+//			long retVal = x.longValue();
+//			final long elapsed = System.currentTimeMillis() - start;
+//			if(retVal==0) {
+//				log.info("synchronizeFromStore Result: {}, Elapsed Time: {}", retVal, elapsed);
+//			} else {
+//				log.info("synchronizeFromStore failed with code: {}, Elapsed Time: {}", retVal, elapsed);
+//			}
+//			return retVal;
 //			//UIDManager.private static int metaSync(final TSDB tsdb) 
 //		} catch (Exception ex) {
 //			Throwable t = ex.getCause();
@@ -2649,10 +2690,6 @@ public abstract class AbstractDBCatalog implements CatalogDBInterface, CatalogDB
 //			log.error("Failed to run SynchronizeFromStore", ex);
 //			throw ex;
 //		}
-//		MetaSynchronizer ms = new MetaSynchronizer(tsdb);
-//		return ms.metasync();
-		//return MetaSynchronizer.synchronize(tsdb);
-		return 0;
 		
 	}
 	

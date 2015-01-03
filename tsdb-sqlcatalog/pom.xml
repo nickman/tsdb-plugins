@@ -59,6 +59,7 @@
 	  	Need to implement plugin support path to get rid of this 
 	  <scope>provided</scope>
 	  -->
+	  <scope>provided</scope>
     </dependency>
 
    	<dependency>

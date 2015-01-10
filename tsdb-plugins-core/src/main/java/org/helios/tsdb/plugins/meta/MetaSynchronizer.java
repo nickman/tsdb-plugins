@@ -138,9 +138,8 @@ public class MetaSynchronizer {
 							return t;
 						}
 					});
-					for(int x = 0; x < Runtime.getRuntime().availableProcessors(); x++) {
-						threadPool.prestartCoreThread();
-					}
+					threadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+					threadPool.prestartAllCoreThreads();					
 				}
 			}
 		}
@@ -152,7 +151,7 @@ public class MetaSynchronizer {
 	
 	/**
 	 * Runs the meta synchronization
-	 * @param knownTsuids A set of the TSUIDs already in the SQL Catalog Database
+	 * @param seenTSUids A set of the TSUIDs already in the SQL Catalog Database
 	 * @param scanTimeOutMs The scanner timeout in ms.
 	 * @param getTSMetaTimeOutMs The get TSMeta timeout in ms.
 	 * @return the number of TSMeta objects processed

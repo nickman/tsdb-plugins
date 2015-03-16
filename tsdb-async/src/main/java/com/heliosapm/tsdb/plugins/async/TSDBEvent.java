@@ -22,11 +22,12 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org. 
  *
  */
-package org.helios.tsdb.plugins.event;
+package com.heliosapm.tsdb.plugins.async;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import reactor.fn.Supplier;
 import net.opentsdb.meta.Annotation;
 import net.opentsdb.meta.TSMeta;
 import net.opentsdb.meta.UIDMeta;
@@ -38,13 +39,13 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: TSDBEvent</p>
- * <p>Description: Encapsulates an OpenTSDB callback to a plugin</p> 
+ * <p>Description: The event wrapper for all propagated TSDB plugin callbacks.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.tsdb.plugins.event.TSDBEvent</code></p>
+ * <p><code>com.heliosapm.tsdb.plugins.async.TSDBEvent</code></p>
  */
 
-public class TSDBEvent  {
+public class TSDBEvent {
 	/** The event type */
 	public TSDBEventType eventType;
 	/** The metric name for data point publications */
@@ -116,12 +117,12 @@ public class TSDBEvent  {
 	}
 	
 	 /** The event factory for TSDBEvents */
-	public final static EventFactory<TSDBEvent> EVENT_FACTORY = new EventFactory<TSDBEvent>() {
-		 @Override
-		public TSDBEvent newInstance() {
-			 return new TSDBEvent();
-		 }
-	 };
+	public final static Supplier<TSDBEvent> EVENT_FACTORY = new Supplier<TSDBEvent>() {
+		@Override
+		public TSDBEvent get() {
+			return new TSDBEvent();
+		}
+	};
 	 
 	/**
 	 * Loads this event for a search event
@@ -238,6 +239,17 @@ public class TSDBEvent  {
 		this.tags = new LinkedHashMap<String, String>(tags);
 		this.tsuidBytes = tsuid;
 		this.tsuid = UniqueId.uidToString(tsuid);
+		return this;
+	}
+	
+	/**
+	 * Loads this event for the publication of a new annotation
+	 * @param annotation The annotation to be published
+	 * @return this event
+	 */
+	public TSDBEvent publishAnnotation(final Annotation annotation) {
+		this.eventType = TSDBEventType.ANNOTATION;
+		this.annotation = annotation;
 		return this;
 	}
 

@@ -11,6 +11,7 @@
 	
 	<modules>
 		<module>tsdb-plugins-core</module>
+		<module>tsdb-async</module>
 		<module>tsdb-sqlcatalog</module>
 		<module>tsdb-client</module>
 		<!--
@@ -62,6 +63,7 @@
 		<phoenix.version>4.0.0-incubating</phoenix.version>
 		<chronicle.version>3.2.1</chronicle.version>
 		<reactor.version>1.1.5.RELEASE</reactor.version>
+		<opentsdb-fatjar.version>2.1.0RC1</opentsdb-fatjar.version>
 		<!-- Plugin Versions -->
 		<jar-plugin.version>2.3</jar-plugin.version>
 		<source-plugin.version>2.2</source-plugin.version>
@@ -120,6 +122,14 @@
 		  <classifier>tests</classifier>
 		  <scope>test</scope>
 		</dependency>    
+
+        <dependency>
+		  <groupId>net.opentsdb</groupId>
+		  <artifactId>opentsdb-fatjar</artifactId>
+		  <version>${opentsdb-fatjar.version}</version>
+		  <scope>test</scope>
+        </dependency>
+
 		
 
       <!-- ==========================================================
@@ -327,12 +337,13 @@
 		  <version>${jmx-optional.version}</version>
 		</dependency>
 
+<!--
 		<dependency>
 			<groupId>org.helios.jmx-tools</groupId>
 			<artifactId>jmx-core</artifactId>
 		  	<version>${jmx-tools.version}</version>
 		</dependency>
-
+-->
 
 	      <!-- ==========================================================
 			Apache Phoenix (HBase JDBC)

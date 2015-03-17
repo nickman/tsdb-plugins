@@ -27,15 +27,19 @@ package test.com.heliosapm.tsdb.plugins.async;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.management.ManagementFactory;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import javax.management.remote.JMXConnectorServer;
+import javax.management.remote.JMXConnectorServerFactory;
+import javax.management.remote.JMXServiceURL;
+
 import net.opentsdb.search.SearchPlugin;
 import net.opentsdb.tsd.RTPublisher;
-import net.opentsdb.tsd.RpcPlugin;
 
 import org.reactivestreams.Publisher;
 
@@ -79,6 +83,7 @@ public class RunTSDBWithNoopEventConsumers {
 		System.setProperty("tools-level", "DEBUG");
 		File searchPluginJar = createPluginJar(DelegatingSearchPlugin.class);
 		File publisherPluginJar = createPluginJar(DelegatingRTPublisher.class);
+		addConfigProp("tsdb.asyncprocessor.consumers", "test.com.heliosapm.tsdb.plugins.async.EventCountingTSDBEventConsumer");
 		final String[] tsdbArgs = new String[]{
 			"tsd",
 			"--auto-metric",
@@ -92,10 +97,58 @@ public class RunTSDBWithNoopEventConsumers {
 			"--search",
 			"--search-plugin ",  DelegatingSearchPlugin.class.getName(),
 			"--fixdups",
-			"--ignore-existing-pid"
+			"--ignore-existing-pid",
+			configFile==null ? "" : "--config",
+			configFile==null ? "" : configFile.getAbsolutePath()
 		};
+		// tsdb.asyncprocessor.consumers
+		startJMXMP();
 		log("Starting OpenTSDB.....");
 		net.opentsdb.tools.Main.main(tsdbArgs);
+	}
+	
+	private static volatile File configFile = null;
+	
+	public static void addConfigProp(final String key, final String value) {
+		if(configFile==null) {
+			try {
+				configFile = File.createTempFile("tsdb-", ".conf");
+				configFile.deleteOnExit();
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+		}
+		FileOutputStream fos = null;
+		try {
+			fos = new FileOutputStream(configFile, true);
+			fos.write((key + "=" + value + "\n").getBytes());
+			fos.flush();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		} finally {
+			if(fos!=null) try { fos.close(); } catch (Exception x) {/* No Op */}
+		}
+	}
+	
+	public static void startJMXMP() {
+		try {
+			final JMXServiceURL surl = new JMXServiceURL("service:jmx:jmxmp://0.0.0.0:8456");
+			final JMXConnectorServer server = JMXConnectorServerFactory.newJMXConnectorServer(surl, null, ManagementFactory.getPlatformMBeanServer());
+			Thread t = new Thread() {
+				public void run() {
+					try {
+						server.start();
+						log("JMXMP Server Started on [%s]", surl);
+					} catch (Exception ex) {
+						ex.printStackTrace(System.err);
+					}
+				}
+			};
+			t.setDaemon(true);
+			t.start();
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
 	}
 	
 	/**

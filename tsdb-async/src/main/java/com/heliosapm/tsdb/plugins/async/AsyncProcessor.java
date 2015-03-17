@@ -24,12 +24,18 @@
  */
 package com.heliosapm.tsdb.plugins.async;
 
+import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import javax.management.ObjectName;
 
 import net.opentsdb.core.TSDB;
 import net.opentsdb.meta.Annotation;
@@ -56,13 +62,13 @@ import com.stumbleupon.async.Deferred;
 
 /**
  * <p>Title: AsyncProcessor</p>
- * <p>Description: </p> 
+ * <p>Description: The main Async TSDB Event acceptor and router to registered event consumers.</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>com.heliosapm.tsdb.plugins.async.AsyncProcessor</code></p>
  */
 
-public class AsyncProcessor implements Consumer<TSDBEvent> {
+public class AsyncProcessor implements Consumer<TSDBEvent>, AsyncProcessorMBean {
 	/** The singleton instance */
 	private static volatile AsyncProcessor instance = null;
 	/** The singleton instance ctor lock */
@@ -82,29 +88,11 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 	protected final Map<TSDBEventType, Set<Counter>> eventsReceivedCounter = new EnumMap<TSDBEventType, Set<Counter>>(TSDBEventType.class);
 	/** Events consumed counter */
 	protected final Map<TSDBEventType, Counter> eventsConsumedCounter = new EnumMap<TSDBEventType, Counter>(TSDBEventType.class);
+	/** The processor's executor which we need to acquire reflectively since it's private */
+	protected final ThreadPoolExecutor executor;
 	
 	
 	
-	/** The config property for the processor's data buffer size */
-	public static final String CONFIG_DATA_BUFFER_SIZE = "tsdb.asyncprocessor.databuffersize";
-	/** The default processor's data buffer size */
-	public static final int DEFAULT_DATA_BUFFER_SIZE = 1024;
-	/** The config property for the processor's wait strategy name */
-	public static final String CONFIG_WAIT_STRATEGY = "tsdb.asyncprocessor.waitstrategy";
-	/** The default processor's wait strategy name */
-	public static final WaitStrategy DEFAULT_WAIT_STRATEGY = WaitStrategyFactories.BLOCK.create();
-	/** The config property for the processor's wait strategy parameters as comma separated strings */
-	public static final String CONFIG_WAIT_STRATEGY_PARAM = "tsdb.asyncprocessor.waitstrategy.params";
-	/** The default processor's wait strategy name */
-	public static final String DEFAULT_WAIT_STRATEGY_PARAM = "";
-	/** The config property for the processor's pre-defined event consumers as consumer class names in comma separated strings */
-	public static final String CONFIG_CONSUMERS = "tsdb.asyncprocessor.consumers";
-	/** The default processor's consumers as consumer class names in comma separated strings */
-	public static final String DEFAULT_CONSUMERS = "";
-	/** The config property name indicating if a halting exception should be thrown if configured consumers cannot be loaded */
-	public static final String CONFIG_FAIL_ON_CONSUMER_LOAD = "tsdb.asyncprocessor.consumers.failenabled";
-	/** The default processor's fail on consumer load */
-	public static final boolean DEFAULT_FAIL_ON_CONSUMER_LOAD = true;
 	
 	
 	/**
@@ -119,6 +107,11 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 				if(instance==null) {
 					if(tsdb==null) throw new IllegalArgumentException("The passed TSDB was null");
 					instance = new AsyncProcessor(tsdb);
+					try {
+						ManagementFactory.getPlatformMBeanServer().registerMBean(instance, OBJECT_NAME);
+					} catch (Exception ex) {
+						instance.log.warn("Failed to register JMX interface for [{}]. Continuing without.", OBJECT_NAME, ex);
+					}
 				}
 			}
 		}
@@ -135,7 +128,7 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 		log = LoggerFactory.getLogger(getClass());
 		this.tsdb = tsdb;
 		final DefaultedConfig dconfig = new DefaultedConfig(tsdb.getConfig());
-		eventConsumers.addAll(dconfig.getEventConsumers());
+		eventConsumers.addAll(dconfig.getEventConsumers(this.tsdb));
 		final int dataBufferSize = dconfig.getInt(CONFIG_DATA_BUFFER_SIZE, DEFAULT_DATA_BUFFER_SIZE);
 		final WaitStrategy waitStrategy = dconfig.getWaitStrategy(CONFIG_WAIT_STRATEGY, DEFAULT_WAIT_STRATEGY);				
 		for(TSDBEventType type: TSDBEventType.values()) {
@@ -149,6 +142,20 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 			.consume(this)
 			.waitStrategy(waitStrategy)
 			.get();		
+		executor = getExecutor();
+	}
+	
+	private ThreadPoolExecutor getExecutor() {
+		ThreadPoolExecutor tpe = null;
+		try {
+			Field f = processor.getClass().getDeclaredField("executor");
+			f.setAccessible(true);
+			tpe = (ThreadPoolExecutor)f.get(processor);
+			f.setAccessible(false);
+		} catch (Exception ex) {
+			tpe = null;
+		}
+		return tpe;
 	}
 	
 	/**
@@ -156,6 +163,7 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 	 */
 	public void shutdown() {
 		processor.shutdown();
+		try { ManagementFactory.getPlatformMBeanServer().unregisterMBean(OBJECT_NAME); } catch (Exception x) {/* No Op */}
 	}
 	
 	/**
@@ -171,6 +179,35 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 			collector.record("events.received." + entry.getKey().name(), total, "pluginimpl=AsyncProcessor");
 		}
 	}
+	
+	/**
+	 * Returns the total number of events published through the AsyncProcessor
+	 * @return the total number of events published through the AsyncProcessor
+	 */
+	@Override
+	public long getTotalEventsPublished() {
+		long total = 0;
+		for(Map.Entry<TSDBEventType, Set<Counter>> entry: eventsReceivedCounter.entrySet()) {
+			for(Counter c: entry.getValue()) {
+				total += c.get();
+			}			
+		}
+		return total;		
+	}
+	
+	/**
+	 * Returns the total number of events consumed from the AsyncProcessor
+	 * @return the total number of events consumed from the AsyncProcessor
+	 */
+	@Override
+	public long getTotalEventsConsumed() {
+		long total = 0;
+		for(Map.Entry<TSDBEventType, Counter> entry: eventsConsumedCounter.entrySet()) {			
+				total += entry.getValue().get();
+		}
+		return total;		
+	}
+	
 	
 	/**
 	 * Registers a new consumer of {@link TSDBEvent}s
@@ -302,7 +339,7 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 					collector.record("events.received." + entry.getKey().name(), entry.getValue().get(), delegatePluginName);
 				}
 			}
-			if(!plugins.isEmpty() && this==plugins.get(0)) {
+			if(!plugins.isEmpty() && this.delegatePlugin==plugins.get(0)) {
 				collectProcessorStats(collector);
 			}			
 		}
@@ -505,7 +542,7 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 					collector.record("events.received." + entry.getKey().name(), entry.getValue().get(), delegatePluginName);
 				}
 			}
-			if(!plugins.isEmpty() && this==plugins.get(0)) {
+			if(!plugins.isEmpty() && this.delegatePlugin==plugins.get(0)) {
 				collectProcessorStats(collector);
 			}
 		}
@@ -598,10 +635,32 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 		}
 		
 		/**
+		 * Attempts to find a constructor accepting a {@link TSDB} as a parameter, 
+		 * then looks for a parameterless constructor, otherwise returns null.
+		 * @param clazz The class to find a constructor for
+		 * @return the located constructor, or null if one was not found.
+		 */
+		@SuppressWarnings("unchecked")
+		protected Constructor<? extends TSDBEventConsumer> getCtors(final Class<?> clazz) {
+			Constructor<? extends TSDBEventConsumer> ctor = null;
+			try {
+				ctor = (Constructor<? extends TSDBEventConsumer>) clazz.getDeclaredConstructor(TSDB.class);
+			} catch (Exception ex) {
+				try {
+					ctor = (Constructor<? extends TSDBEventConsumer>) clazz.getDeclaredConstructor();
+				} catch (Exception ex2) {
+					/* No Op */
+				}
+			}
+			return ctor;
+		}
+		
+		/**
 		 * Returns the configuration defines event consumers
+		 * @param tsdb The TSDB instance to initialize the consumer instances with
 		 * @return a [possibly empty] set of TSDBEvent consumer instances
 		 */
-		public final Set<TSDBEventConsumer> getEventConsumers() {
+		public final Set<TSDBEventConsumer> getEventConsumers(final TSDB tsdb) {
 			Set<TSDBEventConsumer> consumers = new HashSet<TSDBEventConsumer>();
 			final boolean failOnLoad = getBoolean(CONFIG_FAIL_ON_CONSUMER_LOAD, DEFAULT_FAIL_ON_CONSUMER_LOAD);
 			final String[] classNames = getString(CONFIG_CONSUMERS, DEFAULT_CONSUMERS).split(",");
@@ -614,7 +673,9 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 					if(!TSDBEventConsumer.class.isAssignableFrom(clazz)) {
 						throw new Exception("The class [" + className + "] does not implement " + TSDBEventConsumer.class.getName());
 					}
-					TSDBEventConsumer consumer = (TSDBEventConsumer)clazz.newInstance();
+					Constructor<? extends TSDBEventConsumer> ctor = getCtors(clazz);
+					if(ctor==null) throw new IllegalArgumentException("Failed to find a ctor for event consumer class [" + clazz.getName() + "]");
+					TSDBEventConsumer consumer = ctor.getParameterTypes().length==0 ? ctor.newInstance() : ctor.newInstance(tsdb);
 					consumers.add(consumer);
 				} catch (Exception ex) {
 					LOG.error("Failed to load TSDBEvent Consumer [{}]", className, ex);
@@ -694,12 +755,203 @@ public class AsyncProcessor implements Consumer<TSDBEvent> {
 				return defaultValue;
 			}
 		}
-		
-		
-		
-		
+	}
+
+	/**
+	 * Indicates if the processor's thread pool is shutdown
+	 * @return true if the processor's thread pool is shutdown, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isShutdown()
+	 */
+	@Override
+	public boolean isShutdown() {
+		return executor.isShutdown();
+	}
+
+	/**
+	 * Indicates if the processor's thread pool is terminating
+	 * @return true if the processor's thread pool is terminating, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isTerminating()
+	 */
+	@Override
+	public boolean isTerminating() {
+		return executor.isTerminating();
+	}
+
+	/**
+	 * Indicates if the processor's thread pool is terminated
+	 * @return true if the processor's thread pool, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#isTerminated()
+	 */
+	@Override
+	public boolean isTerminated() {
+		return executor.isTerminated();
+	}
+
+	/**
+	 * Sets the processor's thread pool core size
+	 * @param corePoolSize the new pool core size
+	 * @see java.util.concurrent.ThreadPoolExecutor#setCorePoolSize(int)
+	 */
+	@Override
+	public void setCorePoolSize(final int corePoolSize) {
+		executor.setCorePoolSize(corePoolSize);
+	}
+
+	/**
+	 * Returns the processor's thread pool core pool size
+	 * @return the core pool size
+	 * @see java.util.concurrent.ThreadPoolExecutor#getCorePoolSize()
+	 */
+	@Override
+	public int getCorePoolSize() {
+		return executor.getCorePoolSize();
+	}
+
+	/**
+	 * Indicates if the processor's thread pool allows core thread timeout
+	 * @return true if the processor's thread pool allows core thread timeout, false otherwise
+	 * @see java.util.concurrent.ThreadPoolExecutor#allowsCoreThreadTimeOut()
+	 */
+	@Override
+	public boolean isCoreThreadTimeOutAllowed() {
+		return executor.allowsCoreThreadTimeOut();
+	}
+
+	/**
+	 * Sets the processor's thread pool core thread timeout enablement
+	 * @param allow true to allow core thread timeout, false for core threads that stay alive until the thread pool terminate
+	 * @see java.util.concurrent.ThreadPoolExecutor#allowCoreThreadTimeOut(boolean)
+	 */
+	@Override
+	public void setCoreThreadTimeOutAllowed(final boolean allow) {
+		executor.allowCoreThreadTimeOut(allow);
+	}
+
+	/**
+	 * Sets the processor's thread pool max pool size
+	 * @param maximumPoolSize The max pool size
+	 * @see java.util.concurrent.ThreadPoolExecutor#setMaximumPoolSize(int)
+	 */
+	@Override
+	public void setMaximumPoolSize(final int maximumPoolSize) {
+		executor.setMaximumPoolSize(maximumPoolSize);
+	}
+
+	/**
+	 * Sets the processor's thread pool max pool size
+	 * @return tha max pool size
+	 * @see java.util.concurrent.ThreadPoolExecutor#getMaximumPoolSize()
+	 */
+	@Override
+	public int getMaximumPoolSize() {
+		return executor.getMaximumPoolSize();
+	}
+
+	/**
+	 * Sets the time limit for which threads may remain idle in the processor's thread pool before being terminated
+	 * @param time The time limit in ms.
+	 * @see java.util.concurrent.ThreadPoolExecutor#setKeepAliveTime(long, java.util.concurrent.TimeUnit)
+	 */
+	@Override
+	public void setKeepAliveTimeMs(final long time) {
+		executor.setKeepAliveTime(time, TimeUnit.MILLISECONDS);
+	}
+
+	/**
+	 * Returns the time limit for which threads may remain idle in the processor's thread pool before being terminated
+	 * @return the time limit in ms.
+	 * @see java.util.concurrent.ThreadPoolExecutor#getKeepAliveTime(java.util.concurrent.TimeUnit)
+	 */
+	@Override
+	public long getKeepAliveTimeMs() {
+		return executor.getKeepAliveTime(TimeUnit.MILLISECONDS);
+	}
+
+	/**
+	 * Returns the number of tasks queued in the processor's thread pool
+	 * @return the number of queued tasks
+	 */
+	@Override
+	public int getQueueDepth() {
+		return executor.getQueue().size();
 	}
 	
+	/**
+	 * Returns the number of free slots in the processor thread pool's task queue
+	 * @return the number of queue free slots
+	 */
+	@Override
+	public int getQueueFreeSlots() {
+		return executor.getQueue().remainingCapacity();
+	}
+	
+	/**
+	 * Returns the processor thread pool's task queue class name
+	 * @return the processor thread pool's task queue class name
+	 */
+	@Override
+	public String getQueueType() {
+		return executor.getQueue().getClass().getSimpleName();
+	}
+	
+
+	/**
+	 * Returns the processor's thread pool current pool size
+	 * @return the processor's thread pool current pool size
+	 * @see java.util.concurrent.ThreadPoolExecutor#getPoolSize()
+	 */
+	@Override
+	public int getPoolSize() {
+		return executor.getPoolSize();
+	}
+
+	/**
+	 * Returns the number of active tasks in the processor's thread pool
+	 * @return the number of active tasks
+	 * @see java.util.concurrent.ThreadPoolExecutor#getActiveCount()
+	 */
+	@Override
+	public int getActiveCount() {
+		return executor.getActiveCount();
+	}
+
+	/**
+	 * Returns the largest number of threads that have ever simultaneously been in the pool.
+	 * @return the thread highwater
+	 * @see java.util.concurrent.ThreadPoolExecutor#getLargestPoolSize()
+	 */
+	@Override
+	public int getLargestPoolSize() {
+		return executor.getLargestPoolSize();
+	}
+
+	/**
+	 * Returns the approximate total number of tasks that have ever been scheduled for execution. 
+	 * @return the number of tasks scheduled
+	 * @see java.util.concurrent.ThreadPoolExecutor#getTaskCount()
+	 */
+	@Override
+	public long getTaskCount() {
+		return executor.getTaskCount();
+	}
+
+	/**
+	 * Returns the approximate total number of tasks that have completed execution.
+	 * @return the number of tasks completed
+	 * @see java.util.concurrent.ThreadPoolExecutor#getCompletedTaskCount()
+	 */
+	@Override
+	public long getCompletedTaskCount() {
+		return executor.getCompletedTaskCount();
+	}
+
+	static ObjectName objectName(final CharSequence cs) {
+		try {
+			return new ObjectName(cs.toString().trim());
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
 	
 
 }

@@ -107,7 +107,15 @@
 	  <groupId>com.lmax</groupId>
 	  <artifactId>disruptor</artifactId>
 	</dependency>            
-    
+  
+    <!-- ==========================================================
+	JMX Support
+	  ========================================================== -->
+	<dependency>
+	  <groupId>org.jvnet.opendmk</groupId>
+	  <artifactId>jmxremote_optional</artifactId>
+	</dependency>
+
 	
     </dependencies>
 
